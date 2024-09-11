@@ -594,6 +594,15 @@ type DeployStatus string
 // DeployTrigger defines model for Deploy.Trigger.
 type DeployTrigger string
 
+// DeployList defines model for deployList.
+type DeployList = []DeployWithCursor
+
+// DeployWithCursor defines model for deployWithCursor.
+type DeployWithCursor struct {
+	Cursor *Cursor `json:"cursor,omitempty"`
+	Deploy *Deploy `json:"deploy,omitempty"`
+}
+
 // DiskSnapshot defines model for diskSnapshot.
 type DiskSnapshot struct {
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
@@ -1482,6 +1491,9 @@ type ServiceLink struct {
 	Type ServiceTypeShort `json:"type"`
 }
 
+// ServiceList defines model for serviceList.
+type ServiceList = []ServiceWithCursor
+
 // ServicePATCH defines model for servicePATCH.
 type ServicePATCH struct {
 	AutoDeploy     *AutoDeploy                  `json:"autoDeploy,omitempty"`
@@ -1532,6 +1544,12 @@ type ServiceType string
 
 // ServiceTypeShort defines model for serviceTypeShort.
 type ServiceTypeShort string
+
+// ServiceWithCursor defines model for serviceWithCursor.
+type ServiceWithCursor struct {
+	Cursor  *Cursor  `json:"cursor,omitempty"`
+	Service *Service `json:"service,omitempty"`
+}
 
 // SnapshotRestorePOST defines model for snapshotRestorePOST.
 type SnapshotRestorePOST struct {
