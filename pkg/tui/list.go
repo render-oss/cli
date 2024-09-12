@@ -62,15 +62,15 @@ func (m listModel) View() string {
 	return docStyle.Render(m.list.View())
 }
 
-func SelectFromList[T any](title string, items []T, labelFunc func(T) string) (string, error) {
+func SelectFromList[T any](title string, items []T, printLineFunc func(T) string) (string, error) {
 	listItems := make([]list.Item, len(items))
 	for i, it := range items {
-		listItems[i] = list.Item(item{title: labelFunc(it)})
+		listItems[i] = list.Item(item{title: printLineFunc(it)})
 	}
 
 	model := NewList(title, listItems)
 	p := tea.NewProgram(model)
-	m, err := p.StartReturningModel()
+	m, err := p.Run()
 	if err != nil {
 		return "", fmt.Errorf("error running program: %v", err)
 	}

@@ -20,7 +20,7 @@ func GetServiceID(ctx context.Context, c *client.ClientWithResponses, idFlag, na
 	}
 
 	if nameFlag == "" {
-		return "", fmt.Errorf("either --id or --name must be provided")
+
 	}
 
 	services, err := resource.ServicesForInput(ctx, c, &resource.ServiceListInput{Name: nameFlag})
