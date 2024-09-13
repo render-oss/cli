@@ -27,6 +27,8 @@ type TableModel[T any] struct {
 	loadFunc   func() ([]T, error)
 	selectFunc func(T) tea.Cmd
 	filterFunc func(T, string) bool
+
+	actionStyle lipgloss.Style
 }
 
 func NewTableModel[T any](
@@ -38,13 +40,14 @@ func NewTableModel[T any](
 	filterFunc func(T, string) bool,
 ) *TableModel[T] {
 	m := &TableModel[T]{
-		name:       name,
-		formatFunc: formatFunc,
-		loadFunc:   loadFunc,
-		selectFunc: selectFunc,
-		filterFunc: filterFunc,
-		columns:    columns,
-		loading:    true,
+		name:        name,
+		formatFunc:  formatFunc,
+		loadFunc:    loadFunc,
+		selectFunc:  selectFunc,
+		filterFunc:  filterFunc,
+		columns:     columns,
+		loading:     true,
+		actionStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("241")),
 	}
 
 	m.initSpinner()
@@ -247,7 +250,16 @@ func (m *TableModel[T]) View() string {
 
 	if m.searching {
 		view.WriteString(fmt.Sprintf("Search: %s\n", m.searchInput.View()))
+	} else {
+		view.WriteString(m.renderActions())
 	}
 
 	return view.String()
+}
+
+func (m *TableModel[T]) renderActions() string {
+	actions := []string{
+		m.actionStyle.Render("/ Search"),
+	}
+	return strings.Join(actions, "  ")
 }
