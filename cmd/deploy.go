@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -52,7 +54,15 @@ func renderDeploys(serviceID string) tea.Model {
 		}
 	}
 
-	return tui.NewTableModel[*client.Deploy]("deploys", func() ([]*client.Deploy, error) { return deployRepo.ListDeploysForService(serviceID) }, fmtFunc, selectFunc, columns)
+	filterFunc := func(a *client.Deploy, filter string) bool {
+		bytes, err := json.Marshal(a)
+		if err != nil {
+			return false
+		}
+		return strings.Contains(string(bytes), filter)
+	}
+
+	return tui.NewTableModel[*client.Deploy]("deploys", func() ([]*client.Deploy, error) { return deployRepo.ListDeploysForService(serviceID) }, fmtFunc, selectFunc, columns, filterFunc)
 }
 
 func refForDeploy(deploy *client.Deploy) string {
