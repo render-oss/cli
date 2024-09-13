@@ -2,9 +2,11 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -17,64 +19,38 @@ type TableModel[T any] struct {
 	loadFunc   func() ([]T, error)
 	selectFunc func(T) tea.Cmd
 
-	data       []T
-	name       string
-	table      table.Model
-	spinner    spinner.Model
-	SelectedID string
+	filterFunc    func(T, string) bool
+	currentFilter string
+
+	data         []T
+	filteredData []T
+	name         string
+	table        table.Model
+	spinner      spinner.Model
+	SelectedID   string
+	searchInput  textinput.Model
+	searching    bool
 }
 
-func NewTableModel[T any](name string, loadFunc func() ([]T, error), formatFunc func(T) table.Row, selectFunc func(T) tea.Cmd, columns []table.Column) *TableModel[T] {
+func NewTableModel[T any](
+	name string,
+	loadFunc func() ([]T, error),
+	formatFunc func(T) table.Row,
+	selectFunc func(T) tea.Cmd,
+	columns []table.Column,
+	filterFunc func(T, string) bool,
+) *TableModel[T] {
 	spin := spinner.New()
 	spin.Spinner = spinner.Dot
 	spin.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	return &TableModel[T]{
-		name:       name,
-		formatFunc: formatFunc,
-		loadFunc:   loadFunc,
-		selectFunc: selectFunc,
-		columns:    columns,
-		spinner:    spin,
-		loading:    true,
-	}
-}
 
-func (m *TableModel[T]) loadDeploys() tea.Msg {
-	data, err := m.loadFunc()
-	if err != nil {
-		return loadedErrMsg(err)
-	}
-
-	m.data = data
-	return loadDataMsg[T](data)
-}
-
-type loadDataMsg[T any] []T
-type loadedErrMsg error
-
-func (m *TableModel[T]) Init() tea.Cmd {
-	return tea.Batch(m.spinner.Tick, m.loadDeploys)
-}
-
-type Column struct {
-	Title string
-	Width int
-}
-
-func (m *TableModel[T]) setTableData(msg loadDataMsg[T]) *TableModel[T] {
-	var rows []table.Row
-	for _, d := range msg {
-		rows = append(rows, m.formatFunc(d))
-	}
-
-	tuiColumns := make([]table.Column, len(m.columns))
-	for i, c := range m.columns {
-		tuiColumns[i] = table.Column{Title: c.Title, Width: c.Width}
-	}
+	ti := textinput.New()
+	ti.Placeholder = "Search..."
+	ti.CharLimit = 156
+	ti.Width = 20
 
 	t := table.New(
-		table.WithColumns(tuiColumns),
-		table.WithRows(rows),
+		table.WithColumns(columns),
 		table.WithFocused(true),
 		table.WithHeight(10),
 	)
@@ -89,46 +65,147 @@ func (m *TableModel[T]) setTableData(msg loadDataMsg[T]) *TableModel[T] {
 		Background(lipgloss.Color("57")).
 		Bold(false)
 	t.SetStyles(s)
-	m.table = t
+
+	return &TableModel[T]{
+		name:        name,
+		formatFunc:  formatFunc,
+		loadFunc:    loadFunc,
+		selectFunc:  selectFunc,
+		filterFunc:  filterFunc,
+		columns:     columns,
+		spinner:     spin,
+		searchInput: ti,
+		table:       t,
+		loading:     true,
+	}
+}
+
+func (m *TableModel[T]) Init() tea.Cmd {
+	return tea.Batch(m.spinner.Tick, m.loadData)
+}
+
+func (m *TableModel[T]) loadData() tea.Msg {
+	data, err := m.loadFunc()
+	if err != nil {
+		return loadedErrMsg(err)
+	}
+	return loadDataMsg[T](data)
+}
+
+type loadDataMsg[T any] []T
+type loadedErrMsg error
+
+func (m *TableModel[T]) setTableData(msg loadDataMsg[T]) {
+	m.data = msg
+	m.filteredData = msg
+	m.updateTableRows()
 	m.loading = false
-	return m
+}
+
+func (m *TableModel[T]) updateTableRows() {
+	var rows []table.Row
+	for _, d := range m.filteredData {
+		rows = append(rows, m.formatFunc(d))
+	}
+	m.table.SetRows(rows)
 }
 
 func (m *TableModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case loadDataMsg[T]:
-		return m.setTableData(msg), nil
+		m.setTableData(msg)
+		return m, nil
 	case loadedErrMsg:
 		m.loading = false
 		return m, tea.Quit
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc":
-			if m.table.Focused() {
+			if m.searching {
+				m.searching = false
+				m.searchInput.Blur()
+				m.currentFilter = ""
+				m.filteredData = m.data
+				m.updateTableRows()
+			} else if m.table.Focused() {
 				m.table.Blur()
 			} else {
 				m.table.Focus()
 			}
-		case "enter":
-			for _, datum := range m.data {
-				if m.formatFunc(datum)[0] == m.table.SelectedRow()[0] {
-					return m, m.selectFunc(datum)
-				}
+		case "/":
+			if !m.searching {
+				m.searching = true
+				m.searchInput.Focus()
+				return m, textinput.Blink
 			}
+		case "enter":
+			if m.searching {
+				m.searching = false
+				m.searchInput.Blur()
+			}
+			return m, m.selectCurrentRow()
+		case "up", "down":
+			m.table, cmd = m.table.Update(msg)
+			return m, cmd
 		}
 	}
+
 	if m.loading {
 		m.spinner, cmd = m.spinner.Update(msg)
+	} else if m.searching {
+		m.searchInput, cmd = m.searchInput.Update(msg)
+		m.currentFilter = m.searchInput.Value()
+		m.filteredData = m.filterData(m.currentFilter)
+		m.updateTableRows()
+		// Ensure table keeps focus for navigation
+		m.table.Focus()
 	} else {
 		m.table, cmd = m.table.Update(msg)
 	}
 	return m, cmd
 }
 
+func (m *TableModel[T]) selectCurrentRow() tea.Cmd {
+	if len(m.table.SelectedRow()) > 0 {
+		for _, datum := range m.filteredData {
+			if m.formatFunc(datum)[0] == m.table.SelectedRow()[0] {
+				return m.selectFunc(datum)
+			}
+		}
+	}
+	return nil
+}
+
+func (m *TableModel[T]) filterData(query string) []T {
+	if query == "" {
+		return m.data
+	}
+	var filtered []T
+	for _, item := range m.data {
+		if m.filterFunc(item, strings.ToLower(query)) {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}
+
 func (m *TableModel[T]) View() string {
 	if m.loading {
 		return fmt.Sprintf("\n\n   %s Loading %s...\n\n", m.spinner.View(), m.name)
 	}
-	return baseStyle.Render(m.table.View()) + "\n"
+
+	var view strings.Builder
+
+	// Render the table
+	view.WriteString(baseStyle.Render(m.table.View()))
+	view.WriteString("\n\n")
+
+	// Render the search input and current filter at the bottom
+	if m.searching {
+		view.WriteString(fmt.Sprintf("Search: %s\n", m.searchInput.View()))
+	}
+
+	return view.String()
 }
