@@ -1,70 +1,45 @@
 package services
 
 import (
+	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/renderinc/render-cli/pkg/client"
 )
 
-func NewServiceRepo(client *http.Client, server string, token string) *ServiceRepo {
-	return &ServiceRepo{server: server, client: client, token: token}
+func NewServiceRepo(c *client.ClientWithResponses) *ServiceRepo {
+	return &ServiceRepo{c: c}
 }
 
 type ServiceRepo struct {
-	server string
-	client *http.Client
-	token  string
+	c *client.ClientWithResponses
 }
 
-func (s *ServiceRepo) ListServices() ([]*client.Service, error) {
-	req, err := client.NewListServicesRequest(s.server, nil)
+func (s *ServiceRepo) ListServices(ctx context.Context) ([]*client.Service, error) {
+	services, err := s.c.ListServicesWithResponse(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := s.makeRequest(req)
-	if err != nil {
-		return nil, err
+	if services.JSON200 == nil {
+		return nil, fmt.Errorf("unexpected response: %v", services.Status())
 	}
 
-	serviceResponse, err := client.ParseListServicesResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	if serviceResponse.JSON200 == nil {
-		return nil, fmt.Errorf("unexpected response: %v", serviceResponse.Status())
-	}
-
-	result := make([]*client.Service, 0, len(*serviceResponse.JSON200))
-	for _, deploy := range *serviceResponse.JSON200 {
+	result := make([]*client.Service, 0, len(*services.JSON200))
+	for _, deploy := range *services.JSON200 {
 		result = append(result, deploy.Service)
 	}
 
 	return result, nil
 }
 
-func (s *ServiceRepo) DeployService(svc *client.Service) (*client.Deploy, error) {
-	req, err := client.NewCreateDeployRequest(
-		s.server,
-		svc.Id,
-		client.CreateDeployJSONRequestBody{
-			ClearCache: nil,
-			CommitId:   nil,
-			ImageUrl:   nil,
-		},
+func (s *ServiceRepo) DeployService(ctx context.Context, svc *client.Service) (*client.Deploy, error) {
+	deployResponse, err := s.c.CreateDeployWithResponse(ctx, svc.Id, client.CreateDeployJSONRequestBody{
+		ClearCache: nil,
+		CommitId:   nil,
+		ImageUrl:   nil,
+	},
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := s.makeRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	deployResponse, err := client.ParseCreateDeployResponse(resp)
 	if err != nil {
 		return nil, err
 	}
