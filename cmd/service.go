@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/render-cli/pkg/client"
+	"github.com/renderinc/render-cli/pkg/deploy"
 	"github.com/renderinc/render-cli/pkg/services"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
@@ -62,7 +63,26 @@ func renderServices(stack *tui.StackModel) {
 		return strings.Contains(strings.ToLower(string(bytes)), filter)
 	}
 
-	m := tui.NewTableModel[*client.Service]("services", serviceRepo.ListServices, fmtFunc, selectFunc, columns, filterFunc)
+	m := tui.NewTableModel[*client.Service](
+		"services",
+		serviceRepo.ListServices,
+		fmtFunc,
+		selectFunc,
+		columns,
+		filterFunc,
+		[]tui.CustomOption[*client.Service]{
+			{
+				Key:   "d",
+				Title: "Deploy",
+				Function: func(service *client.Service) tui.CustomAction {
+					return &deploy.Action{
+						Service: service,
+						Repo:    serviceRepo,
+					}
+				},
+			},
+		},
+	)
 	stack.Push(m)
 }
 

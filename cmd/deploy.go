@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/render-cli/pkg/client"
-	"github.com/renderinc/render-cli/pkg/deploys"
+	"github.com/renderinc/render-cli/pkg/deploy"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
 )
@@ -37,7 +37,7 @@ var deployCmd = &cobra.Command{
 }
 
 func renderDeploys(serviceID string) tea.Model {
-	deployRepo := deploys.NewDeployRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
+	deployRepo := deploy.NewDeployRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
 	columns := []table.Column{
 		{Title: "ID", Width: 25},
 		{Title: "Commit Message", Width: 40},
@@ -62,7 +62,15 @@ func renderDeploys(serviceID string) tea.Model {
 		return strings.Contains(string(bytes), filter)
 	}
 
-	return tui.NewTableModel[*client.Deploy]("deploys", func() ([]*client.Deploy, error) { return deployRepo.ListDeploysForService(serviceID) }, fmtFunc, selectFunc, columns, filterFunc)
+	return tui.NewTableModel[*client.Deploy](
+		"deploys",
+		func() ([]*client.Deploy, error) { return deployRepo.ListDeploysForService(serviceID) },
+		fmtFunc,
+		selectFunc,
+		columns,
+		filterFunc,
+		[]tui.CustomOption[*client.Deploy]{},
+	)
 }
 
 func refForDeploy(deploy *client.Deploy) string {

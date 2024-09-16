@@ -11,6 +11,20 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+var baseStyle = lipgloss.NewStyle().
+	BorderStyle(lipgloss.NormalBorder()).
+	BorderForeground(lipgloss.Color("240"))
+
+type CustomAction interface {
+	Execute() (tea.Model, tea.Cmd)
+}
+
+type CustomOption[T any] struct {
+	Key      string
+	Title    string
+	Function func(T) CustomAction
+}
+
 type TableModel[T any] struct {
 	name          string
 	loading       bool
@@ -28,6 +42,8 @@ type TableModel[T any] struct {
 	selectFunc func(T) tea.Cmd
 	filterFunc func(T, string) bool
 
+	customOptions []CustomOption[T]
+
 	actionStyle lipgloss.Style
 }
 
@@ -38,16 +54,18 @@ func NewTableModel[T any](
 	selectFunc func(T) tea.Cmd,
 	columns []table.Column,
 	filterFunc func(T, string) bool,
+	customOptions []CustomOption[T],
 ) *TableModel[T] {
 	m := &TableModel[T]{
-		name:        name,
-		formatFunc:  formatFunc,
-		loadFunc:    loadFunc,
-		selectFunc:  selectFunc,
-		filterFunc:  filterFunc,
-		columns:     columns,
-		loading:     true,
-		actionStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("241")),
+		name:          name,
+		formatFunc:    formatFunc,
+		loadFunc:      loadFunc,
+		selectFunc:    selectFunc,
+		filterFunc:    filterFunc,
+		columns:       columns,
+		loading:       true,
+		actionStyle:   lipgloss.NewStyle().Foreground(lipgloss.Color("241")),
+		customOptions: customOptions,
 	}
 
 	m.initSpinner()
@@ -137,6 +155,19 @@ func (m *TableModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m.updateComponents(msg)
 }
 
+func (m *TableModel[T]) executeCustomOption(option CustomOption[T]) (tea.Model, tea.Cmd) {
+	selectedRow := m.table.SelectedRow()
+	if len(selectedRow) > 0 {
+		for _, datum := range m.filteredData {
+			if m.formatFunc(datum)[0] == selectedRow[0] {
+				action := option.Function(datum)
+				return action.Execute()
+			}
+		}
+	}
+	return m, nil
+}
+
 func (m *TableModel[T]) updateSearching(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.searchInput, cmd = m.searchInput.Update(msg)
@@ -169,6 +200,12 @@ func (m *TableModel[T]) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.table, cmd = m.table.Update(msg)
 		return m, cmd
+	default:
+		for _, option := range m.customOptions {
+			if msg.String() == option.Key {
+				return m.executeCustomOption(option)
+			}
+		}
 	}
 	return m, nil
 }
@@ -260,6 +297,9 @@ func (m *TableModel[T]) View() string {
 func (m *TableModel[T]) renderActions() string {
 	actions := []string{
 		m.actionStyle.Render("/ Search"),
+	}
+	for _, option := range m.customOptions {
+		actions = append(actions, m.actionStyle.Render(fmt.Sprintf("%s %s", option.Key, option.Title)))
 	}
 	return strings.Join(actions, "  ")
 }
