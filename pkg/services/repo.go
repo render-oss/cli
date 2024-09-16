@@ -23,11 +23,12 @@ func (s *ServiceRepo) ListServices() ([]*client.Service, error) {
 		return nil, err
 	}
 
-	req.Header.Add("authorization", fmt.Sprintf("Bearer %s", s.token))
+	resp, err := s.makeRequest(req)
+	if err != nil {
+		return nil, err
+	}
 
-	res, err := s.client.Do(req)
-
-	deployResponse, err := client.ParseListServicesResponse(res)
+	deployResponse, err := client.ParseListServicesResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -42,4 +43,40 @@ func (s *ServiceRepo) ListServices() ([]*client.Service, error) {
 	}
 
 	return result, nil
+}
+
+func (s *ServiceRepo) DeployService(svc *client.Service) (*client.Deploy, error) {
+	req, err := client.NewCreateDeployRequest(
+		s.server,
+		svc.Id,
+		client.CreateDeployJSONRequestBody{
+			ClearCache: nil,
+			CommitId:   nil,
+			ImageUrl:   nil,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := s.makeRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	deployResponse, err := client.ParseCreateDeployResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if deployResponse.JSON201 == nil {
+		return nil, fmt.Errorf("unexpected response: %v", deployResponse.Status())
+	}
+
+	return deployResponse.JSON201, nil
+}
+
+func (s *ServiceRepo) makeRequest(req *http.Request) (*http.Response, error) {
+	req.Header.Add("authorization", fmt.Sprintf("Bearer %s", s.token))
+	return s.client.Do(req)
 }
