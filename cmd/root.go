@@ -7,6 +7,7 @@ import (
 	"context"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
 )
@@ -37,6 +38,12 @@ func Execute() {
 	err := rootCmd.ExecuteContext(ctx)
 	if err != nil {
 		os.Exit(1)
+	}
+
+	p := tea.NewProgram(stack)
+	_, err = p.Run()
+	if err != nil {
+		panic("failed to initialize")
 	}
 }
 

@@ -41,11 +41,17 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
-	m.stack[len(m.stack)-1], cmd = m.stack[len(m.stack)-1].Update(msg)
+	if len(m.stack) > 0 {
+		m.stack[len(m.stack)-1], cmd = m.stack[len(m.stack)-1].Update(msg)
+	}
 
 	return m, cmd
 }
 
 func (m *StackModel) View() string {
+	if len(m.stack) == 0 {
+		return ""
+	}
+
 	return m.stack[len(m.stack)-1].View()
 }

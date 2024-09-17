@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -26,11 +25,6 @@ var deployCmd = &cobra.Command{
 
 		deployModel := renderDeploys(serviceID)
 		stack.Push(deployModel)
-		p := tea.NewProgram(stack)
-		_, err := p.Run()
-		if err != nil {
-			return fmt.Errorf("error running program: %v", err)
-		}
 
 		return nil
 	},

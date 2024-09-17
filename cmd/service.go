@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -23,12 +22,6 @@ var servicesCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		stack := tui.GetStackFromContext(cmd.Context())
 		renderServices(stack)
-		p := tea.NewProgram(stack)
-		_, err := p.Run()
-		if err != nil {
-			return fmt.Errorf("error running program: %v", err)
-		}
-
 		return nil
 	},
 }
