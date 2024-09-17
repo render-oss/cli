@@ -20,7 +20,7 @@ var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "A brief description of your command",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		stack := tui.NewStack()
+		stack := tui.GetStackFromContext(cmd.Context())
 
 		serviceID := args[0]
 

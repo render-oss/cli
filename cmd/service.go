@@ -21,7 +21,7 @@ var servicesCmd = &cobra.Command{
 	Use:   "services",
 	Short: "A brief description of your command",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		stack := tui.NewStack()
+		stack := tui.GetStackFromContext(cmd.Context())
 		renderServices(stack)
 		p := tea.NewProgram(stack)
 		_, err := p.Run()
