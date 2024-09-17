@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/render-cli/pkg/client"
+	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/deploy"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
@@ -19,18 +20,26 @@ var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "A brief description of your command",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		serviceID := args[0]
 		stack := tui.GetStackFromContext(cmd.Context())
 
-		serviceID := args[0]
-
-		deployModel := renderDeploys(serviceID)
-		stack.Push(deployModel)
+		command.Wrap[ListDeployInput](cmd, renderDeploys)(stack, ListDeployInput{ServiceID: serviceID})
 
 		return nil
 	},
 }
 
-func renderDeploys(serviceID string) tea.Model {
+type ListDeployInput struct {
+	ServiceID string
+}
+
+var InteractiveDeploys = command.Wrap[ListDeployInput](deployCmd, renderDeploys)
+
+func (l ListDeployInput) String() []string {
+	return []string{l.ServiceID}
+}
+
+func renderDeploys(_ *tui.StackModel, input ListDeployInput) (tea.Model, error) {
 	deployRepo := deploy.NewDeployRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
 	columns := []table.Column{
 		{Title: "ID", Width: 25},
@@ -58,13 +67,13 @@ func renderDeploys(serviceID string) tea.Model {
 
 	return tui.NewTableModel[*client.Deploy](
 		"deploys",
-		func() ([]*client.Deploy, error) { return deployRepo.ListDeploysForService(serviceID) },
+		func() ([]*client.Deploy, error) { return deployRepo.ListDeploysForService(input.ServiceID) },
 		fmtFunc,
 		selectFunc,
 		columns,
 		filterFunc,
 		[]tui.CustomOption[*client.Deploy]{},
-	)
+	), nil
 }
 
 func refForDeploy(deploy *client.Deploy) string {

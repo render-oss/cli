@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/render-cli/pkg/client"
+	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/deploy"
 	"github.com/renderinc/render-cli/pkg/services"
 	"github.com/renderinc/render-cli/pkg/tui"
@@ -21,12 +22,19 @@ var servicesCmd = &cobra.Command{
 	Short: "A brief description of your command",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		stack := tui.GetStackFromContext(cmd.Context())
-		renderServices(stack)
+		command.Wrap[ListServiceInput](cmd, renderServices)(stack, ListServiceInput{})
 		return nil
 	},
 }
 
-func renderServices(stack *tui.StackModel) {
+type ListServiceInput struct {
+}
+
+func (l ListServiceInput) String() []string {
+	return []string{}
+}
+
+func renderServices(stack *tui.StackModel, _ ListServiceInput) (tea.Model, error) {
 	serviceRepo := services.NewServiceRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
 
 	columns := []table.Column{
@@ -44,9 +52,7 @@ func renderServices(stack *tui.StackModel) {
 		return []string{a.Id, a.Name}
 	}
 	selectFunc := func(a *client.Service) tea.Cmd {
-		return func() tea.Msg {
-			return renderDeploys(a.Id)
-		}
+		return InteractiveDeploys(stack, ListDeployInput{ServiceID: a.Id})
 	}
 	filterFunc := func(a *client.Service, filter string) bool {
 		bytes, err := json.Marshal(a)
@@ -56,7 +62,7 @@ func renderServices(stack *tui.StackModel) {
 		return strings.Contains(strings.ToLower(string(bytes)), filter)
 	}
 
-	m := tui.NewTableModel[*client.Service](
+	return tui.NewTableModel[*client.Service](
 		"services",
 		serviceRepo.ListServices,
 		fmtFunc,
@@ -75,8 +81,7 @@ func renderServices(stack *tui.StackModel) {
 				},
 			},
 		},
-	)
-	stack.Push(m)
+	), nil
 }
 
 func init() {
