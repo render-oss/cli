@@ -36,6 +36,8 @@ type TableModel[T any] struct {
 	searching     bool
 	currentFilter string
 
+	addModel func(tea.Model)
+
 	columns    []table.Column
 	formatFunc func(T) table.Row
 	loadFunc   func() ([]T, error)
@@ -49,6 +51,7 @@ type TableModel[T any] struct {
 
 func NewTableModel[T any](
 	name string,
+	addModel func(tea.Model),
 	loadFunc func() ([]T, error),
 	formatFunc func(T) table.Row,
 	selectFunc func(T) tea.Cmd,
@@ -58,6 +61,7 @@ func NewTableModel[T any](
 ) *TableModel[T] {
 	m := &TableModel[T]{
 		name:          name,
+		addModel:      addModel,
 		formatFunc:    formatFunc,
 		loadFunc:      loadFunc,
 		selectFunc:    selectFunc,
@@ -144,7 +148,8 @@ func (m *TableModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case loadedErrMsg:
 		m.loading = false
-		return m, tea.Quit
+		m.addModel(NewErrorModel(msg.Error()))
+		return m, nil
 	case tea.KeyMsg:
 		if m.searching {
 			return m.updateSearching(msg)
