@@ -21,8 +21,8 @@ func (s *ServiceRepo) ListServices(ctx context.Context) ([]*client.Service, erro
 		return nil, err
 	}
 
-	if services.JSON200 == nil {
-		return nil, fmt.Errorf("unexpected response: %v", services.Status())
+	if err := client.ErrorFromResponse(services); err != nil {
+		return nil, err
 	}
 
 	result := make([]*client.Service, 0, len(*services.JSON200))
