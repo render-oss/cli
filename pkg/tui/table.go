@@ -25,18 +25,25 @@ type CustomOption[T any] struct {
 	Function func(T) CustomAction
 }
 
+type tableState string
+
+const (
+	tableStateLoading tableState = "loading"
+	tableStateLoaded  tableState = "loaded"
+	tableStateError   tableState = "error"
+)
+
 type TableModel[T any] struct {
 	name          string
-	loading       bool
+	tableState    tableState
 	data          []T
 	filteredData  []T
 	table         table.Model
 	spinner       spinner.Model
+	errorModel    *ErrorModel
 	searchInput   textinput.Model
 	searching     bool
 	currentFilter string
-
-	addModel func(tea.Model)
 
 	columns    []table.Column
 	formatFunc func(T) table.Row
@@ -51,7 +58,6 @@ type TableModel[T any] struct {
 
 func NewTableModel[T any](
 	name string,
-	addModel func(tea.Model),
 	loadFunc func() ([]T, error),
 	formatFunc func(T) table.Row,
 	selectFunc func(T) tea.Cmd,
@@ -61,15 +67,15 @@ func NewTableModel[T any](
 ) *TableModel[T] {
 	m := &TableModel[T]{
 		name:          name,
-		addModel:      addModel,
 		formatFunc:    formatFunc,
 		loadFunc:      loadFunc,
 		selectFunc:    selectFunc,
 		filterFunc:    filterFunc,
 		columns:       columns,
-		loading:       true,
+		tableState:    tableStateLoading,
 		actionStyle:   lipgloss.NewStyle().Foreground(lipgloss.Color("241")),
 		customOptions: customOptions,
+		errorModel:    NewErrorModel(""),
 	}
 
 	m.initSpinner()
@@ -112,7 +118,7 @@ func (m *TableModel[T]) initTable() {
 }
 
 func (m *TableModel[T]) Init() tea.Cmd {
-	return tea.Batch(m.spinner.Tick, m.loadData)
+	return tea.Batch(m.spinner.Tick, m.loadData, m.errorModel.Init())
 }
 
 func (m *TableModel[T]) loadData() tea.Msg {
@@ -130,7 +136,7 @@ func (m *TableModel[T]) setTableData(msg loadDataMsg[T]) {
 	m.data = msg
 	m.filteredData = msg
 	m.updateTableRows()
-	m.loading = false
+	m.tableState = tableStateLoaded
 }
 
 func (m *TableModel[T]) updateTableRows() {
@@ -147,8 +153,8 @@ func (m *TableModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.setTableData(msg)
 		return m, nil
 	case loadedErrMsg:
-		m.loading = false
-		m.addModel(NewErrorModel(msg.Error()))
+		m.tableState = tableStateError
+		m.errorModel.DisplayError = msg.Error()
 		return m, nil
 	case tea.KeyMsg:
 		if m.searching {
@@ -249,11 +255,15 @@ func (m *TableModel[T]) handleEnter() (tea.Model, tea.Cmd) {
 
 func (m *TableModel[T]) updateComponents(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
-	if m.loading {
+	switch m.tableState {
+	case tableStateLoading:
 		m.spinner, cmd = m.spinner.Update(msg)
-	} else {
+	case tableStateLoaded:
 		m.table, cmd = m.table.Update(msg)
+	case tableStateError:
+		m.errorModel, cmd = m.errorModel.Update(msg)
 	}
+
 	return m, cmd
 }
 
@@ -282,7 +292,11 @@ func (m *TableModel[T]) filterData(query string) []T {
 }
 
 func (m *TableModel[T]) View() string {
-	if m.loading {
+	if m.tableState == tableStateError {
+		return m.errorModel.View()
+	}
+
+	if m.tableState == tableStateLoading {
 		return fmt.Sprintf("\n\n   %s Loading %s...\n\n", m.spinner.View(), m.name)
 	}
 

@@ -18,12 +18,12 @@ type WrappedFunc[T Arguments] func(ctx context.Context, args T) tea.Cmd
 
 type InteractiveFunc[D any] func(context.Context, func() (D, error)) (tea.Model, error)
 
-func Wrap[T Arguments, D any](cmd *cobra.Command, loadData func(T) (D, error), interactiveFunc InteractiveFunc[D]) WrappedFunc[T] {
+func Wrap[T Arguments, D any](cmd *cobra.Command, loadData func(context.Context, T) (D, error), interactiveFunc InteractiveFunc[D]) WrappedFunc[T] {
 	return func(ctx context.Context, args T) tea.Cmd {
 		outputFormat := GetFormatFromContext(ctx)
 
 		if outputFormat != nil && (*outputFormat == JSON || *outputFormat == YAML) {
-			data, err := loadData(args)
+			data, err := loadData(ctx, args)
 			if err != nil {
 				return nil
 			}
@@ -51,7 +51,7 @@ func Wrap[T Arguments, D any](cmd *cobra.Command, loadData func(T) (D, error), i
 		}
 
 		stack := tui.GetStackFromContext(ctx)
-		model, err := interactiveFunc(ctx, func() (D, error) { return loadData(args) })
+		model, err := interactiveFunc(ctx, func() (D, error) { return loadData(ctx, args) })
 		if err != nil {
 			return tea.Quit
 		}

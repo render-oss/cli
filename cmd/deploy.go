@@ -31,7 +31,7 @@ var deployCmd = &cobra.Command{
 	},
 }
 
-func loadDeployData(input ListDeployInput) ([]*client.Deploy, error) {
+func loadDeployData(_ context.Context, input ListDeployInput) ([]*client.Deploy, error) {
 	deployRepo := deploy.NewDeployRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
 	return deployRepo.ListDeploysForService(input.ServiceID)
 }
