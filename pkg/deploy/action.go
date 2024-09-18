@@ -6,18 +6,18 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/render-cli/pkg/client"
-	"github.com/renderinc/render-cli/pkg/services"
+	"github.com/renderinc/render-cli/pkg/service"
 )
 
 type Action struct {
-	Service *client.Service
-	Repo    *services.ServiceRepo
+	Service *service.Model
+	Repo    *service.Repo
 }
 
 func (da *Action) Execute() (tea.Model, tea.Cmd) {
 	return NewModel(da.Service, da.Repo), func() tea.Msg {
-		tea.Printf("Deploying service %s...\n", da.Service.Name)
-		deploy, err := da.Repo.DeployService(context.Background(), da.Service)
+		tea.Printf("Deploying service %s...\n", da.Service.Service.Name)
+		deploy, err := da.Repo.DeployService(context.Background(), da.Service.Service)
 		if err != nil {
 			return errMsg(fmt.Errorf("error deploying service: %v", err))
 		}
@@ -26,13 +26,13 @@ func (da *Action) Execute() (tea.Model, tea.Cmd) {
 }
 
 type Model struct {
-	service *client.Service
-	repo    *services.ServiceRepo
+	service *service.Model
+	repo    *service.Repo
 	deploy  *client.Deploy
 	err     error
 }
 
-func NewModel(service *client.Service, repo *services.ServiceRepo) *Model {
+func NewModel(service *service.Model, repo *service.Repo) *Model {
 	return &Model{
 		service: service,
 		repo:    repo,
@@ -61,7 +61,7 @@ func (m *Model) View() string {
 		return fmt.Sprintf("Error: %v\n\nPress 'q' to exit", m.err)
 	}
 	if m.deploy == nil {
-		return fmt.Sprintf("Deploying service %s...\n\nPress 'q' to exit", m.service.Name)
+		return fmt.Sprintf("Deploying service %s...\n\nPress 'q' to exit", m.service.Service.Name)
 	}
 	// todo: tail logs here instead of just showing the deploy info
 	return fmt.Sprintf("Deploy ID: %s\nStatus: %s\n\nPress 'q' to exit", m.deploy.Id, *m.deploy.Status)

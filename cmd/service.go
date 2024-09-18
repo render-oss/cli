@@ -2,94 +2,72 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/deploy"
-	"github.com/renderinc/render-cli/pkg/services"
+	"github.com/renderinc/render-cli/pkg/environment"
+	"github.com/renderinc/render-cli/pkg/project"
+	"github.com/renderinc/render-cli/pkg/service"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
 )
 
-// servicesCmd represents the services command
 var servicesCmd = &cobra.Command{
 	Use:   "services",
-	Short: "A brief description of your command",
+	Short: "List and manage services",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		command.Wrap(cmd, loadServiceData, renderServices)(cmd.Context(), ListServiceInput{})
 		return nil
 	},
 }
 
-func loadServiceData(ctx context.Context, _ ListServiceInput) ([]*client.Service, error) {
-	c, err := client.ClientWithAuth(&http.Client{}, cfg.GetHost(), cfg.GetAPIKey())
+func loadServiceData(ctx context.Context, _ ListServiceInput) ([]*service.Model, error) {
+	_, serviceService, err := newRepositories()
 	if err != nil {
-		return nil, fmt.Errorf("error creating client: %v", err)
+		return nil, err
 	}
-	serviceRepo := services.NewServiceRepo(c)
-	return serviceRepo.ListServices(ctx)
+	return serviceService.ListServices(ctx)
 }
 
-type ListServiceInput struct {
-}
+type ListServiceInput struct{}
 
 func (l ListServiceInput) String() []string {
 	return []string{}
 }
 
-func renderServices(ctx context.Context, loadData func() ([]*client.Service, error)) (tea.Model, error) {
-	c, err := client.ClientWithAuth(&http.Client{}, cfg.GetHost(), cfg.GetAPIKey())
+func renderServices(ctx context.Context, loadData func() ([]*service.Model, error)) (tea.Model, error) {
+	serviceRepo, _, err := newRepositories()
 	if err != nil {
-		return nil, fmt.Errorf("error creating client: %v", err)
+		return nil, err
 	}
-	serviceRepo := services.NewServiceRepo(c)
 
 	columns := []table.Column{
-		{
-			Title: "ID",
-			Width: 25,
-		},
-		{
-			Title: "Name",
-			Width: 40,
-		},
+		{Title: "Project", Width: 25},
+		{Title: "Environment", Width: 25},
+		{Title: "ID", Width: 25},
+		{Title: "Name", Width: 40},
 	}
 
-	fmtFunc := func(a *client.Service) table.Row {
-		return []string{a.Id, a.Name}
-	}
-	selectFunc := func(a *client.Service) tea.Cmd {
-		return InteractiveDeploys(ctx, ListDeployInput{ServiceID: a.Id})
-	}
-	filterFunc := func(a *client.Service, filter string) bool {
-		bytes, err := json.Marshal(a)
-		if err != nil {
-			return false
-		}
-		return strings.Contains(strings.ToLower(string(bytes)), filter)
-	}
-
-	return tui.NewTableModel[*client.Service](
+	return tui.NewTableModel[*service.Model](
 		"services",
 		loadData,
-		fmtFunc,
-		selectFunc,
+		formatServiceRow,
+		selectService(ctx),
 		columns,
-		filterFunc,
-		[]tui.CustomOption[*client.Service]{
+		filterService,
+		[]tui.CustomOption[*service.Model]{
 			{
 				Key:   "d",
 				Title: "Deploy",
-				Function: func(service *client.Service) tui.CustomAction {
+				Function: func(s *service.Model) tui.CustomAction {
 					return &deploy.Action{
-						Service: service,
+						Service: s,
 						Repo:    serviceRepo,
 					}
 				},
@@ -98,16 +76,67 @@ func renderServices(ctx context.Context, loadData func() ([]*client.Service, err
 	), nil
 }
 
+func formatServiceRow(s *service.Model) table.Row {
+	projectName := ""
+	if s.Project != nil {
+		projectName = s.Project.Name
+	}
+
+	environmentName := ""
+	if s.Environment != nil {
+		environmentName = s.Environment.Name
+	}
+
+	return []string{projectName, environmentName, s.Service.Id, s.Service.Name}
+}
+
+func selectService(ctx context.Context) func(*service.Model) tea.Cmd {
+	return func(s *service.Model) tea.Cmd {
+		return InteractiveDeploys(ctx, ListDeployInput{ServiceID: s.Service.Id})
+	}
+}
+
+func filterService(s *service.Model, filter string) bool {
+	projectName := ""
+	if s.Project != nil {
+		projectName = s.Project.Name
+	}
+	envName := ""
+	if s.Environment != nil {
+		envName = s.Environment.Name
+	}
+
+	searchFields := []string{s.Service.Id, s.Service.Name, projectName, envName}
+	for _, field := range searchFields {
+		if strings.Contains(strings.ToLower(field), filter) {
+			return true
+		}
+	}
+	return false
+}
+
+func newRepositories() (*service.Repo, *service.Service, error) {
+	httpClient := http.DefaultClient
+	host := os.Getenv("RENDER_HOST")
+	apiKey := os.Getenv("RENDER_API_KEY")
+
+	c, err := client.ClientWithAuth(httpClient, host, apiKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	serviceRepo, err := service.NewRepo(c), nil
+	if err != nil {
+		return nil, nil, err
+	}
+
+	environmentRepo := environment.NewRepo(c)
+	projectRepo := project.NewRepo(c)
+	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
+
+	return serviceRepo, serviceService, nil
+}
+
 func init() {
 	rootCmd.AddCommand(servicesCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// servicesCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// servicesCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
