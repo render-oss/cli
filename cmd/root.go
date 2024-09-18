@@ -4,8 +4,11 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"context"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -27,9 +30,20 @@ to quickly create a Cobra application.`,
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	err := rootCmd.Execute()
+	stack := tui.NewStack()
+
+	ctx := context.Background()
+	ctx = tui.SetStackInContext(ctx, stack)
+
+	err := rootCmd.ExecuteContext(ctx)
 	if err != nil {
 		os.Exit(1)
+	}
+
+	p := tea.NewProgram(stack)
+	_, err = p.Run()
+	if err != nil {
+		panic("failed to initialize")
 	}
 }
 
