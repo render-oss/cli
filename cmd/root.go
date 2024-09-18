@@ -39,7 +39,7 @@ to quickly create a Cobra application.`,
 			println(err.Error())
 			os.Exit(1)
 		}
-		command.SetFormatInContext(ctx, &output)
+		ctx = command.SetFormatInContext(ctx, &output)
 
 		if output == command.Interactive {
 			stack := tui.NewStack()
@@ -55,12 +55,21 @@ to quickly create a Cobra application.`,
 	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 
-		stack := tui.GetStackFromContext(ctx)
-		p := tea.NewProgram(stack)
-		_, err := p.Run()
-		if err != nil {
-			panic("failed to initialize interface")
+		output := command.GetFormatFromContext(ctx)
+		if output == nil || *output == command.Interactive {
+			stack := tui.GetStackFromContext(ctx)
+			if stack == nil {
+				return nil
+			}
+
+			p := tea.NewProgram(stack)
+			_, err := p.Run()
+			if err != nil {
+				panic("failed to initialize interface")
+			}
+			return nil
 		}
+
 		return nil
 	},
 }

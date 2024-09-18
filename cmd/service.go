@@ -22,9 +22,14 @@ var servicesCmd = &cobra.Command{
 	Use:   "services",
 	Short: "A brief description of your command",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		command.Wrap[ListServiceInput](cmd, renderServices)(cmd.Context(), ListServiceInput{})
+		command.Wrap(cmd, loadServiceData, renderServices)(cmd.Context(), ListServiceInput{})
 		return nil
 	},
+}
+
+func loadServiceData(_ ListServiceInput) ([]*client.Service, error) {
+	serviceRepo := services.NewServiceRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
+	return serviceRepo.ListServices()
 }
 
 type ListServiceInput struct {
@@ -34,9 +39,8 @@ func (l ListServiceInput) String() []string {
 	return []string{}
 }
 
-func renderServices(ctx context.Context, _ ListServiceInput) (tea.Model, error) {
+func renderServices(ctx context.Context, loadData func() ([]*client.Service, error)) (tea.Model, error) {
 	serviceRepo := services.NewServiceRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
-
 	columns := []table.Column{
 		{
 			Title: "ID",
@@ -64,7 +68,7 @@ func renderServices(ctx context.Context, _ ListServiceInput) (tea.Model, error) 
 
 	return tui.NewTableModel[*client.Service](
 		"services",
-		serviceRepo.ListServices,
+		loadData,
 		fmtFunc,
 		selectFunc,
 		columns,

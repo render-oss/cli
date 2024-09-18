@@ -23,24 +23,30 @@ var deployCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		serviceID := args[0]
 
-		command.Wrap[ListDeployInput](cmd, renderDeploys)(cmd.Context(), ListDeployInput{ServiceID: serviceID})
+		input := ListDeployInput{ServiceID: serviceID}
+
+		command.Wrap(cmd, loadDeployData, renderDeploys)(cmd.Context(), input)
 
 		return nil
 	},
+}
+
+func loadDeployData(input ListDeployInput) ([]*client.Deploy, error) {
+	deployRepo := deploy.NewDeployRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
+	return deployRepo.ListDeploysForService(input.ServiceID)
 }
 
 type ListDeployInput struct {
 	ServiceID string
 }
 
-var InteractiveDeploys = command.Wrap[ListDeployInput](deployCmd, renderDeploys)
+var InteractiveDeploys = command.Wrap(deployCmd, loadDeployData, renderDeploys)
 
 func (l ListDeployInput) String() []string {
 	return []string{l.ServiceID}
 }
 
-func renderDeploys(_ context.Context, input ListDeployInput) (tea.Model, error) {
-	deployRepo := deploy.NewDeployRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
+func renderDeploys(_ context.Context, loadData func() ([]*client.Deploy, error)) (tea.Model, error) {
 	columns := []table.Column{
 		{Title: "ID", Width: 25},
 		{Title: "Commit Message", Width: 40},
@@ -67,7 +73,7 @@ func renderDeploys(_ context.Context, input ListDeployInput) (tea.Model, error) 
 
 	return tui.NewTableModel[*client.Deploy](
 		"deploys",
-		func() ([]*client.Deploy, error) { return deployRepo.ListDeploysForService(input.ServiceID) },
+		loadData,
 		fmtFunc,
 		selectFunc,
 		columns,
