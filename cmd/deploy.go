@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -21,9 +22,8 @@ var deployCmd = &cobra.Command{
 	Short: "A brief description of your command",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		serviceID := args[0]
-		stack := tui.GetStackFromContext(cmd.Context())
 
-		command.Wrap[ListDeployInput](cmd, renderDeploys)(stack, ListDeployInput{ServiceID: serviceID})
+		command.Wrap[ListDeployInput](cmd, renderDeploys)(cmd.Context(), ListDeployInput{ServiceID: serviceID})
 
 		return nil
 	},
@@ -39,7 +39,7 @@ func (l ListDeployInput) String() []string {
 	return []string{l.ServiceID}
 }
 
-func renderDeploys(_ *tui.StackModel, input ListDeployInput) (tea.Model, error) {
+func renderDeploys(_ context.Context, input ListDeployInput) (tea.Model, error) {
 	deployRepo := deploy.NewDeployRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
 	columns := []table.Column{
 		{Title: "ID", Width: 25},
