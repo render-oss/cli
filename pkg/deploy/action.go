@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"context"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -16,7 +17,7 @@ type Action struct {
 func (da *Action) Execute() (tea.Model, tea.Cmd) {
 	return NewModel(da.Service, da.Repo), func() tea.Msg {
 		tea.Printf("Deploying service %s...\n", da.Service.Name)
-		deploy, err := da.Repo.DeployService(da.Service)
+		deploy, err := da.Repo.DeployService(context.Background(), da.Service)
 		if err != nil {
 			return errMsg(fmt.Errorf("error deploying service: %v", err))
 		}

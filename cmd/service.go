@@ -3,12 +3,13 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/deploy"
@@ -27,9 +28,13 @@ var servicesCmd = &cobra.Command{
 	},
 }
 
-func loadServiceData(_ ListServiceInput) ([]*client.Service, error) {
-	serviceRepo := services.NewServiceRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
-	return serviceRepo.ListServices()
+func loadServiceData(ctx context.Context, _ ListServiceInput) ([]*client.Service, error) {
+	c, err := client.ClientWithAuth(&http.Client{}, cfg.GetHost(), cfg.GetAPIKey())
+	if err != nil {
+		return nil, fmt.Errorf("error creating client: %v", err)
+	}
+	serviceRepo := services.NewServiceRepo(c)
+	return serviceRepo.ListServices(ctx)
 }
 
 type ListServiceInput struct {
@@ -40,7 +45,12 @@ func (l ListServiceInput) String() []string {
 }
 
 func renderServices(ctx context.Context, loadData func() ([]*client.Service, error)) (tea.Model, error) {
-	serviceRepo := services.NewServiceRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
+	c, err := client.ClientWithAuth(&http.Client{}, cfg.GetHost(), cfg.GetAPIKey())
+	if err != nil {
+		return nil, fmt.Errorf("error creating client: %v", err)
+	}
+	serviceRepo := services.NewServiceRepo(c)
+
 	columns := []table.Column{
 		{
 			Title: "ID",

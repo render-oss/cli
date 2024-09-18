@@ -5,9 +5,10 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"os"
 
+	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/input"
 	"github.com/renderinc/render-cli/pkg/services"
@@ -27,8 +28,12 @@ to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		serviceID := args[0]
 
-		serviceRepo := services.NewServiceRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
-		srv, err := serviceRepo.GetService(serviceID)
+		c, err := client.ClientWithAuth(&http.Client{}, cfg.GetHost(), cfg.GetAPIKey())
+		if err != nil {
+			return fmt.Errorf("error creating client: %v", err)
+		}
+		serviceRepo := services.NewServiceRepo(c)
+		srv, err := serviceRepo.GetService(cmd.Context(), serviceID)
 		if err != nil {
 			return err
 		}
@@ -54,7 +59,7 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		_, err = serviceRepo.UpdateService(serviceID, updatedService)
+		_, err = serviceRepo.UpdateService(cmd.Context(), serviceID, updatedService)
 		if err != nil {
 			return err
 		}
