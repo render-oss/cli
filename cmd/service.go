@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -21,10 +22,14 @@ var servicesCmd = &cobra.Command{
 	Use:   "services",
 	Short: "A brief description of your command",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		stack := tui.GetStackFromContext(cmd.Context())
-		command.Wrap[ListServiceInput](cmd, renderServices)(stack, ListServiceInput{})
+		command.Wrap(cmd, loadServiceData, renderServices)(cmd.Context(), ListServiceInput{})
 		return nil
 	},
+}
+
+func loadServiceData(_ ListServiceInput) ([]*client.Service, error) {
+	serviceRepo := services.NewServiceRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
+	return serviceRepo.ListServices()
 }
 
 type ListServiceInput struct {
@@ -34,9 +39,8 @@ func (l ListServiceInput) String() []string {
 	return []string{}
 }
 
-func renderServices(stack *tui.StackModel, _ ListServiceInput) (tea.Model, error) {
+func renderServices(ctx context.Context, loadData func() ([]*client.Service, error)) (tea.Model, error) {
 	serviceRepo := services.NewServiceRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
-
 	columns := []table.Column{
 		{
 			Title: "ID",
@@ -52,7 +56,7 @@ func renderServices(stack *tui.StackModel, _ ListServiceInput) (tea.Model, error
 		return []string{a.Id, a.Name}
 	}
 	selectFunc := func(a *client.Service) tea.Cmd {
-		return InteractiveDeploys(stack, ListDeployInput{ServiceID: a.Id})
+		return InteractiveDeploys(ctx, ListDeployInput{ServiceID: a.Id})
 	}
 	filterFunc := func(a *client.Service, filter string) bool {
 		bytes, err := json.Marshal(a)
@@ -64,7 +68,7 @@ func renderServices(stack *tui.StackModel, _ ListServiceInput) (tea.Model, error
 
 	return tui.NewTableModel[*client.Service](
 		"services",
-		serviceRepo.ListServices,
+		loadData,
 		fmtFunc,
 		selectFunc,
 		columns,
