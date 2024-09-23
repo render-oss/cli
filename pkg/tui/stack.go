@@ -23,10 +23,12 @@ func (m *StackModel) Push(model ModelWithCmd) {
 	model.Model.Init()
 }
 
-func (m *StackModel) Pop() {
+func (m *StackModel) Pop() tea.Cmd {
 	if len(m.stack) > 1 {
 		m.stack = m.stack[:len(m.stack)-1]
+		return nil
 	}
+	return tea.Quit
 }
 
 func (m *StackModel) Init() tea.Cmd {
@@ -39,18 +41,21 @@ func (m *StackModel) Init() tea.Cmd {
 
 func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
+		case "esc":
+			return m, m.Pop()
 		}
 	}
 
-	var cmd tea.Cmd
-	if len(m.stack) > 0 {
-		m.stack[len(m.stack)-1].Model, cmd = m.stack[len(m.stack)-1].Model.Update(msg)
+	if len(m.stack) == 0 {
+		return m, tea.Quit
 	}
+
+	var cmd tea.Cmd
+	m.stack[len(m.stack)-1].Model, cmd = m.stack[len(m.stack)-1].Model.Update(msg)
 
 	return m, cmd
 }
