@@ -7,8 +7,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
@@ -29,18 +31,38 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		serviceID := args[0]
-		command.Wrap(cmd, loadLogData, renderLogs)(cmd.Context(), LogInput{ServiceID: serviceID})
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var input LogInput
+		err := command.ParseCommand(cmd, args, &input)
+		if err != nil {
+			return err
+		}
+		command.Wrap(cmd, loadLogData, renderLogs)(cmd.Context(), input)
+		return nil
 	},
 }
 
 type LogInput struct {
-	ServiceID string
+	OwnerID     string   `cli:"owner"`
+	ResourceIDs []string `cli:"resources"`
+	StartTime   *string  `cli:"start"`
+	EndTime     *string  `cli:"end"`
 }
 
 func (l LogInput) String() []string {
-	return []string{l.ServiceID}
+	return []string{}
+}
+
+func (l LogInput) ToParam() *client.ListLogsParams {
+	limit := 100
+	now := time.Now()
+	return &client.ListLogsParams{
+		Resource:  l.ResourceIDs,
+		OwnerId:   l.OwnerID,
+		Limit:     &limit,
+		StartTime: command.ParseTime(now, l.StartTime),
+		EndTime:   command.ParseTime(now, l.EndTime),
+	}
 }
 
 func loadLogData(ctx context.Context, in LogInput) (*client.Logs200Response, error) {
@@ -49,12 +71,7 @@ func loadLogData(ctx context.Context, in LogInput) (*client.Logs200Response, err
 		return nil, fmt.Errorf("error creating client: %v", err)
 	}
 	logRepo := logs.NewLogRepo(c)
-	limit := 100
-	return logRepo.ListLogs(ctx, &client.ListLogsParams{
-		Resource: []string{in.ServiceID},
-		OwnerId:  "tea-cdcl7qj4lvk7mmk7jbv0",
-		Limit:    &limit,
-	})
+	return logRepo.ListLogs(ctx, in.ToParam())
 }
 
 func renderLogs(ctx context.Context, loadData func() (*client.Logs200Response, error)) (tea.Model, error) {
@@ -82,13 +99,18 @@ func renderLogs(ctx context.Context, loadData func() (*client.Logs200Response, e
 func init() {
 	rootCmd.AddCommand(logsCmd)
 
-	// Here you will define your flags and configuration settings.
+	logsCmd.Flags().StringSliceP("resources", "r", []string{}, "A list of comma separated resource IDs to query")
+	err := logsCmd.MarkFlagRequired("resources")
+	if err != nil {
+		panic(err)
+	}
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// logsCmd.PersistentFlags().String("foo", "", "A help for foo")
+	logsCmd.Flags().String("owner", "", "The owner ID of the resources to query")
+	err = logsCmd.MarkFlagRequired("owner")
+	if err != nil {
+		panic(err)
+	}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// logsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	logsCmd.Flags().String("start", "", "The start time of the logs to query")
+	logsCmd.Flags().String("end", "", "The end time of the logs to query")
 }
