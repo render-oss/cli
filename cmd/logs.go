@@ -17,6 +17,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var timeStyle = lipgloss.NewStyle().PaddingRight(2)
+
 // logsCmd represents the logs command
 var logsCmd = &cobra.Command{
 	Use:   "logs",
@@ -64,7 +66,11 @@ func renderLogs(ctx context.Context, loadData func() (*client.Logs200Response, e
 
 		var formattedLogs []string
 		for _, log := range logs.Logs {
-			formattedLogs = append(formattedLogs, log.Message)
+			formattedLogs = append(formattedLogs, lipgloss.JoinHorizontal(
+				lipgloss.Top,
+				timeStyle.Render(log.Timestamp.Format(time.DateTime)),
+				log.Message,
+			))
 		}
 
 		return formattedLogs, nil
