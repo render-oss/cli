@@ -56,7 +56,7 @@ func renderServices(ctx context.Context, loadData func(input ListServiceInput) (
 
 	return tui.NewTableModel[*service.Model](
 		"services",
-		func() ([]*client.Service, error) {
+		func() ([]*service.Model, error) {
 			return loadData(in)
 		},
 		formatServiceRow,
