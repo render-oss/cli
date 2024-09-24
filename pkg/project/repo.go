@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/renderinc/render-cli/pkg/client"
+	"github.com/renderinc/render-cli/pkg/config"
+	"github.com/renderinc/render-cli/pkg/pointers"
 )
 
 func NewRepo(client *client.ClientWithResponses) *Repo {
@@ -16,7 +18,20 @@ type Repo struct {
 }
 
 func (p *Repo) ListProjects(ctx context.Context) ([]*client.Project, error) {
-	resp, err := p.client.ListProjectsWithResponse(ctx, nil)
+	params := &client.ListProjectsParams{
+		Limit: pointers.From(100),
+	}
+
+	workspaceId, err := config.WorkspaceID()
+	if err != nil {
+		return nil, err
+	}
+
+	if workspaceId != "" {
+		params.OwnerId = pointers.From([]string{workspaceId})
+	}
+
+	resp, err := p.client.ListProjectsWithResponse(ctx, params)
 	if err != nil {
 		return nil, err
 	}

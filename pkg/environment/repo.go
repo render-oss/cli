@@ -15,6 +15,10 @@ func NewRepo(client *client.ClientWithResponses) *Repo {
 	return &Repo{client: client}
 }
 
+// GetEnvironment retrieves an environment by ID.
+// Note: We are not checking the workspace here because we currently only call this is from contexts
+// where we've pulled the environment ID from a resource that was already checked. If this changes, we should
+// fetch the project and check its workspace. For now, we will avoid the extra network call.
 func (e *Repo) GetEnvironment(ctx context.Context, id string) (*client.Environment, error) {
 	resp, err := e.client.RetrieveEnvironmentWithResponse(ctx, id)
 	if err != nil {

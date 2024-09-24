@@ -44,6 +44,14 @@ func expandPath(path string) (string, error) {
 	return path, nil
 }
 
+func WorkspaceID() (string, error) {
+	cfg, err := Load()
+	if err != nil {
+		return "", err
+	}
+	return cfg.Workspace, nil
+}
+
 func Load() (*Config, error) {
 	path, err := expandPath(getConfigPath())
 	if err != nil {
