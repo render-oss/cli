@@ -7,13 +7,10 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/huh"
+	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
-
-func pointerFromString(s string) *string {
-	return &s
-}
 
 type FormValues map[string]*string
 
@@ -38,7 +35,7 @@ func FormValuesFromStruct(v any) FormValues {
 		switch field.Type.Kind() {
 		case reflect.Ptr:
 			if elemField.IsNil() {
-				formValues[cliTag] = pointerFromString("")
+				formValues[cliTag] = pointers.From("")
 			}
 
 			switch field.Type.Elem().Kind() {
@@ -47,40 +44,40 @@ func FormValuesFromStruct(v any) FormValues {
 				formValues[cliTag] = val
 			case reflect.Int:
 				val := elemField.Interface().(*int)
-				formValues[cliTag] = pointerFromString(fmt.Sprintf("%d", *val))
+				formValues[cliTag] = pointers.From(fmt.Sprintf("%d", *val))
 			case reflect.Float64:
 				val := elemField.Interface().(*float64)
-				formValues[cliTag] = pointerFromString(fmt.Sprintf("%f", *val))
+				formValues[cliTag] = pointers.From(fmt.Sprintf("%f", *val))
 			case reflect.Bool:
 				val := elemField.Interface().(*bool)
-				formValues[cliTag] = pointerFromString(fmt.Sprintf("%t", *val))
+				formValues[cliTag] = pointers.From(fmt.Sprintf("%t", *val))
 			}
 		case reflect.Slice:
 			switch field.Type.Elem().Kind() {
 			case reflect.String:
 				val := elemField.Interface().([]string)
-				formValues[cliTag] = pointerFromString(strings.Join(val, ","))
+				formValues[cliTag] = pointers.From(strings.Join(val, ","))
 			case reflect.Int:
 				val := elemField.Interface().([]int)
 				var strs []string
 				for _, v := range val {
 					strs = append(strs, fmt.Sprintf("%d", v))
 				}
-				formValues[cliTag] = pointerFromString(strings.Join(strs, ","))
+				formValues[cliTag] = pointers.From(strings.Join(strs, ","))
 			case reflect.Float64:
 				val := elemField.Interface().([]float64)
 				var strs []string
 				for _, v := range val {
 					strs = append(strs, fmt.Sprintf("%f", v))
 				}
-				formValues[cliTag] = pointerFromString(strings.Join(strs, ","))
+				formValues[cliTag] = pointers.From(strings.Join(strs, ","))
 			case reflect.Bool:
 				val := elemField.Interface().([]bool)
 				var strs []string
 				for _, v := range val {
 					strs = append(strs, fmt.Sprintf("%t", v))
 				}
-				formValues[cliTag] = pointerFromString(strings.Join(strs, ","))
+				formValues[cliTag] = pointers.From(strings.Join(strs, ","))
 			default:
 				panic(fmt.Sprintf("unsupported slice type: %s", field.Type.Elem().Kind()))
 			}
@@ -89,13 +86,13 @@ func FormValuesFromStruct(v any) FormValues {
 			formValues[cliTag] = &val
 		case reflect.Bool:
 			val := elemField.Interface().(bool)
-			formValues[cliTag] = pointerFromString(fmt.Sprintf("%t", val))
+			formValues[cliTag] = pointers.From(fmt.Sprintf("%t", val))
 		case reflect.Int:
 			val := elemField.Interface().(int)
-			formValues[cliTag] = pointerFromString(fmt.Sprintf("%d", val))
+			formValues[cliTag] = pointers.From(fmt.Sprintf("%d", val))
 		case reflect.Float64:
 			val := elemField.Interface().(float64)
-			formValues[cliTag] = pointerFromString(fmt.Sprintf("%f", val))
+			formValues[cliTag] = pointers.From(fmt.Sprintf("%f", val))
 		default:
 			panic(fmt.Sprintf("unsupported type: %s", field.Type.Kind()))
 		}

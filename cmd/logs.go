@@ -16,6 +16,7 @@ import (
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/logs"
+	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
 )
@@ -48,12 +49,11 @@ func (l LogInput) String() []string {
 }
 
 func (l LogInput) ToParam() *client.ListLogsParams {
-	limit := 100
 	now := time.Now()
 	return &client.ListLogsParams{
 		Resource:  l.ResourceIDs,
 		OwnerId:   l.OwnerID,
-		Limit:     &limit,
+		Limit:     pointers.From(100),
 		StartTime: command.ParseTime(now, l.StartTime),
 		EndTime:   command.ParseTime(now, l.EndTime),
 	}
