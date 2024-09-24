@@ -17,17 +17,33 @@ var (
 	}()
 )
 
-func NewLogModel(loadFunc func() ([]string, error)) *LogModel {
+func NewLogModel(filter *FilterModel, loadFunc func() ([]string, error)) *LogModel {
 	return &LogModel{
-		loadFunc: loadFunc,
+		loadFunc:    loadFunc,
+		searching:   false,
+		filterModel: filter,
+		errorModel:  NewErrorModel(""),
 	}
 }
 
+type logState string
+
+const (
+	logStateLoading logState = "loading"
+	logStateLoaded  logState = "loaded"
+	logStateError   logState = "error"
+)
+
 type LogModel struct {
-	loadFunc func() ([]string, error)
-	content  []string
-	ready    bool
-	viewport viewport.Model
+	loadFunc    func() ([]string, error)
+	content     []string
+	state       logState
+	ready       bool
+	viewport    viewport.Model
+	filterModel tea.Model
+	errorModel  *ErrorModel
+
+	searching bool
 }
 
 func (m *LogModel) loadData() tea.Msg {
@@ -42,7 +58,7 @@ type loadLogsMsg []string
 type loadLogsErrMsg error
 
 func (m *LogModel) Init() tea.Cmd {
-	return m.loadData
+	return tea.Batch(m.loadData, m.filterModel.Init(), m.errorModel.Init(), tea.WindowSize())
 }
 
 func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -51,17 +67,27 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
+	// Handle keyboard and mouse events in the viewport
+	if m.searching {
+		m.filterModel, cmd = m.filterModel.Update(msg)
+		cmds = append(cmds, cmd)
+	} else {
+		m.viewport, cmd = m.viewport.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
 	switch msg := msg.(type) {
 	case loadLogsErrMsg:
-		return m, tea.Quit
+		m.errorModel.DisplayError = msg.Error()
+		m.state = logStateError
 	case loadLogsMsg:
 		m.content = msg
 		m.viewport.SetContent(strings.Join(m.content, "\n"))
+		m.state = logStateLoaded
 	case tea.KeyMsg:
-		if k := msg.String(); k == "ctrl+c" || k == "q" || k == "esc" {
-			return m, tea.Quit
+		if k := msg.String(); k == "/" {
+			m.searching = !m.searching
 		}
-
 	case tea.WindowSizeMsg:
 		headerHeight := lipgloss.Height(m.headerView())
 		footerHeight := lipgloss.Height(m.footerView())
@@ -83,18 +109,24 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Handle keyboard and mouse events in the viewport
-	m.viewport, cmd = m.viewport.Update(msg)
-	cmds = append(cmds, cmd)
-
 	return m, tea.Batch(cmds...)
 }
 
 func (m *LogModel) View() string {
-	if !m.ready {
+	if m.state == logStateError {
+		return m.errorModel.View()
+	}
+
+	if m.state == logStateLoading {
 		return "\n  Initializing..."
 	}
-	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
+	logView := fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
+
+	if m.searching {
+		return lipgloss.JoinHorizontal(lipgloss.Center, m.filterModel.View(), logView)
+	}
+
+	return logView
 }
 
 func (m *LogModel) headerView() string {

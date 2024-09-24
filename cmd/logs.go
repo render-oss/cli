@@ -10,6 +10,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
@@ -31,16 +32,9 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		var input LogInput
-		err := command.ParseCommand(cmd, args, &input)
-		if err != nil {
-			return err
-		}
-		command.Wrap(cmd, loadLogData, renderLogs)(cmd.Context(), input)
-		return nil
-	},
 }
+
+var InteractiveLogs = command.Wrap(logsCmd, loadLogData, renderLogs)
 
 type LogInput struct {
 	OwnerID     string   `cli:"owner"`
@@ -74,29 +68,55 @@ func loadLogData(ctx context.Context, in LogInput) (*client.Logs200Response, err
 	return logRepo.ListLogs(ctx, in.ToParam())
 }
 
-func renderLogs(ctx context.Context, loadData func() (*client.Logs200Response, error)) (tea.Model, error) {
+func logForm(ctx context.Context, in LogInput) *tui.FilterModel {
+	form, result := command.HuhForm(logsCmd, &in)
+	return tui.NewFilterModel(form.WithHeight(10), func(form *huh.Form) tea.Cmd {
+		var logInput LogInput
+		err := command.StructFromFormValues(result, &logInput)
+		if err != nil {
+			panic(err)
+		}
+
+		return command.Wrap(logsCmd, loadLogData, renderLogs)(ctx, logInput)
+	})
+}
+
+func formatLogs(data *client.Logs200Response) []string {
+	var formattedLogs []string
+	for _, log := range data.Logs {
+		formattedLogs = append(formattedLogs, lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			timeStyle.Render(log.Timestamp.Format(time.DateTime)),
+			log.Message,
+		))
+	}
+
+	return formattedLogs
+}
+
+func renderLogs(ctx context.Context, loadData func(LogInput) (*client.Logs200Response, error), in LogInput) (tea.Model, error) {
 	formattedLogs := func() ([]string, error) {
-		logs, err := loadData()
+		logs, err := loadData(in)
 		if err != nil {
 			return nil, err
 		}
 
-		var formattedLogs []string
-		for _, log := range logs.Logs {
-			formattedLogs = append(formattedLogs, lipgloss.JoinHorizontal(
-				lipgloss.Top,
-				timeStyle.Render(log.Timestamp.Format(time.DateTime)),
-				log.Message,
-			))
-		}
-
-		return formattedLogs, nil
+		return formatLogs(logs), nil
 	}
-	model := tui.NewLogModel(formattedLogs)
+	model := tui.NewLogModel(logForm(ctx, in), formattedLogs)
 	return model, nil
 }
 
 func init() {
+	logsCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		var input LogInput
+		err := command.ParseCommand(cmd, args, &input)
+		if err != nil {
+			return err
+		}
+		InteractiveLogs(cmd.Context(), input)
+		return nil
+	}
 	rootCmd.AddCommand(logsCmd)
 
 	logsCmd.Flags().StringSliceP("resources", "r", []string{}, "A list of comma separated resource IDs to query")
