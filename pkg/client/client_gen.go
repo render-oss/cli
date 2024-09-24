@@ -15752,15 +15752,12 @@ func (r PatchOwnerNotificationSettingsResponse) StatusCode() int {
 type ListOwnersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]struct {
-		Cursor *Cursor `json:"cursor,omitempty"`
-		Owner  *Owner  `json:"owner,omitempty"`
-	}
-	JSON401 *N401Unauthorized
-	JSON406 *N406NotAcceptable
-	JSON429 *N429RateLimit
-	JSON500 *N500InternalServerError
-	JSON503 *N503ServiceUnavailable
+	JSON200      *[]OwnerWithCursor
+	JSON401      *N401Unauthorized
+	JSON406      *N406NotAcceptable
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
 }
 
 // Status returns HTTPResponse.Status
@@ -24260,10 +24257,7 @@ func ParseListOwnersResponse(rsp *http.Response) (*ListOwnersResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []struct {
-			Cursor *Cursor `json:"cursor,omitempty"`
-			Owner  *Owner  `json:"owner,omitempty"`
-		}
+		var dest []OwnerWithCursor
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

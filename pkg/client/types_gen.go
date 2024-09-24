@@ -890,6 +890,12 @@ type Owner struct {
 // OwnerType defines model for Owner.Type.
 type OwnerType string
 
+// OwnerWithCursor defines model for ownerWithCursor.
+type OwnerWithCursor struct {
+	Cursor *Cursor `json:"cursor,omitempty"`
+	Owner  *Owner  `json:"owner,omitempty"`
+}
+
 // PaidPlan Defaults to "starter"
 type PaidPlan string
 

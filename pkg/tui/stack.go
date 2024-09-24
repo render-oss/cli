@@ -14,6 +14,21 @@ type ModelWithCmd struct {
 	Cmd   string
 }
 
+// ErrorMsg quits the program after displaying an error message
+type ErrorMsg struct {
+	Err error
+}
+
+// QuitMsg quits the program after displaying a message
+type QuitMsg struct {
+	Message string
+}
+
+// ClearScreenMsg is a message that clears the screen before rendering the next message
+type ClearScreenMsg struct {
+	NextMsg tea.Msg
+}
+
 func NewStack() *StackModel {
 	return &StackModel{}
 }
@@ -48,14 +63,29 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc":
 			return m, m.Pop()
 		}
-	}
-
-	if len(m.stack) == 0 {
+	case ClearScreenMsg:
+		m.stack = m.stack[:0]
+		return m, func() tea.Msg {
+			return msg.NextMsg
+		}
+	case ErrorMsg:
+		return m, tea.Sequence(
+			tea.Println(msg.Err.Error(), tea.Quit()),
+		)
+	case QuitMsg:
+		if msg.Message != "" {
+			return m, tea.Sequence(
+				tea.Println(msg.Message),
+				tea.Quit,
+			)
+		}
 		return m, tea.Quit
 	}
 
 	var cmd tea.Cmd
-	m.stack[len(m.stack)-1].Model, cmd = m.stack[len(m.stack)-1].Model.Update(msg)
+	if len(m.stack) > 0 {
+		m.stack[len(m.stack)-1].Model, cmd = m.stack[len(m.stack)-1].Model.Update(msg)
+	}
 
 	return m, cmd
 }
