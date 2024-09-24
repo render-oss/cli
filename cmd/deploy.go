@@ -46,7 +46,7 @@ func (l ListDeployInput) String() []string {
 	return []string{l.ServiceID}
 }
 
-func renderDeploys(_ context.Context, loadData func() ([]*client.Deploy, error)) (tea.Model, error) {
+func renderDeploys(_ context.Context, loadData func(ListDeployInput) ([]*client.Deploy, error), in ListDeployInput) (tea.Model, error) {
 	columns := []table.Column{
 		{Title: "ID", Width: 25},
 		{Title: "Commit Message", Width: 40},
@@ -73,7 +73,9 @@ func renderDeploys(_ context.Context, loadData func() ([]*client.Deploy, error))
 
 	return tui.NewTableModel[*client.Deploy](
 		"deploys",
-		loadData,
+		func() ([]*client.Deploy, error) {
+			return loadData(in)
+		},
 		fmtFunc,
 		selectFunc,
 		columns,

@@ -41,7 +41,7 @@ func (l ListServiceInput) String() []string {
 	return []string{}
 }
 
-func renderServices(ctx context.Context, loadData func() ([]*service.Model, error)) (tea.Model, error) {
+func renderServices(ctx context.Context, loadData func(input ListServiceInput) ([]*service.Model, error), in ListServiceInput) (tea.Model, error) {
 	serviceRepo, _, err := newRepositories()
 	if err != nil {
 		return nil, err
@@ -56,7 +56,9 @@ func renderServices(ctx context.Context, loadData func() ([]*service.Model, erro
 
 	return tui.NewTableModel[*service.Model](
 		"services",
-		loadData,
+		func() ([]*service.Model, error) {
+			return loadData(in)
+		},
 		formatServiceRow,
 		selectService(ctx),
 		columns,
