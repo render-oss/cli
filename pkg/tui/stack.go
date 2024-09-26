@@ -19,8 +19,8 @@ type ErrorMsg struct {
 	Err error
 }
 
-// QuitMsg quits the program after displaying a message
-type QuitMsg struct {
+// DoneMsg quits the program after displaying a message
+type DoneMsg struct {
 	Message string
 }
 
@@ -70,16 +70,16 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case ErrorMsg:
 		return m, tea.Sequence(
-			tea.Println(msg.Err.Error(), tea.Quit()),
+			tea.Println(msg.Err.Error()),
+			tea.Quit,
 		)
-	case QuitMsg:
-		if msg.Message != "" {
-			return m, tea.Sequence(
-				tea.Println(msg.Message),
-				tea.Quit,
-			)
+	case DoneMsg:
+		cmd := m.Pop()
+		if cmd != nil {
+			return m, cmd
 		}
-		return m, tea.Quit
+
+		return m, m.Init()
 	}
 
 	var cmd tea.Cmd

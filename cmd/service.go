@@ -10,7 +10,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/deploy"
 	"github.com/renderinc/render-cli/pkg/environment"
 	"github.com/renderinc/render-cli/pkg/project"
 	"github.com/renderinc/render-cli/pkg/service"
@@ -42,11 +41,6 @@ func (l ListServiceInput) String() []string {
 }
 
 func renderServices(ctx context.Context, loadData func(input ListServiceInput) ([]*service.Model, error), in ListServiceInput) (tea.Model, error) {
-	serviceRepo, _, err := newRepositories()
-	if err != nil {
-		return nil, err
-	}
-
 	columns := []table.Column{
 		{Title: "Project", Width: 25},
 		{Title: "Environment", Width: 25},
@@ -65,14 +59,9 @@ func renderServices(ctx context.Context, loadData func(input ListServiceInput) (
 		filterService,
 		[]tui.CustomOption[*service.Model]{
 			{
-				Key:   "d",
-				Title: "Deploy",
-				Function: func(s *service.Model) tui.CustomAction {
-					return &deploy.Action{
-						Service: s,
-						Repo:    serviceRepo,
-					}
-				},
+				Key:      "w",
+				Title:    "Change Workspace",
+				Function: serviceOptionSelectWorkspace(ctx),
 			},
 		},
 	), nil
@@ -137,6 +126,12 @@ func newRepositories() (*service.Repo, *service.Service, error) {
 	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
 
 	return serviceRepo, serviceService, nil
+}
+
+func serviceOptionSelectWorkspace(ctx context.Context) func(*service.Model) tea.Cmd {
+	return func(s *service.Model) tea.Cmd {
+		return InteractiveWorkspace(ctx, ListWorkspaceInput{})
+	}
 }
 
 func init() {

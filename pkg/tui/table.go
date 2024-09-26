@@ -15,14 +15,10 @@ var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
 
-type CustomAction interface {
-	Execute() (tea.Model, tea.Cmd)
-}
-
 type CustomOption[T any] struct {
 	Key      string
 	Title    string
-	Function func(T) CustomAction
+	Function func(T) tea.Cmd
 }
 
 type tableState string
@@ -78,10 +74,6 @@ func NewTableModel[T any](
 		errorModel:    NewErrorModel(""),
 	}
 
-	m.initSpinner()
-	m.initSearchInput()
-	m.initTable()
-
 	return m
 }
 
@@ -118,6 +110,10 @@ func (m *TableModel[T]) initTable() {
 }
 
 func (m *TableModel[T]) Init() tea.Cmd {
+	m.initSpinner()
+	m.initSearchInput()
+	m.initTable()
+
 	return tea.Batch(m.spinner.Tick, m.loadData, m.errorModel.Init())
 }
 
@@ -171,8 +167,7 @@ func (m *TableModel[T]) executeCustomOption(option CustomOption[T]) (tea.Model, 
 	if len(selectedRow) > 0 {
 		for _, datum := range m.filteredData {
 			if m.formatFunc(datum)[0] == selectedRow[0] {
-				action := option.Function(datum)
-				return action.Execute()
+				return m, option.Function(datum)
 			}
 		}
 	}

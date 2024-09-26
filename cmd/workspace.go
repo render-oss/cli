@@ -20,11 +20,9 @@ import (
 var workspaceCmd = &cobra.Command{
 	Use:   "workspace",
 	Short: "Select a workspace to run commands against",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		command.Wrap(cmd, loadWorkspaceData, renderWorkspaces)(cmd.Context(), ListWorkspaceInput{})
-		return nil
-	},
 }
+
+var InteractiveWorkspace = command.Wrap(workspaceCmd, loadWorkspaceData, renderWorkspaces)
 
 func loadWorkspaceData(ctx context.Context, _ ListWorkspaceInput) ([]*client.Owner, error) {
 	c, err := client.ClientWithAuth(http.DefaultClient, cfg.GetHost(), cfg.GetAPIKey())
@@ -90,9 +88,7 @@ func selectWorkspace(o *client.Owner) tea.Cmd {
 			return tui.ErrorMsg{Err: fmt.Errorf("failed to persist config: %w", err)}
 		}
 
-		return tui.ClearScreenMsg{
-			NextMsg: tui.QuitMsg{Message: fmt.Sprintf("Workspace set to %s", o.Name)},
-		}
+		return tui.DoneMsg{Message: fmt.Sprintf("Workspace set to %s", o.Name)}
 	}
 }
 
@@ -104,5 +100,15 @@ func filterWorkspace(o *client.Owner, filter string) bool {
 }
 
 func init() {
+	workspaceCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		var input ListWorkspaceInput
+		err := command.ParseCommand(cmd, args, &input)
+		if err != nil {
+			return err
+		}
+		InteractiveWorkspace(cmd.Context(), input)
+		return nil
+	}
+
 	rootCmd.AddCommand(workspaceCmd)
 }
