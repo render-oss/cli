@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 
@@ -48,6 +49,9 @@ func WorkspaceID() (string, error) {
 	cfg, err := Load()
 	if err != nil {
 		return "", err
+	}
+	if cfg.Workspace == "" {
+		return "", errors.New("no workspace set. Use `render workspace` to set a workspace")
 	}
 	return cfg.Workspace, nil
 }

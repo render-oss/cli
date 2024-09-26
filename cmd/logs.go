@@ -15,6 +15,7 @@ import (
 	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
+	"github.com/renderinc/render-cli/pkg/config"
 	"github.com/renderinc/render-cli/pkg/logs"
 	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/renderinc/render-cli/pkg/tui"
@@ -38,7 +39,6 @@ to quickly create a Cobra application.`,
 var InteractiveLogs = command.Wrap(logsCmd, loadLogData, renderLogs)
 
 type LogInput struct {
-	OwnerID     string   `cli:"owner"`
 	ResourceIDs []string `cli:"resources"`
 	StartTime   *string  `cli:"start"`
 	EndTime     *string  `cli:"end"`
@@ -48,15 +48,20 @@ func (l LogInput) String() []string {
 	return []string{}
 }
 
-func (l LogInput) ToParam() *client.ListLogsParams {
+func (l LogInput) ToParam() (*client.ListLogsParams, error) {
 	now := time.Now()
+	ownerID, err := config.WorkspaceID()
+	if err != nil {
+		return nil, fmt.Errorf("error getting workspace ID: %v", err)
+	}
+
 	return &client.ListLogsParams{
 		Resource:  l.ResourceIDs,
-		OwnerId:   l.OwnerID,
+		OwnerId:   ownerID,
 		Limit:     pointers.From(100),
 		StartTime: command.ParseTime(now, l.StartTime),
 		EndTime:   command.ParseTime(now, l.EndTime),
-	}
+	}, nil
 }
 
 func loadLogData(ctx context.Context, in LogInput) (*client.Logs200Response, error) {
@@ -65,7 +70,11 @@ func loadLogData(ctx context.Context, in LogInput) (*client.Logs200Response, err
 		return nil, fmt.Errorf("error creating client: %v", err)
 	}
 	logRepo := logs.NewLogRepo(c)
-	return logRepo.ListLogs(ctx, in.ToParam())
+	params, err := in.ToParam()
+	if err != nil {
+		return nil, fmt.Errorf("error converting input to params: %v", err)
+	}
+	return logRepo.ListLogs(ctx, params)
 }
 
 func logForm(ctx context.Context, in LogInput) *tui.FilterModel {
@@ -121,12 +130,6 @@ func init() {
 
 	logsCmd.Flags().StringSliceP("resources", "r", []string{}, "A list of comma separated resource IDs to query")
 	err := logsCmd.MarkFlagRequired("resources")
-	if err != nil {
-		panic(err)
-	}
-
-	logsCmd.Flags().String("owner", "", "The owner ID of the resources to query")
-	err = logsCmd.MarkFlagRequired("owner")
 	if err != nil {
 		panic(err)
 	}
