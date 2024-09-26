@@ -267,6 +267,10 @@ func HuhForm(cmd *cobra.Command, v any) (*huh.Form, FormValues) {
 		}
 
 		value := formValues[flag.Name]
+		if value == nil {
+			value = pointers.From(flag.DefValue)
+		}
+
 		huhFieldMap[flag.Name] = huh.NewInput().Key(flag.Name).Title(flag.Name).Description(flag.Usage).Placeholder(flag.DefValue).Value(value)
 		formValues[flag.Name] = value
 	})

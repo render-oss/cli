@@ -83,7 +83,17 @@ func formatServiceRow(s *service.Model) table.Row {
 
 func selectService(ctx context.Context) func(*service.Model) tea.Cmd {
 	return func(s *service.Model) tea.Cmd {
-		return InteractiveDeploys(ctx, ListDeployInput{ServiceID: s.Service.Id})
+		return InteractiveCommandPalette(ctx, PaletteCommandInput{
+			Commands: []PaletteCommand{
+				{
+					Name:        "logs",
+					Description: "View service logs",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractiveLogs(ctx, LogInput{ResourceIDs: []string{s.Service.Id}})
+					},
+				},
+			},
+		})
 	}
 }
 
