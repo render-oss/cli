@@ -47,3 +47,7 @@ func (rs *Service) ListResources(ctx context.Context) ([]Resource, error) {
 
 	return resources, nil
 }
+
+func (rs *Service) RestartService(ctx context.Context, id string) error {
+	return rs.serviceService.RestartService(ctx, id)
+}

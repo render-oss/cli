@@ -84,6 +84,13 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 						return InteractiveLogs(ctx, LogInput{ResourceIDs: []string{r.ID()}})
 					},
 				},
+				{
+					Name:        "restart",
+					Description: "Restart the service",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractiveRestart(ctx, RestartInput{ServiceID: r.ID()})
+					},
+				},
 			},
 		})
 	}

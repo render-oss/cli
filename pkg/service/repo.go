@@ -122,3 +122,16 @@ func (s *Repo) GetService(ctx context.Context, id string) (*client.Service, erro
 
 	return resp.JSON200, nil
 }
+
+func (s *Repo) RestartService(ctx context.Context, id string) error {
+	resp, err := s.client.RestartServiceWithResponse(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return err
+	}
+
+	return nil
+}

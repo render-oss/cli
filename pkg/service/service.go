@@ -62,6 +62,10 @@ func (s *Service) GetService(ctx context.Context, id string) (*Model, error) {
 	return s.hydrateServiceModel(ctx, service, projects, &envs)
 }
 
+func (s *Service) RestartService(ctx context.Context, id string) error {
+	return s.repo.RestartService(ctx, id)
+}
+
 func (s *Service) hydrateServiceModel(ctx context.Context, service *client.Service, projects []*client.Project, envs *[]*client.Environment) (*Model, error) {
 	model := &Model{service: service}
 
