@@ -1,9 +1,14 @@
 package tui
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
 )
+
+var headerStyle = lipgloss.NewStyle().Margin(1).Border(lipgloss.NormalBorder(), false, false, true, false)
+var header = headerStyle.Render("Update filters")
 
 type FilterModel struct {
 	form   *huh.Form
@@ -12,21 +17,40 @@ type FilterModel struct {
 
 func NewFilterModel(form *huh.Form, search func(*huh.Form) tea.Cmd) *FilterModel {
 	return &FilterModel{
-		form:   form,
+		form: form.WithKeyMap(&huh.KeyMap{
+			Input: huh.InputKeyMap{
+				AcceptSuggestion: key.NewBinding(key.WithKeys("ctrl+e"), key.WithHelp("ctrl+e", "complete")),
+				Prev:             key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "back")),
+				Next:             key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next")),
+				Submit:           key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "submit")),
+			},
+		}),
 		search: search,
 	}
+}
+func (m *FilterModel) SetWidth(width int) {
+	m.form = m.form.WithWidth(width)
+}
+
+func (m *FilterModel) SetHeight(height int) {
+	m.form = m.form.WithHeight(height - lipgloss.Height(header))
 }
 
 func (m *FilterModel) Init() tea.Cmd {
 	return m.form.Init()
 }
 
-func (m *FilterModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *FilterModel) Update(msg tea.Msg) (*FilterModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
 			return m, m.search(m.form)
+		default:
+			// Don't allow the user to type a "/" in the filter form, this is used to close the filter
+			if k := msg.String(); k == "/" {
+				return m, nil
+			}
 		}
 	}
 
@@ -39,5 +63,5 @@ func (m *FilterModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *FilterModel) View() string {
-	return m.form.View()
+	return lipgloss.JoinVertical(lipgloss.Left, header, m.form.View())
 }
