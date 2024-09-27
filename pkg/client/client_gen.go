@@ -15808,17 +15808,14 @@ func (r RetrieveOwnerResponse) StatusCode() int {
 type ListPostgresResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]struct {
-		Cursor   *Cursor   `json:"cursor,omitempty"`
-		Postgres *Postgres `json:"postgres,omitempty"`
-	}
-	JSON400 *N400BadRequest
-	JSON401 *N401Unauthorized
-	JSON404 *N404NotFound
-	JSON409 *N409Conflict
-	JSON429 *N429RateLimit
-	JSON500 *N500InternalServerError
-	JSON503 *N503ServiceUnavailable
+	JSON200      *[]PostgresWithCursor
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON409      *N409Conflict
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
 }
 
 // Status returns HTTPResponse.Status
@@ -24393,10 +24390,7 @@ func ParseListPostgresResponse(rsp *http.Response) (*ListPostgresResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []struct {
-			Cursor   *Cursor   `json:"cursor,omitempty"`
-			Postgres *Postgres `json:"postgres,omitempty"`
-		}
+		var dest []PostgresWithCursor
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

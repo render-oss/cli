@@ -47,6 +47,8 @@ const (
 	InstanceCountChanged        EventType = "instance_count_changed"
 	JobRunEnded                 EventType = "job_run_ended"
 	MaintenanceEnded            EventType = "maintenance_ended"
+	MaintenanceModeEnabled      EventType = "maintenance_mode_enabled"
+	MaintenanceModeUriUpdated   EventType = "maintenance_mode_uri_updated"
 	MaintenanceStarted          EventType = "maintenance_started"
 	PlanChanged                 EventType = "plan_changed"
 	PreDeployEnded              EventType = "pre_deploy_ended"
@@ -264,6 +266,17 @@ type JobRunEndedEvent struct {
 
 // MaintenanceEndedEvent defines model for maintenanceEndedEvent.
 type MaintenanceEndedEvent = map[string]interface{}
+
+// MaintenanceModeEnabledEvent defines model for maintenanceModeEnabledEvent.
+type MaintenanceModeEnabledEvent struct {
+	Enabled bool `json:"enabled"`
+}
+
+// MaintenanceModeURIUpdatedEvent defines model for maintenanceModeURIUpdatedEvent.
+type MaintenanceModeURIUpdatedEvent struct {
+	FromURI string `json:"fromURI"`
+	ToURI   string `json:"toURI"`
+}
 
 // MaintenanceStartedEvent defines model for maintenanceStartedEvent.
 type MaintenanceStartedEvent struct {
@@ -881,6 +894,58 @@ func (t *EventDetails) FromJobRunEndedEvent(v JobRunEndedEvent) error {
 
 // MergeJobRunEndedEvent performs a merge with any union data inside the EventDetails, using the provided JobRunEndedEvent
 func (t *EventDetails) MergeJobRunEndedEvent(v JobRunEndedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMaintenanceModeEnabledEvent returns the union data inside the EventDetails as a MaintenanceModeEnabledEvent
+func (t EventDetails) AsMaintenanceModeEnabledEvent() (MaintenanceModeEnabledEvent, error) {
+	var body MaintenanceModeEnabledEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMaintenanceModeEnabledEvent overwrites any union data inside the EventDetails as the provided MaintenanceModeEnabledEvent
+func (t *EventDetails) FromMaintenanceModeEnabledEvent(v MaintenanceModeEnabledEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMaintenanceModeEnabledEvent performs a merge with any union data inside the EventDetails, using the provided MaintenanceModeEnabledEvent
+func (t *EventDetails) MergeMaintenanceModeEnabledEvent(v MaintenanceModeEnabledEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMaintenanceModeURIUpdatedEvent returns the union data inside the EventDetails as a MaintenanceModeURIUpdatedEvent
+func (t EventDetails) AsMaintenanceModeURIUpdatedEvent() (MaintenanceModeURIUpdatedEvent, error) {
+	var body MaintenanceModeURIUpdatedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMaintenanceModeURIUpdatedEvent overwrites any union data inside the EventDetails as the provided MaintenanceModeURIUpdatedEvent
+func (t *EventDetails) FromMaintenanceModeURIUpdatedEvent(v MaintenanceModeURIUpdatedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMaintenanceModeURIUpdatedEvent performs a merge with any union data inside the EventDetails, using the provided MaintenanceModeURIUpdatedEvent
+func (t *EventDetails) MergeMaintenanceModeURIUpdatedEvent(v MaintenanceModeURIUpdatedEvent) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err

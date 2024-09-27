@@ -11,33 +11,33 @@ import (
 )
 
 var restartCmd = &cobra.Command{
-	Use:   "restart [serviceID]",
+	Use:   "restart [resourceID]",
 	Short: "Restart a service",
 	Args:  cobra.ExactArgs(1),
 }
 
-var InteractiveRestart = command.Wrap(restartCmd, restartService, renderRestart)
+var InteractiveRestart = command.Wrap(restartCmd, restartResource, renderRestart)
 
 type RestartInput struct {
-	ServiceID string
+	ResourceID string
 }
 
 func (r RestartInput) String() []string {
-	return []string{r.ServiceID}
+	return []string{r.ResourceID}
 }
 
-func restartService(ctx context.Context, input RestartInput) (string, error) {
+func restartResource(ctx context.Context, input RestartInput) (string, error) {
 	resourceService, err := newResourceService()
 	if err != nil {
 		return "", fmt.Errorf("failed to create resource service: %w", err)
 	}
 
-	err = resourceService.RestartService(ctx, input.ServiceID)
+	err = resourceService.RestartResource(ctx, input.ResourceID)
 	if err != nil {
-		return "", fmt.Errorf("failed to restart service: %w", err)
+		return "", fmt.Errorf("failed to restart resource: %w", err)
 	}
 
-	return fmt.Sprintf("Service %s restarted successfully", input.ServiceID), nil
+	return fmt.Sprintf("%s restarted successfully", input.ResourceID), nil
 }
 
 func renderRestart(_ context.Context, loadData func(RestartInput) (string, error), in RestartInput) (tea.Model, error) {
@@ -50,7 +50,7 @@ func init() {
 	restartCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input RestartInput
 		if len(args) == 1 {
-			input.ServiceID = args[0]
+			input.ResourceID = args[0]
 		} else {
 			err := command.ParseCommand(cmd, args, &input)
 			if err != nil {

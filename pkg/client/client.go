@@ -42,7 +42,11 @@ func firstNonNilErrorField(response any) *ErrorWithCode {
 
 	v := reflect.ValueOf(response)
 
-	httpResponse, ok := v.FieldByName("HTTPResponse").Interface().(*http.Response)
+	httpRespField := v.FieldByName("HTTPResponse")
+	if !httpRespField.IsValid() {
+		return nil
+	}
+	httpResponse, ok := httpRespField.Interface().(*http.Response)
 	if !ok {
 		couldNotReadResponse := "could not read HTTP response"
 		return &ErrorWithCode{Error: Error{Message: &couldNotReadResponse}}

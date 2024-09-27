@@ -2,6 +2,9 @@ package service
 
 import "github.com/renderinc/render-cli/pkg/client"
 
+const ServerResourceIDPrefix = "srv-"
+const CronjobResourceIDPrefix = "crn-"
+
 type Model struct {
 	service     *client.Service
 	project     *client.Project

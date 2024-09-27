@@ -11,6 +11,7 @@ import (
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/environment"
+	"github.com/renderinc/render-cli/pkg/postgres"
 	"github.com/renderinc/render-cli/pkg/project"
 	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/service"
@@ -88,7 +89,7 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 					Name:        "restart",
 					Description: "Restart the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveRestart(ctx, RestartInput{ServiceID: r.ID()})
+						return InteractiveRestart(ctx, RestartInput{ResourceID: r.ID()})
 					},
 				},
 			},
@@ -119,9 +120,17 @@ func newResourceService() (*resource.Service, error) {
 	serviceRepo := service.NewRepo(c)
 	environmentRepo := environment.NewRepo(c)
 	projectRepo := project.NewRepo(c)
+	postgresRepo := postgres.NewRepo(c)
 
 	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
-	resourceService := resource.NewResourceService(serviceService, environmentRepo, projectRepo)
+	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo)
+
+	resourceService := resource.NewResourceService(
+		serviceService,
+		postgresService,
+		environmentRepo,
+		projectRepo,
+	)
 
 	return resourceService, nil
 }

@@ -87,7 +87,7 @@ type LogStreamOwnerUpdate struct {
 	Endpoint *LogStreamEndpoint `json:"endpoint,omitempty"`
 
 	// Preview Whether to send logs or drop them.
-	Preview *LogStreamPreviewSetting `json:"preview,omitempty"`
+	Preview LogStreamPreviewSetting `json:"preview"`
 
 	// Token The optional token to authenticate the log stream.
 	Token *LogStreamToken `json:"token,omitempty"`
@@ -102,7 +102,7 @@ type LogStreamResourceUpdate struct {
 	Endpoint *LogStreamEndpoint `json:"endpoint,omitempty"`
 
 	// Setting Whether to send logs or drop them.
-	Setting *LogStreamSetting `json:"setting,omitempty"`
+	Setting LogStreamSetting `json:"setting"`
 
 	// Token The optional token to authenticate the log stream.
 	Token *LogStreamToken `json:"token,omitempty"`

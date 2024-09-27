@@ -838,7 +838,7 @@ type InstanceId = string
 type MaintenanceMode struct {
 	Enabled bool `json:"enabled"`
 
-	// Uri The page to be served when maintenance mode is enabled. When empty, the default maintenance mode page is served.
+	// Uri The page to be served when [maintenance mode](https://docs.render.com/maintenance-mode) is enabled. When empty, the default maintenance mode page is served.
 	Uri string `json:"uri"`
 }
 
@@ -1025,6 +1025,12 @@ type PostgresPOSTInput struct {
 
 // PostgresVersion The PostgreSQL version
 type PostgresVersion string
+
+// PostgresWithCursor defines model for postgresWithCursor.
+type PostgresWithCursor struct {
+	Cursor   Cursor   `json:"cursor"`
+	Postgres Postgres `json:"postgres"`
+}
 
 // PreviewInput defines model for previewInput.
 type PreviewInput struct {
@@ -1650,6 +1656,7 @@ type WebServiceDetails struct {
 type WebServiceDetailsPATCH struct {
 	EnvSpecificDetails *EnvSpecificDetailsPATCH `json:"envSpecificDetails,omitempty"`
 	HealthCheckPath    *string                  `json:"healthCheckPath,omitempty"`
+	MaintenanceMode    *MaintenanceMode         `json:"maintenanceMode,omitempty"`
 
 	// MaxShutdownDelaySeconds The maximum amount of time (in seconds) that Render waits for your application process to exit gracefully after sending it a SIGTERM signal.
 	MaxShutdownDelaySeconds *MaxShutdownDelaySeconds `json:"maxShutdownDelaySeconds,omitempty"`
@@ -1677,6 +1684,7 @@ type WebServiceDetailsPOST struct {
 	Env                *ServiceEnv             `json:"env,omitempty"`
 	EnvSpecificDetails *EnvSpecificDetailsPOST `json:"envSpecificDetails,omitempty"`
 	HealthCheckPath    *string                 `json:"healthCheckPath,omitempty"`
+	MaintenanceMode    *MaintenanceMode        `json:"maintenanceMode,omitempty"`
 
 	// MaxShutdownDelaySeconds The maximum amount of time (in seconds) that Render waits for your application process to exit gracefully after sending it a SIGTERM signal.
 	MaxShutdownDelaySeconds *MaxShutdownDelaySeconds `json:"maxShutdownDelaySeconds,omitempty"`

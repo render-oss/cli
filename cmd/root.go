@@ -4,6 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -65,7 +66,7 @@ to quickly create a Cobra application.`,
 			p := tea.NewProgram(stack)
 			_, err := p.Run()
 			if err != nil {
-				panic("failed to initialize interface")
+				panic(fmt.Sprintf("failed to initialize interface: %v", err))
 			}
 			return nil
 		}
