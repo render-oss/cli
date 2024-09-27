@@ -3,9 +3,14 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
 
 	"github.com/renderinc/render-cli/pkg/client"
+	"github.com/renderinc/render-cli/pkg/environment"
 	"github.com/renderinc/render-cli/pkg/input"
+	"github.com/renderinc/render-cli/pkg/project"
+	"github.com/renderinc/render-cli/pkg/service"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +32,7 @@ var updateCmd = &cobra.Command{
 			return err
 		}
 
-		svc, err := stripReadOnlyFields(srv.Service)
+		svc, err := stripReadOnlyFields(srv.Service())
 		if err != nil {
 			return err
 		}
@@ -114,6 +119,28 @@ func stripReadOnlyFields(retrievedService *client.Service) (*client.ServicePATCH
 	}
 
 	return patch, nil
+}
+
+func newRepositories() (*service.Repo, *service.Service, error) {
+	httpClient := http.DefaultClient
+	host := os.Getenv("RENDER_HOST")
+	apiKey := os.Getenv("RENDER_API_KEY")
+
+	c, err := client.ClientWithAuth(httpClient, host, apiKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	serviceRepo, err := service.NewRepo(c), nil
+	if err != nil {
+		return nil, nil, err
+	}
+
+	environmentRepo := environment.NewRepo(c)
+	projectRepo := project.NewRepo(c)
+	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
+
+	return serviceRepo, serviceService, nil
 }
 
 func init() {

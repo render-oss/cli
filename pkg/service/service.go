@@ -63,15 +63,15 @@ func (s *Service) GetService(ctx context.Context, id string) (*Model, error) {
 }
 
 func (s *Service) hydrateServiceModel(ctx context.Context, service *client.Service, projects []*client.Project, envs *[]*client.Environment) (*Model, error) {
-	model := &Model{Service: service}
+	model := &Model{service: service}
 
 	env, err := s.environmentForService(ctx, service, envs)
 	if err != nil {
 		return nil, err
 	}
-	model.Environment = env
+	model.environment = env
 
-	model.Project = s.projectForService(service, projects)
+	model.project = s.projectForService(service, projects)
 	return model, nil
 }
 
