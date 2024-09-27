@@ -33,7 +33,7 @@ func (m *FilterModel) SetWidth(width int) {
 }
 
 func (m *FilterModel) SetHeight(height int) {
-	m.form = m.form.WithHeight(height - lipgloss.Height(header))
+	m.form = m.form.WithHeight(height - lipgloss.Height(header) - commandDescriptionHeight)
 }
 
 func (m *FilterModel) Init() tea.Cmd {

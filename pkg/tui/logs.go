@@ -3,6 +3,8 @@ package tui
 import (
 	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -13,10 +15,13 @@ const (
 	commandDescriptionHeight = 1
 )
 
-var viewportStyle = lipgloss.NewStyle().Padding(0, 2).Border(lipgloss.NormalBorder())
+var viewportSylte = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, false, true, false)
+var logStyle = lipgloss.NewStyle().Padding(2, 2)
+var filterStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, true, false, false)
 
 func NewLogModel(filter *FilterModel, loadFunc func() ([]string, error)) *LogModel {
 	return &LogModel{
+		help:        help.New(),
 		loadFunc:    loadFunc,
 		searching:   false,
 		filterModel: filter,
@@ -40,6 +45,7 @@ type LogModel struct {
 	viewport    viewport.Model
 	filterModel *FilterModel
 	errorModel  *ErrorModel
+	help        help.Model
 
 	windowWidth  int
 	windowHeight int
@@ -102,8 +108,8 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *LogModel) setViewPortSize() {
-	stylingHeight := viewportStyle.GetPaddingTop() + viewportStyle.GetPaddingBottom() + viewportStyle.GetBorderTopSize() + viewportStyle.GetBorderBottomSize()
-	stylingWidth := viewportStyle.GetPaddingRight() + viewportStyle.GetPaddingLeft() + viewportStyle.GetBorderLeftSize() + viewportStyle.GetBorderRightSize()
+	stylingHeight := logStyle.GetPaddingTop() + logStyle.GetPaddingBottom() + logStyle.GetBorderTopSize() + logStyle.GetBorderBottomSize()
+	stylingWidth := logStyle.GetPaddingRight() + logStyle.GetPaddingLeft() + logStyle.GetBorderLeftSize() + logStyle.GetBorderRightSize()
 	searchWindowWidth := min(searchWidth, m.windowWidth)
 
 	m.viewport.Height = m.windowHeight - stylingHeight - commandDescriptionHeight
@@ -125,11 +131,39 @@ func (m *LogModel) View() string {
 	if m.state == logStateLoading {
 		return "\n  Loading Logs..."
 	}
-	logView := viewportStyle.Render(m.viewport.View())
+	logView := logStyle.Render(lipgloss.JoinVertical(lipgloss.Left, viewportSylte.Render(m.viewport.View()), m.help.View(&keyMapWrapper{m.viewport.KeyMap})))
 
 	if m.searching {
-		return lipgloss.JoinHorizontal(lipgloss.Center, m.filterModel.View(), logView)
+		return lipgloss.JoinHorizontal(lipgloss.Center, filterStyle.Render(m.filterModel.View()), logView)
 	}
 
 	return logView
+}
+
+type keyMapWrapper struct {
+	keyMap viewport.KeyMap
+}
+
+func (k *keyMapWrapper) ShortHelp() []key.Binding {
+	return []key.Binding{
+		k.keyMap.Down,
+		k.keyMap.Up,
+		k.keyMap.PageDown,
+		k.keyMap.PageUp,
+		k.keyMap.HalfPageDown,
+		k.keyMap.HalfPageUp,
+	}
+}
+
+func (k *keyMapWrapper) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			k.keyMap.Down,
+			k.keyMap.Up,
+			k.keyMap.PageDown,
+			k.keyMap.PageUp,
+			k.keyMap.HalfPageDown,
+			k.keyMap.HalfPageUp,
+		},
+	}
 }
