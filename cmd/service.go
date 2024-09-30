@@ -92,6 +92,13 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 						return InteractiveRestart(ctx, RestartInput{ResourceID: r.ID()})
 					},
 				},
+				{
+					Name:        "psql",
+					Description: "Connect to the PostgreSQL database",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractivePSQL(ctx, PSQLInput{PostgresID: r.ID()})
+					},
+				},
 			},
 		})
 	}
