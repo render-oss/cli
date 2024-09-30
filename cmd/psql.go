@@ -20,13 +20,8 @@ import (
 // psqlCmd represents the psql command
 var psqlCmd = &cobra.Command{
 	Use:   "psql",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Open a psql session to a Render Postgres database",
+	Long:  `Open a psql session to a Render Postgres database. Pass the database id as the first argument.`,
 }
 
 var InteractivePSQL = command.Wrap(psqlCmd, loadDataPSQL, renderPSQL)
