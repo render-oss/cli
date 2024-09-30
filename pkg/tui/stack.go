@@ -55,6 +55,10 @@ func (m *StackModel) Init() tea.Cmd {
 }
 
 func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if len(m.stack) == 0 {
+		return m, tea.Quit
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
