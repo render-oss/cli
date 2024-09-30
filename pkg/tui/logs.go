@@ -1,28 +1,32 @@
 package tui
 
 import (
-	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	titleStyle = func() lipgloss.Style {
-		b := lipgloss.RoundedBorder()
-		b.Right = "├"
-		return lipgloss.NewStyle().BorderStyle(b).Padding(0, 1)
-	}()
+const (
+	searchWidth              = 60
+	commandDescriptionHeight = 1
 )
+
+var viewportSylte = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, false, true, false)
+var logStyle = lipgloss.NewStyle().Padding(2, 2)
+var filterStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, true, false, false)
 
 func NewLogModel(filter *FilterModel, loadFunc func() ([]string, error)) *LogModel {
 	return &LogModel{
+		help:        help.New(),
 		loadFunc:    loadFunc,
 		searching:   false,
 		filterModel: filter,
 		errorModel:  NewErrorModel(""),
+		viewport:    viewport.New(0, 0),
 	}
 }
 
@@ -38,12 +42,14 @@ type LogModel struct {
 	loadFunc    func() ([]string, error)
 	content     []string
 	state       logState
-	ready       bool
 	viewport    viewport.Model
-	filterModel tea.Model
+	filterModel *FilterModel
 	errorModel  *ErrorModel
+	help        help.Model
 
-	searching bool
+	windowWidth  int
+	windowHeight int
+	searching    bool
 }
 
 func (m *LogModel) loadData() tea.Msg {
@@ -85,31 +91,36 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport.SetContent(strings.Join(m.content, "\n"))
 		m.state = logStateLoaded
 	case tea.KeyMsg:
-		if k := msg.String(); k == "/" {
-			m.searching = !m.searching
+		switch msg.Type {
+		default:
+			if k := msg.String(); k == "/" {
+				m.searching = !m.searching
+				m.setViewPortSize()
+			}
 		}
 	case tea.WindowSizeMsg:
-		headerHeight := lipgloss.Height(m.headerView())
-		footerHeight := lipgloss.Height(m.footerView())
-		verticalMarginHeight := headerHeight + footerHeight
-
-		if !m.ready {
-			// Since this program is using the full size of the viewport we
-			// need to wait until we've received the window dimensions before
-			// we can initialize the viewport. The initial dimensions come in
-			// quickly, though asynchronously, which is why we wait for them
-			// here.
-			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
-			m.viewport.YPosition = headerHeight
-			m.viewport.SetContent(strings.Join(m.content, "\n"))
-			m.ready = true
-		} else {
-			m.viewport.Width = msg.Width
-			m.viewport.Height = msg.Height - verticalMarginHeight
-		}
+		m.windowWidth = msg.Width
+		m.windowHeight = msg.Height
+		m.setViewPortSize()
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m *LogModel) setViewPortSize() {
+	stylingHeight := logStyle.GetPaddingTop() + logStyle.GetPaddingBottom() + logStyle.GetBorderTopSize() + logStyle.GetBorderBottomSize()
+	stylingWidth := logStyle.GetPaddingRight() + logStyle.GetPaddingLeft() + logStyle.GetBorderLeftSize() + logStyle.GetBorderRightSize()
+	searchWindowWidth := min(searchWidth, m.windowWidth)
+
+	m.viewport.Height = m.windowHeight - stylingHeight - commandDescriptionHeight
+	m.viewport.YPosition = stylingHeight + commandDescriptionHeight
+	if m.searching {
+		m.viewport.Width = m.windowWidth - searchWindowWidth - stylingWidth
+		m.filterModel.SetWidth(searchWindowWidth)
+		m.filterModel.SetHeight(m.viewport.Height)
+	} else {
+		m.viewport.Width = m.windowWidth - stylingWidth
+	}
 }
 
 func (m *LogModel) View() string {
@@ -118,30 +129,41 @@ func (m *LogModel) View() string {
 	}
 
 	if m.state == logStateLoading {
-		return "\n  Initializing..."
+		return "\n  Loading Logs..."
 	}
-	logView := fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
+	logView := logStyle.Render(lipgloss.JoinVertical(lipgloss.Left, viewportSylte.Render(m.viewport.View()), m.help.View(&keyMapWrapper{m.viewport.KeyMap})))
 
 	if m.searching {
-		return lipgloss.JoinHorizontal(lipgloss.Center, m.filterModel.View(), logView)
+		return lipgloss.JoinHorizontal(lipgloss.Center, filterStyle.Render(m.filterModel.View()), logView)
 	}
 
 	return logView
 }
 
-func (m *LogModel) headerView() string {
-	title := titleStyle.Render("Logs For")
-	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(title)))
-	return lipgloss.JoinHorizontal(lipgloss.Center, title, line)
+type keyMapWrapper struct {
+	keyMap viewport.KeyMap
 }
 
-func (m *LogModel) footerView() string {
-	return strings.Repeat("─", max(0, m.viewport.Width))
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
+func (k *keyMapWrapper) ShortHelp() []key.Binding {
+	return []key.Binding{
+		k.keyMap.Down,
+		k.keyMap.Up,
+		k.keyMap.PageDown,
+		k.keyMap.PageUp,
+		k.keyMap.HalfPageDown,
+		k.keyMap.HalfPageUp,
 	}
-	return b
+}
+
+func (k *keyMapWrapper) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{
+			k.keyMap.Down,
+			k.keyMap.Up,
+			k.keyMap.PageDown,
+			k.keyMap.PageUp,
+			k.keyMap.HalfPageDown,
+			k.keyMap.HalfPageUp,
+		},
+	}
 }
