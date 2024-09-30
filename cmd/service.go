@@ -76,30 +76,41 @@ func formatResourceRow(r resource.Resource) table.Row {
 
 func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 	return func(r resource.Resource) tea.Cmd {
-		return InteractiveCommandPalette(ctx, PaletteCommandInput{
-			Commands: []PaletteCommand{
-				{
-					Name:        "logs",
-					Description: "View resource logs",
-					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveLogs(ctx, LogInput{ResourceIDs: []string{r.ID()}})
-					},
-				},
-				{
-					Name:        "restart",
-					Description: "Restart the service",
-					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveRestart(ctx, RestartInput{ResourceID: r.ID()})
-					},
-				},
-				{
-					Name:        "psql",
-					Description: "Connect to the PostgreSQL database",
-					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractivePSQL(ctx, PSQLInput{PostgresID: r.ID()})
-					},
+		allResourceCommands := []PaletteCommand{
+			{
+				Name:        "logs",
+				Description: "View resource logs",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return InteractiveLogs(ctx, LogInput{ResourceIDs: []string{r.ID()}})
 				},
 			},
+			{
+				Name:        "restart",
+				Description: "Restart the service",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return InteractiveRestart(ctx, RestartInput{ResourceID: r.ID()})
+				},
+			},
+		}
+
+		postgresCommands := []PaletteCommand{
+			{
+				Name:        "psql",
+				Description: "Connect to the PostgreSQL database",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return InteractivePSQL(ctx, PSQLInput{PostgresID: r.ID()})
+				},
+			},
+		}
+
+		commands := allResourceCommands
+
+		if r.Type() == postgres.PostgresType {
+			commands = append(commands, postgresCommands...)
+		}
+
+		return InteractiveCommandPalette(ctx, PaletteCommandInput{
+			Commands: commands,
 		})
 	}
 }
