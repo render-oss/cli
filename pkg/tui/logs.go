@@ -2,12 +2,15 @@ package tui
 
 import (
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/renderinc/render-cli/pkg/client"
+	lclient "github.com/renderinc/render-cli/pkg/client/logs"
 )
 
 const (
@@ -19,7 +22,9 @@ var viewportSylte = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, f
 var logStyle = lipgloss.NewStyle().Padding(2, 2)
 var filterStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, true, false, false)
 
-func NewLogModel(filter *FilterModel, loadFunc func() ([]string, error)) *LogModel {
+type LoadFunc func() (*client.Logs200Response, <-chan *lclient.Log, error)
+
+func NewLogModel(filter *FilterModel, loadFunc LoadFunc) *LogModel {
 	return &LogModel{
 		help:        help.New(),
 		loadFunc:    loadFunc,
@@ -39,7 +44,7 @@ const (
 )
 
 type LogModel struct {
-	loadFunc    func() ([]string, error)
+	loadFunc    LoadFunc
 	content     []string
 	state       logState
 	viewport    viewport.Model
@@ -53,15 +58,50 @@ type LogModel struct {
 }
 
 func (m *LogModel) loadData() tea.Msg {
-	data, err := m.loadFunc()
+	logs, logChan, err := m.loadFunc()
 	if err != nil {
 		return loadLogsErrMsg(err)
 	}
-	return loadLogsMsg(data)
+	return loadLogsMsg{data: logs, channel: logChan}
 }
 
-type loadLogsMsg []string
+type loadLogsMsg struct {
+	data    *client.Logs200Response
+	channel <-chan *lclient.Log
+}
+
+type appendLogsMsg struct {
+	log *lclient.Log
+	ch  <-chan *lclient.Log
+}
 type loadLogsErrMsg error
+
+var timeStyle = lipgloss.NewStyle().PaddingRight(2)
+
+func formatLogs(logs []lclient.Log) []string {
+	var formattedLogs []string
+	for _, log := range logs {
+		formattedLogs = append(formattedLogs, lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			timeStyle.Render(log.Timestamp.Format(time.DateTime)),
+			log.Message,
+		))
+	}
+
+	return formattedLogs
+}
+
+func readFromChannel(ch <-chan *lclient.Log) tea.Cmd {
+	return func() tea.Msg {
+		select {
+		case log, ok := <-ch:
+			if !ok {
+				return nil
+			}
+			return appendLogsMsg{log: log, ch: ch}
+		}
+	}
+}
 
 func (m *LogModel) Init() tea.Cmd {
 	return tea.Batch(m.loadData, m.filterModel.Init(), m.errorModel.Init(), tea.WindowSize())
@@ -87,9 +127,24 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.errorModel.DisplayError = msg.Error()
 		m.state = logStateError
 	case loadLogsMsg:
-		m.content = msg
+		if msg.data != nil {
+			m.content = formatLogs(msg.data.Logs)
+		} else {
+			m.content = []string{}
+		}
+		if msg.channel != nil {
+			cmds = append(cmds, readFromChannel(msg.channel))
+		}
 		m.viewport.SetContent(strings.Join(m.content, "\n"))
 		m.state = logStateLoaded
+	case appendLogsMsg:
+		m.content = append(m.content, formatLogs([]lclient.Log{*msg.log})...)
+		isAtBottom := m.viewport.AtBottom()
+		m.viewport.SetContent(strings.Join(m.content, "\n"))
+		if isAtBottom {
+			m.viewport.GotoBottom()
+		}
+		cmds = append(cmds, readFromChannel(msg.ch))
 	case tea.KeyMsg:
 		switch msg.Type {
 		default:

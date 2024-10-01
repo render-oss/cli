@@ -11,7 +11,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
 	lclient "github.com/renderinc/render-cli/pkg/client/logs"
@@ -22,8 +21,6 @@ import (
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
 )
-
-var timeStyle = lipgloss.NewStyle().PaddingRight(2)
 
 // logsCmd represents the logs command
 var logsCmd = &cobra.Command{
@@ -50,6 +47,12 @@ type LogInput struct {
 
 	Limit     int    `cli:"limit"`
 	Direction string `cli:"direction"`
+	Tail      bool   `cli:"tail"`
+}
+
+type LogResult struct {
+	Logs       *client.Logs200Response
+	LogChannel <-chan *lclient.Log
 }
 
 func (l LogInput) String() []string {
@@ -92,7 +95,7 @@ func mapDirection(direction string) lclient.LogDirection {
 	}
 }
 
-func loadLogData(ctx context.Context, in LogInput) (*client.Logs200Response, error) {
+func loadLogData(ctx context.Context, in LogInput) (*LogResult, error) {
 	c, err := client.ClientWithAuth(&http.Client{}, cfg.GetHost(), cfg.GetAPIKey())
 	if err != nil {
 		return nil, fmt.Errorf("error creating client: %v", err)
@@ -102,7 +105,20 @@ func loadLogData(ctx context.Context, in LogInput) (*client.Logs200Response, err
 	if err != nil {
 		return nil, fmt.Errorf("error converting input to params: %v", err)
 	}
-	return logRepo.ListLogs(ctx, params)
+
+	if in.Tail {
+		logChan, err := logRepo.TailLogs(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("error tailing logs: %v", err)
+		}
+		return &LogResult{Logs: &client.Logs200Response{}, LogChannel: logChan}, nil
+	}
+
+	logs, err := logRepo.ListLogs(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("error listing logs: %v", err)
+	}
+	return &LogResult{Logs: logs, LogChannel: nil}, nil
 }
 
 func logForm(ctx context.Context, in LogInput) *tui.FilterModel {
@@ -118,29 +134,16 @@ func logForm(ctx context.Context, in LogInput) *tui.FilterModel {
 	})
 }
 
-func formatLogs(data *client.Logs200Response) []string {
-	var formattedLogs []string
-	for _, log := range data.Logs {
-		formattedLogs = append(formattedLogs, lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			timeStyle.Render(log.Timestamp.Format(time.DateTime)),
-			log.Message,
-		))
-	}
-
-	return formattedLogs
-}
-
-func renderLogs(ctx context.Context, loadData func(LogInput) (*client.Logs200Response, error), in LogInput) (tea.Model, error) {
-	formattedLogs := func() ([]string, error) {
-		logs, err := loadData(in)
+func renderLogs(ctx context.Context, loadData func(LogInput) (*LogResult, error), in LogInput) (tea.Model, error) {
+	loadLogs := func() (*client.Logs200Response, <-chan *lclient.Log, error) {
+		result, err := loadData(in)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		return formatLogs(logs), nil
+		return result.Logs, result.LogChannel, nil
 	}
-	model := tui.NewLogModel(logForm(ctx, in), formattedLogs)
+	model := tui.NewLogModel(logForm(ctx, in), loadLogs)
 	return model, nil
 }
 
@@ -174,4 +177,6 @@ func init() {
 	logsCmd.Flags().StringSlice("path", []string{}, "A list of comma separated paths to query")
 	logsCmd.Flags().Int("limit", 100, "The maximum number of logs to return")
 	logsCmd.Flags().String("direction", "backward", "The direction to query the logs. Can be 'forward' or 'backward'")
+
+	logsCmd.Flags().Bool("tail", false, "Stream new logs")
 }
