@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
+	lclient "github.com/renderinc/render-cli/pkg/client/logs"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/config"
 	"github.com/renderinc/render-cli/pkg/logs"
@@ -27,21 +28,28 @@ var timeStyle = lipgloss.NewStyle().PaddingRight(2)
 // logsCmd represents the logs command
 var logsCmd = &cobra.Command{
 	Use:   "logs",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Return logs",
+	Long:  `Return logs`,
 }
 
 var InteractiveLogs = command.Wrap(logsCmd, loadLogData, renderLogs)
 
 type LogInput struct {
 	ResourceIDs []string `cli:"resources"`
+	Instance    []string `cli:"instance"`
 	StartTime   *string  `cli:"start"`
 	EndTime     *string  `cli:"end"`
+	Text        []string `cli:"text"`
+	Level       []string `cli:"level"`
+	Type        []string `cli:"type"`
+
+	Host       []string `cli:"host"`
+	StatusCode []string `cli:"status-code"`
+	Method     []string `cli:"method"`
+	Path       []string `cli:"path"`
+
+	Limit     int    `cli:"limit"`
+	Direction string `cli:"direction"`
 }
 
 func (l LogInput) String() []string {
@@ -56,12 +64,32 @@ func (l LogInput) ToParam() (*client.ListLogsParams, error) {
 	}
 
 	return &client.ListLogsParams{
-		Resource:  l.ResourceIDs,
-		OwnerId:   ownerID,
-		Limit:     pointers.From(100),
-		StartTime: command.ParseTime(now, l.StartTime),
-		EndTime:   command.ParseTime(now, l.EndTime),
+		Resource:   l.ResourceIDs,
+		OwnerId:    ownerID,
+		Instance:   pointers.FromArray(l.Instance),
+		Limit:      pointers.From(l.Limit),
+		StartTime:  command.ParseTime(now, l.StartTime),
+		EndTime:    command.ParseTime(now, l.EndTime),
+		Text:       pointers.FromArray(l.Text),
+		Level:      pointers.FromArray(l.Level),
+		Type:       pointers.FromArray(l.Type),
+		Host:       pointers.FromArray(l.Host),
+		StatusCode: pointers.FromArray(l.StatusCode),
+		Method:     pointers.FromArray(l.Method),
+		Path:       pointers.FromArray(l.Path),
+		Direction:  pointers.From(mapDirection(l.Direction)),
 	}, nil
+}
+
+func mapDirection(direction string) lclient.LogDirection {
+	switch direction {
+	case "forward":
+		return lclient.Forward
+	case "backward":
+		return lclient.Backward
+	default:
+		return lclient.Backward
+	}
 }
 
 func loadLogData(ctx context.Context, in LogInput) (*client.Logs200Response, error) {
@@ -136,4 +164,14 @@ func init() {
 
 	logsCmd.Flags().String("start", "", "The start time of the logs to query")
 	logsCmd.Flags().String("end", "", "The end time of the logs to query")
+	logsCmd.Flags().StringSlice("text", []string{}, "A list of comma separated strings to search for in the logs. Only logs that contain all of the strings will be returned. Wildcards * and regular expressions are supported.")
+	logsCmd.Flags().StringSlice("level", []string{}, "A list of comma separated log levels to query")
+	logsCmd.Flags().StringSlice("type", []string{}, "A list of comma separated log types to query")
+	logsCmd.Flags().StringSlice("instance", []string{}, "A list of comma separated instance IDs to query")
+	logsCmd.Flags().StringSlice("host", []string{}, "A list of comma separated hosts to query")
+	logsCmd.Flags().StringSlice("status-code", []string{}, "A list of comma separated status codes to query")
+	logsCmd.Flags().StringSlice("method", []string{}, "A list of comma separated HTTP methods to query")
+	logsCmd.Flags().StringSlice("path", []string{}, "A list of comma separated paths to query")
+	logsCmd.Flags().Int("limit", 100, "The maximum number of logs to return")
+	logsCmd.Flags().String("direction", "backward", "The direction to query the logs. Can be 'forward' or 'backward'")
 }
