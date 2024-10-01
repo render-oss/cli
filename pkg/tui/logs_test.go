@@ -77,4 +77,47 @@ func TestNewLogModel(t *testing.T) {
 		err := tm.Quit()
 		require.NoError(t, err)
 	})
+
+	t.Run("When channel closes, allow refresh", func(t *testing.T) {
+		count := 0
+		loadFunc := func() (*client.Logs200Response, <-chan *lclient.Log, error) {
+			count++
+			ch := make(chan *lclient.Log)
+			go func() {
+				if count == 1 {
+					ch <- &lclient.Log{
+						Timestamp: time.Now(),
+						Message:   "Hello, world!",
+					}
+				} else if count == 2 {
+					ch <- &lclient.Log{
+						Timestamp: time.Now(),
+						Message:   "Goodbye, world!",
+					}
+				}
+				close(ch)
+			}()
+			return nil, ch, nil
+		}
+
+		m := tui.NewLogModel(filter, loadFunc)
+		tm := teatest.NewTestModel(t, m)
+
+		tm.Send(tea.WindowSizeMsg{Width: 100, Height: 24})
+
+		teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+			return bytes.Contains(bts, []byte("Hello, world!")) && bytes.Contains(bts, []byte("Websocket connection closed, no more logs will be displayed. Press 'r' to reload."))
+		}, teatest.WithCheckInterval(time.Millisecond*10), teatest.WithDuration(time.Second*3))
+
+		tm.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("r")})
+
+		teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+			return bytes.Contains(bts, []byte("Goodbye, world!"))
+		}, teatest.WithCheckInterval(time.Millisecond*10), teatest.WithDuration(time.Second*3))
+
+		err := tm.Quit()
+		require.NoError(t, err)
+
+		require.Equal(t, 2, count)
+	})
 }

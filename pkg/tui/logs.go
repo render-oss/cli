@@ -55,6 +55,8 @@ type LogModel struct {
 	windowWidth  int
 	windowHeight int
 	searching    bool
+
+	logChan <-chan *lclient.Log
 }
 
 func (m *LogModel) loadData() tea.Msg {
@@ -62,18 +64,19 @@ func (m *LogModel) loadData() tea.Msg {
 	if err != nil {
 		return loadLogsErrMsg(err)
 	}
-	return loadLogsMsg{data: logs, channel: logChan}
+	m.logChan = logChan
+	return loadLogsMsg{data: logs}
 }
 
 type loadLogsMsg struct {
-	data    *client.Logs200Response
-	channel <-chan *lclient.Log
+	data *client.Logs200Response
 }
 
 type appendLogsMsg struct {
 	log *lclient.Log
-	ch  <-chan *lclient.Log
 }
+
+type logChanClose struct{}
 type loadLogsErrMsg error
 
 var timeStyle = lipgloss.NewStyle().PaddingRight(2)
@@ -91,14 +94,15 @@ func formatLogs(logs []lclient.Log) []string {
 	return formattedLogs
 }
 
-func readFromChannel(ch <-chan *lclient.Log) tea.Cmd {
+func (m *LogModel) readFromChannel(ch <-chan *lclient.Log) tea.Cmd {
 	return func() tea.Msg {
 		select {
 		case log, ok := <-ch:
 			if !ok {
-				return nil
+				m.logChan = nil
+				return logChanClose{}
 			}
-			return appendLogsMsg{log: log, ch: ch}
+			return appendLogsMsg{log: log}
 		}
 	}
 }
@@ -132,11 +136,15 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.content = []string{}
 		}
-		if msg.channel != nil {
-			cmds = append(cmds, readFromChannel(msg.channel))
+		if m.logChan != nil {
+			cmds = append(cmds, m.readFromChannel(m.logChan))
 		}
 		m.viewport.SetContent(strings.Join(m.content, "\n"))
 		m.state = logStateLoaded
+	case logChanClose:
+		m.content = append(m.content, "Websocket connection closed, no more logs will be displayed. Press 'r' to reload.")
+		m.viewport.SetContent(strings.Join(m.content, "\n"))
+		m.viewport.GotoBottom()
 	case appendLogsMsg:
 		m.content = append(m.content, formatLogs([]lclient.Log{*msg.log})...)
 		isAtBottom := m.viewport.AtBottom()
@@ -144,13 +152,17 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if isAtBottom {
 			m.viewport.GotoBottom()
 		}
-		cmds = append(cmds, readFromChannel(msg.ch))
+		if m.logChan != nil {
+			cmds = append(cmds, m.readFromChannel(m.logChan))
+		}
 	case tea.KeyMsg:
 		switch msg.Type {
 		default:
 			if k := msg.String(); k == "/" {
 				m.searching = !m.searching
 				m.setViewPortSize()
+			} else if k == "r" && m.logChan == nil {
+				cmds = append(cmds, tea.Batch(m.loadData))
 			}
 		}
 	case tea.WindowSizeMsg:
