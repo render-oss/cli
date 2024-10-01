@@ -1,8 +1,11 @@
 package postgres
 
-import "github.com/renderinc/render-cli/pkg/client"
+import (
+	"github.com/renderinc/render-cli/pkg/client"
+)
 
 const ResourceIDPrefix = "dpg-"
+const PostgresType = "Postgres"
 
 type Model struct {
 	postgres    *client.Postgres
@@ -41,5 +44,5 @@ func (m Model) ProjectName() string {
 }
 
 func (m Model) Type() string {
-	return "Postgres"
+	return PostgresType
 }

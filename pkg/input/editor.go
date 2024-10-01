@@ -2,7 +2,8 @@ package input
 
 import (
 	"os"
-	"os/exec"
+
+	"github.com/renderinc/render-cli/pkg/command"
 )
 
 func OpenEditorForInput(tmpFileName string, content string) (string, error) {
@@ -21,12 +22,7 @@ func OpenEditorForInput(tmpFileName string, content string) (string, error) {
 
 	editor := os.Getenv("EDITOR")
 
-	editorCMD := exec.Command(editor, file.Name())
-	editorCMD.Stdin = os.Stdin
-	editorCMD.Stdout = os.Stdout
-	editorCMD.Stderr = os.Stderr
-
-	err = editorCMD.Run()
+	err = command.RunProgram(editor, file.Name())
 	if err != nil {
 		return "", err
 	}

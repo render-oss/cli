@@ -1,6 +1,16 @@
 package service
 
-import "github.com/renderinc/render-cli/pkg/client"
+import (
+	"github.com/renderinc/render-cli/pkg/client"
+)
+
+const (
+	BackgroundWorkerResourceType = "BackgroundWorker"
+	CronJobResourceType          = "CronJob"
+	PrivateServiceResourceType   = "PrivateService"
+	StaticSiteResourceType       = "StaticSite"
+	WebServiceResourceType       = "WebService"
+)
 
 const ServerResourceIDPrefix = "srv-"
 const CronjobResourceIDPrefix = "crn-"
@@ -48,15 +58,15 @@ func (s Model) EnvironmentName() string {
 func (s Model) Type() string {
 	switch s.service.Type {
 	case client.BackgroundWorker:
-		return "Background Worker"
+		return BackgroundWorkerResourceType
 	case client.CronJob:
-		return "Cron Job"
+		return CronJobResourceType
 	case client.PrivateService:
-		return "Private Service"
+		return PrivateServiceResourceType
 	case client.StaticSite:
-		return "Static Site"
+		return StaticSiteResourceType
 	case client.WebService:
-		return "Web Service"
+		return WebServiceResourceType
 	default:
 		return ""
 	}

@@ -55,6 +55,19 @@ func (r *Repo) GetPostgres(ctx context.Context, id string) (*client.PostgresDeta
 	return resp.JSON200, nil
 }
 
+func (r *Repo) GetPostgresConnectionInfo(ctx context.Context, id string) (*client.PostgresConnectionInfo, error) {
+	resp, err := r.client.RetrievePostgresConnectionInfoWithResponse(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+
+	return resp.JSON200, nil
+}
+
 func (r *Repo) RestartPostgresDatabase(ctx context.Context, id string) error {
 	resp, err := r.client.RestartPostgres(ctx, id)
 	if err != nil {
