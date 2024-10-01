@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -101,6 +102,14 @@ func FormValuesFromStruct(v any) FormValues {
 	return formValues
 }
 
+func arrayFromString(str string) []string {
+	if str == "" {
+		return []string{}
+	}
+
+	return strings.Split(str, ",")
+}
+
 func StructFromFormValues(formValues FormValues, v any) error {
 	if reflect.TypeOf(v).Kind() != reflect.Ptr {
 		return fmt.Errorf("v must be a pointer")
@@ -167,14 +176,14 @@ func StructFromFormValues(formValues FormValues, v any) error {
 				if !ok {
 					continue
 				}
-				elemField.Set(reflect.ValueOf(strings.Split(*val, ",")))
+				elemField.Set(reflect.ValueOf(arrayFromString(*val)))
 			case reflect.Int:
 				val, ok := formValues[cliTag]
 				if !ok {
 					continue
 				}
 				var intVals []int
-				for _, v := range strings.Split(*val, ",") {
+				for _, v := range arrayFromString(*val) {
 					intVal, err := strconv.Atoi(v)
 					if err != nil {
 						return err
@@ -188,7 +197,7 @@ func StructFromFormValues(formValues FormValues, v any) error {
 					continue
 				}
 				var floatVals []float64
-				for _, v := range strings.Split(*val, ",") {
+				for _, v := range arrayFromString(*val) {
 					floatVal, err := strconv.ParseFloat(v, 64)
 					if err != nil {
 						return err
@@ -202,7 +211,7 @@ func StructFromFormValues(formValues FormValues, v any) error {
 					continue
 				}
 				var boolVals []bool
-				for _, v := range strings.Split(*val, ",") {
+				for _, v := range arrayFromString(*val) {
 					boolVal, err := strconv.ParseBool(v)
 					if err != nil {
 						return err
@@ -271,7 +280,12 @@ func HuhForm(cmd *cobra.Command, v any) (*huh.Form, FormValues) {
 			value = pointers.From(flag.DefValue)
 		}
 
-		huhFieldMap[flag.Name] = huh.NewInput().Key(flag.Name).Title(flag.Name).Description(flag.Usage).Placeholder(flag.DefValue).Value(value)
+		// We have to wrap the description because of this bug in lipgloss: https://github.com/charmbracelet/lipgloss/issues/85
+		// It's unfortunate to set a default width of 55, but this should work with our current
+		// filter component. We can adjust if needed.
+		wrappedDescription := ansi.Wrap(flag.Usage, 55, "-")
+
+		huhFieldMap[flag.Name] = huh.NewInput().Key(flag.Name).Title(flag.Name).Description(wrappedDescription).Value(value)
 		formValues[flag.Name] = value
 	})
 
