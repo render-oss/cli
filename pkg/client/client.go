@@ -6,7 +6,17 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+
+	"github.com/renderinc/render-cli/pkg/cfg"
 )
+
+func NewDefaultClient() (*ClientWithResponses, error) {
+	return ClientWithAuth(
+		&http.Client{},
+		cfg.GetHost(),
+		cfg.GetAPIKey(),
+	)
+}
 
 func ClientWithAuth(httpClient *http.Client, server string, token string) (*ClientWithResponses, error) {
 	insertAuth := func(ctx context.Context, req *http.Request) error {

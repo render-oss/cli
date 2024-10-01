@@ -4,12 +4,20 @@ import (
 	"github.com/renderinc/render-cli/pkg/client"
 )
 
+var Types = []string{
+	BackgroundWorkerResourceType,
+	CronJobResourceType,
+	PrivateServiceResourceType,
+	StaticSiteResourceType,
+	WebServiceResourceType,
+}
+
 const (
-	BackgroundWorkerResourceType = "BackgroundWorker"
-	CronJobResourceType          = "CronJob"
-	PrivateServiceResourceType   = "PrivateService"
-	StaticSiteResourceType       = "StaticSite"
-	WebServiceResourceType       = "WebService"
+	BackgroundWorkerResourceType = "Background Worker"
+	CronJobResourceType          = "Cron Job"
+	PrivateServiceResourceType   = "Private Service"
+	StaticSiteResourceType       = "Static Site"
+	WebServiceResourceType       = "Web Service"
 )
 
 const ServerResourceIDPrefix = "srv-"

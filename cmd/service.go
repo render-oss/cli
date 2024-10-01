@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -16,6 +17,7 @@ import (
 	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/service"
 	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/render-cli/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -44,11 +46,11 @@ func (l ListResourceInput) String() []string {
 
 func renderResources(ctx context.Context, loadData func(input ListResourceInput) ([]resource.Resource, error), in ListResourceInput) (tea.Model, error) {
 	columns := []table.Column{
+		{Title: "ID", Width: 25},
 		{Title: "Type", Width: 12},
 		{Title: "Project", Width: 15},
 		{Title: "Environment", Width: 20},
 		{Title: "Name", Width: 40},
-		{Title: "ID", Width: 25},
 	}
 
 	return tui.NewTableModel[resource.Resource](
@@ -71,7 +73,9 @@ func renderResources(ctx context.Context, loadData func(input ListResourceInput)
 }
 
 func formatResourceRow(r resource.Resource) table.Row {
-	return []string{r.Type(), r.ProjectName(), r.EnvironmentName(), r.Name(), r.ID()}
+	// r.ID() must be first because it's used when selecting a row in selectCurrentRow()
+	// TODO: make this less brittle
+	return []string{r.ID(), r.Type(), r.ProjectName(), r.EnvironmentName(), r.Name()}
 }
 
 func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
@@ -103,10 +107,24 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 			},
 		}
 
+		serviceCommands := []PaletteCommand{
+			{
+				Name:        "deploy",
+				Description: "Deploy the service",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return InteractiveDeploy(ctx, types.DeployInput{ServiceID: r.ID()})
+				},
+			},
+		}
+
 		commands := allResourceCommands
 
 		if r.Type() == postgres.PostgresType {
 			commands = append(commands, postgresCommands...)
+		}
+
+		if slices.Contains(service.Types, r.Type()) {
+			commands = append(commands, serviceCommands...)
 		}
 
 		return InteractiveCommandPalette(ctx, PaletteCommandInput{

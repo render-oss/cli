@@ -2,108 +2,152 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-	"os"
-	"strings"
+	"fmt"
 
-	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/deploy"
+	"github.com/renderinc/render-cli/pkg/pointers"
+	"github.com/renderinc/render-cli/pkg/service"
 	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/render-cli/pkg/types"
 	"github.com/spf13/cobra"
 )
 
-// deployCmd represents the deploy command
 var deployCmd = &cobra.Command{
-	Use:   "deploy",
-	Short: "A brief description of your command",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		serviceID := args[0]
-
-		input := ListDeployInput{ServiceID: serviceID}
-
-		command.Wrap(cmd, loadDeployData, renderDeploys)(cmd.Context(), input)
-
-		return nil
-	},
+	Use:   "deploy [serviceID]",
+	Short: "Deploy a service and tail logs",
+	Args:  cobra.MaximumNArgs(1),
 }
 
-func loadDeployData(_ context.Context, input ListDeployInput) ([]*client.Deploy, error) {
-	deployRepo := deploy.NewDeployRepo(http.DefaultClient, os.Getenv("RENDER_HOST"), os.Getenv("RENDER_API_KEY"))
-	return deployRepo.ListDeploysForService(input.ServiceID)
-}
+var InteractiveDeploy = command.Wrap(deployCmd, createDeploy, renderCreateDeploy)
 
-type ListDeployInput struct {
-	ServiceID string
-}
-
-var InteractiveDeploys = command.Wrap(deployCmd, loadDeployData, renderDeploys)
-
-func (l ListDeployInput) String() []string {
-	return []string{l.ServiceID}
-}
-
-func renderDeploys(_ context.Context, loadData func(ListDeployInput) ([]*client.Deploy, error), in ListDeployInput) (tea.Model, error) {
-	columns := []table.Column{
-		{Title: "ID", Width: 25},
-		{Title: "Commit Message", Width: 40},
-		{Title: "Created", Width: 30},
-		{Title: "Status", Width: 15},
+func createDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy, error) {
+	c, err := client.NewDefaultClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client: %w", err)
 	}
 
-	fmtFunc := func(a *client.Deploy) table.Row {
-		return []string{a.Id, refForDeploy(a), a.CreatedAt.String(), string(*a.Status)}
+	deployRepo := deploy.NewRepo(c)
+
+	d, err := deployRepo.TriggerDeploy(ctx, input.ServiceID, deploy.TriggerDeployInput{
+		ClearCache: input.ClearCache,
+		CommitId:   input.CommitID,
+		ImageUrl:   input.ImageURL,
+	})
+	if err != nil {
+		return nil, err
 	}
-	selectFunc := func(a *client.Deploy) tea.Cmd {
-		return func() tea.Msg {
-			return nil
+
+	return d, nil
+}
+
+func renderCreateDeploy(ctx context.Context, loadData func(types.DeployInput) (*client.Deploy, error), input types.DeployInput) (tea.Model, error) {
+	c, err := client.NewDefaultClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client: %w", err)
+	}
+
+	serviceRepo := service.NewRepo(c)
+	svc, err := serviceRepo.GetService(ctx, input.ServiceID)
+	if err != nil {
+		return nil, err
+	}
+
+	var inputs []huh.Field
+	if svc.ImagePath != nil {
+		if input.ImageURL == nil {
+			input.ImageURL = pointers.From("")
 		}
+
+		inputs = append(inputs, huh.NewInput().
+			Title("Image URL").
+			Placeholder("Enter Docker image URL (optional)").
+			Value(input.ImageURL))
+	} else {
+		if input.CommitID == nil {
+			input.CommitID = pointers.From("")
+		}
+
+		inputs = append(inputs, huh.NewInput().
+			Title("Commit ID").
+			Placeholder("Enter commit ID (optional)").
+			Value(input.CommitID))
 	}
 
-	filterFunc := func(a *client.Deploy, filter string) bool {
-		bytes, err := json.Marshal(a)
+	deployForm := huh.NewForm(huh.NewGroup(inputs...))
+
+	deployRepo := deploy.NewRepo(c)
+
+	logData := func(in LogInput) (*client.Logs200Response, error) {
+		return loadLogData(ctx, in)
+	}
+
+	logModelFunc := func() (tea.Model, error) {
+		model, err := renderLogs(ctx, logData, LogInput{ResourceIDs: []string{input.ServiceID}})
 		if err != nil {
-			return false
+			return nil, err
 		}
-		return strings.Contains(string(bytes), filter)
+		model.Init()
+		return model, nil
 	}
 
-	return tui.NewTableModel[*client.Deploy](
-		"deploys",
-		func() ([]*client.Deploy, error) {
-			return loadData(in)
-		},
-		fmtFunc,
-		selectFunc,
-		columns,
-		filterFunc,
-		[]tui.CustomOption[*client.Deploy]{},
-	), nil
-}
+	onSubmit := func() tea.Cmd {
+		return func() tea.Msg {
+			if input.CommitID != nil && *input.CommitID == "" {
+				input.CommitID = nil
+			}
 
-func refForDeploy(deploy *client.Deploy) string {
-	if deploy.Commit != nil {
-		return *deploy.Commit.Message
+			if input.ImageURL != nil && *input.ImageURL == "" {
+				input.ImageURL = nil
+			}
+
+			var err error
+			_, err = deployRepo.TriggerDeploy(ctx, input.ServiceID, deploy.TriggerDeployInput{
+				CommitId: input.CommitID,
+				ImageUrl: input.ImageURL,
+			})
+			if err != nil {
+				return tui.ErrorMsg{Err: fmt.Errorf("failed to trigger deploy: %w", err)}
+			}
+
+			return tea.Println("Deploy triggered")
+		}
 	}
-	if deploy.Image != nil {
-		return *deploy.Image.Ref
-	}
-	return ""
+
+	action := tui.NewFormAction(
+		deployForm,
+		logModelFunc,
+		onSubmit,
+	)
+
+	return tui.NewFormWithAction(action, deployForm), nil
 }
 
 func init() {
+	deployCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		var input types.DeployInput
+		if len(args) > 0 {
+			input.ServiceID = args[0]
+		}
+
+		clearCache, _ := cmd.Flags().GetBool("clear-cache")
+		commitID, _ := cmd.Flags().GetString("commit-id")
+		imageURL, _ := cmd.Flags().GetString("image-url")
+
+		input.ClearCache = &clearCache
+		input.CommitID = &commitID
+		input.ImageURL = &imageURL
+
+		InteractiveDeploy(cmd.Context(), input)
+		return nil
+	}
+
 	rootCmd.AddCommand(deployCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// deployCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// deployCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	deployCmd.Flags().Bool("clear-cache", false, "Clear build cache before deploying")
+	deployCmd.Flags().String("commit-id", "", "The commit ID to deploy")
+	deployCmd.Flags().String("image-url", "", "The Docker image URL to deploy")
 }

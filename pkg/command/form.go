@@ -304,6 +304,10 @@ func HuhForm(cmd *cobra.Command, v any) (*huh.Form, FormValues) {
 		}
 	}
 
-	return huh.NewForm(huh.NewGroup(huhFields...)), formValues
+	// If no fields were created, return an empty form
+	if len(huhFields) == 0 {
+		return huh.NewForm(), formValues
+	}
 
+	return huh.NewForm(huh.NewGroup(huhFields...)), formValues
 }
