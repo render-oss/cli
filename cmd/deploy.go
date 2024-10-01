@@ -32,8 +32,16 @@ func createDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy,
 
 	deployRepo := deploy.NewRepo(c)
 
+	if input.CommitID != nil && *input.CommitID == "" {
+		input.CommitID = nil
+	}
+
+	if input.ImageURL != nil && *input.ImageURL == "" {
+		input.ImageURL = nil
+	}
+
 	d, err := deployRepo.TriggerDeploy(ctx, input.ServiceID, deploy.TriggerDeployInput{
-		ClearCache: input.ClearCache,
+		ClearCache: &input.ClearCache,
 		CommitId:   input.CommitID,
 		ImageUrl:   input.ImageURL,
 	})
@@ -79,8 +87,6 @@ func renderCreateDeploy(ctx context.Context, loadData func(types.DeployInput) (*
 
 	deployForm := huh.NewForm(huh.NewGroup(inputs...))
 
-	deployRepo := deploy.NewRepo(c)
-
 	logData := func(in LogInput) (*client.Logs200Response, error) {
 		return loadLogData(ctx, in)
 	}
@@ -96,19 +102,7 @@ func renderCreateDeploy(ctx context.Context, loadData func(types.DeployInput) (*
 
 	onSubmit := func() tea.Cmd {
 		return func() tea.Msg {
-			if input.CommitID != nil && *input.CommitID == "" {
-				input.CommitID = nil
-			}
-
-			if input.ImageURL != nil && *input.ImageURL == "" {
-				input.ImageURL = nil
-			}
-
-			var err error
-			_, err = deployRepo.TriggerDeploy(ctx, input.ServiceID, deploy.TriggerDeployInput{
-				CommitId: input.CommitID,
-				ImageUrl: input.ImageURL,
-			})
+			_, err := loadData(input)
 			if err != nil {
 				return tui.ErrorMsg{Err: fmt.Errorf("failed to trigger deploy: %w", err)}
 			}
@@ -118,7 +112,6 @@ func renderCreateDeploy(ctx context.Context, loadData func(types.DeployInput) (*
 	}
 
 	action := tui.NewFormAction(
-		deployForm,
 		logModelFunc,
 		onSubmit,
 	)
@@ -133,21 +126,18 @@ func init() {
 			input.ServiceID = args[0]
 		}
 
-		clearCache, _ := cmd.Flags().GetBool("clear-cache")
-		commitID, _ := cmd.Flags().GetString("commit-id")
-		imageURL, _ := cmd.Flags().GetString("image-url")
-
-		input.ClearCache = &clearCache
-		input.CommitID = &commitID
-		input.ImageURL = &imageURL
+		err := command.ParseCommand(cmd, args, &input)
+		if err != nil {
+			return fmt.Errorf("failed to parse command: %w", err)
+		}
 
 		InteractiveDeploy(cmd.Context(), input)
 		return nil
 	}
 
-	rootCmd.AddCommand(deployCmd)
-
 	deployCmd.Flags().Bool("clear-cache", false, "Clear build cache before deploying")
-	deployCmd.Flags().String("commit-id", "", "The commit ID to deploy")
-	deployCmd.Flags().String("image-url", "", "The Docker image URL to deploy")
+	deployCmd.Flags().String("commit", "", "The commit ID to deploy")
+	deployCmd.Flags().String("image", "", "The Docker image URL to deploy")
+
+	rootCmd.AddCommand(deployCmd)
 }

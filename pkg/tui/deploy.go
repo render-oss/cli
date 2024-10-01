@@ -6,59 +6,49 @@ import (
 )
 
 type FormAction struct {
-	model        tea.Model
-	logModelFunc func() (tea.Model, error)
-	onSubmit     func() tea.Cmd
-	submitted    bool
-	logModel     tea.Model
+	model     tea.Model
+	modelFunc func() (tea.Model, error)
+	onSubmit  func() tea.Cmd
+	submitted bool
 }
 
 func NewFormAction(
-	form *huh.Form,
-	logModelFunc func() (tea.Model, error),
+	modelFunc func() (tea.Model, error),
 	onSubmit func() tea.Cmd,
 ) FormAction {
 	return FormAction{
-		model:        form,
-		logModelFunc: logModelFunc,
-		onSubmit:     onSubmit,
+		modelFunc: modelFunc,
+		onSubmit:  onSubmit,
 	}
 }
 
 func (fa *FormAction) Init() tea.Cmd {
-	return fa.model.Init()
+	return fa.onSubmit()
 }
 
 func (fa *FormAction) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if !fa.submitted {
-		fa.submitted = true
-		return fa, fa.onSubmit()
-	}
-
-	if fa.logModel == nil {
+	if fa.model == nil {
 		var err error
-		fa.logModel, err = fa.logModelFunc()
+		fa.model, err = fa.modelFunc()
 		if err != nil {
 			return fa, func() tea.Msg {
 				return ErrorMsg{Err: err}
 			}
 		}
-		return fa.logModel, fa.logModel.Init()
+		return fa.model, fa.model.Init()
 	}
 
 	var cmd tea.Cmd
-	fa.logModel, cmd = fa.logModel.Update(msg)
+	fa.model, cmd = fa.model.Update(msg)
 	return fa, cmd
 }
 
 func (fa *FormAction) View() string {
-	if !fa.submitted {
-		return fa.model.View()
+	if fa.model == nil {
+		return "Loading..."
 	}
-	if fa.logModel == nil {
-		return "Loading logs..."
-	}
-	return fa.logModel.View()
+
+	return fa.model.View()
 }
 
 type FormWithAction struct {
@@ -79,20 +69,11 @@ func (df *FormWithAction) Init() tea.Cmd {
 }
 
 func (df *FormWithAction) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if df.done {
-		return df.formAction.Update(msg)
-	}
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			if !df.done {
-				df.done = true
-				return df, nil
-			}
-		case tea.KeyCtrlC, tea.KeyEsc:
-			return df, tea.Quit
+			return &df.formAction, df.formAction.Init()
 		}
 	}
 

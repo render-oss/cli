@@ -112,11 +112,11 @@ func (s *Repo) GetService(ctx context.Context, id string) (*client.Service, erro
 		return nil, err
 	}
 
-	if err := validate.WorkspaceMatches(resp.JSON200.OwnerId); err != nil {
+	if err := client.ErrorFromResponse(resp); err != nil {
 		return nil, err
 	}
 
-	if err := client.ErrorFromResponse(resp); err != nil {
+	if err := validate.WorkspaceMatches(resp.JSON200.OwnerId); err != nil {
 		return nil, err
 	}
 

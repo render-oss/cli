@@ -20,6 +20,9 @@ func ParseCommand(cmd *cobra.Command, args []string, v any) error {
 
 		// Get the cli tag
 		cliTag := field.Tag.Get("cli")
+		if cliTag == "" {
+			continue
+		}
 
 		elemField := elem.FieldByName(field.Name)
 
