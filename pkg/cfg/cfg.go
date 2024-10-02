@@ -3,7 +3,11 @@ package cfg
 import "os"
 
 func GetHost() string {
-	return os.Getenv("RENDER_HOST")
+	if host := os.Getenv("RENDER_HOST"); host != "" {
+		return host
+	}
+
+	return "https://api.render.com/v1/"
 }
 
 func GetAPIKey() string {
