@@ -87,7 +87,6 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 				Action: func(ctx context.Context, args []string) tea.Cmd {
 					return InteractiveLogs(ctx, LogInput{
 						ResourceIDs: []string{r.ID()},
-						Limit:       100,
 					})
 				},
 			},

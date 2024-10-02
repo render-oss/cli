@@ -22,6 +22,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const defaultLogLimit = 100
+
 // logsCmd represents the logs command
 var logsCmd = &cobra.Command{
 	Use:   "logs",
@@ -64,6 +66,10 @@ func (l LogInput) ToParam() (*client.ListLogsParams, error) {
 	ownerID, err := config.WorkspaceID()
 	if err != nil {
 		return nil, fmt.Errorf("error getting workspace ID: %v", err)
+	}
+
+	if l.Limit == 0 {
+		l.Limit = 100
 	}
 
 	return &client.ListLogsParams{
@@ -175,7 +181,7 @@ func init() {
 	logsCmd.Flags().StringSlice("status-code", []string{}, "A list of comma separated status codes to query")
 	logsCmd.Flags().StringSlice("method", []string{}, "A list of comma separated HTTP methods to query")
 	logsCmd.Flags().StringSlice("path", []string{}, "A list of comma separated paths to query")
-	logsCmd.Flags().Int("limit", 100, "The maximum number of logs to return")
+	logsCmd.Flags().Int("limit", defaultLogLimit, "The maximum number of logs to return")
 	logsCmd.Flags().String("direction", "backward", "The direction to query the logs. Can be 'forward' or 'backward'")
 
 	logsCmd.Flags().Bool("tail", false, "Stream new logs")
