@@ -87,7 +87,7 @@ func renderCreateDeploy(ctx context.Context, loadData func(types.DeployInput) (*
 
 	deployForm := huh.NewForm(huh.NewGroup(inputs...))
 
-	logData := func(in LogInput) (*client.Logs200Response, error) {
+	logData := func(in LogInput) (*LogResult, error) {
 		return loadLogData(ctx, in)
 	}
 
