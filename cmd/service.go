@@ -115,6 +115,13 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 					return InteractiveDeploy(ctx, types.DeployInput{ServiceID: r.ID()})
 				},
 			},
+			{
+				Name:        "ssh",
+				Description: "SSH into the service",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return InteractiveSSH(ctx, SSHInput{ServiceID: r.ID()})
+				},
+			},
 		}
 
 		commands := allResourceCommands
