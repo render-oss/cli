@@ -11,3 +11,10 @@ func FromArray[T any](x []T) *[]T {
 
 	return &x
 }
+
+func ValueOrDefault[T any](x *T, def T) T {
+	if x == nil {
+		return def
+	}
+	return *x
+}

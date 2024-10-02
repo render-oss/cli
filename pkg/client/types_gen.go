@@ -383,6 +383,9 @@ type BackgroundWorkerDetails struct {
 
 	// Region Defaults to "oregon"
 	Region Region `json:"region"`
+
+	// SshAddress The SSH address for the service. Only present for services that have SSH enabled.
+	SshAddress *SshAddress `json:"sshAddress,omitempty"`
 }
 
 // BackgroundWorkerDetailsPATCH defines model for backgroundWorkerDetailsPATCH.
@@ -1081,7 +1084,10 @@ type PrivateServiceDetails struct {
 
 	// Region Defaults to "oregon"
 	Region Region `json:"region"`
-	Url    string `json:"url"`
+
+	// SshAddress The SSH address for the service. Only present for services that have SSH enabled.
+	SshAddress *SshAddress `json:"sshAddress,omitempty"`
+	Url        string      `json:"url"`
 }
 
 // PrivateServiceDetailsPATCH defines model for privateServiceDetailsPATCH.
@@ -1570,6 +1576,9 @@ type SnapshotRestorePOST struct {
 	SnapshotKey string      `json:"snapshotKey"`
 }
 
+// SshAddress The SSH address for the service. Only present for services that have SSH enabled.
+type SshAddress = string
+
 // StaticSiteDetails defines model for staticSiteDetails.
 type StaticSiteDetails struct {
 	BuildCommand string    `json:"buildCommand"`
@@ -1649,7 +1658,10 @@ type WebServiceDetails struct {
 
 	// Region Defaults to "oregon"
 	Region Region `json:"region"`
-	Url    string `json:"url"`
+
+	// SshAddress The SSH address for the service. Only present for services that have SSH enabled.
+	SshAddress *SshAddress `json:"sshAddress,omitempty"`
+	Url        string      `json:"url"`
 }
 
 // WebServiceDetailsPATCH defines model for webServiceDetailsPATCH.
