@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	btable "github.com/evertras/bubble-table/table"
 	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
@@ -45,58 +44,77 @@ func (l ListWorkspaceInput) String() []string {
 	return []string{}
 }
 
+const columnWorkspaceIDKey = "ID"
+const columnWorkspaceNameKey = "Name"
+const columnWorkspaceEmailKey = "Email"
+
 func renderWorkspaces(
 	ctx context.Context,
 	loadData func(input ListWorkspaceInput) ([]*client.Owner, error),
 	input ListWorkspaceInput,
 ) (tea.Model, error) {
-	columns := []table.Column{
-		{Title: "ID", Width: 36},
-		{Title: "Name", Width: 30},
-		{Title: "Email", Width: 30},
-		{Title: "Type", Width: 15},
+	columns := []btable.Column{
+		btable.NewColumn(columnWorkspaceIDKey, "ID", 28),
+		btable.NewFlexColumn(columnWorkspaceNameKey, "Name", 1),
+		btable.NewFlexColumn(columnWorkspaceEmailKey, "Email", 1),
 	}
 
-	load := func() ([]*client.Owner, error) {
-		return loadData(input)
+	owners, err := loadData(input)
+	if err != nil {
+		return nil, err
 	}
 
-	return tui.NewTableModel[*client.Owner](
-		"workspaces",
-		load,
-		formatWorkspaceRow,
-		selectWorkspace,
+	var rows []btable.Row
+	for _, o := range owners {
+		rows = append(rows, btable.NewRow(btable.RowData{
+			"ID":    o.Id,
+			"Name":  o.Name,
+			"Email": o.Email,
+		}))
+	}
+
+	onSelect := func(data []btable.Row) tea.Cmd {
+		return func() tea.Msg {
+			if len(data) == 0 || len(data) > 1 {
+				return nil
+			}
+
+			selectedID, ok := data[0].Data["ID"].(string)
+			if !ok {
+				return nil
+			}
+
+			for _, o := range owners {
+				if o.Id == selectedID {
+					return selectWorkspace(o)
+				}
+			}
+
+			return nil
+		}
+	}
+
+	t := tui.NewNewTable(
 		columns,
-		filterWorkspace,
-		[]tui.CustomOption[*client.Owner]{},
-	), nil
+		rows,
+		onSelect,
+	)
+
+	return t, nil
 }
 
-func formatWorkspaceRow(o *client.Owner) table.Row {
-	return []string{o.Id, o.Name, o.Email, string(o.Type)}
-}
-
-func selectWorkspace(o *client.Owner) tea.Cmd {
-	return func() tea.Msg {
-		conf, err := config.Load()
-		if err != nil {
-			return tui.ErrorMsg{Err: fmt.Errorf("failed to load config: %w", err)}
-		}
-
-		conf.Workspace = o.Id
-		if err := conf.Persist(); err != nil {
-			return tui.ErrorMsg{Err: fmt.Errorf("failed to persist config: %w", err)}
-		}
-
-		return tui.DoneMsg{Message: fmt.Sprintf("Workspace set to %s", o.Name)}
+func selectWorkspace(o *client.Owner) tea.Msg {
+	conf, err := config.Load()
+	if err != nil {
+		return tui.ErrorMsg{Err: fmt.Errorf("failed to load config: %w", err)}
 	}
-}
 
-func filterWorkspace(o *client.Owner, filter string) bool {
-	return strings.Contains(strings.ToLower(o.Id), filter) ||
-		strings.Contains(strings.ToLower(o.Name), filter) ||
-		strings.Contains(strings.ToLower(o.Email), filter) ||
-		strings.Contains(strings.ToLower(string(o.Type)), filter)
+	conf.Workspace = o.Id
+	if err := conf.Persist(); err != nil {
+		return tui.ErrorMsg{Err: fmt.Errorf("failed to persist config: %w", err)}
+	}
+
+	return tui.DoneMsg{Message: fmt.Sprintf("Workspace set to %s", o.Name)}
 }
 
 func init() {

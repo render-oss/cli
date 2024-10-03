@@ -2,10 +2,9 @@ package cmd
 
 import (
 	"context"
-	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	btable "github.com/evertras/bubble-table/table"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
@@ -39,28 +38,56 @@ var InteractiveCommandPalette = command.Wrap(
 	renderPalette,
 )
 
+const columnCommandKey = "Command"
+const columnDescriptionKey = "Description"
+
 func renderPalette(
 	ctx context.Context,
 	loadData func(PaletteCommandInput) ([]PaletteCommand, error),
 	in PaletteCommandInput,
 ) (tea.Model, error) {
-	columns := []table.Column{
-		{Title: "Command", Width: 20},
-		{Title: "Description", Width: 50},
+	columns := []btable.Column{
+		btable.NewColumn(columnCommandKey, "Command", 10).WithFiltered(true),
+		btable.NewFlexColumn(columnDescriptionKey, "Description", 3),
 	}
 
-	return tui.NewTableModel(
-		"command palette",
-		func() ([]PaletteCommand, error) { return loadData(in) },
-		func(cmd PaletteCommand) table.Row { return []string{cmd.Name, cmd.Description} },
-		func(cmd PaletteCommand) tea.Cmd { return cmd.Action(ctx, []string{}) },
+	commands, err := loadData(in)
+	if err != nil {
+		return nil, err
+	}
+
+	var rows []btable.Row
+	for _, cmd := range commands {
+		rows = append(rows, btable.NewRow(map[string]any{
+			columnCommandKey:     cmd.Name,
+			columnDescriptionKey: cmd.Description,
+		}))
+	}
+
+	onSelect := func(data []btable.Row) tea.Cmd {
+		if len(data) == 0 || len(data) > 1 {
+			return nil
+		}
+		selectedCommand, ok := data[0].Data[columnCommandKey].(string)
+		if !ok {
+			return nil
+		}
+
+		for _, cmd := range commands {
+			if cmd.Name == selectedCommand {
+				return cmd.Action(ctx, nil)
+			}
+		}
+		return nil
+	}
+
+	t := tui.NewNewTable(
 		columns,
-		func(cmd PaletteCommand, filter string) bool {
-			return strings.Contains(strings.ToLower(cmd.Name), strings.ToLower(filter)) ||
-				strings.Contains(strings.ToLower(cmd.Description), strings.ToLower(filter))
-		},
-		[]tui.CustomOption[PaletteCommand]{},
-	), nil
+		rows,
+		onSelect,
+	)
+
+	return t, nil
 }
 
 var paletteCmd = &cobra.Command{
