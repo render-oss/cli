@@ -18,9 +18,15 @@ func NewDefaultClient() (*ClientWithResponses, error) {
 	)
 }
 
+func AddHeaders(header http.Header, token string) http.Header {
+	header.Add("user-agent", "render-cli")
+	header.Add("authorization", fmt.Sprintf("Bearer %s", token))
+	return header
+}
+
 func ClientWithAuth(httpClient *http.Client, server string, token string) (*ClientWithResponses, error) {
 	insertAuth := func(ctx context.Context, req *http.Request) error {
-		req.Header.Add("authorization", fmt.Sprintf("Bearer %s", token))
+		req.Header = AddHeaders(req.Header, token)
 		return nil
 	}
 
