@@ -3,7 +3,6 @@ package logs
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -42,9 +41,7 @@ func (l *LogRepo) TailLogs(ctx context.Context, params *client.ListLogsParams) (
 	u.Scheme = "wss"
 
 	// Establish WebSocket connection using the custom dialer
-	conn, _, err := dialer.Dial(u.String(), http.Header{
-		"authorization": []string{fmt.Sprintf("Bearer %s", cfg.GetAPIKey())},
-	})
+	conn, _, err := dialer.Dial(u.String(), client.AddHeaders(http.Header{}, cfg.GetAPIKey()))
 	if err != nil {
 		return nil, err
 	}
