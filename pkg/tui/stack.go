@@ -1,12 +1,19 @@
 package tui
 
 import (
+	"fmt"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
+var stackHeaderStyle = lipgloss.NewStyle().BorderStyle(lipgloss.ThickBorder()).BorderBottom(true).BorderTop(true)
+
 type StackModel struct {
 	stack []ModelWithCmd
+
+	width  int
+	height int
 }
 
 type ModelWithCmd struct {
@@ -84,6 +91,12 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, m.Init()
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+
+		// Update the message for subcomponents to exclude the header
+		msg.Height -= lipgloss.Height(m.header())
 	}
 
 	var cmd tea.Cmd
@@ -99,5 +112,38 @@ func (m *StackModel) View() string {
 		return ""
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, m.stack[len(m.stack)-1].Cmd, m.stack[len(m.stack)-1].Model.View())
+	return lipgloss.JoinVertical(lipgloss.Left, m.header(), m.stack[len(m.stack)-1].Model.View())
+}
+
+func (m *StackModel) header() string {
+	emptyStyle := lipgloss.NewStyle()
+
+	escText := "Esc: Quit"
+	if len(m.stack) > 1 {
+		escText = "Esc: Previous command"
+	}
+	escVal := emptyStyle.Render(escText)
+
+	globalCmds := "Ctrl+C: Quit"
+	globalCmdsVal := emptyStyle.Render(globalCmds)
+
+	cmdStyle := lipgloss.NewStyle()
+	cmdText := fmt.Sprintf("Current Command: %s", m.stack[len(m.stack)-1].Cmd)
+
+	cmdWidth := lipgloss.Width(cmdText)
+	paddingLeft := (m.width-cmdWidth)/2 - lipgloss.Width(escVal)
+	cmdStyle = cmdStyle.PaddingLeft(paddingLeft)
+
+	paddingRight := (m.width-cmdWidth)/2 - lipgloss.Width(globalCmdsVal)
+	cmdStyle = cmdStyle.PaddingRight(paddingRight)
+
+	cmdVal := cmdStyle.Render(cmdText)
+
+	bar := lipgloss.JoinHorizontal(lipgloss.Top,
+		escVal,
+		cmdVal,
+		globalCmdsVal,
+	)
+
+	return stackHeaderStyle.Render(bar)
 }
