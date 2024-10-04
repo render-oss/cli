@@ -24,11 +24,9 @@ import (
 var servicesCmd = &cobra.Command{
 	Use:   "services",
 	Short: "List and manage services",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		command.Wrap(cmd, loadResourceData, renderResources)(cmd.Context(), ListResourceInput{})
-		return nil
-	},
 }
+
+var InteractiveServices = command.Wrap(servicesCmd, loadResourceData, renderResources)
 
 func loadResourceData(ctx context.Context, _ ListResourceInput) ([]resource.Resource, error) {
 	resourceService, err := newResourceService()
@@ -181,4 +179,9 @@ func resourceOptionSelectWorkspace(ctx context.Context) func(resource.Resource) 
 
 func init() {
 	rootCmd.AddCommand(servicesCmd)
+
+	servicesCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		InteractiveServices(cmd.Context(), ListResourceInput{})
+		return nil
+	}
 }
