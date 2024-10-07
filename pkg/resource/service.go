@@ -45,7 +45,7 @@ type ResourceParams struct {
 
 func (r ResourceParams) ToServiceParams() *client.ListServicesParams {
 	return &client.ListServicesParams{
-		Environment: pointers.From([]string{r.EnvironmentID}),
+		EnvironmentId: pointers.From([]string{r.EnvironmentID}),
 	}
 }
 
