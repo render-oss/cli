@@ -31,3 +31,21 @@ func (e *Repo) GetEnvironment(ctx context.Context, id string) (*client.Environme
 
 	return resp.JSON200, nil
 }
+
+func (e *Repo) ListEnvironments(ctx context.Context, params *client.ListEnvironmentsParams) ([]*client.Environment, error) {
+	resp, err := e.client.ListEnvironmentsWithResponse(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("unexpected response: %v", resp.Status())
+	}
+
+	var envs []*client.Environment
+	for _, env := range *resp.JSON200 {
+		envs = append(envs, &env.Environment)
+	}
+
+	return envs, nil
+}

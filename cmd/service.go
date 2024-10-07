@@ -26,18 +26,26 @@ var servicesCmd = &cobra.Command{
 
 var InteractiveServices = command.Wrap(servicesCmd, loadResourceData, renderResources)
 
-func loadResourceData(ctx context.Context, _ ListResourceInput) ([]resource.Resource, error) {
+func loadResourceData(ctx context.Context, in ListResourceInput) ([]resource.Resource, error) {
 	resourceService, err := newResourceService()
 	if err != nil {
 		return nil, err
 	}
-	return resourceService.ListResources(ctx)
+	return resourceService.ListResources(ctx, in.ToParams())
 }
 
-type ListResourceInput struct{}
+type ListResourceInput struct {
+	EnvironmentID string `cli:"environment"`
+}
 
 func (l ListResourceInput) String() []string {
 	return []string{}
+}
+
+func (l ListResourceInput) ToParams() resource.ResourceParams {
+	return resource.ResourceParams{
+		EnvironmentID: l.EnvironmentID,
+	}
 }
 
 func renderResources(ctx context.Context, loadData func(input ListResourceInput) ([]resource.Resource, error), in ListResourceInput) (tea.Model, error) {
@@ -240,7 +248,15 @@ func init() {
 	rootCmd.AddCommand(servicesCmd)
 
 	servicesCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		InteractiveServices(cmd.Context(), ListResourceInput{})
+		in := ListResourceInput{}
+		err := command.ParseCommand(cmd, args, &in)
+		if err != nil {
+			return err
+		}
+
+		InteractiveServices(cmd.Context(), in)
 		return nil
 	}
+
+	servicesCmd.Flags().StringP("environment", "e", "", "Comma separated list of environment ids to filter by")
 }

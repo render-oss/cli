@@ -22,8 +22,8 @@ func NewService(repo *Repo, environmentRepo *environment.Repo, projectRepo *proj
 	}
 }
 
-func (s *Service) ListServices(ctx context.Context) ([]*Model, error) {
-	services, err := s.repo.ListServices(ctx)
+func (s *Service) ListServices(ctx context.Context, params *client.ListServicesParams) ([]*Model, error) {
+	services, err := s.repo.ListServices(ctx, params)
 	if err != nil {
 		return nil, err
 	}

@@ -19,10 +19,8 @@ func NewRepo(c *client.ClientWithResponses) *Repo {
 	}
 }
 
-func (s *Repo) ListServices(ctx context.Context) ([]*client.Service, error) {
-	params := &client.ListServicesParams{
-		Limit: pointers.From(100),
-	}
+func (s *Repo) ListServices(ctx context.Context, params *client.ListServicesParams) ([]*client.Service, error) {
+	params.Limit = pointers.From(100)
 
 	workspace, err := config.WorkspaceID()
 	if err != nil {
