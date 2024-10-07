@@ -17,15 +17,15 @@ func NewRepo(c *client.ClientWithResponses) *Repo {
 	}
 }
 
-func (r *Repo) ListPostgres(ctx context.Context) ([]*client.Postgres, error) {
+func (r *Repo) ListPostgres(ctx context.Context, params *client.ListPostgresParams) ([]*client.Postgres, error) {
 	workspace, err := config.WorkspaceID()
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := r.client.ListPostgresWithResponse(ctx, &client.ListPostgresParams{
-		OwnerId: &client.OwnerIdParam{workspace},
-	})
+	params.OwnerId = &client.OwnerIdParam{workspace}
+
+	resp, err := r.client.ListPostgresWithResponse(ctx, params)
 	if err != nil {
 		return nil, err
 	}

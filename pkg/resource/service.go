@@ -7,6 +7,7 @@ import (
 
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/environment"
+	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/renderinc/render-cli/pkg/postgres"
 	"github.com/renderinc/render-cli/pkg/project"
 	"github.com/renderinc/render-cli/pkg/service"
@@ -38,13 +39,29 @@ func NewResourceService(serviceService *service.Service, postgresService *postgr
 	}
 }
 
-func (rs *Service) ListResources(ctx context.Context) ([]Resource, error) {
-	services, err := rs.serviceService.ListServices(ctx)
+type ResourceParams struct {
+	EnvironmentID string
+}
+
+func (r ResourceParams) ToServiceParams() *client.ListServicesParams {
+	return &client.ListServicesParams{
+		Environment: pointers.From([]string{r.EnvironmentID}),
+	}
+}
+
+func (r ResourceParams) ToPostgresParams() *client.ListPostgresParams {
+	return &client.ListPostgresParams{
+		EnvironmentId: pointers.From([]string{r.EnvironmentID}),
+	}
+}
+
+func (rs *Service) ListResources(ctx context.Context, params ResourceParams) ([]Resource, error) {
+	services, err := rs.serviceService.ListServices(ctx, params.ToServiceParams())
 	if err != nil {
 		return nil, err
 	}
 
-	postgresDBs, err := rs.postgresService.ListPostgres(ctx)
+	postgresDBs, err := rs.postgresService.ListPostgres(ctx, params.ToPostgresParams())
 	if err != nil {
 		return nil, err
 	}
