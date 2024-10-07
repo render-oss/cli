@@ -74,15 +74,15 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c":
+		switch msg.Type {
+		case tea.KeyCtrlC:
 			return m, tea.Quit
-		case "esc":
+		case tea.KeyCtrlD:
 			m.Pop()
 			if len(m.stack) == 0 {
 				return m, tea.Quit
 			}
-			return m, nil
+			return m, m.Init()
 		}
 	case ClearScreenMsg:
 		m.stack = m.stack[:0]
@@ -136,9 +136,9 @@ func (m *StackModel) View() string {
 func (m *StackModel) header() string {
 	emptyStyle := lipgloss.NewStyle()
 
-	escText := "Esc: Quit"
+	escText := "Ctrl+D: Quit"
 	if len(m.stack) > 1 {
-		escText = "Esc: Previous command"
+		escText = "Ctrl+D: Previous command"
 	}
 	escVal := emptyStyle.Render(escText)
 
