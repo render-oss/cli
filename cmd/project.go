@@ -87,7 +87,7 @@ func renderProjects(ctx context.Context, loadData func(ProjectInput) ([]*client.
 		{Title: "Name", Width: 40},
 	}
 
-	return tui.NewTableModel[*client.Project](
+	return tui.NewTableModel(
 		"resources",
 		func() ([]*client.Project, error) {
 			return loadData(input)
@@ -96,13 +96,6 @@ func renderProjects(ctx context.Context, loadData func(ProjectInput) ([]*client.
 		selectProject(ctx),
 		columns,
 		filterProject,
-		[]tui.CustomOption[*client.Project]{
-			{
-				Key:      "w",
-				Title:    "Change Workspace",
-				Function: projectOptionSelectWorkspace(ctx),
-			},
-		},
 	), nil
 }
 
