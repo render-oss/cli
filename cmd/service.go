@@ -4,10 +4,9 @@ import (
 	"context"
 	"net/http"
 	"os"
-	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	btable "github.com/evertras/bubble-table/table"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/environment"
@@ -42,37 +41,82 @@ func (l ListResourceInput) String() []string {
 }
 
 func renderResources(ctx context.Context, loadData func(input ListResourceInput) ([]resource.Resource, error), in ListResourceInput) (tea.Model, error) {
-	columns := []table.Column{
-		{Title: "ID", Width: 25},
-		{Title: "Type", Width: 12},
-		{Title: "Project", Width: 15},
-		{Title: "Environment", Width: 20},
-		{Title: "Name", Width: 40},
+	columns := []btable.Column{
+		btable.NewColumn("ID", "ID", 25).WithFiltered(true),
+		btable.NewColumn("Type", "Type", 12).WithFiltered(true),
+		btable.NewColumn("Project", "Project", 15).WithFiltered(true),
+		btable.NewColumn("Environment", "Environment", 20).WithFiltered(true),
+		btable.NewColumn("Name", "Name", 40).WithFiltered(true),
 	}
 
-	return tui.NewTableModel[resource.Resource](
-		"resources",
-		func() ([]resource.Resource, error) {
-			return loadData(in)
-		},
-		formatResourceRow,
-		selectResource(ctx),
-		columns,
-		filterResource,
-		[]tui.CustomOption[resource.Resource]{
-			{
-				Key:      "w",
-				Title:    "Change Workspace",
-				Function: resourceOptionSelectWorkspace(ctx),
+	rows, err := loadRows(loadData, in)
+	if err != nil {
+		return nil, err
+	}
+
+	onSelect := func(data []btable.Row) tea.Cmd {
+		if len(data) == 0 || len(data) > 1 {
+			return nil
+		}
+
+		r, ok := data[0].Data["resource"].(resource.Resource)
+		if !ok {
+			return nil
+		}
+
+		return selectResource(ctx)(r)
+	}
+
+	reInitFunc := func(tableModel *tui.NewTable) tea.Cmd {
+		return func() tea.Msg {
+			rows, err := loadRows(loadData, in)
+			if err != nil {
+				return tui.ErrorMsg{Err: err}
+			}
+			tableModel.UpdateRows(rows)
+			return nil
+		}
+	}
+
+	customOptions := []tui.CustomOption{
+		{
+			Key:   "w",
+			Title: "Change Workspace",
+			Function: func(row btable.Row) tea.Cmd {
+				return InteractiveWorkspace(ctx, ListWorkspaceInput{})
 			},
 		},
-	), nil
+	}
+
+	t := tui.NewNewTable(
+		columns,
+		rows,
+		onSelect,
+		tui.WithCustomOptions(customOptions),
+		tui.WithOnReInit(reInitFunc),
+	)
+
+	return t, nil
 }
 
-func formatResourceRow(r resource.Resource) table.Row {
-	// r.ID() must be first because it's used when selecting a row in selectCurrentRow()
-	// TODO: make this less brittle
-	return []string{r.ID(), r.Type(), r.ProjectName(), r.EnvironmentName(), r.Name()}
+func loadRows(loadData func(input ListResourceInput) ([]resource.Resource, error), in ListResourceInput) ([]btable.Row, error) {
+	resources, err := loadData(in)
+	if err != nil {
+		return nil, err
+	}
+
+	var rows []btable.Row
+	for _, r := range resources {
+		rows = append(rows, btable.NewRow(btable.RowData{
+			"ID":          r.ID(),
+			"Type":        r.Type(),
+			"Project":     r.ProjectName(),
+			"Environment": r.EnvironmentName(),
+			"Name":        r.Name(),
+			"resource":    r, // this will be hidden in the UI, but will be used to get the resource when selected
+		}))
+	}
+	return rows, nil
 }
 
 func optionallyAddCommand(commands []PaletteCommand, command PaletteCommand, allowedTypes []string, resource resource.Resource) []PaletteCommand {
@@ -164,16 +208,6 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 	}
 }
 
-func filterResource(r resource.Resource, filter string) bool {
-	searchFields := []string{r.ID(), r.Name(), r.ProjectName(), r.EnvironmentName(), r.Type()}
-	for _, field := range searchFields {
-		if strings.Contains(strings.ToLower(field), filter) {
-			return true
-		}
-	}
-	return false
-}
-
 func newResourceService() (*resource.Service, error) {
 	httpClient := http.DefaultClient
 	host := os.Getenv("RENDER_HOST")
@@ -200,12 +234,6 @@ func newResourceService() (*resource.Service, error) {
 	)
 
 	return resourceService, nil
-}
-
-func resourceOptionSelectWorkspace(ctx context.Context) func(resource.Resource) tea.Cmd {
-	return func(r resource.Resource) tea.Cmd {
-		return InteractiveWorkspace(ctx, ListWorkspaceInput{})
-	}
 }
 
 func init() {
