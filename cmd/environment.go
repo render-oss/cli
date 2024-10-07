@@ -58,7 +58,6 @@ func selectEnvironment(ctx context.Context) func(*client.Environment) tea.Cmd {
 				Name:        "services",
 				Description: "View services in environment",
 				Action: func(ctx context.Context, args []string) tea.Cmd {
-					// TODO: Implement once environments are added
 					return InteractiveServices(ctx, ListResourceInput{
 						EnvironmentID: r.Id,
 					})
