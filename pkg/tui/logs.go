@@ -14,8 +14,7 @@ import (
 )
 
 const (
-	searchWidth              = 60
-	commandDescriptionHeight = 1
+	searchWidth = 60
 )
 
 var viewportSylte = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, false, true, false)
@@ -54,6 +53,7 @@ type LogModel struct {
 
 	windowWidth  int
 	windowHeight int
+	top          int
 	searching    bool
 
 	logChan <-chan *lclient.Log
@@ -165,9 +165,10 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, tea.Batch(m.loadData))
 			}
 		}
-	case tea.WindowSizeMsg:
+	case StackSizeMsg:
 		m.windowWidth = msg.Width
 		m.windowHeight = msg.Height
+		m.top = msg.Top
 		m.setViewPortSize()
 	}
 
@@ -179,12 +180,12 @@ func (m *LogModel) setViewPortSize() {
 	stylingWidth := logStyle.GetPaddingRight() + logStyle.GetPaddingLeft() + logStyle.GetBorderLeftSize() + logStyle.GetBorderRightSize()
 	searchWindowWidth := min(searchWidth, m.windowWidth)
 
-	m.viewport.Height = m.windowHeight - stylingHeight - commandDescriptionHeight
-	m.viewport.YPosition = stylingHeight + commandDescriptionHeight
+	m.viewport.Height = m.windowHeight - stylingHeight - m.top
+	m.viewport.YPosition = stylingHeight + m.top
 	if m.searching {
 		m.viewport.Width = m.windowWidth - searchWindowWidth - stylingWidth
 		m.filterModel.SetWidth(searchWindowWidth)
-		m.filterModel.SetHeight(m.viewport.Height)
+		m.filterModel.SetHeight(m.top, m.viewport.Height)
 	} else {
 		m.viewport.Width = m.windowWidth - stylingWidth
 	}
