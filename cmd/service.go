@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"os"
-	"slices"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -76,62 +75,87 @@ func formatResourceRow(r resource.Resource) table.Row {
 	return []string{r.ID(), r.Type(), r.ProjectName(), r.EnvironmentName(), r.Name()}
 }
 
+func optionallyAddCommand(commands []PaletteCommand, command PaletteCommand, allowedTypes []string, resource resource.Resource) []PaletteCommand {
+	if len(allowedTypes) == 0 {
+		return append(commands, command)
+	}
+
+	for _, allowedType := range allowedTypes {
+		if resource.Type() == allowedType {
+			return append(commands, command)
+		}
+	}
+
+	return commands
+}
+
 func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 	return func(r resource.Resource) tea.Cmd {
-		allResourceCommands := []PaletteCommand{
+
+		type commandWithAllowedTypes struct {
+			command      PaletteCommand
+			allowedTypes []string
+		}
+
+		var commands []PaletteCommand
+		commandWithTypes := []commandWithAllowedTypes{
 			{
-				Name:        "logs",
-				Description: "View resource logs",
-				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return InteractiveLogs(ctx, LogInput{
-						ResourceIDs: []string{r.ID()},
-					})
+				command: PaletteCommand{
+					Name:        "logs",
+					Description: "View resource logs",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractiveLogs(ctx, LogInput{
+							ResourceIDs: []string{r.ID()},
+						})
+					},
 				},
 			},
 			{
-				Name:        "restart",
-				Description: "Restart the service",
-				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return InteractiveRestart(ctx, RestartInput{ResourceID: r.ID()})
+				command: PaletteCommand{
+					Name:        "restart",
+					Description: "Restart the service",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractiveRestart(ctx, RestartInput{ResourceID: r.ID()})
+					},
+				},
+			},
+			{
+				command: PaletteCommand{
+					Name:        "psql",
+					Description: "Connect to the PostgreSQL database",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractivePSQL(ctx, PSQLInput{PostgresID: r.ID()})
+					},
+				},
+				allowedTypes: []string{postgres.PostgresType},
+			},
+			{
+				command: PaletteCommand{
+					Name:        "deploy",
+					Description: "Deploy the service",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractiveDeploy(ctx, types.DeployInput{ServiceID: r.ID()})
+					},
+				},
+				allowedTypes: service.Types,
+			},
+			{
+				command: PaletteCommand{
+					Name:        "ssh",
+					Description: "SSH into the service",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractiveSSH(ctx, SSHInput{ServiceID: r.ID()})
+					},
+				},
+				allowedTypes: []string{
+					service.WebServiceResourceType, service.PrivateServiceResourceType,
+					service.BackgroundWorkerResourceType,
 				},
 			},
 		}
 
-		postgresCommands := []PaletteCommand{
-			{
-				Name:        "psql",
-				Description: "Connect to the PostgreSQL database",
-				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return InteractivePSQL(ctx, PSQLInput{PostgresID: r.ID()})
-				},
-			},
-		}
-
-		serviceCommands := []PaletteCommand{
-			{
-				Name:        "deploy",
-				Description: "Deploy the service",
-				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return InteractiveDeploy(ctx, types.DeployInput{ServiceID: r.ID()})
-				},
-			},
-			{
-				Name:        "ssh",
-				Description: "SSH into the service",
-				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return InteractiveSSH(ctx, SSHInput{ServiceID: r.ID()})
-				},
-			},
-		}
-
-		commands := allResourceCommands
-
-		if r.Type() == postgres.PostgresType {
-			commands = append(commands, postgresCommands...)
-		}
-
-		if slices.Contains(service.Types, r.Type()) {
-			commands = append(commands, serviceCommands...)
+		for _, c := range commandWithTypes {
+			commands = optionallyAddCommand(commands, c.command, c.allowedTypes, r)
 		}
 
 		return InteractiveCommandPalette(ctx, PaletteCommandInput{
