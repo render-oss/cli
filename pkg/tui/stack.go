@@ -21,6 +21,12 @@ type ModelWithCmd struct {
 	Cmd   string
 }
 
+type StackSizeMsg struct {
+	Width  int
+	Height int
+	Top    int
+}
+
 // ErrorMsg quits the program after displaying an error message
 type ErrorMsg struct {
 	Err error
@@ -66,6 +72,8 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
+	subMsg := msg
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -96,12 +104,16 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 
 		// Update the message for subcomponents to exclude the header
-		msg.Height -= lipgloss.Height(m.header())
+		subMsg = StackSizeMsg{
+			Width:  msg.Width,
+			Height: msg.Height - lipgloss.Height(m.header()),
+			Top:    lipgloss.Height(m.header()),
+		}
 	}
 
 	var cmd tea.Cmd
 	if len(m.stack) > 0 {
-		m.stack[len(m.stack)-1].Model, cmd = m.stack[len(m.stack)-1].Model.Update(msg)
+		m.stack[len(m.stack)-1].Model, cmd = m.stack[len(m.stack)-1].Model.Update(subMsg)
 	}
 
 	return m, cmd
