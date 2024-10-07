@@ -49,7 +49,7 @@ func renderResources(ctx context.Context, loadData func(input ListResourceInput)
 		btable.NewColumn("Name", "Name", 40).WithFiltered(true),
 	}
 
-	rows, err := loadRows(loadData, in)
+	rows, err := loadServiceRows(loadData, in)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func renderResources(ctx context.Context, loadData func(input ListResourceInput)
 
 	reInitFunc := func(tableModel *tui.NewTable) tea.Cmd {
 		return func() tea.Msg {
-			rows, err := loadRows(loadData, in)
+			rows, err := loadServiceRows(loadData, in)
 			if err != nil {
 				return tui.ErrorMsg{Err: err}
 			}
@@ -99,7 +99,7 @@ func renderResources(ctx context.Context, loadData func(input ListResourceInput)
 	return t, nil
 }
 
-func loadRows(loadData func(input ListResourceInput) ([]resource.Resource, error), in ListResourceInput) ([]btable.Row, error) {
+func loadServiceRows(loadData func(input ListResourceInput) ([]resource.Resource, error), in ListResourceInput) ([]btable.Row, error) {
 	resources, err := loadData(in)
 	if err != nil {
 		return nil, err

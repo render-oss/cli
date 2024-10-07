@@ -1,15 +1,10 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	btable "github.com/evertras/bubble-table/table"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/project"
@@ -17,7 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// projectCmd represents the project command
 var projectCmd = &cobra.Command{
 	Use:   "project",
 	Short: "List projects",
@@ -26,8 +20,7 @@ var projectCmd = &cobra.Command{
 
 var InteractiveProject = command.Wrap(projectCmd, loadProjects, renderProjects)
 
-type ProjectInput struct {
-}
+type ProjectInput struct{}
 
 func (p ProjectInput) String() []string {
 	return []string{}
@@ -36,16 +29,88 @@ func (p ProjectInput) String() []string {
 func loadProjects(ctx context.Context, _ ProjectInput) ([]*client.Project, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %w", err)
+		return nil, err
 	}
 
 	projectRepo := project.NewRepo(c)
-
 	return projectRepo.ListProjects(ctx)
 }
 
+func renderProjects(ctx context.Context, loadData func(ProjectInput) ([]*client.Project, error), in ProjectInput) (tea.Model, error) {
+	columns := []btable.Column{
+		btable.NewColumn("ID", "ID", 25).WithFiltered(true),
+		btable.NewColumn("Name", "Name", 40).WithFiltered(true),
+	}
+
+	rows, err := loadProjectRows(loadData, in)
+	if err != nil {
+		return nil, err
+	}
+
+	onSelect := func(data []btable.Row) tea.Cmd {
+		if len(data) == 0 || len(data) > 1 {
+			return nil
+		}
+
+		p, ok := data[0].Data["project"].(client.Project)
+		if !ok {
+			return nil
+		}
+
+		return selectProject(ctx)(&p)
+	}
+
+	reInitFunc := func(tableModel *tui.NewTable) tea.Cmd {
+		return func() tea.Msg {
+			rows, err := loadProjectRows(loadData, in)
+			if err != nil {
+				return tui.ErrorMsg{Err: err}
+			}
+			tableModel.UpdateRows(rows)
+			return nil
+		}
+	}
+
+	customOptions := []tui.CustomOption{
+		{
+			Key:   "w",
+			Title: "Change Workspace",
+			Function: func(row btable.Row) tea.Cmd {
+				return InteractiveWorkspace(ctx, ListWorkspaceInput{})
+			},
+		},
+	}
+
+	t := tui.NewNewTable(
+		columns,
+		rows,
+		onSelect,
+		tui.WithCustomOptions(customOptions),
+		tui.WithOnReInit(reInitFunc),
+	)
+
+	return t, nil
+}
+
+func loadProjectRows(loadData func(input ProjectInput) ([]*client.Project, error), in ProjectInput) ([]btable.Row, error) {
+	projects, err := loadData(in)
+	if err != nil {
+		return nil, err
+	}
+
+	var rows []btable.Row
+	for _, p := range projects {
+		rows = append(rows, btable.NewRow(btable.RowData{
+			"ID":      p.Id,
+			"Name":    p.Name,
+			"project": p, // this will be hidden in the UI, but will be used to get the project when selected
+		}))
+	}
+	return rows, nil
+}
+
 func selectProject(ctx context.Context) func(*client.Project) tea.Cmd {
-	return func(r *client.Project) tea.Cmd {
+	return func(p *client.Project) tea.Cmd {
 		commands := []PaletteCommand{
 			{
 				Name:        "environments",
@@ -62,46 +127,6 @@ func selectProject(ctx context.Context) func(*client.Project) tea.Cmd {
 		return InteractiveCommandPalette(ctx, PaletteCommandInput{
 			Commands: commands,
 		})
-	}
-}
-
-func formatProjectRow(p *client.Project) table.Row {
-	// r.ID() must be first because it's used when selecting a row in selectCurrentRow()
-	// TODO: make this less brittle
-	return []string{p.Id, p.Name}
-}
-
-func filterProject(p *client.Project, filter string) bool {
-	searchFields := []string{p.Id, p.Name}
-	for _, field := range searchFields {
-		if strings.Contains(strings.ToLower(field), filter) {
-			return true
-		}
-	}
-	return false
-}
-
-func renderProjects(ctx context.Context, loadData func(ProjectInput) ([]*client.Project, error), input ProjectInput) (tea.Model, error) {
-	columns := []table.Column{
-		{Title: "ID", Width: 25},
-		{Title: "Name", Width: 40},
-	}
-
-	return tui.NewTableModel(
-		"resources",
-		func() ([]*client.Project, error) {
-			return loadData(input)
-		},
-		formatProjectRow,
-		selectProject(ctx),
-		columns,
-		filterProject,
-	), nil
-}
-
-func projectOptionSelectWorkspace(ctx context.Context) func(*client.Project) tea.Cmd {
-	return func(r *client.Project) tea.Cmd {
-		return InteractiveWorkspace(ctx, ListWorkspaceInput{})
 	}
 }
 
