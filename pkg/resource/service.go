@@ -44,12 +44,20 @@ type ResourceParams struct {
 }
 
 func (r ResourceParams) ToServiceParams() *client.ListServicesParams {
+	if r.EnvironmentID == "" {
+		return &client.ListServicesParams{}
+	}
+
 	return &client.ListServicesParams{
 		EnvironmentId: pointers.From([]string{r.EnvironmentID}),
 	}
 }
 
 func (r ResourceParams) ToPostgresParams() *client.ListPostgresParams {
+	if r.EnvironmentID == "" {
+		return &client.ListPostgresParams{}
+	}
+
 	return &client.ListPostgresParams{
 		EnvironmentId: pointers.From([]string{r.EnvironmentID}),
 	}
