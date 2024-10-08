@@ -97,7 +97,7 @@ var paletteCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
+	paletteCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input PaletteCommandInput
 		err := command.ParseCommand(cmd, args, &input)
 		if err != nil {

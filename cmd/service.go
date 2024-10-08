@@ -21,7 +21,9 @@ import (
 
 var servicesCmd = &cobra.Command{
 	Use:   "services",
-	Short: "List and manage services",
+	Short: "List and manage services, cron jobs, and postgres databases",
+	Long: `List services, cron jobs, and postgres databases for the currently set workspace.
+In interactive mode you can view logs, restart, deploy, SSH, and open PSQL terminals.`,
 }
 
 var InteractiveServices = command.Wrap(servicesCmd, loadResourceData, renderResources)
