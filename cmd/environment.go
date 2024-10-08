@@ -104,20 +104,7 @@ func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) ([]
 		selectEnvironment(ctx),
 		columns,
 		filterEnvironment,
-		[]tui.CustomOption[*client.Environment]{
-			{
-				Key:      "w",
-				Title:    "Change Workspace",
-				Function: environmentOptionSelectWorkspace(ctx),
-			},
-		},
 	), nil
-}
-
-func environmentOptionSelectWorkspace(ctx context.Context) func(*client.Environment) tea.Cmd {
-	return func(r *client.Environment) tea.Cmd {
-		return InteractiveWorkspace(ctx, ListWorkspaceInput{})
-	}
 }
 
 func init() {

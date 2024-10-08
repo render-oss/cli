@@ -117,7 +117,7 @@ func selectProject(ctx context.Context) func(*client.Project) tea.Cmd {
 				Description: "View environments in project",
 				Action: func(ctx context.Context, args []string) tea.Cmd {
 					return InteractiveEnvironment(ctx, EnvironmentInput{
-						ProjectID: r.Id,
+						ProjectID: p.Id,
 					})
 				},
 			},
