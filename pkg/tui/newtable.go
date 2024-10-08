@@ -96,11 +96,13 @@ func (t *NewTable) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			return t, t.onSelect([]table.Row{t.Model.HighlightedRow()})
 		default:
-			for _, option := range t.customOptions {
-				if msg.String() == option.Key {
-					t.shouldReInit = true
-					t.loading = true
-					return t, option.Function(t.Model.HighlightedRow())
+			if !t.Model.GetIsFilterInputFocused() {
+				for _, option := range t.customOptions {
+					if msg.String() == option.Key {
+						t.shouldReInit = true
+						t.loading = true
+						return t, option.Function(t.Model.HighlightedRow())
+					}
 				}
 			}
 		}
