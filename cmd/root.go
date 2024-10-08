@@ -16,17 +16,16 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "render",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Short: "**ALPHA** Interact with resources on Render",
+	Long: `**WARNING: CLI IN ALPHA, ALL INTERACTIONS SUBJECT TO CHANGE**
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+The Render CLI allows you to interact with resources on Render from the command line.
+View your projects, environments, and services, trigger deployments, view logs, and more.
 
+By default the CLI will run in interactive mode, giving you a visual interface to interact with resources.
+You can also use the CLI in non-interactive mode by specifying the output format with the --output with
+either json or yaml.
+`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 

@@ -16,9 +16,10 @@ import (
 
 // updateCmd represents the update command
 var updateCmd = &cobra.Command{
-	Use:   "update [serviceID]",
-	Short: "Update a service",
-	Args:  cobra.ExactArgs(1),
+	Use:    "update [serviceID]",
+	Short:  "Update a service",
+	Args:   cobra.ExactArgs(1),
+	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		serviceID := args[0]
 

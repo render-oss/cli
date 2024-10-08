@@ -20,9 +20,9 @@ import (
 
 // sshCmd represents the ssh command
 var sshCmd = &cobra.Command{
-	Use:   "ssh",
-	Short: "ssh into a server",
-	Long:  `ssh into a server`,
+	Use:   "ssh [serviceID]",
+	Short: "SSH into a server",
+	Long:  `SSH into a server given a service ID.`,
 }
 var InteractiveSSH = command.Wrap(sshCmd, loadDataSSH, renderSSH)
 

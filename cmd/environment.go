@@ -19,9 +19,10 @@ import (
 
 // environmentCmd represents the environment command
 var environmentCmd = &cobra.Command{
-	Use:   "environment",
+	Use:   "environment [projectID]",
 	Short: "List environments",
-	Long:  `List environments.`,
+	Long: `List environments for the currently set workspace and the specified project.
+In interactive mode you can view the services for an environment.`,
 }
 
 var InteractiveEnvironment = command.Wrap(environmentCmd, loadEnvironments, renderEnvironments)

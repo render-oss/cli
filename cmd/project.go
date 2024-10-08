@@ -15,7 +15,8 @@ import (
 var projectCmd = &cobra.Command{
 	Use:   "project",
 	Short: "List projects",
-	Long:  `List projects.`,
+	Long: `List projects for the currently set workspace.
+In interactive mode you can view the environments for a project.`,
 }
 
 var InteractiveProject = command.Wrap(projectCmd, loadProjects, renderProjects)
