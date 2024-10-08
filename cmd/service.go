@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"context"
-	"net/http"
-	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
@@ -219,11 +217,7 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 }
 
 func newResourceService() (*resource.Service, error) {
-	httpClient := http.DefaultClient
-	host := os.Getenv("RENDER_HOST")
-	apiKey := os.Getenv("RENDER_API_KEY")
-
-	c, err := client.ClientWithAuth(httpClient, host, apiKey)
+	c, err := client.NewDefaultClient()
 	if err != nil {
 		return nil, err
 	}

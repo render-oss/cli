@@ -3,11 +3,9 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
-	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/config"
@@ -30,7 +28,7 @@ Currently, you can only select a workspace in interactive mode.
 var InteractiveWorkspace = command.Wrap(workspaceCmd, loadWorkspaceData, renderWorkspaces)
 
 func loadWorkspaceData(ctx context.Context, _ ListWorkspaceInput) ([]*client.Owner, error) {
-	c, err := client.ClientWithAuth(http.DefaultClient, cfg.GetHost(), cfg.GetAPIKey())
+	c, err := client.NewDefaultClient()
 	if err != nil {
 		return nil, err
 	}

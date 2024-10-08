@@ -5,11 +5,9 @@ package cmd
 
 import (
 	"context"
-	"net/http"
 	"os/exec"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/postgres"
@@ -35,7 +33,7 @@ func (p PSQLInput) String() []string {
 }
 
 func loadDataPSQL(ctx context.Context, in PSQLInput) (string, error) {
-	c, err := client.ClientWithAuth(&http.Client{}, cfg.GetHost(), cfg.GetAPIKey())
+	c, err := client.NewDefaultClient()
 	if err != nil {
 		return "", err
 	}

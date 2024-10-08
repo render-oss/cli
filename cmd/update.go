@@ -3,8 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"os"
 
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/environment"
@@ -123,11 +121,7 @@ func stripReadOnlyFields(retrievedService *client.Service) (*client.ServicePATCH
 }
 
 func newRepositories() (*service.Repo, *service.Service, error) {
-	httpClient := http.DefaultClient
-	host := os.Getenv("RENDER_HOST")
-	apiKey := os.Getenv("RENDER_API_KEY")
-
-	c, err := client.ClientWithAuth(httpClient, host, apiKey)
+	c, err := client.NewDefaultClient()
 	if err != nil {
 		return nil, nil, err
 	}

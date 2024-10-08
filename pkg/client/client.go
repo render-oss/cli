@@ -11,7 +11,12 @@ import (
 )
 
 func NewDefaultClient() (*ClientWithResponses, error) {
-	return ClientWithAuth(
+	apiKey := cfg.GetAPIKey()
+	if apiKey == "" {
+		return nil, fmt.Errorf("no API key set for env var RENDER_API_KEY")
+	}
+
+	return clientWithAuth(
 		&http.Client{},
 		cfg.GetHost(),
 		cfg.GetAPIKey(),
@@ -22,15 +27,6 @@ func AddHeaders(header http.Header, token string) http.Header {
 	header.Add("user-agent", "render-cli")
 	header.Add("authorization", fmt.Sprintf("Bearer %s", token))
 	return header
-}
-
-func ClientWithAuth(httpClient *http.Client, server string, token string) (*ClientWithResponses, error) {
-	insertAuth := func(ctx context.Context, req *http.Request) error {
-		req.Header = AddHeaders(req.Header, token)
-		return nil
-	}
-
-	return NewClientWithResponses(server, WithRequestEditorFn(insertAuth), WithHTTPClient(httpClient))
 }
 
 func ErrorFromResponse(v any) error {
@@ -85,4 +81,13 @@ func firstNonNilErrorField(response any) *ErrorWithCode {
 	}
 
 	return &ErrorWithCode{Error: httpError, Code: httpResponse.StatusCode}
+}
+
+func clientWithAuth(httpClient *http.Client, server string, token string) (*ClientWithResponses, error) {
+	insertAuth := func(ctx context.Context, req *http.Request) error {
+		req.Header = AddHeaders(req.Header, token)
+		return nil
+	}
+
+	return NewClientWithResponses(server, WithRequestEditorFn(insertAuth), WithHTTPClient(httpClient))
 }

@@ -6,11 +6,9 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os/exec"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/service"
@@ -35,7 +33,7 @@ func (p SSHInput) String() []string {
 }
 
 func loadDataSSH(ctx context.Context, in SSHInput) (string, error) {
-	c, err := client.ClientWithAuth(&http.Client{}, cfg.GetHost(), cfg.GetAPIKey())
+	c, err := client.NewDefaultClient()
 	if err != nil {
 		return "", err
 	}

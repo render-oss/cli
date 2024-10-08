@@ -6,12 +6,10 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
-	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
 	lclient "github.com/renderinc/render-cli/pkg/client/logs"
 	"github.com/renderinc/render-cli/pkg/command"
@@ -107,7 +105,10 @@ func mapDirection(direction string) lclient.LogDirection {
 }
 
 func loadLogData(ctx context.Context, in LogInput) (*LogResult, error) {
-	c, err := client.ClientWithAuth(&http.Client{}, cfg.GetHost(), cfg.GetAPIKey())
+	c, err := client.NewDefaultClient()
+	if err != nil {
+		return nil, err
+	}
 	if err != nil {
 		return nil, fmt.Errorf("error creating client: %v", err)
 	}
