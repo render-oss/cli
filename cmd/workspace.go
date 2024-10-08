@@ -21,7 +21,7 @@ var workspaceCmd = &cobra.Command{
 	Short: "Select a workspace to run commands against",
 	Long: `Select a workspace to run commands against.
 Your specified workspace will be saved in a config file specified by the RENDER_CLI_CONFIG_PATH environment variable.
-If unspecified, the config file will be saved in ~/.render/cli.yaml. All subsequent commands will run against this workspace.
+If unspecified, the config file will be saved in $HOME/.render/cli.yaml. All subsequent commands will run against this workspace.
 
 Currently, you can only select a workspace in interactive mode.
 `,
