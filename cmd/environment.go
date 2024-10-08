@@ -104,13 +104,6 @@ func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) ([]
 		selectEnvironment(ctx),
 		columns,
 		filterEnvironment,
-		[]tui.CustomOption[*client.Environment]{
-			{
-				Key:      "w",
-				Title:    "Change Workspace",
-				Function: environmentOptionSelectWorkspace(ctx),
-			},
-		},
 	), nil
 }
 
