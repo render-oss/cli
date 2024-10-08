@@ -25,6 +25,7 @@ func Wrap[T Arguments, D any](cmd *cobra.Command, loadData func(context.Context,
 		if outputFormat != nil && (*outputFormat == JSON || *outputFormat == YAML) {
 			data, err := loadData(ctx, args)
 			if err != nil {
+				_, _ = cmd.ErrOrStderr().Write([]byte(err.Error()))
 				return nil
 			}
 
@@ -53,7 +54,12 @@ func Wrap[T Arguments, D any](cmd *cobra.Command, loadData func(context.Context,
 		stack := tui.GetStackFromContext(ctx)
 		model, err := interactiveFunc(ctx, func(T) (D, error) { return loadData(ctx, args) }, args)
 		if err != nil {
-			return tea.Quit
+			errModel := tui.NewErrorModel(err.Error())
+			stack.Push(tui.ModelWithCmd{
+				Model: errModel, Cmd: CommandName(cmd, args.String(), nil),
+			})
+			_, _ = cmd.ErrOrStderr().Write([]byte(err.Error()))
+			return func() tea.Msg { return tui.ErrorMsg{Err: err} }
 		}
 
 		stack.Push(tui.ModelWithCmd{

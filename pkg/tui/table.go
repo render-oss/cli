@@ -228,7 +228,9 @@ func (m *TableModel[T]) updateComponents(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tableStateLoaded:
 		m.table, cmd = m.table.Update(msg)
 	case tableStateError:
-		m.errorModel, cmd = m.errorModel.Update(msg)
+		var errorModel tea.Model
+		errorModel, cmd = m.errorModel.Update(msg)
+		m.errorModel = errorModel.(*ErrorModel)
 	}
 
 	return m, cmd

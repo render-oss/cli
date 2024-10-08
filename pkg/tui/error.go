@@ -34,7 +34,7 @@ func (m *ErrorModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *ErrorModel) Update(_ tea.Msg) (*ErrorModel, tea.Cmd) {
+func (m *ErrorModel) Update(_ tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Quit
 }
 
