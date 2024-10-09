@@ -53,12 +53,12 @@ func renderProjects(ctx context.Context, loadData func(ProjectInput) ([]*client.
 			return nil
 		}
 
-		p, ok := data[0].Data["project"].(client.Project)
+		p, ok := data[0].Data["project"].(*client.Project)
 		if !ok {
 			return nil
 		}
 
-		return selectProject(ctx)(&p)
+		return selectProject(ctx)(p)
 	}
 
 	reInitFunc := func(tableModel *tui.NewTable) tea.Cmd {

@@ -47,7 +47,7 @@ func renderPalette(
 	in PaletteCommandInput,
 ) (tea.Model, error) {
 	columns := []btable.Column{
-		btable.NewColumn(columnCommandKey, "Command", 10).WithFiltered(true),
+		btable.NewColumn(columnCommandKey, "Command", 15).WithFiltered(true),
 		btable.NewFlexColumn(columnDescriptionKey, "Description", 3),
 	}
 

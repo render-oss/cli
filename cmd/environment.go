@@ -1,15 +1,11 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	btable "github.com/evertras/bubble-table/table"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/environment"
@@ -17,7 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// environmentCmd represents the environment command
 var environmentCmd = &cobra.Command{
 	Use:   "environment [projectID]",
 	Short: "List environments",
@@ -72,40 +67,81 @@ func selectEnvironment(ctx context.Context) func(*client.Environment) tea.Cmd {
 	}
 }
 
-func formatEnvironmentRow(p *client.Environment) table.Row {
-	// r.ID() must be first because it's used when selecting a row in selectCurrentRow()
-	// TODO: make this less brittle
-	return []string{p.Id, p.Name, p.ProjectId, string(p.ProtectedStatus)}
-}
+func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) ([]*client.Environment, error), input EnvironmentInput) (tea.Model, error) {
+	columns := []btable.Column{
+		btable.NewColumn("ID", "ID", 25).WithFiltered(true),
+		btable.NewFlexColumn("Name", "Name", 3).WithFiltered(true),
+		btable.NewFlexColumn("Project", "Project", 3).WithFiltered(true),
+		btable.NewFlexColumn("Protected", "Protected", 2).WithFiltered(true),
+	}
 
-func filterEnvironment(p *client.Environment, filter string) bool {
-	searchFields := []string{p.Id, p.Name}
-	for _, field := range searchFields {
-		if strings.Contains(strings.ToLower(field), filter) {
-			return true
+	rows, err := loadEnvironmentRows(loadData, input)
+	if err != nil {
+		return nil, err
+	}
+
+	onSelect := func(data []btable.Row) tea.Cmd {
+		if len(data) == 0 || len(data) > 1 {
+			return nil
+		}
+
+		env, ok := data[0].Data["environment"].(*client.Environment)
+		if !ok {
+			return nil
+		}
+
+		return selectEnvironment(ctx)(env)
+	}
+
+	reInitFunc := func(tableModel *tui.NewTable) tea.Cmd {
+		return func() tea.Msg {
+			rows, err := loadEnvironmentRows(loadData, input)
+			if err != nil {
+				return tui.ErrorMsg{Err: err}
+			}
+			tableModel.UpdateRows(rows)
+			return nil
 		}
 	}
-	return false
-}
 
-func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) ([]*client.Environment, error), input EnvironmentInput) (tea.Model, error) {
-	columns := []table.Column{
-		{Title: "ID", Width: 25},
-		{Title: "Name", Width: 40},
-		{Title: "Project", Width: 15},
-		{Title: "Protected", Width: 10},
+	customOptions := []tui.CustomOption{
+		{
+			Key:   "w",
+			Title: "Change Workspace",
+			Function: func(row btable.Row) tea.Cmd {
+				return InteractiveWorkspace(ctx, ListWorkspaceInput{})
+			},
+		},
 	}
 
-	return tui.NewTableModel[*client.Environment](
-		"environments",
-		func() ([]*client.Environment, error) {
-			return loadData(input)
-		},
-		formatEnvironmentRow,
-		selectEnvironment(ctx),
+	t := tui.NewNewTable(
 		columns,
-		filterEnvironment,
-	), nil
+		rows,
+		onSelect,
+		tui.WithCustomOptions(customOptions),
+		tui.WithOnReInit(reInitFunc),
+	)
+
+	return t, nil
+}
+
+func loadEnvironmentRows(loadData func(input EnvironmentInput) ([]*client.Environment, error), in EnvironmentInput) ([]btable.Row, error) {
+	environments, err := loadData(in)
+	if err != nil {
+		return nil, err
+	}
+
+	var rows []btable.Row
+	for _, env := range environments {
+		rows = append(rows, btable.NewRow(btable.RowData{
+			"ID":          env.Id,
+			"Name":        env.Name,
+			"Project":     env.ProjectId,
+			"Protected":   string(env.ProtectedStatus),
+			"environment": env, // this will be hidden in the UI, but will be used to get the environment when selected
+		}))
+	}
+	return rows, nil
 }
 
 func init() {
