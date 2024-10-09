@@ -18,6 +18,7 @@ import (
 // psqlCmd represents the psql command
 var psqlCmd = &cobra.Command{
 	Use:   "psql [postgresID]",
+	Args: cobra.ExactArgs(1),
 	Short: "Open a psql session to a Render Postgres database",
 	Long:  `Open a psql session to a Render Postgres database. Pass the database id as the first argument.`,
 }

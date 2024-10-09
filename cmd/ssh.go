@@ -19,6 +19,7 @@ import (
 // sshCmd represents the ssh command
 var sshCmd = &cobra.Command{
 	Use:   "ssh [serviceID]",
+	Args: cobra.ExactArgs(1),
 	Short: "SSH into a server",
 	Long:  `SSH into a server given a service ID.`,
 }

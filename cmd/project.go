@@ -13,7 +13,7 @@ import (
 )
 
 var projectCmd = &cobra.Command{
-	Use:   "project",
+	Use:   "projects",
 	Short: "List projects",
 	Long: `List projects for the currently set workspace.
 In interactive mode you can view the environments for a project.`,
