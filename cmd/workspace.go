@@ -58,9 +58,9 @@ func renderWorkspaces(
 	input ListWorkspaceInput,
 ) (tea.Model, error) {
 	columns := []btable.Column{
-		btable.NewColumn(columnWorkspaceIDKey, "ID", 28),
-		btable.NewFlexColumn(columnWorkspaceNameKey, "Name", 1),
-		btable.NewFlexColumn(columnWorkspaceEmailKey, "Email", 1),
+		btable.NewColumn(columnWorkspaceIDKey, "ID", 28).WithFiltered(true),
+		btable.NewFlexColumn(columnWorkspaceNameKey, "Name", 1).WithFiltered(true),
+		btable.NewFlexColumn(columnWorkspaceEmailKey, "Email", 1).WithFiltered(true),
 	}
 
 	owners, err := loadData(input)
