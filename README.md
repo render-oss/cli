@@ -24,7 +24,7 @@ Once you have Go installed, you can build the Render CLI by running the followin
 ```sh
 git clone git@github.com:render-oss/render-cli-alpha.git
 cd render-cli-alpha
-go build -o render
+go build -o render 
 ```
 
 This will create a binary called `render` in the current directory. You can move this binary to a directory in your `PATH` to make it easier to use.
@@ -35,5 +35,5 @@ Pre-built binaries for the Render CLI are available on the [Releases page](https
 
 ## Configuration
 
-The CLI expects an API key to be set in the `RENDER_API_KEY` environment variable. You can generate an API key from your [user settings page](https://dashboard.render.com/settings).
+The CLI expects an API key to be set in the `RENDER_API_KEY` environment variable. You can generate an API key from your [user settings page](https://dashboard.render.com/u/settings#api-keys).
 
