@@ -49,14 +49,6 @@ func (l ListResourceInput) ToParams() resource.ResourceParams {
 }
 
 func renderResources(ctx context.Context, loadData func(input ListResourceInput) ([]resource.Resource, error), in ListResourceInput) (tea.Model, error) {
-	columns := []btable.Column{
-		btable.NewColumn("ID", "ID", 25).WithFiltered(true),
-		btable.NewColumn("Type", "Type", 12).WithFiltered(true),
-		btable.NewColumn("Project", "Project", 15).WithFiltered(true),
-		btable.NewColumn("Environment", "Environment", 20).WithFiltered(true),
-		btable.NewColumn("Name", "Name", 40).WithFiltered(true),
-	}
-
 	rows, err := loadServiceRows(loadData, in)
 	if err != nil {
 		return nil, err
@@ -97,7 +89,7 @@ func renderResources(ctx context.Context, loadData func(input ListResourceInput)
 	}
 
 	t := tui.NewTable(
-		columns,
+		resource.ColumnsForResources(),
 		rows,
 		onSelect,
 		tui.WithCustomOptions(customOptions),
@@ -113,18 +105,7 @@ func loadServiceRows(loadData func(input ListResourceInput) ([]resource.Resource
 		return nil, err
 	}
 
-	var rows []btable.Row
-	for _, r := range resources {
-		rows = append(rows, btable.NewRow(btable.RowData{
-			"ID":          r.ID(),
-			"Type":        r.Type(),
-			"Project":     r.ProjectName(),
-			"Environment": r.EnvironmentName(),
-			"Name":        r.Name(),
-			"resource":    r, // this will be hidden in the UI, but will be used to get the resource when selected
-		}))
-	}
-	return rows, nil
+	return resource.RowsForResources(resources), nil
 }
 
 func optionallyAddCommand(commands []PaletteCommand, command PaletteCommand, allowedTypes []string, resource resource.Resource) []PaletteCommand {
