@@ -61,7 +61,7 @@ func renderProjects(ctx context.Context, loadData func(ProjectInput) ([]*client.
 		return selectProject(ctx)(p)
 	}
 
-	reInitFunc := func(tableModel *tui.NewTable) tea.Cmd {
+	reInitFunc := func(tableModel *tui.Table) tea.Cmd {
 		return func() tea.Msg {
 			rows, err := loadProjectRows(loadData, in)
 			if err != nil {
@@ -82,7 +82,7 @@ func renderProjects(ctx context.Context, loadData func(ProjectInput) ([]*client.
 		},
 	}
 
-	t := tui.NewNewTable(
+	t := tui.NewTable(
 		columns,
 		rows,
 		onSelect,

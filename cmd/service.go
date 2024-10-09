@@ -75,7 +75,7 @@ func renderResources(ctx context.Context, loadData func(input ListResourceInput)
 		return selectResource(ctx)(r)
 	}
 
-	reInitFunc := func(tableModel *tui.NewTable) tea.Cmd {
+	reInitFunc := func(tableModel *tui.Table) tea.Cmd {
 		return func() tea.Msg {
 			rows, err := loadServiceRows(loadData, in)
 			if err != nil {
@@ -96,7 +96,7 @@ func renderResources(ctx context.Context, loadData func(input ListResourceInput)
 		},
 	}
 
-	t := tui.NewNewTable(
+	t := tui.NewTable(
 		columns,
 		rows,
 		onSelect,

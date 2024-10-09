@@ -23,9 +23,9 @@ func (o CustomOption) String() string {
 	return fmt.Sprintf("[%s] %s", o.Key, o.Title)
 }
 
-type OnInitFunc func(tableModel *NewTable) tea.Cmd
+type OnInitFunc func(tableModel *Table) tea.Cmd
 
-type NewTable struct {
+type Table struct {
 	Model         table.Model
 	onSelect      func(data []table.Row) tea.Cmd
 	customOptions []CustomOption
@@ -39,27 +39,27 @@ type NewTable struct {
 	spinner spinner.Model
 }
 
-type NewTableOption func(*NewTable)
+type TableOption func(*Table)
 
-func WithCustomOptions(options []CustomOption) func(*NewTable) {
-	return func(t *NewTable) {
+func WithCustomOptions(options []CustomOption) func(*Table) {
+	return func(t *Table) {
 		t.customOptions = options
 	}
 }
 
-func WithOnReInit(onInit OnInitFunc) func(*NewTable) {
-	return func(t *NewTable) {
+func WithOnReInit(onInit OnInitFunc) func(*Table) {
+	return func(t *Table) {
 		t.onReInit = onInit
 	}
 }
 
-func NewNewTable(
+func NewTable(
 	columns []table.Column,
 	rows []table.Row,
 	onSelect func(data []table.Row) tea.Cmd,
-	newTableOptions ...NewTableOption,
-) *NewTable {
-	t := &NewTable{
+	tableOptions ...TableOption,
+) *Table {
+	t := &Table{
 		Model: table.New(columns).
 			Filtered(true).
 			Focused(true).
@@ -70,14 +70,14 @@ func NewNewTable(
 		onSelect: onSelect,
 	}
 
-	for _, option := range newTableOptions {
+	for _, option := range tableOptions {
 		option(t)
 	}
 
 	return t
 }
 
-func (t *NewTable) Init() tea.Cmd {
+func (t *Table) Init() tea.Cmd {
 	t.initSpinner()
 
 	if t.shouldReInit && t.onReInit != nil {
@@ -88,7 +88,7 @@ func (t *NewTable) Init() tea.Cmd {
 	return tea.Batch(t.spinner.Tick, t.Model.Init())
 }
 
-func (t *NewTable) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (t *Table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -121,7 +121,7 @@ func (t *NewTable) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return t, cmd
 }
 
-func (t *NewTable) View() string {
+func (t *Table) View() string {
 	if t.loading {
 		return fmt.Sprintf("\n\n   %s Loading...\n\n", t.spinner.View())
 	}
@@ -142,12 +142,12 @@ func (t *NewTable) View() string {
 	)
 }
 
-func (t *NewTable) UpdateRows(rows []table.Row) {
+func (t *Table) UpdateRows(rows []table.Row) {
 	t.Model = t.Model.WithRows(rows)
 	t.loading = false
 }
 
-func (t *NewTable) initSpinner() {
+func (t *Table) initSpinner() {
 	t.spinner = spinner.New()
 	t.spinner.Spinner = spinner.Dot
 	t.spinner.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))

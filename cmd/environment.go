@@ -93,7 +93,7 @@ func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) ([]
 		return selectEnvironment(ctx)(env)
 	}
 
-	reInitFunc := func(tableModel *tui.NewTable) tea.Cmd {
+	reInitFunc := func(tableModel *tui.Table) tea.Cmd {
 		return func() tea.Msg {
 			rows, err := loadEnvironmentRows(loadData, input)
 			if err != nil {
@@ -114,7 +114,7 @@ func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) ([]
 		},
 	}
 
-	t := tui.NewNewTable(
+	t := tui.NewTable(
 		columns,
 		rows,
 		onSelect,

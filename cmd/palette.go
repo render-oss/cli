@@ -81,7 +81,7 @@ func renderPalette(
 		return nil
 	}
 
-	t := tui.NewNewTable(
+	t := tui.NewTable(
 		columns,
 		rows,
 		onSelect,

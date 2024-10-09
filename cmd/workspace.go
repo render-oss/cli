@@ -98,7 +98,7 @@ func renderWorkspaces(
 		}
 	}
 
-	t := tui.NewNewTable(
+	t := tui.NewTable(
 		columns,
 		rows,
 		onSelect,
