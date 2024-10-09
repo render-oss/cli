@@ -12,6 +12,7 @@ You can install the Render CLI using Homebrew by running the following commands:
 
 ```sh
 brew tap render-oss/homebrew-render
+brew update
 brew install render-alpha
 ```
 
