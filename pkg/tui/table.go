@@ -2,16 +2,21 @@ package tui
 
 import (
 	"fmt"
-
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/evertras/bubble-table/table"
+	"strings"
 )
 
 var styleSubtle = lipgloss.NewStyle().Foreground(lipgloss.Color("#888"))
 
 const defaultMaxWidth = 100
+
+var defaultFilterCustomOption = CustomOption{
+	Key:   "/",
+	Title: "Filter",
+}
 
 type CustomOption struct {
 	Key      string
@@ -127,13 +132,18 @@ func (t *Table) View() string {
 	}
 
 	var footer string
+
+	var options []string
 	if len(t.customOptions) > 0 {
-		var options []string
 		for _, option := range t.customOptions {
 			options = append(options, styleSubtle.Render(option.String()))
 		}
-		footer = lipgloss.JoinHorizontal(lipgloss.Left, options...)
 	}
+
+	// all table views support filtering with /
+	options = append(options, styleSubtle.Render(defaultFilterCustomOption.String()))
+
+	footer = lipgloss.JoinHorizontal(lipgloss.Left, strings.Join(options, " "))
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
