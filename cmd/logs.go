@@ -5,7 +5,9 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -18,6 +20,7 @@ import (
 	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 const defaultLogLimit = 100
@@ -159,6 +162,52 @@ func renderLogs(ctx context.Context, loadData func(LogInput) (*LogResult, error)
 	return model, nil
 }
 
+func writeLog(format command.Output, out io.Writer, log *lclient.Log) error {
+	var str []byte
+	var err error
+	if format == command.JSON {
+		str, err = json.MarshalIndent(log, "", "  ")
+	} else if format == command.YAML {
+		str, err = yaml.Marshal(log)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	_, err = out.Write(str)
+	return err
+}
+
+func nonInteractiveLogs(format *command.Output, cmd *cobra.Command, input LogInput) error {
+	result, err := loadLogData(cmd.Context(), input)
+	if err != nil {
+		return err
+	}
+
+	if result.Logs != nil {
+		for _, log := range result.Logs.Logs {
+			if err := writeLog(*format, cmd.OutOrStdout(), &log); err != nil {
+				return err
+			}
+		}
+	}
+
+	if result.LogChannel != nil {
+		for {
+			log, ok := <-result.LogChannel
+			if !ok {
+				break
+			}
+			if err := writeLog(*format, cmd.OutOrStdout(), log); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func init() {
 	logsCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input LogInput
@@ -166,6 +215,16 @@ func init() {
 		if err != nil {
 			return err
 		}
+
+		// Normally we'd let the wrapper handle non-interactive mode.
+		// However, logs are a special case where we want to stream new logs
+		// from the server. Since we don't have other commands that stream
+		// we're going to special case this one.
+		format := command.GetFormatFromContext(cmd.Context())
+		if format != nil && (*format == command.JSON || *format == command.YAML) {
+			return nonInteractiveLogs(format, cmd, input)
+		}
+
 		InteractiveLogs(cmd.Context(), input)
 		return nil
 	}
