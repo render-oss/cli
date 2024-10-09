@@ -35,5 +35,5 @@ Pre-built binaries for the Render CLI are available on the [Releases page](https
 
 ## Configuration
 
-The CLI expects an API key to be set in the `RENDER_API_KEY` environment variable. You can generate an API key from your [user settings page](https://dashboard.render.com/settings).
+The CLI expects an API key to be set in the `RENDER_API_KEY` environment variable. You can generate an API key from your [user settings page](https://dashboard.render.com/u/settings#api-keys).
 
