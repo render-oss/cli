@@ -31,7 +31,7 @@ var updateCmd = &cobra.Command{
 			return err
 		}
 
-		svc, err := stripReadOnlyFields(srv.Service())
+		svc, err := stripReadOnlyFields(srv.Service)
 		if err != nil {
 			return err
 		}

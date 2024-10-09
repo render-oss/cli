@@ -51,16 +51,16 @@ func (s *Service) RestartPostgresDatabase(ctx context.Context, id string) error 
 }
 
 func (s *Service) hydratePostgresModel(ctx context.Context, postgres *client.Postgres, projects []*client.Project) (*Model, error) {
-	model := &Model{postgres: postgres}
+	model := &Model{Postgres: postgres}
 
 	var envs = make([]*client.Environment, 0)
 	env, err := s.environmentForPostgres(ctx, postgres, envs)
 	if err != nil {
 		return nil, err
 	}
-	model.environment = env
+	model.Environment = env
 
-	model.project = s.projectForPostgres(postgres, projects)
+	model.Project = s.projectForPostgres(postgres, projects)
 	return model, nil
 }
 

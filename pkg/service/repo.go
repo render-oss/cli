@@ -86,7 +86,7 @@ func (s *Repo) CreateService(ctx context.Context, data client.CreateServiceJSONR
 }
 
 func (s *Repo) UpdateService(ctx context.Context, id string, data client.UpdateServiceJSONRequestBody) (*client.Service, error) {
-	// we get the service to ensure the workspace matches. Since GetService checks the workspace, we just check
+	// we get the Service to ensure the workspace matches. Since GetService checks the workspace, we just check
 	// if an error was returned
 	if _, err := s.GetService(ctx, id); err != nil {
 		return nil, err

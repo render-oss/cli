@@ -16,9 +16,7 @@ import (
 type Resource interface {
 	ID() string
 	Name() string
-	Environment() *client.Environment
 	EnvironmentName() string
-	Project() *client.Project
 	ProjectName() string
 	Type() string
 }

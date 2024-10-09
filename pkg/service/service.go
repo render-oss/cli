@@ -67,15 +67,15 @@ func (s *Service) RestartService(ctx context.Context, id string) error {
 }
 
 func (s *Service) hydrateServiceModel(ctx context.Context, service *client.Service, projects []*client.Project, envs *[]*client.Environment) (*Model, error) {
-	model := &Model{service: service}
+	model := &Model{Service: service}
 
 	env, err := s.environmentForService(ctx, service, envs)
 	if err != nil {
 		return nil, err
 	}
-	model.environment = env
+	model.Environment = env
 
-	model.project = s.projectForService(service, projects)
+	model.Project = s.projectForService(service, projects)
 	return model, nil
 }
 

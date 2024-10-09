@@ -24,47 +24,35 @@ const ServerResourceIDPrefix = "srv-"
 const CronjobResourceIDPrefix = "crn-"
 
 type Model struct {
-	service     *client.Service
-	project     *client.Project
-	environment *client.Environment
+	Service     *client.Service
+	Project     *client.Project
+	Environment *client.Environment
 }
 
 func (s Model) ID() string {
-	return s.service.Id
+	return s.Service.Id
 }
 
 func (s Model) Name() string {
-	return s.service.Name
-}
-
-func (s Model) Service() *client.Service {
-	return s.service
-}
-
-func (s Model) Project() *client.Project {
-	return s.project
+	return s.Service.Name
 }
 
 func (s Model) ProjectName() string {
-	if s.project != nil {
-		return s.project.Name
+	if s.Project != nil {
+		return s.Project.Name
 	}
 	return ""
 }
 
-func (s Model) Environment() *client.Environment {
-	return s.environment
-}
-
 func (s Model) EnvironmentName() string {
-	if s.environment != nil {
-		return s.environment.Name
+	if s.Environment != nil {
+		return s.Environment.Name
 	}
 	return ""
 }
 
 func (s Model) Type() string {
-	switch s.service.Type {
+	switch s.Service.Type {
 	case client.BackgroundWorker:
 		return BackgroundWorkerResourceType
 	case client.CronJob:

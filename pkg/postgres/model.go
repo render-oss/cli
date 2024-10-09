@@ -8,37 +8,29 @@ const ResourceIDPrefix = "dpg-"
 const PostgresType = "Postgres"
 
 type Model struct {
-	postgres    *client.Postgres
-	project     *client.Project
-	environment *client.Environment
+	Postgres    *client.Postgres
+	Project     *client.Project
+	Environment *client.Environment
 }
 
 func (m Model) ID() string {
-	return m.postgres.Id
+	return m.Postgres.Id
 }
 
 func (m Model) Name() string {
-	return m.postgres.Name
-}
-
-func (m Model) Environment() *client.Environment {
-	return m.environment
+	return m.Postgres.Name
 }
 
 func (m Model) EnvironmentName() string {
-	if m.environment != nil {
-		return m.environment.Name
+	if m.Environment != nil {
+		return m.Environment.Name
 	}
 	return ""
 }
 
-func (m Model) Project() *client.Project {
-	return m.project
-}
-
 func (m Model) ProjectName() string {
-	if m.project != nil {
-		return m.project.Name
+	if m.Project != nil {
+		return m.Project.Name
 	}
 	return ""
 }
