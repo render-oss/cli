@@ -146,7 +146,10 @@ func (m *StackModel) header() string {
 	globalCmdsVal := emptyStyle.Render(globalCmds)
 
 	cmdStyle := lipgloss.NewStyle()
-	cmdText := fmt.Sprintf("Current Command: %s", m.stack[len(m.stack)-1].Cmd)
+	var cmdText string
+	if m.stack[len(m.stack)-1].Cmd != "" {
+		cmdText = fmt.Sprintf("Current Command: %s", m.stack[len(m.stack)-1].Cmd)
+	}
 
 	cmdWidth := lipgloss.Width(cmdText)
 	paddingLeft := (m.width-cmdWidth)/2 - lipgloss.Width(escVal)
