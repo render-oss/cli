@@ -2,11 +2,12 @@ package tui
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/evertras/bubble-table/table"
-	"strings"
 )
 
 var styleSubtle = lipgloss.NewStyle().Foreground(lipgloss.Color("#888"))
@@ -28,15 +29,15 @@ func (o CustomOption) String() string {
 	return fmt.Sprintf("[%s] %s", o.Key, o.Title)
 }
 
-type OnInitFunc func(tableModel *Table) tea.Cmd
-
-type Table struct {
+type Table[T any] struct {
 	Model         table.Model
-	onSelect      func(data []table.Row) tea.Cmd
+	onSelect      func(rows []table.Row) tea.Cmd
 	customOptions []CustomOption
 
-	onReInit     OnInitFunc
-	shouldReInit bool
+	loadData    func() ([]T, error)
+	createRow   func(T) table.Row
+	data        []T
+	columns     []table.Column
 
 	tableWidth int
 
@@ -44,35 +45,32 @@ type Table struct {
 	spinner spinner.Model
 }
 
-type TableOption func(*Table)
+type TableOption[T any] func(*Table[T])
 
-func WithCustomOptions(options []CustomOption) func(*Table) {
-	return func(t *Table) {
+func WithCustomOptions[T any](options []CustomOption) TableOption[T] {
+	return func(t *Table[T]) {
 		t.customOptions = options
 	}
 }
 
-func WithOnReInit(onInit OnInitFunc) func(*Table) {
-	return func(t *Table) {
-		t.onReInit = onInit
-	}
-}
-
-func NewTable(
+func NewTable[T any](
 	columns []table.Column,
-	rows []table.Row,
-	onSelect func(data []table.Row) tea.Cmd,
-	tableOptions ...TableOption,
-) *Table {
-	t := &Table{
+	loadData func() ([]T, error),
+	createRow func(T) table.Row,
+	onSelect func(rows []table.Row) tea.Cmd,
+	tableOptions ...TableOption[T],
+) *Table[T] {
+	t := &Table[T]{
 		Model: table.New(columns).
 			Filtered(true).
 			Focused(true).
 			WithPageSize(25).
 			WithBaseStyle(lipgloss.NewStyle().Align(lipgloss.Left)).
-			WithTargetWidth(defaultMaxWidth).
-			WithRows(rows),
-		onSelect: onSelect,
+			WithTargetWidth(defaultMaxWidth),
+		onSelect:    onSelect,
+		loadData:    loadData,
+		createRow:   createRow,
+		columns:     columns,
 	}
 
 	for _, option := range tableOptions {
@@ -82,20 +80,40 @@ func NewTable(
 	return t
 }
 
-func (t *Table) Init() tea.Cmd {
+func (t *Table[T]) Init() tea.Cmd {
+	t.loading = true
 	t.initSpinner()
 
-	if t.shouldReInit && t.onReInit != nil {
-		t.shouldReInit = false
-		return tea.Batch(t.spinner.Tick, tea.Sequence(t.onReInit(t), t.Model.Init()))
-	}
 
-	return tea.Batch(t.spinner.Tick, t.Model.Init())
+	return tea.Batch(t.spinner.Tick, t.loadDataCmd(), t.Model.Init())
 }
 
-func (t *Table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (t *Table[T]) loadDataCmd() tea.Cmd {
+	return func() tea.Msg {
+		data, err := t.loadData()
+		if err != nil {
+			return ErrorMsg{Err: err}
+		}
+		return loadDataMsg[T]{data: data}
+	}
+}
+
+type loadDataMsg[T any] struct {
+	data []T
+}
+
+func (t *Table[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
+	case loadDataMsg[T]:
+		t.data = msg.data
+		rows := make([]table.Row, len(t.data))
+		for i, item := range t.data {
+			rows[i] = t.createRow(item)
+		}
+		t.Model = t.Model.WithRows(rows)
+		t.loading = false
+		return t, nil
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
@@ -104,7 +122,6 @@ func (t *Table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !t.Model.GetIsFilterInputFocused() {
 				for _, option := range t.customOptions {
 					if msg.String() == option.Key {
-						t.shouldReInit = true
 						t.loading = true
 						return t, option.Function(t.Model.HighlightedRow())
 					}
@@ -126,7 +143,7 @@ func (t *Table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return t, cmd
 }
 
-func (t *Table) View() string {
+func (t *Table[T]) View() string {
 	if t.loading {
 		return fmt.Sprintf("\n\n   %s Loading...\n\n", t.spinner.View())
 	}
@@ -140,7 +157,6 @@ func (t *Table) View() string {
 		}
 	}
 
-	// all table views support filtering with /
 	options = append(options, styleSubtle.Render(defaultFilterCustomOption.String()))
 
 	footer = lipgloss.JoinHorizontal(lipgloss.Left, strings.Join(options, " "))
@@ -152,12 +168,7 @@ func (t *Table) View() string {
 	)
 }
 
-func (t *Table) UpdateRows(rows []table.Row) {
-	t.Model = t.Model.WithRows(rows)
-	t.loading = false
-}
-
-func (t *Table) initSpinner() {
+func (t *Table[T]) initSpinner() {
 	t.spinner = spinner.New()
 	t.spinner.Spinner = spinner.Dot
 	t.spinner.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
