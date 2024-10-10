@@ -90,11 +90,8 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return msg.NextMsg
 		}
 	case ErrorMsg:
-		m.stack = m.stack[:0]
-		return m, tea.Sequence(
-			tea.Println(msg.Err.Error()),
-			tea.Quit,
-		)
+		m.Push(ModelWithCmd{Model: NewErrorModel(msg.Err.Error())})
+		return m, tea.Quit
 	case DoneMsg:
 		m.Pop()
 		if len(m.stack) == 0 {
