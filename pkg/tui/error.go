@@ -12,9 +12,10 @@ var style = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("#BA0D35")).
 	PaddingTop(2).
-	PaddingBottom(1).
+	PaddingBottom(2).
 	PaddingRight(4).
-	PaddingLeft(4)
+	PaddingLeft(4).
+	MarginBottom(1)
 
 type ErrorModel struct {
 	DisplayError string
