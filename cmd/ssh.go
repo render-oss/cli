@@ -88,32 +88,37 @@ func listServices(ctx context.Context, _ SSHInput) ([]*service.Model, error) {
 	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
 
 	return serviceService.ListServices(ctx, &client.ListServicesParams{
-		Type:          &[]client.ServiceType{client.WebService, client.PrivateService, client.BackgroundWorker},
-		Limit:         pointers.From(100),
+		Type:  &[]client.ServiceType{client.WebService, client.PrivateService, client.BackgroundWorker},
+		Limit: pointers.From(100),
 	})
 }
 
-func renderSSHSelection(ctx context.Context, loadData func(in SSHInput) ([]*service.Model, error), input SSHInput) (tea.Model, error) {
-	services, err := loadData(SSHInput{})
-	if err != nil {
-		return nil, err
+func renderSSHSelection(ctx context.Context, loadData func(in SSHInput) ([]*service.Model, error), _ SSHInput) (tea.Model, error) {
+	columns := resource.ColumnsForResources()
+
+	loadDataFunc := func() ([]*service.Model, error) {
+		return loadData(SSHInput{})
 	}
 
-	if len(services) == 0 {
-		return tui.NewSimpleModel(func() (string, error) {
-			return "No services found", nil
-		}), nil
+	createRowFunc := func(s *service.Model) table.Row {
+		return resource.RowForResource(s)
 	}
 
-	var resources []resource.Resource
-	for _, s := range services {
-		resources = append(resources, s)
+	onSelect := func(rows []table.Row) tea.Cmd {
+		if len(rows) == 0 {
+			return nil
+		}
+		return InteractiveSSH(ctx, SSHInput{ServiceID: rows[0].Data["ID"].(string)})
 	}
-	rows := resource.RowsForResources(resources)
 
-	return tui.NewTable(resource.ColumnsForResources(), rows, func(data []table.Row) tea.Cmd {
-		return InteractiveSSH(ctx, SSHInput{ServiceID: data[0].Data["ID"].(string)})
-	}), nil
+	t := tui.NewTable(
+		columns,
+		loadDataFunc,
+		createRowFunc,
+		onSelect,
+	)
+
+	return t, nil
 }
 
 func init() {

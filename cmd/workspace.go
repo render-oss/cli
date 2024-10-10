@@ -63,29 +63,32 @@ func renderWorkspaces(
 		btable.NewFlexColumn(columnWorkspaceEmailKey, "Email", 1).WithFiltered(true),
 	}
 
-	owners, err := loadData(input)
-	if err != nil {
-		return nil, err
+	loadDataFunc := func() ([]*client.Owner, error) {
+		return loadData(input)
 	}
 
-	var rows []btable.Row
-	for _, o := range owners {
-		rows = append(rows, btable.NewRow(btable.RowData{
-			"ID":    o.Id,
-			"Name":  o.Name,
-			"Email": o.Email,
-		}))
+	createRowFunc := func(owner *client.Owner) btable.Row {
+		return btable.NewRow(btable.RowData{
+			"ID":    owner.Id,
+			"Name":  owner.Name,
+			"Email": owner.Email,
+		})
 	}
 
-	onSelect := func(data []btable.Row) tea.Cmd {
+	onSelect := func(rows []btable.Row) tea.Cmd {
 		return func() tea.Msg {
-			if len(data) == 0 || len(data) > 1 {
+			if len(rows) == 0 {
 				return nil
 			}
 
-			selectedID, ok := data[0].Data["ID"].(string)
+			selectedID, ok := rows[0].Data["ID"].(string)
 			if !ok {
 				return nil
+			}
+
+			owners, err := loadData(input)
+			if err != nil {
+				return tui.ErrorMsg{Err: fmt.Errorf("failed to load owners: %w", err)}
 			}
 
 			for _, o := range owners {
@@ -100,7 +103,8 @@ func renderWorkspaces(
 
 	t := tui.NewTable(
 		columns,
-		rows,
+		loadDataFunc,
+		createRowFunc,
 		onSelect,
 	)
 

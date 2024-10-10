@@ -18,15 +18,19 @@ func ColumnsForResources() []table.Column {
 func RowsForResources(resources []Resource) ([]table.Row) {
 	var rows []table.Row
 	for _, r := range resources {
-		rows = append(rows, table.NewRow(table.RowData{
-			"ID":          r.ID(),
-			"Type":        r.Type(),
-			"Project":     r.ProjectName(),
-			"Environment": r.EnvironmentName(),
-			"Name":        r.Name(),
-			"resource":    r, // this will be hidden in the UI, but will be used to get the resource when selected
-		}))
+		rows = append(rows, RowForResource(r))
 	}
 	
 	return rows
+}
+
+func RowForResource(r Resource) table.Row {
+	return table.NewRow(table.RowData{
+		"ID":          r.ID(),
+		"Type":        r.Type(),
+		"Project":     r.ProjectName(),
+		"Environment": r.EnvironmentName(),
+		"Name":        r.Name(),
+		"resource":    r, // this will be hidden in the UI, but will be used to get the resource when selected
+	})
 }

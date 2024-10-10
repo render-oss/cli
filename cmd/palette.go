@@ -51,26 +51,31 @@ func renderPalette(
 		btable.NewFlexColumn(columnDescriptionKey, "Description", 3),
 	}
 
-	commands, err := loadData(in)
-	if err != nil {
-		return nil, err
+	loadDataFunc := func() ([]PaletteCommand, error) {
+		return loadData(in)
 	}
 
-	var rows []btable.Row
-	for _, cmd := range commands {
-		rows = append(rows, btable.NewRow(map[string]any{
+	createRowFunc := func(cmd PaletteCommand) btable.Row {
+		return btable.NewRow(map[string]any{
 			columnCommandKey:     cmd.Name,
 			columnDescriptionKey: cmd.Description,
-		}))
+		})
 	}
 
-	onSelect := func(data []btable.Row) tea.Cmd {
-		if len(data) == 0 || len(data) > 1 {
+	onSelect := func(rows []btable.Row) tea.Cmd {
+		if len(rows) == 0 {
 			return nil
 		}
-		selectedCommand, ok := data[0].Data[columnCommandKey].(string)
+		selectedCommand, ok := rows[0].Data[columnCommandKey].(string)
 		if !ok {
 			return nil
+		}
+
+		commands, err := loadData(in)
+		if err != nil {
+			return func() tea.Msg {
+				return tui.ErrorMsg{Err: err}
+			}
 		}
 
 		for _, cmd := range commands {
@@ -83,7 +88,8 @@ func renderPalette(
 
 	t := tui.NewTable(
 		columns,
-		rows,
+		loadDataFunc,
+		createRowFunc,
 		onSelect,
 	)
 

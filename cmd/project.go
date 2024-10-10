@@ -43,33 +43,29 @@ func renderProjects(ctx context.Context, loadData func(ProjectInput) ([]*client.
 		btable.NewColumn("Name", "Name", 40).WithFiltered(true),
 	}
 
-	rows, err := loadProjectRows(loadData, in)
-	if err != nil {
-		return nil, err
+	loadDataFunc := func() ([]*client.Project, error) {
+		return loadData(in)
 	}
 
-	onSelect := func(data []btable.Row) tea.Cmd {
-		if len(data) == 0 || len(data) > 1 {
+	createRowFunc := func(p *client.Project) btable.Row {
+		return btable.NewRow(btable.RowData{
+			"ID":      p.Id,
+			"Name":    p.Name,
+			"project": p, // this will be hidden in the UI, but will be used to get the project when selected
+		})
+	}
+
+	onSelect := func(rows []btable.Row) tea.Cmd {
+		if len(rows) == 0 {
 			return nil
 		}
 
-		p, ok := data[0].Data["project"].(*client.Project)
+		p, ok := rows[0].Data["project"].(*client.Project)
 		if !ok {
 			return nil
 		}
 
 		return selectProject(ctx)(p)
-	}
-
-	reInitFunc := func(tableModel *tui.Table) tea.Cmd {
-		return func() tea.Msg {
-			rows, err := loadProjectRows(loadData, in)
-			if err != nil {
-				return tui.ErrorMsg{Err: err}
-			}
-			tableModel.UpdateRows(rows)
-			return nil
-		}
 	}
 
 	customOptions := []tui.CustomOption{
@@ -84,30 +80,13 @@ func renderProjects(ctx context.Context, loadData func(ProjectInput) ([]*client.
 
 	t := tui.NewTable(
 		columns,
-		rows,
+		loadDataFunc,
+		createRowFunc,
 		onSelect,
-		tui.WithCustomOptions(customOptions),
-		tui.WithOnReInit(reInitFunc),
+		tui.WithCustomOptions[*client.Project](customOptions),
 	)
 
 	return t, nil
-}
-
-func loadProjectRows(loadData func(input ProjectInput) ([]*client.Project, error), in ProjectInput) ([]btable.Row, error) {
-	projects, err := loadData(in)
-	if err != nil {
-		return nil, err
-	}
-
-	var rows []btable.Row
-	for _, p := range projects {
-		rows = append(rows, btable.NewRow(btable.RowData{
-			"ID":      p.Id,
-			"Name":    p.Name,
-			"project": p, // this will be hidden in the UI, but will be used to get the project when selected
-		}))
-	}
-	return rows, nil
 }
 
 func selectProject(ctx context.Context) func(*client.Project) tea.Cmd {

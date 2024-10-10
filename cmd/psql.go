@@ -74,26 +74,31 @@ func listDatabases(ctx context.Context, _ PSQLInput) ([]*postgres.Model, error) 
 }
 
 func renderPSQLSelection(ctx context.Context, loadData func(in PSQLInput) ([]*postgres.Model, error), _ PSQLInput) (tea.Model, error) {
-	postgreses, err := loadData(PSQLInput{})
-	if err != nil {
-		return nil, err
+	columns := resource.ColumnsForResources()
+
+	loadDataFunc := func() ([]*postgres.Model, error) {
+		return loadData(PSQLInput{})
 	}
 
-	if len(postgreses) == 0 {
-		return tui.NewSimpleModel(func() (string, error) {
-			return "No Postgres databases found", nil
-		}), nil
+	createRowFunc := func(p *postgres.Model) table.Row {
+		return resource.RowForResource(p)
 	}
 
-	var resources []resource.Resource
-	for _, p := range postgreses {
-		resources = append(resources, p)
+	onSelect := func(rows []table.Row) tea.Cmd {
+		if len(rows) == 0 {
+			return nil
+		}
+		return InteractivePSQL(ctx, PSQLInput{PostgresID: rows[0].Data["ID"].(string)})
 	}
-	rows := resource.RowsForResources(resources)
 
-	return tui.NewTable(resource.ColumnsForResources(), rows, func(data []table.Row) tea.Cmd {
-		return InteractivePSQL(ctx, PSQLInput{PostgresID: data[0].Data["ID"].(string)})
-	}), nil
+	t := tui.NewTable(
+		columns,
+		loadDataFunc,
+		createRowFunc,
+		onSelect,
+	)
+
+	return t, nil
 }
 
 func init() {

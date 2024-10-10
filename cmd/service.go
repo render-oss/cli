@@ -49,33 +49,27 @@ func (l ListResourceInput) ToParams() resource.ResourceParams {
 }
 
 func renderResources(ctx context.Context, loadData func(input ListResourceInput) ([]resource.Resource, error), in ListResourceInput) (tea.Model, error) {
-	rows, err := loadServiceRows(loadData, in)
-	if err != nil {
-		return nil, err
+	columns := resource.ColumnsForResources()
+
+	loadDataFunc := func() ([]resource.Resource, error) {
+		return loadData(in)
 	}
 
-	onSelect := func(data []btable.Row) tea.Cmd {
-		if len(data) == 0 || len(data) > 1 {
+	createRowFunc := func(r resource.Resource) btable.Row {
+		return resource.RowForResource(r)
+	}
+
+	onSelect := func(rows []btable.Row) tea.Cmd {
+		if len(rows) == 0 {
 			return nil
 		}
 
-		r, ok := data[0].Data["resource"].(resource.Resource)
+		r, ok := rows[0].Data["resource"].(resource.Resource)
 		if !ok {
 			return nil
 		}
 
 		return selectResource(ctx)(r)
-	}
-
-	reInitFunc := func(tableModel *tui.Table) tea.Cmd {
-		return func() tea.Msg {
-			rows, err := loadServiceRows(loadData, in)
-			if err != nil {
-				return tui.ErrorMsg{Err: err}
-			}
-			tableModel.UpdateRows(rows)
-			return nil
-		}
 	}
 
 	customOptions := []tui.CustomOption{
@@ -89,23 +83,14 @@ func renderResources(ctx context.Context, loadData func(input ListResourceInput)
 	}
 
 	t := tui.NewTable(
-		resource.ColumnsForResources(),
-		rows,
+		columns,
+		loadDataFunc,
+		createRowFunc,
 		onSelect,
-		tui.WithCustomOptions(customOptions),
-		tui.WithOnReInit(reInitFunc),
+		tui.WithCustomOptions[resource.Resource](customOptions),
 	)
 
 	return t, nil
-}
-
-func loadServiceRows(loadData func(input ListResourceInput) ([]resource.Resource, error), in ListResourceInput) ([]btable.Row, error) {
-	resources, err := loadData(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return resource.RowsForResources(resources), nil
 }
 
 func optionallyAddCommand(commands []PaletteCommand, command PaletteCommand, allowedTypes []string, resource resource.Resource) []PaletteCommand {
@@ -124,7 +109,6 @@ func optionallyAddCommand(commands []PaletteCommand, command PaletteCommand, all
 
 func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 	return func(r resource.Resource) tea.Cmd {
-
 		type commandWithAllowedTypes struct {
 			command      PaletteCommand
 			allowedTypes []string

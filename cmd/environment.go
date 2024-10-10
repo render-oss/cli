@@ -15,7 +15,7 @@ import (
 
 var environmentCmd = &cobra.Command{
 	Use:   "environments [projectID]",
-	Args: cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(1),
 	Short: "List environments",
 	Long: `List environments for the currently set workspace and the specified project.
 In interactive mode you can view the services for an environment.`,
@@ -76,33 +76,31 @@ func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) ([]
 		btable.NewFlexColumn("Protected", "Protected", 2).WithFiltered(true),
 	}
 
-	rows, err := loadEnvironmentRows(loadData, input)
-	if err != nil {
-		return nil, err
+	loadDataFunc := func() ([]*client.Environment, error) {
+		return loadData(input)
 	}
 
-	onSelect := func(data []btable.Row) tea.Cmd {
-		if len(data) == 0 || len(data) > 1 {
+	createRowFunc := func(env *client.Environment) btable.Row {
+		return btable.NewRow(btable.RowData{
+			"ID":          env.Id,
+			"Name":        env.Name,
+			"Project":     env.ProjectId,
+			"Protected":   string(env.ProtectedStatus),
+			"environment": env, // this will be hidden in the UI, but will be used to get the environment when selected
+		})
+	}
+
+	onSelect := func(rows []btable.Row) tea.Cmd {
+		if len(rows) == 0 {
 			return nil
 		}
 
-		env, ok := data[0].Data["environment"].(*client.Environment)
+		env, ok := rows[0].Data["environment"].(*client.Environment)
 		if !ok {
 			return nil
 		}
 
 		return selectEnvironment(ctx)(env)
-	}
-
-	reInitFunc := func(tableModel *tui.Table) tea.Cmd {
-		return func() tea.Msg {
-			rows, err := loadEnvironmentRows(loadData, input)
-			if err != nil {
-				return tui.ErrorMsg{Err: err}
-			}
-			tableModel.UpdateRows(rows)
-			return nil
-		}
 	}
 
 	customOptions := []tui.CustomOption{
@@ -117,32 +115,13 @@ func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) ([]
 
 	t := tui.NewTable(
 		columns,
-		rows,
+		loadDataFunc,
+		createRowFunc,
 		onSelect,
-		tui.WithCustomOptions(customOptions),
-		tui.WithOnReInit(reInitFunc),
+		tui.WithCustomOptions[*client.Environment](customOptions),
 	)
 
 	return t, nil
-}
-
-func loadEnvironmentRows(loadData func(input EnvironmentInput) ([]*client.Environment, error), in EnvironmentInput) ([]btable.Row, error) {
-	environments, err := loadData(in)
-	if err != nil {
-		return nil, err
-	}
-
-	var rows []btable.Row
-	for _, env := range environments {
-		rows = append(rows, btable.NewRow(btable.RowData{
-			"ID":          env.Id,
-			"Name":        env.Name,
-			"Project":     env.ProjectId,
-			"Protected":   string(env.ProtectedStatus),
-			"environment": env, // this will be hidden in the UI, but will be used to get the environment when selected
-		}))
-	}
-	return rows, nil
 }
 
 func init() {
