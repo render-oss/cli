@@ -51,14 +51,13 @@ func Wrap[T Arguments, D any](cmd *cobra.Command, loadData func(context.Context,
 			return nil
 		}
 
-		stack := tui.GetStackFromContext(ctx)
-		model, err := interactiveFunc(ctx, func(T) (D, error) { return loadData(ctx, args) }, args)
-
 		var cmdString string
 		if !cmd.Hidden {
 			cmdString = CommandName(cmd, args.String(), nil)
 		}
-
+		
+		stack := tui.GetStackFromContext(ctx)
+		model, err := interactiveFunc(ctx, func(T) (D, error) { return loadData(ctx, args) }, args)
 		if err != nil {
 			errModel := tui.NewErrorModel(err.Error())
 			stack.Push(tui.ModelWithCmd{
