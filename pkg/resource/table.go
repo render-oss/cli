@@ -7,7 +7,7 @@ import (
 
 func ColumnsForResources() []table.Column {
 	return []table.Column{
-		table.NewColumn("ID", "ID", 25).WithFiltered(true),
+		table.NewColumn("ID", "ID", 27).WithFiltered(true),
 		table.NewColumn("Type", "Type", 12).WithFiltered(true),
 		table.NewColumn("Project", "Project", 15).WithFiltered(true),
 		table.NewColumn("Environment", "Environment", 20).WithFiltered(true),
