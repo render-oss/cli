@@ -16,17 +16,28 @@ type ExecModel struct {
 	cmd *exec.Cmd
 }
 
-type ExecDone struct{}
+type ExecDone struct{
+	Error error
+}
 
 func (m *ExecModel) Init() tea.Cmd {
-	return tea.ExecProcess(m.cmd, func(_ error) tea.Msg {
-		return ExecDone{}
+	return tea.ExecProcess(m.cmd, func(err error) tea.Msg {
+		return ExecDone{
+			Error: err,
+		}
 	})
 }
 
 func (m *ExecModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if _, ok := msg.(ExecDone); ok {
-		return m, func() tea.Msg { return DoneMsg{Message: "Done"} }
+	if execMsg, ok := msg.(ExecDone); ok {
+		return m, func() tea.Msg { 
+			if execMsg.Error != nil {
+				return ErrorMsg{
+					Err: execMsg.Error,
+				}
+			}
+			return DoneMsg{Message: "Done"} 
+		}
 	}
 
 	return m, nil
