@@ -254,6 +254,37 @@ func InputToString(v any) (string, error) {
 			continue
 		}
 
+		elemField := elem.FieldByName(field.Name)
+
+		// If the field is a pointer, get the value
+		if field.Type.Kind() == reflect.Ptr {
+			if elemField.IsNil() {
+				continue
+			}
+
+			elemField = elemField.Elem()
+		}
+
+		var strVal string
+
+		// If the field is a slice, join the values
+		if field.Type.Kind() == reflect.Slice {
+			if elemField.Len() == 0 {
+				continue
+			}
+
+			var slice []string
+			for i := 0; i < elemField.Len(); i++ {
+				slice = append(slice, fmt.Sprintf("%v", elemField.Index(i)))
+			}
+			strVal = strings.Join(slice, ",")
+		} else {
+			if elemField.IsZero() {
+				continue
+			}
+			strVal = fmt.Sprintf("%v", elemField)
+		}
+
 		if isArg(cliTag) {
 			matches := argRegex.FindStringSubmatch(cliTag)
 			indexStr := matches[1]
@@ -263,30 +294,9 @@ func InputToString(v any) (string, error) {
 				return "", fmt.Errorf("internal failure parsing arguments")
 			}
 
-			elemField := elem.FieldByName(field.Name)
-			if elemField.Kind() == reflect.Ptr {
-				elemField = elemField.Elem()
-			}
-			args[index] = fmt.Sprintf("%v", elemField)
-			continue
-		}
-
-		elemField := elem.FieldByName(field.Name)
-
-		// If the field is a pointer, get the value
-		if field.Type.Kind() == reflect.Ptr {
-			elemField = elemField.Elem()
-		}
-
-		// If the field is a slice, join the values
-		if field.Type.Kind() == reflect.Slice {
-			var slice []string
-			for i := 0; i < elemField.Len(); i++ {
-				slice = append(slice, fmt.Sprintf("%v", elemField.Index(i)))
-			}
-			flagsStr = append(flagsStr, fmt.Sprintf("--%s=%s", cliTag, slice))
+			args[index] = strVal
 		} else {
-			flagsStr = append(flagsStr, fmt.Sprintf("--%s=%v", cliTag, elemField))
+			flagsStr = append(flagsStr, fmt.Sprintf("--%s=%s", cliTag, strVal))
 		}
 	}
 

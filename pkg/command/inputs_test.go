@@ -99,14 +99,15 @@ func TestInputToString(t *testing.T) {
 
 	t.Run("flags", func(t *testing.T) {
 		type testStruct struct {
-			Foo string `cli:"foo"`
-			Bar *int   `cli:"bar"`
+			Foo string   `cli:"foo"`
+			Bar *int     `cli:"bar"`
+			Baz []string `cli:"baz"`
 		}
 
-		v := testStruct{Foo: "abc", Bar: pointers.From(123)}
+		v := testStruct{Foo: "abc", Bar: pointers.From(123), Baz: []string{"def", "ghi"}}
 		str, err := command.InputToString(&v)
 		require.NoError(t, err)
-		require.Equal(t, "--foo=abc --bar=123", str)
+		require.Equal(t, "--foo=abc --bar=123 --baz=def,ghi", str)
 	})
 
 	t.Run("args and flags", func(t *testing.T) {
@@ -126,5 +127,37 @@ func TestInputToString(t *testing.T) {
 		str, err := command.InputToString(&v)
 		require.NoError(t, err)
 		require.Equal(t, "def ghi --foo=abc --bar=123", str)
+	})
+
+	t.Run("missing args and flags not represented", func(t *testing.T) {
+		type testStruct struct {
+			Foo  *string  `cli:"foo"`
+			Bar  []string `cli:"bar"`
+			Arg0 *string  `cli:"arg:0"`
+		}
+
+		v := testStruct{
+			Foo:  nil,
+			Bar:  []string{},
+			Arg0: nil,
+		}
+		str, err := command.InputToString(&v)
+		require.NoError(t, err)
+		require.Equal(t, "", str)
+	})
+
+	t.Run("zero args and flags not represented", func(t *testing.T) {
+		type testStruct struct {
+			Foo string `cli:"foo"`
+			Bar int    `cli:"bar"`
+		}
+
+		v := testStruct{
+			Foo: "",
+			Bar: 0,
+		}
+		str, err := command.InputToString(&v)
+		require.NoError(t, err)
+		require.Equal(t, "", str)
 	})
 }
