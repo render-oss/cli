@@ -19,7 +19,7 @@ var restartCmd = &cobra.Command{
 var InteractiveRestart = command.Wrap(restartCmd, restartResource, renderRestart)
 
 type RestartInput struct {
-	ResourceID string
+	ResourceID string `cli:"arg:0"`
 }
 
 func (r RestartInput) String() []string {
@@ -49,13 +49,9 @@ func renderRestart(_ context.Context, loadData func(RestartInput) (string, error
 func init() {
 	restartCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input RestartInput
-		if len(args) == 1 {
-			input.ResourceID = args[0]
-		} else {
-			err := command.ParseCommand(cmd, args, &input)
-			if err != nil {
-				return err
-			}
+		err := command.ParseCommand(cmd, args, &input)
+		if err != nil {
+			return err
 		}
 
 		InteractiveRestart(cmd.Context(), input)

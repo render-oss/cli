@@ -24,7 +24,7 @@ In interactive mode you can view the services for an environment.`,
 var InteractiveEnvironment = command.Wrap(environmentCmd, loadEnvironments, renderEnvironments)
 
 type EnvironmentInput struct {
-	ProjectID string
+	ProjectID string `cli:"arg:0"`
 }
 
 func (e EnvironmentInput) String() []string {
@@ -128,11 +128,13 @@ func init() {
 	rootCmd.AddCommand(environmentCmd)
 
 	environmentCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		projectID := args[0]
+		var input EnvironmentInput
+		err := command.ParseCommand(cmd, args, &input)
+		if err != nil {
+			return err
+		}
 
-		InteractiveEnvironment(cmd.Context(), EnvironmentInput{
-			ProjectID: projectID,
-		})
+		InteractiveEnvironment(cmd.Context(), input)
 		return nil
 	}
 }

@@ -10,15 +10,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Arguments interface {
-	String() []string
-}
+type WrappedFunc[T any] func(ctx context.Context, args T) tea.Cmd
 
-type WrappedFunc[T Arguments] func(ctx context.Context, args T) tea.Cmd
+type InteractiveFunc[T any, D any] func(context.Context, func(T) (D, error), T) (tea.Model, error)
 
-type InteractiveFunc[T Arguments, D any] func(context.Context, func(T) (D, error), T) (tea.Model, error)
-
-func Wrap[T Arguments, D any](cmd *cobra.Command, loadData func(context.Context, T) (D, error), interactiveFunc InteractiveFunc[T, D]) WrappedFunc[T] {
+func Wrap[T any, D any](cmd *cobra.Command, loadData func(context.Context, T) (D, error), interactiveFunc InteractiveFunc[T, D]) WrappedFunc[T] {
 	return func(ctx context.Context, args T) tea.Cmd {
 		outputFormat := GetFormatFromContext(ctx)
 
@@ -53,9 +49,13 @@ func Wrap[T Arguments, D any](cmd *cobra.Command, loadData func(context.Context,
 
 		var cmdString string
 		if !cmd.Hidden {
-			cmdString = CommandName(cmd, args.String(), nil)
+			var err error
+			cmdString, err = CommandName(cmd, &args)
+			if err != nil {
+				return func() tea.Msg { return tui.ErrorMsg{Err: err} }
+			}
 		}
-		
+
 		stack := tui.GetStackFromContext(ctx)
 		model, err := interactiveFunc(ctx, func(T) (D, error) { return loadData(ctx, args) }, args)
 		if err != nil {
