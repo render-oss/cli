@@ -130,10 +130,6 @@ func renderCreateDeploy(ctx context.Context, loadData func(types.DeployInput) (*
 func init() {
 	deployCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input types.DeployInput
-		if len(args) > 0 {
-			input.ServiceID = args[0]
-		}
-
 		err := command.ParseCommand(cmd, args, &input)
 		if err != nil {
 			return fmt.Errorf("failed to parse command: %w", err)

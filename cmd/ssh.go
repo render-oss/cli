@@ -3,10 +3,11 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os/exec"
+
 	"github.com/renderinc/render-cli/pkg/environment"
 	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/renderinc/render-cli/pkg/project"
-	"os/exec"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/evertras/bubble-table/table"
@@ -30,7 +31,7 @@ var InteractiveSSH = command.Wrap(sshCmd, loadDataSSH, renderSSH)
 var InteractiveSSHSelectService = command.Wrap(sshCmd, listServices, renderSSHSelection)
 
 type SSHInput struct {
-	ServiceID string
+	ServiceID string `cli:"arg:0"`
 }
 
 func (s SSHInput) String() []string {
@@ -126,13 +127,14 @@ func init() {
 
 	sshCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
-		if len(args) == 1 {
-			serviceID := args[0]
-			InteractiveSSH(ctx, SSHInput{ServiceID: serviceID})
-			return nil
+
+		input := SSHInput{}
+		err := command.ParseCommand(cmd, args, &input)
+		if err != nil {
+			return err
 		}
 
-		InteractiveSSHSelectService(ctx, SSHInput{})
+		InteractiveSSHSelectService(ctx, input)
 		return nil
 	}
 }

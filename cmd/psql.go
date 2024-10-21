@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"context"
-	"github.com/renderinc/render-cli/pkg/resource"
 	"os/exec"
+
+	"github.com/renderinc/render-cli/pkg/resource"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/evertras/bubble-table/table"
@@ -28,7 +29,7 @@ var InteractivePSQL = command.Wrap(psqlCmd, loadDataPSQL, renderPSQL)
 var InteractivePSQLSelectDB = command.Wrap(psqlCmd, listDatabases, renderPSQLSelection)
 
 type PSQLInput struct {
-	PostgresID string
+	PostgresID string `cli:"arg:0"`
 }
 
 func (p PSQLInput) String() []string {
@@ -106,13 +107,13 @@ func init() {
 
 	psqlCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
-		if len(args) == 1 {
-			postgresID := args[0]
-			InteractivePSQL(ctx, PSQLInput{PostgresID: postgresID})
-			return nil
+		var input PSQLInput
+		err := command.ParseCommand(cmd, args, &input)
+		if err != nil {
+			return err
 		}
 
-		InteractivePSQLSelectDB(ctx, PSQLInput{})
+		InteractivePSQLSelectDB(ctx, input)
 		return nil
 	}
 }
