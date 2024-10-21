@@ -148,10 +148,20 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 			},
 			{
 				command: PaletteCommand{
-					Name:        "deploy",
+					Name:        "deploy create",
 					Description: "Deploy the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveDeploy(ctx, types.DeployInput{ServiceID: r.ID()})
+						return InteractiveDeployCreate(ctx, types.DeployInput{ServiceID: r.ID()})
+					},
+				},
+				allowedTypes: service.Types,
+			},
+			{
+				command: PaletteCommand{
+					Name:        "deploy list",
+					Description: "List deploys for the service",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractiveDeployList(ctx, DeployListInput{ServiceID: r.ID()})
 					},
 				},
 				allowedTypes: service.Types,

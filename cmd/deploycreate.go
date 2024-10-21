@@ -17,12 +17,17 @@ import (
 )
 
 var deployCmd = &cobra.Command{
-	Use:   "deploy [serviceID]",
+	Use:   "deploys",
+	Short: "Manage deployments",
+}
+
+var deployCreateCmd = &cobra.Command{
+	Use:   "create [serviceID]",
 	Short: "Deploy a service and tail logs",
 	Args:  cobra.MaximumNArgs(1),
 }
 
-var InteractiveDeploy = command.Wrap(deployCmd, createDeploy, renderCreateDeploy)
+var InteractiveDeployCreate = command.Wrap(deployCmd, createDeploy, renderCreateDeploy)
 
 func createDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy, error) {
 	c, err := client.NewDefaultClient()
@@ -123,7 +128,7 @@ func renderCreateDeploy(ctx context.Context, loadData func(types.DeployInput) (*
 }
 
 func init() {
-	deployCmd.RunE = func(cmd *cobra.Command, args []string) error {
+	deployCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input types.DeployInput
 		if len(args) > 0 {
 			input.ServiceID = args[0]
@@ -134,13 +139,14 @@ func init() {
 			return fmt.Errorf("failed to parse command: %w", err)
 		}
 
-		InteractiveDeploy(cmd.Context(), input)
+		InteractiveDeployCreate(cmd.Context(), input)
 		return nil
 	}
 
-	deployCmd.Flags().Bool("clear-cache", false, "Clear build cache before deploying")
-	deployCmd.Flags().String("commit", "", "The commit ID to deploy")
-	deployCmd.Flags().String("image", "", "The Docker image URL to deploy")
+	deployCreateCmd.Flags().Bool("clear-cache", false, "Clear build cache before deploying")
+	deployCreateCmd.Flags().String("commit", "", "The commit ID to deploy")
+	deployCreateCmd.Flags().String("image", "", "The Docker image URL to deploy")
 
+	deployCmd.AddCommand(deployCreateCmd)
 	rootCmd.AddCommand(deployCmd)
 }

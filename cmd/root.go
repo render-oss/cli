@@ -62,7 +62,7 @@ either json or yaml.
 				return nil
 			}
 
-			p := tea.NewProgram(stack)
+			p := tea.NewProgram(stack, tea.WithAltScreen())
 			_, err := p.Run()
 			if err != nil {
 				panic(fmt.Sprintf("failed to initialize interface: %v", err))
