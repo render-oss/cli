@@ -53,4 +53,32 @@ func TestParseCommand(t *testing.T) {
 
 		require.Equal(t, []string{"bar", "baz"}, v.Foo)
 	})
+
+	t.Run("arg parsing", func(t *testing.T) {
+		t.Run("simple arg", func(t *testing.T) {
+			type testStruct struct {
+				Foo string `cli:"arg:0"`
+			}
+			var v testStruct
+			cmd := &cobra.Command{}
+
+			err := command.ParseCommand(cmd, []string{"bar"}, &v)
+			require.NoError(t, err)
+
+			require.Equal(t, "bar", v.Foo)
+		})
+
+		t.Run("pointer arg", func(t *testing.T) {
+			type testStruct struct {
+				Foo *string `cli:"arg:0"`
+			}
+			var v testStruct
+			cmd := &cobra.Command{}
+
+			err := command.ParseCommand(cmd, []string{"bar"}, &v)
+			require.NoError(t, err)
+
+			require.Equal(t, "bar", *v.Foo)
+		})
+	})
 }
