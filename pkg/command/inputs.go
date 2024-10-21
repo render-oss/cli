@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -232,4 +233,65 @@ func ParseCommand(cmd *cobra.Command, args []string, v any) error {
 	}
 
 	return nil
+}
+
+func InputToString(v any) (string, error) {
+	vtype := reflect.TypeOf(v).Elem()
+	elem := reflect.ValueOf(v).Elem()
+
+	// Create a slice to store the arguments. The size is the maximum number of fields.
+	args := make([]string, vtype.NumField())
+	var flagsStr []string
+
+	// Loop through the struct fields
+	for i := 0; i < vtype.NumField(); i++ {
+		// Get the field
+		field := vtype.Field(i)
+
+		// Get the cli tag
+		cliTag := field.Tag.Get("cli")
+		if cliTag == "" {
+			continue
+		}
+
+		if isArg(cliTag) {
+			matches := argRegex.FindStringSubmatch(cliTag)
+			indexStr := matches[1]
+			// This should never error. It means the tag is not formatted correctly.
+			index, err := strconv.Atoi(indexStr)
+			if err != nil {
+				return "", fmt.Errorf("internal failure parsing arguments")
+			}
+
+			elemField := elem.FieldByName(field.Name)
+			if elemField.Kind() == reflect.Ptr {
+				elemField = elemField.Elem()
+			}
+			args[index] = fmt.Sprintf("%v", elemField)
+			continue
+		}
+
+		elemField := elem.FieldByName(field.Name)
+
+		// If the field is a pointer, get the value
+		if field.Type.Kind() == reflect.Ptr {
+			elemField = elemField.Elem()
+		}
+
+		// If the field is a slice, join the values
+		if field.Type.Kind() == reflect.Slice {
+			var slice []string
+			for i := 0; i < elemField.Len(); i++ {
+				slice = append(slice, fmt.Sprintf("%v", elemField.Index(i)))
+			}
+			flagsStr = append(flagsStr, fmt.Sprintf("--%s=%s", cliTag, slice))
+		} else {
+			flagsStr = append(flagsStr, fmt.Sprintf("--%s=%v", cliTag, elemField))
+		}
+	}
+
+	argsString := strings.Trim(strings.Join(args, " "), " ")
+	flagsString := strings.Join(flagsStr, " ")
+
+	return strings.Trim(fmt.Sprintf("%s %s", argsString, flagsString), " "), nil
 }

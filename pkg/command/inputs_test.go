@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/renderinc/render-cli/pkg/command"
+	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 )
@@ -80,5 +81,50 @@ func TestParseCommand(t *testing.T) {
 
 			require.Equal(t, "bar", *v.Foo)
 		})
+	})
+}
+
+func TestInputToString(t *testing.T) {
+	t.Run("args", func(t *testing.T) {
+		type testStruct struct {
+			Foo string  `cli:"arg:0"`
+			Bar *string `cli:"arg:1"`
+		}
+
+		v := testStruct{Foo: "abc", Bar: pointers.From("def")}
+		str, err := command.InputToString(&v)
+		require.NoError(t, err)
+		require.Equal(t, "abc def", str)
+	})
+
+	t.Run("flags", func(t *testing.T) {
+		type testStruct struct {
+			Foo string `cli:"foo"`
+			Bar *int   `cli:"bar"`
+		}
+
+		v := testStruct{Foo: "abc", Bar: pointers.From(123)}
+		str, err := command.InputToString(&v)
+		require.NoError(t, err)
+		require.Equal(t, "--foo=abc --bar=123", str)
+	})
+
+	t.Run("args and flags", func(t *testing.T) {
+		type testStruct struct {
+			Foo  string  `cli:"foo"`
+			Bar  *int    `cli:"bar"`
+			Arg0 string  `cli:"arg:0"`
+			Arg1 *string `cli:"arg:1"`
+		}
+
+		v := testStruct{
+			Foo:  "abc",
+			Bar:  pointers.From(123),
+			Arg0: "def",
+			Arg1: pointers.From("ghi"),
+		}
+		str, err := command.InputToString(&v)
+		require.NoError(t, err)
+		require.Equal(t, "def ghi --foo=abc --bar=123", str)
 	})
 }
