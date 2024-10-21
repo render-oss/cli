@@ -18,7 +18,7 @@ const (
 )
 
 var viewportSylte = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, false, true, false)
-var logStyle = lipgloss.NewStyle().Padding(2, 2)
+var logStyle = lipgloss.NewStyle().Padding(1, 2, 2, 2)
 var filterStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, true, false, false)
 
 type LoadFunc func() (*client.Logs200Response, <-chan *lclient.Log, error)
@@ -30,6 +30,7 @@ func NewLogModel(filter *FilterModel, loadFunc LoadFunc) *LogModel {
 		searching:   false,
 		filterModel: filter,
 		errorModel:  NewErrorModel(""),
+		scrollBar:   NewScrollBarModel(1, 0),
 		viewport:    viewport.New(0, 0),
 	}
 }
@@ -47,6 +48,7 @@ type LogModel struct {
 	content     []string
 	state       logState
 	viewport    viewport.Model
+	scrollBar   *ScrollBarModel
 	filterModel *FilterModel
 	errorModel  *ErrorModel
 	help        help.Model
@@ -108,7 +110,7 @@ func (m *LogModel) readFromChannel(ch <-chan *lclient.Log) tea.Cmd {
 }
 
 func (m *LogModel) Init() tea.Cmd {
-	return tea.Batch(m.loadData, m.filterModel.Init(), m.errorModel.Init(), tea.WindowSize())
+	return tea.Batch(m.loadData, m.filterModel.Init(), m.errorModel.Init(), m.scrollBar.Init(), tea.WindowSize())
 }
 
 func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -172,6 +174,11 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.setViewPortSize()
 	}
 
+	m.scrollBar.ScrollPercent(m.viewport.ScrollPercent())
+
+	m.scrollBar, cmd = m.scrollBar.Update(msg)
+	cmds = append(cmds, cmd)
+
 	return m, tea.Batch(cmds...)
 }
 
@@ -179,16 +186,19 @@ func (m *LogModel) setViewPortSize() {
 	stylingHeight := logStyle.GetPaddingTop() + logStyle.GetPaddingBottom() + logStyle.GetBorderTopSize() + logStyle.GetBorderBottomSize()
 	stylingWidth := logStyle.GetPaddingRight() + logStyle.GetPaddingLeft() + logStyle.GetBorderLeftSize() + logStyle.GetBorderRightSize()
 	searchWindowWidth := min(searchWidth, m.windowWidth)
+	scrollBarWidth := 1
 
 	m.viewport.Height = m.windowHeight - stylingHeight - m.top
 	m.viewport.YPosition = stylingHeight + m.top
 	if m.searching {
-		m.viewport.Width = m.windowWidth - searchWindowWidth - stylingWidth
+		m.viewport.Width = m.windowWidth - searchWindowWidth - stylingWidth - scrollBarWidth
 		m.filterModel.SetWidth(searchWindowWidth)
 		m.filterModel.SetHeight(m.top, m.viewport.Height)
 	} else {
-		m.viewport.Width = m.windowWidth - stylingWidth
+		m.viewport.Width = m.windowWidth - stylingWidth - scrollBarWidth
 	}
+
+	m.scrollBar.SetHeight(m.viewport.Height - 1)
 }
 
 func (m *LogModel) View() string {
@@ -199,7 +209,13 @@ func (m *LogModel) View() string {
 	if m.state == logStateLoading {
 		return "\n  Loading Logs..."
 	}
-	logView := logStyle.Render(lipgloss.JoinVertical(lipgloss.Left, viewportSylte.Render(m.viewport.View()), m.help.View(&keyMapWrapper{m.viewport.KeyMap})))
+	logView := logStyle.Render(
+		lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			lipgloss.JoinVertical(lipgloss.Left, viewportSylte.Render(m.viewport.View()), m.help.View(&keyMapWrapper{m.viewport.KeyMap})),
+			m.scrollBar.View(),
+		),
+	)
 
 	if m.searching {
 		return lipgloss.JoinHorizontal(lipgloss.Center, filterStyle.Render(m.filterModel.View()), logView)
