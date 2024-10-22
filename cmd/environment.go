@@ -44,26 +44,6 @@ func loadEnvironments(ctx context.Context, in EnvironmentInput) ([]*client.Envir
 	return environmentRepo.ListEnvironments(ctx, in.ToParams())
 }
 
-func selectEnvironment(ctx context.Context) func(*client.Environment) tea.Cmd {
-	return func(r *client.Environment) tea.Cmd {
-		commands := []PaletteCommand{
-			{
-				Name:        "services",
-				Description: "View services in environment",
-				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return InteractiveServices(ctx, ListResourceInput{
-						EnvironmentID: r.Id,
-					})
-				},
-			},
-		}
-
-		return InteractiveCommandPalette(ctx, PaletteCommandInput{
-			Commands: commands,
-		})
-	}
-}
-
 func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) ([]*client.Environment, error), input EnvironmentInput) (tea.Model, error) {
 	columns := []btable.Column{
 		btable.NewColumn("ID", "ID", 25).WithFiltered(true),
@@ -96,7 +76,9 @@ func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) ([]
 			return nil
 		}
 
-		return selectEnvironment(ctx)(env)
+		return InteractiveServices(ctx, ListResourceInput{
+			EnvironmentID: env.Id,
+		})
 	}
 
 	customOptions := []tui.CustomOption{

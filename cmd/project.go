@@ -61,7 +61,9 @@ func renderProjects(ctx context.Context, loadData func(ProjectInput) ([]*client.
 			return nil
 		}
 
-		return selectProject(ctx)(p)
+		return InteractiveEnvironment(ctx, EnvironmentInput{
+			ProjectID: p.Id,
+		})
 	}
 
 	customOptions := []tui.CustomOption{
@@ -83,26 +85,6 @@ func renderProjects(ctx context.Context, loadData func(ProjectInput) ([]*client.
 	)
 
 	return t, nil
-}
-
-func selectProject(ctx context.Context) func(*client.Project) tea.Cmd {
-	return func(p *client.Project) tea.Cmd {
-		commands := []PaletteCommand{
-			{
-				Name:        "environments",
-				Description: "View environments in project",
-				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return InteractiveEnvironment(ctx, EnvironmentInput{
-						ProjectID: p.Id,
-					})
-				},
-			},
-		}
-
-		return InteractiveCommandPalette(ctx, PaletteCommandInput{
-			Commands: commands,
-		})
-	}
 }
 
 func init() {
