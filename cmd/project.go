@@ -71,7 +71,7 @@ func renderProjects(ctx context.Context, loadData func(ProjectInput) ([]*client.
 			Key:   "w",
 			Title: "Change Workspace",
 			Function: func(row btable.Row) tea.Cmd {
-				return InteractiveWorkspace(ctx, ListWorkspaceInput{})
+				return InteractiveWorkspaceSet(ctx, ListWorkspaceInput{})
 			},
 		},
 	}

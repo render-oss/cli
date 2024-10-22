@@ -86,7 +86,7 @@ func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) ([]
 			Key:   "w",
 			Title: "Change Workspace",
 			Function: func(row btable.Row) tea.Cmd {
-				return InteractiveWorkspace(ctx, ListWorkspaceInput{})
+				return InteractiveWorkspaceSet(ctx, ListWorkspaceInput{})
 			},
 		},
 	}

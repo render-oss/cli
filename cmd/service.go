@@ -76,7 +76,7 @@ func renderResources(ctx context.Context, loadData func(input ListResourceInput)
 			Key:   "w",
 			Title: "Change Workspace",
 			Function: func(row btable.Row) tea.Cmd {
-				return InteractiveWorkspace(ctx, ListWorkspaceInput{})
+				return InteractiveWorkspaceSet(ctx, ListWorkspaceInput{})
 			},
 		},
 	}
