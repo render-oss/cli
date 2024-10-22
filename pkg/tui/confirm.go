@@ -18,17 +18,22 @@ var buttonStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("#FFF7DB")).
 	Background(lipgloss.Color("#888B7E")).
 	Padding(0, 3).
-	MarginTop(1)
+	MarginTop(1).
+	MarginRight(2).
+	MarginLeft(2)
 
 var activeButtonStyle = buttonStyle.
 	Foreground(lipgloss.Color("#FFF7DB")).
 	Background(lipgloss.Color("#F25D94")).
 	MarginRight(2).
+	MarginLeft(2).
 	Underline(true)
 
 type ConfirmModel struct {
 	onConfirm func() tea.Cmd
 	onCancel  func() tea.Cmd
+
+	selected bool
 
 	message string
 
@@ -45,6 +50,7 @@ func NewConfirmModel(
 		message:   message,
 		onConfirm: onConfirm,
 		onCancel:  onCancel,
+		selected:  false,
 	}
 
 	return m
@@ -59,15 +65,41 @@ func (m *ConfirmModel) Update(msg tea.Msg) (*ConfirmModel, tea.Cmd) {
 	case StackSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyRight:
+			m.selected = false
+		case tea.KeyLeft:
+			m.selected = true
+		case tea.KeyEnter:
+			if m.selected {
+				return m, m.onConfirm()
+			} else {
+				return m, m.onCancel()
+			}
+		default:
+			switch msg.String() {
+			case "y":
+				return m, m.onConfirm()
+			case "n":
+				return m, m.onCancel()
+			}
+		}
 	}
 	return m, nil
 }
 
 func (m *ConfirmModel) View() string {
-	okButton := activeButtonStyle.Render("Yes")
-	cancelButton := buttonStyle.Render("Maybe")
+	var okButton, cancelButton string
+	if m.selected {
+		okButton = activeButtonStyle.Render("Yes (y)")
+		cancelButton = buttonStyle.Render("No (n)")
+	} else {
+		okButton = buttonStyle.Render("Yes (y)")
+		cancelButton = activeButtonStyle.Render("No (n)")
+	}
 
-	question := lipgloss.NewStyle().Width(50).Align(lipgloss.Center).Render("Are you sure you want to eat marmalade?")
+	question := lipgloss.NewStyle().Width(50).Align(lipgloss.Center).Render(m.message)
 	buttons := lipgloss.JoinHorizontal(lipgloss.Top, okButton, cancelButton)
 	ui := lipgloss.JoinVertical(lipgloss.Center, question, buttons)
 
