@@ -34,10 +34,6 @@ type SSHInput struct {
 	ServiceID string `cli:"arg:0"`
 }
 
-func (s SSHInput) String() []string {
-	return []string{s.ServiceID}
-}
-
 func loadDataSSH(ctx context.Context, in SSHInput) (string, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {

@@ -27,10 +27,6 @@ type EnvironmentInput struct {
 	ProjectID string `cli:"arg:0"`
 }
 
-func (e EnvironmentInput) String() []string {
-	return []string{}
-}
-
 func (e EnvironmentInput) ToParams() *client.ListEnvironmentsParams {
 	return &client.ListEnvironmentsParams{
 		ProjectId: []string{e.ProjectID},

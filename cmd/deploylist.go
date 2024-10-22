@@ -24,10 +24,6 @@ type DeployListInput struct {
 	ServiceID string
 }
 
-func (d DeployListInput) String() []string {
-	return []string{d.ServiceID}
-}
-
 func loadDeployList(ctx context.Context, input DeployListInput) ([]*client.Deploy, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {

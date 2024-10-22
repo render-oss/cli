@@ -40,10 +40,6 @@ type ListResourceInput struct {
 	EnvironmentID string `cli:"environment"`
 }
 
-func (l ListResourceInput) String() []string {
-	return []string{}
-}
-
 func (l ListResourceInput) ToParams() resource.ResourceParams {
 	return resource.ResourceParams{
 		EnvironmentID: l.EnvironmentID,

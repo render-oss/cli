@@ -63,10 +63,6 @@ type LogResult struct {
 	LogChannel <-chan *lclient.Log
 }
 
-func (l LogInput) String() []string {
-	return []string{}
-}
-
 func (l LogInput) ToParam() (*client.ListLogsParams, error) {
 	now := time.Now()
 	ownerID, err := config.WorkspaceID()

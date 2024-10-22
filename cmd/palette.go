@@ -20,14 +20,6 @@ type PaletteCommandInput struct {
 	Commands []PaletteCommand
 }
 
-func (p PaletteCommandInput) String() []string {
-	var result []string
-	for _, cmd := range p.Commands {
-		result = append(result, cmd.Name)
-	}
-	return result
-}
-
 func loadCommandPalette(ctx context.Context, input PaletteCommandInput) ([]PaletteCommand, error) {
 	return input.Commands, nil
 }

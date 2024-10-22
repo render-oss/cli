@@ -32,10 +32,6 @@ type PSQLInput struct {
 	PostgresID string `cli:"arg:0"`
 }
 
-func (p PSQLInput) String() []string {
-	return []string{p.PostgresID}
-}
-
 func loadDataPSQL(ctx context.Context, in PSQLInput) (string, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {

@@ -22,10 +22,6 @@ type RestartInput struct {
 	ResourceID string `cli:"arg:0"`
 }
 
-func (r RestartInput) String() []string {
-	return []string{r.ResourceID}
-}
-
 func restartResource(ctx context.Context, input RestartInput) (string, error) {
 	resourceService, err := newResourceService()
 	if err != nil {

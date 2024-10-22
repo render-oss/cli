@@ -44,10 +44,6 @@ func loadWorkspaceData(ctx context.Context, _ ListWorkspaceInput) ([]*client.Own
 
 type ListWorkspaceInput struct{}
 
-func (l ListWorkspaceInput) String() []string {
-	return []string{}
-}
-
 const columnWorkspaceIDKey = "ID"
 const columnWorkspaceNameKey = "Name"
 const columnWorkspaceEmailKey = "Email"

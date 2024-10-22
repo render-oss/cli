@@ -23,10 +23,6 @@ var InteractiveProject = command.Wrap(projectCmd, loadProjects, renderProjects)
 
 type ProjectInput struct{}
 
-func (p ProjectInput) String() []string {
-	return []string{}
-}
-
 func loadProjects(ctx context.Context, _ ProjectInput) ([]*client.Project, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
