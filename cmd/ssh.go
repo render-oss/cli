@@ -8,12 +8,12 @@ import (
 	"github.com/renderinc/render-cli/pkg/environment"
 	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/renderinc/render-cli/pkg/project"
+	resourcetui "github.com/renderinc/render-cli/pkg/resource/tui"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/evertras/bubble-table/table"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/service"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
@@ -91,14 +91,14 @@ func listServices(ctx context.Context, _ SSHInput) ([]*service.Model, error) {
 }
 
 func renderSSHSelection(ctx context.Context, loadData func(in SSHInput) ([]*service.Model, error), _ SSHInput) (tea.Model, error) {
-	columns := resource.ColumnsForResources()
+	columns := resourcetui.ColumnsForResources()
 
 	loadDataFunc := func() ([]*service.Model, error) {
 		return loadData(SSHInput{})
 	}
 
 	createRowFunc := func(s *service.Model) table.Row {
-		return resource.RowForResource(s)
+		return resourcetui.RowForResource(s)
 	}
 
 	onSelect := func(rows []table.Row) tea.Cmd {

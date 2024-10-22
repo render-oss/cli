@@ -1,33 +1,23 @@
-package resource
+package tui
 
 import (
 	"github.com/evertras/bubble-table/table"
+	"github.com/renderinc/render-cli/pkg/resource"
 )
 
 
-func ColumnsForResources() []table.Column {
+func Columns() []table.Column {
 	return []table.Column{
 		table.NewColumn("ID", "ID", 27).WithFiltered(true),
-		table.NewColumn("Type", "Type", 12).WithFiltered(true),
 		table.NewColumn("Project", "Project", 15).WithFiltered(true),
 		table.NewColumn("Environment", "Environment", 20).WithFiltered(true),
 		table.NewColumn("Name", "Name", 40).WithFiltered(true),
 	}
 }
 
-func RowsForResources(resources []Resource) ([]table.Row) {
-	var rows []table.Row
-	for _, r := range resources {
-		rows = append(rows, RowForResource(r))
-	}
-	
-	return rows
-}
-
-func RowForResource(r Resource) table.Row {
+func Row(r resource.Resource) table.Row {
 	return table.NewRow(table.RowData{
 		"ID":          r.ID(),
-		"Type":        r.Type(),
 		"Project":     r.ProjectName(),
 		"Environment": r.EnvironmentName(),
 		"Name":        r.Name(),

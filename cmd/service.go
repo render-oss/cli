@@ -13,6 +13,7 @@ import (
 	"github.com/renderinc/render-cli/pkg/postgres"
 	"github.com/renderinc/render-cli/pkg/project"
 	"github.com/renderinc/render-cli/pkg/resource"
+	resourcetui "github.com/renderinc/render-cli/pkg/resource/tui"
 	"github.com/renderinc/render-cli/pkg/service"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/renderinc/render-cli/pkg/types"
@@ -47,14 +48,14 @@ func (l ListResourceInput) ToParams() resource.ResourceParams {
 }
 
 func renderResources(ctx context.Context, loadData func(input ListResourceInput) ([]resource.Resource, error), in ListResourceInput) (tea.Model, error) {
-	columns := resource.ColumnsForResources()
+	columns := resourcetui.ColumnsForResources()
 
 	loadDataFunc := func() ([]resource.Resource, error) {
 		return loadData(in)
 	}
 
 	createRowFunc := func(r resource.Resource) btable.Row {
-		return resource.RowForResource(r)
+		return resourcetui.RowForResource(r)
 	}
 
 	onSelect := func(rows []btable.Row) tea.Cmd {

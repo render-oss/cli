@@ -4,14 +4,13 @@ import (
 	"context"
 	"os/exec"
 
-	"github.com/renderinc/render-cli/pkg/resource"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/evertras/bubble-table/table"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/environment"
 	"github.com/renderinc/render-cli/pkg/postgres"
+	postgrestui "github.com/renderinc/render-cli/pkg/postgres/tui"
 	"github.com/renderinc/render-cli/pkg/project"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
@@ -71,14 +70,14 @@ func listDatabases(ctx context.Context, _ PSQLInput) ([]*postgres.Model, error) 
 }
 
 func renderPSQLSelection(ctx context.Context, loadData func(in PSQLInput) ([]*postgres.Model, error), _ PSQLInput) (tea.Model, error) {
-	columns := resource.ColumnsForResources()
+	columns := postgrestui.Columns()
 
 	loadDataFunc := func() ([]*postgres.Model, error) {
 		return loadData(PSQLInput{})
 	}
 
 	createRowFunc := func(p *postgres.Model) table.Row {
-		return resource.RowForResource(p)
+		return postgrestui.Row(p)
 	}
 
 	onSelect := func(rows []table.Row) tea.Cmd {
