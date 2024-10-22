@@ -96,7 +96,7 @@ func renderCreateDeploy(ctx context.Context, loadData func(types.DeployInput) (*
 		return loadLogData(ctx, in)
 	}
 
-	logModelFunc := func() (tea.Model, error) {
+	logModelFunc := func(string) (tea.Model, error) {
 		model, err := renderLogs(ctx, logData, LogInput{
 			ResourceIDs: []string{input.ServiceID},
 			Tail:        true,

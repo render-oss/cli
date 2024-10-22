@@ -15,6 +15,7 @@ import (
 	externalRef1 "github.com/renderinc/render-cli/pkg/client/blueprints"
 	externalRef2 "github.com/renderinc/render-cli/pkg/client/disks"
 	externalRef3 "github.com/renderinc/render-cli/pkg/client/events"
+	externalRef4 "github.com/renderinc/render-cli/pkg/client/jobs"
 	externalRef5 "github.com/renderinc/render-cli/pkg/client/logs"
 	externalRef6 "github.com/renderinc/render-cli/pkg/client/maintenance"
 	externalRef7 "github.com/renderinc/render-cli/pkg/client/metrics"
@@ -844,6 +845,12 @@ type Image struct {
 
 // InstanceId When a service with a disk is scaled, the instanceId is used to identify the instance that the disk is attached to. Each instance's disks get their own snapshots, and can be restored separately.
 type InstanceId = string
+
+// JobWithCursor defines model for jobWithCursor.
+type JobWithCursor struct {
+	Cursor Cursor           `json:"cursor"`
+	Job    externalRef4.Job `json:"job"`
+}
 
 // MaintenanceMode defines model for maintenanceMode.
 type MaintenanceMode struct {

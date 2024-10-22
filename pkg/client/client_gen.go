@@ -17477,16 +17477,13 @@ func (r DeleteHeaderResponse) StatusCode() int {
 type ListJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]struct {
-		Cursor *Cursor           `json:"cursor,omitempty"`
-		Job    *externalRef4.Job `json:"job,omitempty"`
-	}
-	JSON400 *N400BadRequest
-	JSON401 *N401Unauthorized
-	JSON404 *N404NotFound
-	JSON429 *N429RateLimit
-	JSON500 *N500InternalServerError
-	JSON503 *N503ServiceUnavailable
+	JSON200      *[]JobWithCursor
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
 }
 
 // Status returns HTTPResponse.Status
@@ -17508,7 +17505,7 @@ func (r ListJobResponse) StatusCode() int {
 type PostJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef4.Job
+	JSON201      *externalRef4.Job
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON404      *N404NotFound
@@ -28767,10 +28764,7 @@ func ParseListJobResponse(rsp *http.Response) (*ListJobResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []struct {
-			Cursor *Cursor           `json:"cursor,omitempty"`
-			Job    *externalRef4.Job `json:"job,omitempty"`
-		}
+		var dest []JobWithCursor
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -28837,12 +28831,12 @@ func ParsePostJobResponse(rsp *http.Response) (*PostJobResponse, error) {
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
 		var dest externalRef4.Job
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON200 = &dest
+		response.JSON201 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest N400BadRequest

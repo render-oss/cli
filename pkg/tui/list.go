@@ -27,9 +27,23 @@ type List[T any] struct {
 	windowHeight   int
 	windowWidth    int
 	maxWidth       int
+	onSelect       func(ListItem) tea.Cmd
 }
 
-func NewList[T any](title string, loadData func() ([]T, error), makeListItem func(T) ListItem) *List[T] {
+type ListOption[T any] func(*List[T])
+
+func WithOnSelect[T any](onSelect func(ListItem) tea.Cmd) ListOption[T] {
+	return func(l *List[T]) {
+		l.onSelect = onSelect
+	}
+}
+
+func NewList[T any](
+	title string,
+	loadData func() ([]T, error),
+	makeListItem func(T) ListItem,
+	opts ...ListOption[T],
+) *List[T] {
 	delegate := list.NewDefaultDelegate()
 
 	l := list.New([]list.Item{}, delegate, 0, 0) // Size is updated in Init
@@ -45,7 +59,7 @@ func NewList[T any](title string, loadData func() ([]T, error), makeListItem fun
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
-	return &List[T]{
+	result := &List[T]{
 		list:         l,
 		title:        title,
 		loadData:     loadData,
@@ -54,6 +68,12 @@ func NewList[T any](title string, loadData func() ([]T, error), makeListItem fun
 		spinner:      s,
 		maxWidth:     300,
 	}
+
+	for _, opt := range opts {
+		opt(result)
+	}
+
+	return result
 }
 
 func (m *List[T]) Init() tea.Cmd {
@@ -104,6 +124,13 @@ func (m *List[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
+	case tea.KeyMsg:
+		if msg.String() == "enter" && m.onSelect != nil {
+			selectedItem := m.list.SelectedItem()
+			if selectedItem != nil {
+				return m, m.onSelect(selectedItem.(ListItem))
+			}
+		}
 	}
 
 	var cmd tea.Cmd

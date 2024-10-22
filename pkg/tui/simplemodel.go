@@ -35,10 +35,10 @@ func (m *SimpleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case SimpleLoadedMsg:
 		m.message = string(msg)
-		return m, tea.Quit
+		return m, nil
 	case ErrorMsg:
 		m.error = msg.Err
-		return m, tea.Quit
+		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc", "ctrl+c":

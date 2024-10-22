@@ -7,13 +7,13 @@ import (
 
 type FormAction struct {
 	model     tea.Model
-	modelFunc func() (tea.Model, error)
+	modelFunc func(string) (tea.Model, error)
 	onSubmit  func() tea.Cmd
 	submitted bool
 }
 
 func NewFormAction(
-	modelFunc func() (tea.Model, error),
+	modelFunc func(string) (tea.Model, error),
 	onSubmit func() tea.Cmd,
 ) FormAction {
 	return FormAction{
@@ -26,21 +26,30 @@ func (fa *FormAction) Init() tea.Cmd {
 	return fa.onSubmit()
 }
 
+type SubmittedMsg struct{
+	ID string
+}
+
 func (fa *FormAction) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if fa.model == nil {
-		var err error
-		fa.model, err = fa.modelFunc()
-		if err != nil {
-			return fa, func() tea.Msg {
-				return ErrorMsg{Err: err}
+	switch msg.(type) {
+	case SubmittedMsg:
+		if fa.model == nil {
+			var err error
+			fa.model, err = fa.modelFunc(msg.(SubmittedMsg).ID)
+			if err != nil {
+				return fa, func() tea.Msg {
+					return ErrorMsg{Err: err}
+				}
 			}
+			return fa.model, fa.model.Init()
 		}
-		return fa.model, fa.model.Init()
 	}
 
-	var cmd tea.Cmd
-	fa.model, cmd = fa.model.Update(msg)
-	return fa, cmd
+	if fa.model != nil {
+		return fa.model.Update(msg)
+	}
+
+	return fa, nil
 }
 
 func (fa *FormAction) View() string {

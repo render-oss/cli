@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"context"
+	"sort"
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/environment"
+	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/renderinc/render-cli/pkg/postgres"
 	"github.com/renderinc/render-cli/pkg/project"
 	"github.com/renderinc/render-cli/pkg/resource"
@@ -179,11 +181,46 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 					service.BackgroundWorkerResourceType,
 				},
 			},
+			{
+				command: PaletteCommand{
+					Name:        "jobs list",
+					Description: "List jobs for the service",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractiveJobList(ctx, JobListInput{ServiceID: r.ID()})
+					},
+				},
+				allowedTypes: []string{
+					service.WebServiceResourceType, service.PrivateServiceResourceType,
+					service.BackgroundWorkerResourceType, service.CronJobResourceType,
+				},
+			},
+			{
+				command: PaletteCommand{
+					Name:        "jobs create",
+					Description: "List jobs for the service",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractiveJobCreate(ctx, JobCreateInput{
+							ServiceID:    r.ID(),
+							StartCommand: pointers.From(""),
+							PlanID:       pointers.From(""),
+						},)
+					},
+				},
+				allowedTypes: []string{
+					service.WebServiceResourceType, service.PrivateServiceResourceType,
+					service.BackgroundWorkerResourceType, service.CronJobResourceType,
+				},
+			},
 		}
 
 		for _, c := range commandWithTypes {
 			commands = optionallyAddCommand(commands, c.command, c.allowedTypes, r)
 		}
+
+		// sort commands by name
+		sort.Slice(commands, func(i, j int) bool {
+			return commands[i].Name < commands[j].Name
+		})
 
 		return InteractiveCommandPalette(ctx, PaletteCommandInput{
 			Commands: commands,

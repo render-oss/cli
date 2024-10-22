@@ -3,18 +3,15 @@ package deploy
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/renderinc/render-cli/pkg/client"
+	"github.com/renderinc/render-cli/pkg/pointers"
+	rstrings "github.com/renderinc/render-cli/pkg/strings"
 	"github.com/renderinc/render-cli/pkg/style"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 var (
-	labelStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#bfd5f1"))
-	valueStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
 	statusStyle = lipgloss.NewStyle().Bold(true)
 )
 
@@ -35,31 +32,31 @@ func (i ListItem) Description() string {
 	var status lipgloss.Style
 	switch statusValue {
 	case "Live":
-		status = statusStyle.Foreground(style.ColorOK)
+		status = style.Status.Foreground(style.ColorOK)
 	case "Inactive":
-		status = statusStyle.Foreground(style.ColorDeprioritized)
+		status = style.Status.Foreground(style.ColorDeprioritized)
 	case "Canceled":
-		status = statusStyle.Foreground(style.ColorWarning)
+		status = style.Status.Foreground(style.ColorWarning)
 	case "Build Failed":
-		status = statusStyle.Foreground(style.ColorError)
+		status = style.Status.Foreground(style.ColorError)
 	}
 
 	statusLine := status.Render(statusValue)
 	triggerLine := fmt.Sprintf("Triggered by %s", triggerValue(i.deploy.Trigger))
 
 	timeLine := lipgloss.JoinHorizontal(lipgloss.Left,
-		formatKeyValue("Created", timeValue(i.deploy.CreatedAt)),
+		style.FormatKeyValue("Created", pointers.TimeValue(i.deploy.CreatedAt)),
 		"   ",
-		formatKeyValue("Finished", timeValue(i.deploy.FinishedAt)),
+		style.FormatKeyValue("Finished", pointers.TimeValue(i.deploy.FinishedAt)),
 	)
 
 	var deployInfoLine string
 	if i.deploy.Image != nil {
-		deployInfoLine = formatKeyValue("Image", stringValue(i.deploy.Image.Ref)) + " " +
-			formatKeyValue("SHA", stringValue(i.deploy.Image.Sha))
+		deployInfoLine = style.FormatKeyValue("Image", pointers.StringValue(i.deploy.Image.Ref)) + " " +
+			style.FormatKeyValue("SHA", pointers.StringValue(i.deploy.Image.Sha))
 	} else if i.deploy.Commit != nil {
-		deployInfoLine = formatKeyValue("Commit", stringValue(i.deploy.Commit.Id)) + " " +
-			formatKeyValue("Message", stripNewlines(stringValue(i.deploy.Commit.Message)))
+		deployInfoLine = style.FormatKeyValue("Commit", pointers.StringValue(i.deploy.Commit.Id)) + " " +
+			style.FormatKeyValue("Message", rstrings.StripNewlines(pointers.StringValue(i.deploy.Commit.Message)))
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left,
@@ -78,7 +75,7 @@ func (i ListItem) Height() int {
 }
 
 func formatKeyValue(key, value string) string {
-	return fmt.Sprintf("%s %s", labelStyle.Render(key+":"), valueStyle.Render(value))
+	return fmt.Sprintf("%s %s", style.Label.Render(key+":"), style.Value.Render(value))
 }
 
 func stringValue(s *string) string {
@@ -86,13 +83,6 @@ func stringValue(s *string) string {
 		return ""
 	}
 	return *s
-}
-
-func timeValue(t *time.Time) string {
-	if t == nil {
-		return ""
-	}
-	return t.Format(time.RFC3339)
 }
 
 func deployStatusValue(status *client.DeployStatus) string {
@@ -105,12 +95,7 @@ func deployStatusValue(status *client.DeployStatus) string {
 		return "Inactive"
 	}
 
-	words := strings.Split(statusStr, "_")
-	caser := cases.Title(language.English)
-	for i, word := range words {
-		words[i] = caser.String(word)
-	}
-	return strings.Join(words, " ")
+	return rstrings.TitleCaseValue(statusStr)
 }
 
 func triggerValue(trigger *client.DeployTrigger) string {
@@ -121,8 +106,4 @@ func triggerValue(trigger *client.DeployTrigger) string {
 	triggerStr := string(*trigger)
 	words := strings.Split(triggerStr, "_")
 	return strings.Join(words, " ")
-}
-
-func stripNewlines(s string) string {
-	return strings.ReplaceAll(strings.ReplaceAll(s, "\n", " "), "\r", "")
 }
