@@ -1,8 +1,10 @@
 package command
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/render-cli/pkg/tui"
@@ -23,7 +25,28 @@ type WrapOptions[T any] struct {
 	RequireConfirm RequireConfirm[T]
 }
 
-func nonInteractive[T any, D any](ctx context.Context, outputFormat *Output, cmd *cobra.Command, loadData func(context.Context, T) (D, error), args T) error {
+func nonInteractive[T any, D any](ctx context.Context, outputFormat *Output, cmd *cobra.Command, loadData func(context.Context, T) (D, error), args T, opts *WrapOptions[T]) error {
+	if opts != nil && opts.RequireConfirm.Confirm {
+		if force, err := cmd.Flags().GetBool("force"); err != nil {
+			return err
+		} else if !force {
+			_, err := cmd.OutOrStdout().Write([]byte(fmt.Sprintf("%s (y/n): ", opts.RequireConfirm.MessageFunc(args))))
+			if err != nil {
+				return err
+			}
+
+			reader := bufio.NewReader(cmd.InOrStdin())
+			str, err := reader.ReadString('\n')
+			if err != nil {
+				return err
+			}
+			if str != "y\n" {
+				_, err := cmd.OutOrStdout().Write([]byte("Aborted\n"))
+				return err
+			}
+		}
+	}
+
 	data, err := loadData(ctx, args)
 	if err != nil {
 		return err
@@ -56,8 +79,9 @@ func Wrap[T any, D any](cmd *cobra.Command, loadData func(context.Context, T) (D
 		outputFormat := GetFormatFromContext(ctx)
 
 		if outputFormat != nil && (*outputFormat == JSON || *outputFormat == YAML) {
-			if err := nonInteractive(ctx, outputFormat, cmd, loadData, args); err != nil {
+			if err := nonInteractive(ctx, outputFormat, cmd, loadData, args, opts); err != nil {
 				_, _ = cmd.ErrOrStderr().Write([]byte(err.Error()))
+				return nil
 			} else {
 				return nil
 			}

@@ -89,4 +89,6 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "interactive, json, or yaml")
+	rootCmd.PersistentFlags().BoolP("force", "f", false, "set to skip confirmation prompts")
+
 }
