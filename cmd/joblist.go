@@ -20,7 +20,7 @@ var jobListCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 }
 
-var InteractiveJobList = command.Wrap(jobListCmd, loadJobListData, renderJobList)
+var InteractiveJobList = command.Wrap(jobListCmd, loadJobListData, renderJobList, nil)
 
 type JobListInput struct {
 	ServiceID string `cli:"arg:0"`

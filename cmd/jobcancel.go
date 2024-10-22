@@ -19,7 +19,14 @@ var jobCancelCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(2),
 }
 
-var InteractiveJobCancel = command.Wrap(jobCancelCmd, cancelJob, renderJobCancel)
+var InteractiveJobCancel = command.Wrap(jobCancelCmd, cancelJob, renderJobCancel, &command.WrapOptions[JobCancelInput]{
+	RequireConfirm: command.RequireConfirm[JobCancelInput]{
+		Confirm: true,
+		MessageFunc: func(args JobCancelInput) string {
+			return fmt.Sprintf("Are you sure you want to cancel job %s?", args.JobID)
+		},
+	},
+})
 
 type JobCancelInput struct {
 	ServiceID string `cli:"arg:0"`
