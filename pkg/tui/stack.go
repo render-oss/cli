@@ -49,6 +49,7 @@ func NewStack() *StackModel {
 func (m *StackModel) Push(model ModelWithCmd) {
 	m.stack = append(m.stack, model)
 	model.Model.Init()
+	model.Model.Update(m.StackSizeMsg())
 }
 
 func (m *StackModel) Pop() {
@@ -107,11 +108,7 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 
 		// Update the message for subcomponents to exclude the header
-		subMsg = StackSizeMsg{
-			Width:  msg.Width,
-			Height: msg.Height - lipgloss.Height(m.header()),
-			Top:    lipgloss.Height(m.header()),
-		}
+		subMsg = m.StackSizeMsg()
 	}
 
 	var cmd tea.Cmd
@@ -120,6 +117,14 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, cmd
+}
+
+func (m *StackModel) StackSizeMsg() StackSizeMsg {
+	return StackSizeMsg{
+		Width:  m.width,
+		Height: m.height - lipgloss.Height(m.header()),
+		Top:    lipgloss.Height(m.header()),
+	}
 }
 
 func (m *StackModel) View() string {
