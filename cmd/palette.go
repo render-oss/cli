@@ -28,6 +28,7 @@ var InteractiveCommandPalette = command.Wrap(
 	paletteCmd,
 	loadCommandPalette,
 	renderPalette,
+	nil,
 )
 
 const columnCommandKey = "Command"

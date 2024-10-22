@@ -27,8 +27,8 @@ var sshCmd = &cobra.Command{
 	Long:  `SSH into a server given a service ID. Optionally pass the service id as an argument.`,
 }
 
-var InteractiveSSH = command.Wrap(sshCmd, loadDataSSH, renderSSH)
-var InteractiveSSHSelectService = command.Wrap(sshCmd, listServices, renderSSHSelection)
+var InteractiveSSH = command.Wrap(sshCmd, loadDataSSH, renderSSH, nil)
+var InteractiveSSHSelectService = command.Wrap(sshCmd, listServices, renderSSHSelection, nil)
 
 type SSHInput struct {
 	ServiceID string `cli:"arg:0"`

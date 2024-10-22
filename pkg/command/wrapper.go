@@ -14,7 +14,16 @@ type WrappedFunc[T any] func(ctx context.Context, args T) tea.Cmd
 
 type InteractiveFunc[T any, D any] func(context.Context, func(T) (D, error), T) (tea.Model, error)
 
-func Wrap[T any, D any](cmd *cobra.Command, loadData func(context.Context, T) (D, error), interactiveFunc InteractiveFunc[T, D]) WrappedFunc[T] {
+type RequireConfirm[T any] struct {
+	Confirm     bool
+	MessageFunc func(args T) string
+}
+
+type WrapOptions[T any] struct {
+	RequireConfirm RequireConfirm[T]
+}
+
+func Wrap[T any, D any](cmd *cobra.Command, loadData func(context.Context, T) (D, error), interactiveFunc InteractiveFunc[T, D], opts *WrapOptions[T]) WrappedFunc[T] {
 	return func(ctx context.Context, args T) tea.Cmd {
 		outputFormat := GetFormatFromContext(ctx)
 
@@ -67,11 +76,14 @@ func Wrap[T any, D any](cmd *cobra.Command, loadData func(context.Context, T) (D
 			return func() tea.Msg { return tui.ErrorMsg{Err: err} }
 		}
 
+		if opts != nil && opts.RequireConfirm.Confirm {
+			model = tui.NewModelWithConfirm(model, opts.RequireConfirm.MessageFunc(args))
+		}
+
 		stack.Push(tui.ModelWithCmd{
 			Model: model, Cmd: cmdString,
 		})
 
 		return model.Init()
 	}
-
 }

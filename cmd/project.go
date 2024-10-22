@@ -19,7 +19,7 @@ var projectCmd = &cobra.Command{
 In interactive mode you can view the environments for a project.`,
 }
 
-var InteractiveProject = command.Wrap(projectCmd, loadProjects, renderProjects)
+var InteractiveProject = command.Wrap(projectCmd, loadProjects, renderProjects, nil)
 
 type ProjectInput struct{}
 

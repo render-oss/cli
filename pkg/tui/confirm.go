@@ -110,3 +110,53 @@ func (m *ConfirmModel) View() string {
 
 	return dialog
 }
+
+type ModelWithConfirm struct {
+	confirming bool
+	confirm    *ConfirmModel
+	model      tea.Model
+}
+
+func NewModelWithConfirm(model tea.Model, message string) *ModelWithConfirm {
+	mc := &ModelWithConfirm{
+		confirming: true,
+		model:      model,
+	}
+	confirm := &ConfirmModel{
+		message: message,
+		onConfirm: func() tea.Cmd {
+			mc.confirming = false
+			return model.Init()
+		},
+		onCancel: func() tea.Cmd {
+			return func() tea.Msg { return DoneMsg{} }
+		},
+	}
+
+	mc.confirm = confirm
+
+	return mc
+}
+
+func (m *ModelWithConfirm) Init() tea.Cmd {
+	return m.confirm.Init()
+}
+
+func (m *ModelWithConfirm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	if m.confirming {
+		m.confirm, cmd = m.confirm.Update(msg)
+		return m, cmd
+	}
+
+	m.model, cmd = m.model.Update(msg)
+	return m, cmd
+}
+
+func (m *ModelWithConfirm) View() string {
+	if m.confirming {
+		return m.confirm.View()
+	}
+
+	return m.model.View()
+}

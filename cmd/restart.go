@@ -16,7 +16,19 @@ var restartCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 }
 
-var InteractiveRestart = command.Wrap(restartCmd, restartResource, renderRestart)
+var InteractiveRestart = command.Wrap(
+	restartCmd,
+	restartResource,
+	renderRestart,
+	&command.WrapOptions[RestartInput]{
+		RequireConfirm: command.RequireConfirm[RestartInput]{
+			Confirm: true,
+			MessageFunc: func(args RestartInput) string {
+				return fmt.Sprintf("Are you sure you want to restart resource %s?", args.ResourceID)
+			},
+		},
+	},
+)
 
 type RestartInput struct {
 	ResourceID string `cli:"arg:0"`

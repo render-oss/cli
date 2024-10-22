@@ -27,7 +27,7 @@ var deployCreateCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(1),
 }
 
-var InteractiveDeployCreate = command.Wrap(deployCmd, createDeploy, renderCreateDeploy)
+var InteractiveDeployCreate = command.Wrap(deployCmd, createDeploy, renderCreateDeploy, nil)
 
 func createDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy, error) {
 	c, err := client.NewDefaultClient()

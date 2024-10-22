@@ -27,7 +27,7 @@ var servicesCmd = &cobra.Command{
 In interactive mode you can view logs, restart, deploy, SSH, and open PSQL terminals.`,
 }
 
-var InteractiveServices = command.Wrap(servicesCmd, loadResourceData, renderResources)
+var InteractiveServices = command.Wrap(servicesCmd, loadResourceData, renderResources, nil)
 
 func loadResourceData(ctx context.Context, in ListResourceInput) ([]resource.Resource, error) {
 	resourceService, err := newResourceService()
