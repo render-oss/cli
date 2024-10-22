@@ -27,7 +27,14 @@ var deployCreateCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(1),
 }
 
-var InteractiveDeployCreate = command.Wrap(deployCmd, createDeploy, renderCreateDeploy, nil)
+var InteractiveDeployCreate = command.Wrap(deployCmd, createDeploy, renderCreateDeploy, &command.WrapOptions[types.DeployInput]{
+	RequireConfirm: command.RequireConfirm[types.DeployInput]{
+		Confirm: true,
+		MessageFunc: func(args types.DeployInput) string {
+			return fmt.Sprintf("Are you sure you want to deploy %s?", args.ServiceID)
+		},
+	},
+})
 
 func createDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy, error) {
 	c, err := client.NewDefaultClient()
