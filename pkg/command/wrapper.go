@@ -29,10 +29,9 @@ type WrapOptions[T any] struct {
 
 func nonInteractive[T any, D any](ctx context.Context, outputFormat *Output, cmd *cobra.Command, loadData func(context.Context, T) (D, error), args T, opts *WrapOptions[T]) error {
 	if opts != nil && opts.RequireConfirm.Confirm {
-		if confirm, err := cmd.Flags().GetBool(ConfirmFlag); err != nil {
-			return err
-		} else if !confirm {
-			_, err := cmd.OutOrStdout().Write([]byte(fmt.Sprintf("%s (y/n): ", opts.RequireConfirm.MessageFunc(args))))
+		if confirm := GetConfirmFromContext(ctx); !confirm {
+			msg := opts.RequireConfirm.MessageFunc(args)
+			_, err := cmd.OutOrStdout().Write([]byte(fmt.Sprintf("%s (y/n): ", msg)))
 			if err != nil {
 				return err
 			}
@@ -109,10 +108,7 @@ func Wrap[T any, D any](cmd *cobra.Command, loadData func(context.Context, T) (D
 			return func() tea.Msg { return tui.ErrorMsg{Err: err} }
 		}
 
-		confirm, err := cmd.Flags().GetBool(ConfirmFlag)
-		if err != nil {
-			return func() tea.Msg { return tui.ErrorMsg{Err: err} }
-		}
+		confirm := GetConfirmFromContext(ctx)
 		if opts != nil && opts.RequireConfirm.Confirm && !confirm {
 			model = tui.NewModelWithConfirm(model, opts.RequireConfirm.MessageFunc(args))
 		}

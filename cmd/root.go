@@ -29,6 +29,13 @@ either json or yaml.
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 
+		confirmFlag, err := cmd.Flags().GetBool(command.ConfirmFlag)
+		if err != nil {
+			panic(err)
+		}
+
+		ctx = command.SetConfirmInContext(ctx, confirmFlag)
+
 		outputFlag, err := cmd.Flags().GetString("output")
 		if err != nil {
 			panic(err)
@@ -90,5 +97,4 @@ func init() {
 
 	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "interactive, json, or yaml")
 	rootCmd.PersistentFlags().Bool(command.ConfirmFlag, false, "set to skip confirmation prompts")
-
 }
