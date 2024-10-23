@@ -120,4 +120,46 @@ func TestNewLogModel(t *testing.T) {
 
 		require.Equal(t, 2, count)
 	})
+
+	t.Run("Empty state", func(t *testing.T) {
+		t.Run("When not tailing", func(t *testing.T) {
+			loadFunc := func() (*client.Logs200Response, <-chan *lclient.Log, error) {
+				return &client.Logs200Response{
+					Logs: []lclient.Log{},
+				}, nil, nil
+			}
+
+			m := tui.NewLogModel(filter, loadFunc)
+			tm := teatest.NewTestModel(t, m)
+
+			tm.Send(tea.WindowSizeMsg{Width: 80, Height: 24})
+
+			teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+				return bytes.Contains(bts, []byte("No logs to show."))
+			}, teatest.WithCheckInterval(time.Millisecond*10), teatest.WithDuration(time.Second*3))
+
+			err := tm.Quit()
+			require.NoError(t, err)
+		})
+
+		t.Run("When tailing", func(t *testing.T) {
+			loadFunc := func() (*client.Logs200Response, <-chan *lclient.Log, error) {
+				return &client.Logs200Response{
+					Logs: []lclient.Log{},
+				}, make(<-chan *lclient.Log), nil
+			}
+
+			m := tui.NewLogModel(filter, loadFunc)
+			tm := teatest.NewTestModel(t, m)
+
+			tm.Send(tea.WindowSizeMsg{Width: 100, Height: 24})
+
+			teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+				return bytes.Contains(bts, []byte("No logs to show. New log entries that match your search parameters will appear here."))
+			}, teatest.WithCheckInterval(time.Millisecond*10), teatest.WithDuration(time.Second*3))
+
+			err := tm.Quit()
+			require.NoError(t, err)
+		})
+	})
 }
