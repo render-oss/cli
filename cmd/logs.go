@@ -224,13 +224,18 @@ func init() {
 		InteractiveLogs(cmd.Context(), input)
 		return nil
 	}
+	logsCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		// Resources flag is required in non-interactive mode
+		format := command.GetFormatFromContext(cmd.Context())
+		if format != nil && *format != command.Interactive {
+			return logsCmd.MarkFlagRequired("resources")
+		}
+		return nil
+	}
+
 	rootCmd.AddCommand(logsCmd)
 
-	logsCmd.Flags().StringSliceP("resources", "r", []string{}, "A list of comma separated resource IDs to query")
-	err := logsCmd.MarkFlagRequired("resources")
-	if err != nil {
-		panic(err)
-	}
+	logsCmd.Flags().StringSliceP("resources", "r", []string{}, "A list of comma separated resource IDs to query. Required in non-interactive mode.")
 
 	logsCmd.Flags().String("start", "", "The start time of the logs to query")
 	logsCmd.Flags().String("end", "", "The end time of the logs to query")
