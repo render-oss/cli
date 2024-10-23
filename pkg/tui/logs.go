@@ -209,10 +209,20 @@ func (m *LogModel) View() string {
 	if m.state == logStateLoading {
 		return "\n  Loading Logs..."
 	}
+	logContent := viewportSylte.Render(m.viewport.View())
+
+	if m.content == nil || len(m.content) == 0 {
+		emptyStateMessage := "No logs to show."
+		if m.logChan != nil {
+			emptyStateMessage = "No logs to show. New log entries that match your search parameters will appear here."
+		}
+		logContent = lipgloss.Place(m.viewport.Width, m.viewport.Height, lipgloss.Center, lipgloss.Center, emptyStateMessage)
+	}
+
 	logView := logStyle.Render(
 		lipgloss.JoinHorizontal(
 			lipgloss.Top,
-			lipgloss.JoinVertical(lipgloss.Left, viewportSylte.Render(m.viewport.View()), m.help.View(&keyMapWrapper{m.viewport.KeyMap})),
+			lipgloss.JoinVertical(lipgloss.Left, logContent, m.help.View(&keyMapWrapper{m.viewport.KeyMap})),
 			m.scrollBar.View(),
 		),
 	)
