@@ -109,7 +109,11 @@ func Wrap[T any, D any](cmd *cobra.Command, loadData func(context.Context, T) (D
 			return func() tea.Msg { return tui.ErrorMsg{Err: err} }
 		}
 
-		if opts != nil && opts.RequireConfirm.Confirm {
+		confirm, err := cmd.Flags().GetBool(ConfirmFlag)
+		if err != nil {
+			return func() tea.Msg { return tui.ErrorMsg{Err: err} }
+		}
+		if opts != nil && opts.RequireConfirm.Confirm && !confirm {
 			model = tui.NewModelWithConfirm(model, opts.RequireConfirm.MessageFunc(args))
 		}
 
