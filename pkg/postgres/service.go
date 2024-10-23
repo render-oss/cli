@@ -46,6 +46,20 @@ func (s *Service) ListPostgres(ctx context.Context, params *client.ListPostgresP
 	return postgresModels, nil
 }
 
+func (s *Service) GetPostgres(ctx context.Context, id string) (*Model, error) {
+	postgres, err := s.repo.GetPostgres(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	projects, err := s.projectRepo.ListProjects(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.hydratePostgresModel(ctx, postgresFromPostgresDetail(postgres), projects)
+}
+
 func (s *Service) RestartPostgresDatabase(ctx context.Context, id string) error {
 	return s.repo.RestartPostgresDatabase(ctx, id)
 }
@@ -98,4 +112,13 @@ func (s *Service) projectForPostgres(postgres *client.Postgres, projects []*clie
 	}
 
 	return nil
+}
+
+func postgresFromPostgresDetail(detail *client.PostgresDetail) *client.Postgres {
+	// Just set the fields that are necessary for the model interface
+	return &client.Postgres{
+		Id:            detail.Id,
+		EnvironmentId: detail.EnvironmentId,
+		Name:          detail.Name,
+	}
 }

@@ -23,8 +23,15 @@ var InteractiveRestart = command.Wrap(
 	&command.WrapOptions[RestartInput]{
 		RequireConfirm: command.RequireConfirm[RestartInput]{
 			Confirm: true,
-			MessageFunc: func(args RestartInput) string {
-				return fmt.Sprintf("Are you sure you want to restart resource %s?", args.ResourceID)
+			MessageFunc: func(ctx context.Context, args RestartInput) (string, error) {
+				resourceService, err := newResourceService()
+				if err != nil {
+					return "", fmt.Errorf("failed to create resource service: %w", err)
+				}
+
+				res, err := resourceService.GetResource(ctx, args.ResourceID)
+
+				return fmt.Sprintf("Are you sure you want to restart resource %s?", res.Name()), nil
 			},
 		},
 	},

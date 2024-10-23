@@ -30,8 +30,18 @@ var deployCreateCmd = &cobra.Command{
 var InteractiveDeployCreate = command.Wrap(deployCmd, createDeploy, renderCreateDeploy, &command.WrapOptions[types.DeployInput]{
 	RequireConfirm: command.RequireConfirm[types.DeployInput]{
 		Confirm: true,
-		MessageFunc: func(args types.DeployInput) string {
-			return fmt.Sprintf("Are you sure you want to deploy %s?", args.ServiceID)
+		MessageFunc: func(ctx context.Context, args types.DeployInput) (string, error) {
+			c, err := client.NewDefaultClient()
+			if err != nil {
+				return "", fmt.Errorf("failed to create client: %w", err)
+			}
+
+			serviceRepo := service.NewRepo(c)
+			srv, err := serviceRepo.GetService(ctx, args.ServiceID)
+			if err != nil {
+				return "", fmt.Errorf("failed to get service: %w", err)
+			}
+			return fmt.Sprintf("Are you sure you want to deploy %s?", srv.Name), nil
 		},
 	},
 })
