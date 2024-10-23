@@ -12,6 +12,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const ConfirmFlag = "confirm"
+
 type WrappedFunc[T any] func(ctx context.Context, args T) tea.Cmd
 
 type InteractiveFunc[T any, D any] func(context.Context, func(T) (D, error), T) (tea.Model, error)
@@ -27,9 +29,9 @@ type WrapOptions[T any] struct {
 
 func nonInteractive[T any, D any](ctx context.Context, outputFormat *Output, cmd *cobra.Command, loadData func(context.Context, T) (D, error), args T, opts *WrapOptions[T]) error {
 	if opts != nil && opts.RequireConfirm.Confirm {
-		if force, err := cmd.Flags().GetBool("force"); err != nil {
+		if confirm, err := cmd.Flags().GetBool(ConfirmFlag); err != nil {
 			return err
-		} else if !force {
+		} else if !confirm {
 			_, err := cmd.OutOrStdout().Write([]byte(fmt.Sprintf("%s (y/n): ", opts.RequireConfirm.MessageFunc(args))))
 			if err != nil {
 				return err
