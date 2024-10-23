@@ -16,7 +16,26 @@ var restartCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 }
 
-var InteractiveRestart = command.Wrap(restartCmd, restartResource, renderRestart)
+var InteractiveRestart = command.Wrap(
+	restartCmd,
+	restartResource,
+	renderRestart,
+	&command.WrapOptions[RestartInput]{
+		RequireConfirm: command.RequireConfirm[RestartInput]{
+			Confirm: true,
+			MessageFunc: func(ctx context.Context, args RestartInput) (string, error) {
+				resourceService, err := newResourceService()
+				if err != nil {
+					return "", fmt.Errorf("failed to create resource service: %w", err)
+				}
+
+				res, err := resourceService.GetResource(ctx, args.ResourceID)
+
+				return fmt.Sprintf("Are you sure you want to restart resource %s?", res.Name()), nil
+			},
+		},
+	},
+)
 
 type RestartInput struct {
 	ResourceID string `cli:"arg:0"`

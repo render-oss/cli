@@ -18,7 +18,7 @@ var deployListCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 }
 
-var InteractiveDeployList = command.Wrap(deployListCmd, loadDeployList, renderDeployList)
+var InteractiveDeployList = command.Wrap(deployListCmd, loadDeployList, renderDeployList, nil)
 
 type DeployListInput struct {
 	ServiceID string

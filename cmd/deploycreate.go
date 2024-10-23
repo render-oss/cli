@@ -27,7 +27,24 @@ var deployCreateCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(1),
 }
 
-var InteractiveDeployCreate = command.Wrap(deployCmd, createDeploy, renderCreateDeploy)
+var InteractiveDeployCreate = command.Wrap(deployCmd, createDeploy, renderCreateDeploy, &command.WrapOptions[types.DeployInput]{
+	RequireConfirm: command.RequireConfirm[types.DeployInput]{
+		Confirm: true,
+		MessageFunc: func(ctx context.Context, args types.DeployInput) (string, error) {
+			c, err := client.NewDefaultClient()
+			if err != nil {
+				return "", fmt.Errorf("failed to create client: %w", err)
+			}
+
+			serviceRepo := service.NewRepo(c)
+			srv, err := serviceRepo.GetService(ctx, args.ServiceID)
+			if err != nil {
+				return "", fmt.Errorf("failed to get service: %w", err)
+			}
+			return fmt.Sprintf("Are you sure you want to deploy %s?", srv.Name), nil
+		},
+	},
+})
 
 func createDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy, error) {
 	c, err := client.NewDefaultClient()

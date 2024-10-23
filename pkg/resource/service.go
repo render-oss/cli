@@ -85,6 +85,18 @@ func (rs *Service) ListResources(ctx context.Context, params ResourceParams) ([]
 	return resources, nil
 }
 
+func (rs *Service) GetResource(ctx context.Context, id string) (Resource, error) {
+	if strings.HasPrefix(id, service.ServerResourceIDPrefix) {
+		return rs.serviceService.GetService(ctx, id)
+	}
+
+	if strings.HasPrefix(id, postgres.ResourceIDPrefix) {
+		return rs.postgresService.GetPostgres(ctx, id)
+	}
+
+	return nil, errors.New("unknown resource type")
+}
+
 func (rs *Service) RestartResource(ctx context.Context, id string) error {
 	if strings.HasPrefix(id, service.ServerResourceIDPrefix) {
 		return rs.serviceService.RestartService(ctx, id)

@@ -40,8 +40,8 @@ Unlike in the dashboard you can view logs for multiple resources at once. Set --
 In interactive mode you can update the filters and view logs in real time.`,
 }
 
-var InteractiveLogs = command.Wrap(logsCmd, loadLogData, renderLogs)
-var InteractiveLogsSelectResource = command.Wrap(logsCmd, loadResourceData, renderResourcesForLogs)
+var InteractiveLogs = command.Wrap(logsCmd, loadLogData, renderLogs, nil)
+var InteractiveLogsSelectResource = command.Wrap(logsCmd, loadResourceData, renderResourcesForLogs, nil)
 
 type LogInput struct {
 	ResourceIDs []string `cli:"resources"`
@@ -145,7 +145,7 @@ func logForm(ctx context.Context, in LogInput) *tui.FilterModel {
 			panic(err)
 		}
 
-		return command.Wrap(logsCmd, loadLogData, renderLogs)(ctx, logInput)
+		return command.Wrap(logsCmd, loadLogData, renderLogs, nil)(ctx, logInput)
 	})
 }
 

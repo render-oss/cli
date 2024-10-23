@@ -20,12 +20,12 @@ var jobCreateCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 }
 
-var InteractiveJobCreate = command.Wrap(jobCreateCmd, createJob, renderJobCreate)
+var InteractiveJobCreate = command.Wrap(jobCreateCmd, createJob, renderJobCreate, nil)
 
 type JobCreateInput struct {
-	ServiceID    string `cli:"arg:0"`
+	ServiceID    string  `cli:"arg:0"`
 	StartCommand *string `cli:"start-command"`
-	PlanID       *string	`cli:"plan-id"`
+	PlanID       *string `cli:"plan-id"`
 }
 
 func createJob(ctx context.Context, input JobCreateInput) (*clientjob.Job, error) {

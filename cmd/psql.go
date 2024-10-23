@@ -24,8 +24,8 @@ var psqlCmd = &cobra.Command{
 	Long:  `Open a psql session to a Render Postgres database. Optionally pass the database id as an argument.`,
 }
 
-var InteractivePSQL = command.Wrap(psqlCmd, loadDataPSQL, renderPSQL)
-var InteractivePSQLSelectDB = command.Wrap(psqlCmd, listDatabases, renderPSQLSelection)
+var InteractivePSQL = command.Wrap(psqlCmd, loadDataPSQL, renderPSQL, nil)
+var InteractivePSQLSelectDB = command.Wrap(psqlCmd, listDatabases, renderPSQLSelection, nil)
 
 type PSQLInput struct {
 	PostgresID string `cli:"arg:0"`

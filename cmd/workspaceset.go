@@ -24,7 +24,7 @@ If unspecified, the config file will be saved in $HOME/.render/cli.yaml. All sub
 Currently, you can only select a workspace in interactive mode.`,
 }
 
-var InteractiveWorkspaceSet = command.Wrap(workspaceSetCmd, loadWorkspaceData, renderWorkspaces)
+var InteractiveWorkspaceSet = command.Wrap(workspaceSetCmd, loadWorkspaceData, renderWorkspaces, nil)
 
 type ListWorkspaceInput struct{}
 

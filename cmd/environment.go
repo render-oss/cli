@@ -21,7 +21,7 @@ var environmentCmd = &cobra.Command{
 In interactive mode you can view the services for an environment.`,
 }
 
-var InteractiveEnvironment = command.Wrap(environmentCmd, loadEnvironments, renderEnvironments)
+var InteractiveEnvironment = command.Wrap(environmentCmd, loadEnvironments, renderEnvironments, nil)
 
 type EnvironmentInput struct {
 	ProjectID string `cli:"arg:0"`
