@@ -5,13 +5,12 @@ import (
 	"github.com/renderinc/render-cli/pkg/resource"
 )
 
-
 func Columns() []table.Column {
 	return []table.Column{
 		table.NewColumn("ID", "ID", 27).WithFiltered(true),
-		table.NewColumn("Project", "Project", 15).WithFiltered(true),
-		table.NewColumn("Environment", "Environment", 20).WithFiltered(true),
-		table.NewColumn("Name", "Name", 40).WithFiltered(true),
+		table.NewFlexColumn("Project", "Project", 15).WithFiltered(true),
+		table.NewFlexColumn("Environment", "Environment", 20).WithFiltered(true),
+		table.NewFlexColumn("Name", "Name", 40).WithFiltered(true),
 	}
 }
 

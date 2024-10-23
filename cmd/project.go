@@ -36,7 +36,7 @@ func loadProjects(ctx context.Context, _ ProjectInput) ([]*client.Project, error
 func renderProjects(ctx context.Context, loadData func(ProjectInput) ([]*client.Project, error), in ProjectInput) (tea.Model, error) {
 	columns := []btable.Column{
 		btable.NewColumn("ID", "ID", 25).WithFiltered(true),
-		btable.NewColumn("Name", "Name", 40).WithFiltered(true),
+		btable.NewFlexColumn("Name", "Name", 40).WithFiltered(true),
 	}
 
 	loadDataFunc := func() ([]*client.Project, error) {

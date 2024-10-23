@@ -34,10 +34,10 @@ type Table[T any] struct {
 	onSelect      func(rows []table.Row) tea.Cmd
 	customOptions []CustomOption
 
-	loadData    func() ([]T, error)
-	createRow   func(T) table.Row
-	data        []T
-	columns     []table.Column
+	loadData  func() ([]T, error)
+	createRow func(T) table.Row
+	data      []T
+	columns   []table.Column
 
 	tableWidth int
 
@@ -67,10 +67,11 @@ func NewTable[T any](
 			WithPageSize(25).
 			WithBaseStyle(lipgloss.NewStyle().Align(lipgloss.Left)).
 			WithTargetWidth(defaultMaxWidth),
-		onSelect:    onSelect,
-		loadData:    loadData,
-		createRow:   createRow,
-		columns:     columns,
+		tableWidth: defaultMaxWidth,
+		onSelect:   onSelect,
+		loadData:   loadData,
+		createRow:  createRow,
+		columns:    columns,
 	}
 
 	for _, option := range tableOptions {
@@ -83,7 +84,6 @@ func NewTable[T any](
 func (t *Table[T]) Init() tea.Cmd {
 	t.loading = true
 	t.initSpinner()
-
 
 	return tea.Batch(t.spinner.Tick, t.loadDataCmd(), t.Model.Init())
 }
@@ -114,6 +114,9 @@ func (t *Table[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		t.Model = t.Model.WithRows(rows)
 		t.loading = false
 		return t, nil
+	case StackSizeMsg:
+		t.tableWidth = msg.Width
+		t.Model.WithTargetWidth(t.tableWidth)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
