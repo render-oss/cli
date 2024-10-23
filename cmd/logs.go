@@ -12,12 +12,15 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	btable "github.com/evertras/bubble-table/table"
 	"github.com/renderinc/render-cli/pkg/client"
 	lclient "github.com/renderinc/render-cli/pkg/client/logs"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/config"
 	"github.com/renderinc/render-cli/pkg/logs"
 	"github.com/renderinc/render-cli/pkg/pointers"
+	"github.com/renderinc/render-cli/pkg/resource"
+	resourcetui "github.com/renderinc/render-cli/pkg/resource/tui"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -38,6 +41,7 @@ In interactive mode you can update the filters and view logs in real time.`,
 }
 
 var InteractiveLogs = command.Wrap(logsCmd, loadLogData, renderLogs)
+var InteractiveLogsSelectResource = command.Wrap(logsCmd, loadResourceData, renderResourcesForLogs)
 
 type LogInput struct {
 	ResourceIDs []string `cli:"resources"`
@@ -204,6 +208,51 @@ func nonInteractiveLogs(format *command.Output, cmd *cobra.Command, input LogInp
 	return nil
 }
 
+func renderResourcesForLogs(ctx context.Context, loadData func(input ListResourceInput) ([]resource.Resource, error), in ListResourceInput) (tea.Model, error) {
+	columns := resourcetui.ColumnsForResources()
+
+	loadDataFunc := func() ([]resource.Resource, error) {
+		return loadData(in)
+	}
+
+	createRowFunc := func(r resource.Resource) btable.Row {
+		return resourcetui.RowForResource(r)
+	}
+
+	onSelect := func(rows []btable.Row) tea.Cmd {
+		if len(rows) == 0 {
+			return nil
+		}
+
+		r, ok := rows[0].Data["resource"].(resource.Resource)
+		if !ok {
+			return nil
+		}
+
+		return InteractiveLogs(ctx, LogInput{ResourceIDs: []string{r.ID()}})
+	}
+
+	customOptions := []tui.CustomOption{
+		{
+			Key:   "w",
+			Title: "Change Workspace",
+			Function: func(row btable.Row) tea.Cmd {
+				return InteractiveWorkspaceSet(ctx, ListWorkspaceInput{})
+			},
+		},
+	}
+
+	t := tui.NewTable(
+		columns,
+		loadDataFunc,
+		createRowFunc,
+		onSelect,
+		tui.WithCustomOptions[resource.Resource](customOptions),
+	)
+
+	return t, nil
+}
+
 func init() {
 	logsCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input LogInput
@@ -219,6 +268,11 @@ func init() {
 		format := command.GetFormatFromContext(cmd.Context())
 		if format != nil && (*format == command.JSON || *format == command.YAML) {
 			return nonInteractiveLogs(format, cmd, input)
+		}
+
+		if len(input.ResourceIDs) == 0 {
+			InteractiveLogsSelectResource(cmd.Context(), ListResourceInput{})
+			return nil
 		}
 
 		InteractiveLogs(cmd.Context(), input)
