@@ -39,7 +39,8 @@ type Table[T any] struct {
 	data      []T
 	columns   []table.Column
 
-	tableWidth int
+	tableWidth  int
+	tableHeight int
 
 	loading bool
 	spinner spinner.Model
@@ -116,6 +117,7 @@ func (t *Table[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return t, nil
 	case StackSizeMsg:
 		t.tableWidth = msg.Width
+		t.tableHeight = msg.Height
 		t.Model.WithTargetWidth(t.tableWidth)
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -164,9 +166,15 @@ func (t *Table[T]) View() string {
 
 	footer = lipgloss.JoinHorizontal(lipgloss.Left, strings.Join(options, " "))
 
+	tableView := t.Model.View()
+
+	if len(t.data) == 0 {
+		tableView = lipgloss.Place(t.tableWidth, t.tableHeight, lipgloss.Center, lipgloss.Center, "No Results")
+	}
+
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
-		t.Model.View(),
+		tableView,
 		footer,
 	)
 }
