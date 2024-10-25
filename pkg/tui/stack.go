@@ -56,10 +56,9 @@ func newSpinner() *spinner.Model {
 	return &spin
 }
 
-func (m *StackModel) Push(model ModelWithCmd) {
+func (m *StackModel) Push(model ModelWithCmd) tea.Cmd {
 	m.stack = append(m.stack, model)
-	model.Model.Init()
-	model.Model.Update(m.StackSizeMsg())
+	return tea.Batch(model.Model.Init(), func() tea.Msg { return m.StackSizeMsg() })
 }
 
 func (m *StackModel) Pop() {

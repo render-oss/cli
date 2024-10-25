@@ -29,7 +29,10 @@ var activeButtonStyle = buttonStyle.
 	MarginLeft(2).
 	Underline(true)
 
-type ShowConfirmMsg struct{}
+type ShowConfirmMsg struct {
+	Message   string
+	OnConfirm func() tea.Cmd
+}
 
 type ConfirmModel struct {
 	onConfirm func() tea.Cmd
@@ -114,28 +117,14 @@ func (m *ConfirmModel) View() string {
 }
 
 type ModelWithConfirm struct {
-	confirming bool
-	confirm    *ConfirmModel
-	model      tea.Model
+	confirm *ConfirmModel
+	model   tea.Model
 }
 
-func NewModelWithConfirm(model tea.Model, message string, onConfirm tea.Cmd) *ModelWithConfirm {
+func NewModelWithConfirm(model tea.Model) *ModelWithConfirm {
 	mc := &ModelWithConfirm{
-		confirming: false,
-		model:      model,
+		model: model,
 	}
-	confirm := &ConfirmModel{
-		message: message,
-		onConfirm: func() tea.Cmd {
-			mc.confirming = false
-			return onConfirm
-		},
-		onCancel: func() tea.Cmd {
-			return func() tea.Msg { return DoneMsg{} }
-		},
-	}
-
-	mc.confirm = confirm
 
 	return mc
 }
@@ -145,23 +134,31 @@ func (m *ModelWithConfirm) Init() tea.Cmd {
 }
 
 func (m *ModelWithConfirm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg.(type) {
+	switch msg := msg.(type) {
 	case ShowConfirmMsg:
-		m.confirming = true
+		m.confirm = NewConfirmModel(msg.Message,
+			func() tea.Cmd {
+				m.confirm = nil
+				return msg.OnConfirm()
+			},
+			func() tea.Cmd {
+				return func() tea.Msg { return DoneMsg{} }
+			},
+		)
 	}
 
 	var cmd tea.Cmd
-	if m.confirming {
-		m.confirm, cmd = m.confirm.Update(msg)
-		return m, cmd
+	if m.confirm != nil {
+		_, cmd = m.confirm.Update(msg)
+	} else {
+		_, cmd = m.model.Update(msg)
 	}
 
-	m.model, cmd = m.model.Update(msg)
 	return m, cmd
 }
 
 func (m *ModelWithConfirm) View() string {
-	if m.confirming {
+	if m.confirm != nil {
 		return m.confirm.View()
 	}
 

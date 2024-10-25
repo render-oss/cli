@@ -79,7 +79,7 @@ func NewTable[T any](
 }
 
 func (t *Table[T]) Init() tea.Cmd {
-	return tea.Batch(tea.Cmd(t.loadData), t.Model.Init())
+	return tea.Batch(tea.Cmd(t.loadData), t.Model.Init(), tea.WindowSize())
 }
 
 func (t *Table[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

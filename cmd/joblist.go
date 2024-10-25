@@ -5,12 +5,11 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/renderinc/render-cli/pkg/client"
 	clientjob "github.com/renderinc/render-cli/pkg/client/jobs"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/job"
 	"github.com/renderinc/render-cli/pkg/pointers"
-	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/spf13/cobra"
 )
 
@@ -20,101 +19,76 @@ var jobListCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 }
 
-var InteractiveJobList = command.Wrap(jobListCmd, loadJobListData, renderJobList, nil)
+var InteractiveJobList = func(ctx context.Context, input views.JobListInput) tea.Cmd {
+	return command.AddToStackFunc(ctx, jobListCmd, &views.ProjectInput{}, views.NewJobListView(ctx,
+		&input,
+		func(j *clientjob.Job) []views.PaletteCommand {
+			var startTime *string
+			if j.StartedAt != nil {
+				startTime = pointers.From(j.StartedAt.String())
+			}
 
-type JobListInput struct {
-	ServiceID string `cli:"arg:0"`
-}
+			var endTime *string
+			if j.FinishedAt != nil {
+				endTime = pointers.From(j.FinishedAt.String())
+			}
 
-func loadJobListData(ctx context.Context, input JobListInput) ([]*clientjob.Job, error) {
-	c, err := client.NewDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %w", err)
-	}
+			commands := []views.PaletteCommand{
+				{
+					Name:        "logs",
+					Description: "View job logs",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractiveLogs(ctx, views.LogInput{
+							ResourceIDs: []string{j.Id},
+							StartTime:   startTime,
+							EndTime:     endTime,
+						})
+					},
+				},
+				{
+					Name:        "rerun",
+					Description: "Create new job with same inputs",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractiveJobCreate(ctx, &views.JobCreateInput{
+							ServiceID:    j.ServiceId,
+							StartCommand: &j.StartCommand,
+							PlanID:       &j.PlanId,
+						})
+					},
+				},
+			}
 
-	jobRepo := job.NewRepo(c)
+			if job.IsCancellable(j.Status) {
+				commands = append(commands, views.PaletteCommand{
+					Name:        "cancel",
+					Description: "Cancel the job",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractiveJobCancel(ctx, views.JobCancelInput{ServiceID: j.ServiceId, JobID: j.Id})
+					},
+				})
+			}
 
-	return jobRepo.ListJobs(ctx, job.ListJobsInput{
-		ServiceID: input.ServiceID,
-	})
-}
-
-func renderJobList(ctx context.Context, loadData func(JobListInput) tui.TypedCmd[[]*clientjob.Job], input JobListInput) (tea.Model, error) {
-	list := tui.NewList(
-		"Jobs",
-		loadData(input),
-		func(j *clientjob.Job) tui.ListItem {
-			return job.NewListItem(j)
+			return commands
 		},
-		tui.WithOnSelect[*clientjob.Job](func(selectedItem tui.ListItem) tea.Cmd {
-			selectedJob := selectedItem.(job.ListItem).Job()
-			return selectJob(ctx, input.ServiceID)(selectedJob)
-		}),
-	)
-
-	return list, nil
-}
-
-func selectJob(ctx context.Context, serviceID string) func(*clientjob.Job) tea.Cmd {
-	return func(j *clientjob.Job) tea.Cmd {
-		var startTime *string
-		if j.StartedAt != nil {
-			startTime = pointers.From(j.StartedAt.String())
-		}
-
-		var endTime *string
-		if j.FinishedAt != nil {
-			endTime = pointers.From(j.FinishedAt.String())
-		}
-
-		commands := []PaletteCommand{
-			{
-				Name:        "logs",
-				Description: "View job logs",
-				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return InteractiveLogs(ctx, LogInput{
-						ResourceIDs: []string{j.Id},
-						StartTime:   startTime,
-						EndTime:     endTime,
-					})
-				},
-			},
-			{
-				Name:        "rerun",
-				Description: "Create new job with same inputs",
-				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return InteractiveJobCreate(ctx, JobCreateInput{
-						ServiceID:    serviceID,
-						StartCommand: &j.StartCommand,
-						PlanID:       &j.PlanId,
-					})
-				},
-			},
-		}
-
-		if job.IsCancellable(j.Status) {
-			commands = append(commands, PaletteCommand{
-				Name:        "cancel",
-				Description: "Cancel the job",
-				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return InteractiveJobCancel(ctx, JobCancelInput{ServiceID: serviceID, JobID: j.Id})
-				},
-			})
-		}
-
-		return InteractiveCommandPalette(ctx, PaletteCommandInput{
-			Commands: commands,
-		})
-	}
+	))
 }
 
 func init() {
 	jobListCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		var input JobListInput
+		var input views.JobListInput
 		err := command.ParseCommand(cmd, args, &input)
 		if err != nil {
 			return fmt.Errorf("failed to parse command: %w", err)
 		}
+
+		if nonInteractive, err := command.NonInteractive(cmd.Context(), cmd, func() (any, error) {
+			return views.LoadJobListData(cmd.Context(), input)
+		}, nil); err != nil {
+			return err
+		} else if nonInteractive {
+			return nil
+		}
+
 		InteractiveJobList(cmd.Context(), input)
 		return nil
 	}

@@ -27,123 +27,121 @@ type WrapOptions[T any] struct {
 	RequireConfirm RequireConfirm[T]
 }
 
-func nonInteractive[T any, D any](ctx context.Context, outputFormat *Output, cmd *cobra.Command, loadData func(context.Context, T) (D, error), args T, opts *WrapOptions[T]) error {
-	if opts != nil && opts.RequireConfirm.Confirm {
+func NonInteractive(ctx context.Context, cmd *cobra.Command, loadData func() (any, error), confirmMessageFunc func() (string, error)) (bool, error) {
+	outputFormat := GetFormatFromContext(ctx)
+
+	if outputFormat == nil || !(*outputFormat == JSON || *outputFormat == YAML) {
+		return false, nil
+	}
+
+	if confirmMessageFunc != nil {
 		if confirm := GetConfirmFromContext(ctx); !confirm {
-			msg, err := opts.RequireConfirm.MessageFunc(ctx, args)
+			message, err := confirmMessageFunc()
 			if err != nil {
-				return err
+				return false, err
 			}
-			_, err = cmd.OutOrStdout().Write([]byte(fmt.Sprintf("%s (y/n): ", msg)))
+			_, err = cmd.OutOrStdout().Write([]byte(fmt.Sprintf("%s (y/n): ", message)))
 			if err != nil {
-				return err
+				return false, err
 			}
 
 			reader := bufio.NewReader(cmd.InOrStdin())
 			str, err := reader.ReadString('\n')
 			if err != nil {
-				return err
+				return false, err
 			}
 			if str != "y\n" {
 				_, err := cmd.OutOrStdout().Write([]byte("Aborted\n"))
-				return err
+				return false, err
 			}
 		}
 	}
 
-	data, err := loadData(ctx, args)
+	data, err := loadData()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	switch *outputFormat {
 	case JSON:
 		jsonStr, err := json.MarshalIndent(data, "", "  ")
 		if err != nil {
-			return err
+			return false, err
 		}
 		if _, err := cmd.OutOrStdout().Write(jsonStr); err != nil {
-			return err
+			return false, err
 		}
 	case YAML:
 		yamlStr, err := yaml.Marshal(data)
 		if err != nil {
-			return err
+			return false, err
 		}
 		if _, err := cmd.OutOrStdout().Write(yamlStr); err != nil {
-			return err
+			return false, err
 		}
 	}
 
-	return nil
+	return true, nil
 }
 
-func Wrap[T any, D any](cmd *cobra.Command, loadData func(context.Context, T) (D, error), interactiveFunc InteractiveFunc[T, D], opts *WrapOptions[T]) WrappedFunc[T] {
-	return func(ctx context.Context, args T) tea.Cmd {
-		outputFormat := GetFormatFromContext(ctx)
+func wrappedModel(model tea.Model, cmd *cobra.Command, in any) (*tui.ModelWithCmd, error) {
+	var cmdString string
 
-		if outputFormat != nil && (*outputFormat == JSON || *outputFormat == YAML) {
-			if err := nonInteractive(ctx, outputFormat, cmd, loadData, args, opts); err != nil {
-				_, _ = cmd.ErrOrStderr().Write([]byte(err.Error()))
-				return nil
-			} else {
-				return nil
-			}
-		}
-
-		var cmdString string
-		if !cmd.Hidden {
-			var err error
-			cmdString, err = CommandName(cmd, &args)
-			if err != nil {
-				return func() tea.Msg { return tui.ErrorMsg{Err: err} }
-			}
-		}
-
-		loadDataCmd := func() tea.Msg {
-			return tui.LoadingDataMsg(tea.Sequence(
-				func() tea.Msg {
-					data, err := loadData(ctx, args)
-					if err != nil {
-						return tui.ErrorMsg{Err: err}
-					}
-					return tui.LoadDataMsg[D]{Data: data}
-
-				},
-				func() tea.Msg {
-					return tui.DoneLoadingDataMsg{}
-				},
-			))
-		}
-
-		originalLoadDataCmd := loadDataCmd
-
-		confirm := GetConfirmFromContext(ctx)
-		if opts != nil && opts.RequireConfirm.Confirm && !confirm {
-			loadDataCmd = func() tea.Msg {
-				return tui.ShowConfirmMsg{}
-			}
-		}
-
-		stack := tui.GetStackFromContext(ctx)
-		model, err := interactiveFunc(ctx, func(T) tui.TypedCmd[D] { return loadDataCmd }, args)
+	if !cmd.Hidden {
+		var err error
+		cmdString, err = CommandName(cmd, in)
 		if err != nil {
-			_, _ = cmd.ErrOrStderr().Write([]byte(err.Error()))
-			return func() tea.Msg { return tui.ErrorMsg{Err: err} }
+			return nil, err
+		}
+	}
+
+	confirmModel := tui.NewModelWithConfirm(model)
+
+	return &tui.ModelWithCmd{
+		Model: confirmModel, Cmd: cmdString,
+	}, nil
+}
+
+func AddToStackFunc[T any](ctx context.Context, cmd *cobra.Command, in T, m tea.Model) tea.Cmd {
+	modelWithCmd, err := wrappedModel(m, cmd, in)
+	if err != nil {
+		return nil
+	}
+
+	stack := tui.GetStackFromContext(ctx)
+	return stack.Push(*modelWithCmd)
+
+}
+
+func LoadCmd[T any, D any](ctx context.Context, loadData func(context.Context, T) (D, error), in T) tui.TypedCmd[D] {
+	loadDataCmd := func() tea.Msg {
+		return tui.LoadingDataMsg(tea.Sequence(
+			func() tea.Msg {
+				data, err := loadData(ctx, in)
+				if err != nil {
+					return tui.ErrorMsg{Err: err}
+				}
+				return tui.LoadDataMsg[D]{Data: data}
+
+			},
+			func() tea.Msg {
+				return tui.DoneLoadingDataMsg{}
+			},
+		))
+	}
+	return loadDataCmd
+}
+
+func WrapInConfirm[D any](cmd tui.TypedCmd[D], msgFunc func() (string, error)) tui.TypedCmd[D] {
+	return func() tea.Msg {
+		strMessage, err := msgFunc()
+		if err != nil {
+			return tui.ErrorMsg{Err: err}
 		}
 
-		if opts != nil && opts.RequireConfirm.Confirm && !confirm {
-			msg, err := opts.RequireConfirm.MessageFunc(ctx, args)
-			if err != nil {
-				return func() tea.Msg { return tui.ErrorMsg{Err: err} }
-			}
-			model = tui.NewModelWithConfirm(model, msg, originalLoadDataCmd)
+		return tui.ShowConfirmMsg{
+			Message:   strMessage,
+			OnConfirm: func() tea.Cmd { return cmd.Unwrap() },
 		}
-
-		stack.Push(tui.ModelWithCmd{
-			Model: model, Cmd: cmdString,
-		})
-
-		return model.Init()
 	}
 }

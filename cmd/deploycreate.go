@@ -5,13 +5,9 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/deploy"
-	"github.com/renderinc/render-cli/pkg/pointers"
-	"github.com/renderinc/render-cli/pkg/service"
-	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/renderinc/render-cli/pkg/types"
 	"github.com/spf13/cobra"
 )
@@ -27,100 +23,13 @@ var deployCreateCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(1),
 }
 
-var InteractiveDeployCreate = command.Wrap(deployCmd, createDeploy, renderCreateDeploy, &command.WrapOptions[types.DeployInput]{
-	RequireConfirm: command.RequireConfirm[types.DeployInput]{
-		Confirm: true,
-		MessageFunc: func(ctx context.Context, args types.DeployInput) (string, error) {
-			c, err := client.NewDefaultClient()
-			if err != nil {
-				return "", fmt.Errorf("failed to create client: %w", err)
-			}
-
-			serviceRepo := service.NewRepo(c)
-			srv, err := serviceRepo.GetService(ctx, args.ServiceID)
-			if err != nil {
-				return "", fmt.Errorf("failed to get service: %w", err)
-			}
-			return fmt.Sprintf("Are you sure you want to deploy %s?", srv.Name), nil
-		},
-	},
-})
-
-func createDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy, error) {
-	c, err := client.NewDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %w", err)
-	}
-
-	deployRepo := deploy.NewRepo(c)
-
-	if input.CommitID != nil && *input.CommitID == "" {
-		input.CommitID = nil
-	}
-
-	if input.ImageURL != nil && *input.ImageURL == "" {
-		input.ImageURL = nil
-	}
-
-	d, err := deployRepo.TriggerDeploy(ctx, input.ServiceID, deploy.TriggerDeployInput{
-		ClearCache: &input.ClearCache,
-		CommitId:   input.CommitID,
-		ImageUrl:   input.ImageURL,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return d, nil
-}
-
-func renderCreateDeploy(ctx context.Context, loadData func(types.DeployInput) tui.TypedCmd[*client.Deploy], input types.DeployInput) (tea.Model, error) {
-	c, err := client.NewDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %w", err)
-	}
-
-	serviceRepo := service.NewRepo(c)
-	svc, err := serviceRepo.GetService(ctx, input.ServiceID)
-	if err != nil {
-		return nil, err
-	}
-
-	var inputs []huh.Field
-	if svc.ImagePath != nil {
-		if input.ImageURL == nil {
-			input.ImageURL = pointers.From("")
-		}
-
-		inputs = append(inputs, huh.NewInput().
-			Title("Image URL").
-			Placeholder("Enter Docker image URL (optional)").
-			Value(input.ImageURL))
-	} else {
-		if input.CommitID == nil {
-			input.CommitID = pointers.From("")
-		}
-
-		inputs = append(inputs, huh.NewInput().
-			Title("Commit ID").
-			Placeholder("Enter commit ID (optional)").
-			Value(input.CommitID))
-	}
-
-	deployForm := huh.NewForm(huh.NewGroup(inputs...))
-	logAction := func(_ *client.Deploy) tea.Cmd {
-		return InteractiveLogs(ctx, LogInput{
+var InteractiveDeployCreate = func(ctx context.Context, input types.DeployInput) tea.Cmd {
+	return command.AddToStackFunc(ctx, deployCreateCmd, &input, views.NewDeployCreateView(ctx, input, func(d *client.Deploy) tea.Cmd {
+		return InteractiveLogs(ctx, views.LogInput{
 			ResourceIDs: []string{input.ServiceID},
 			Tail:        true,
 		})
-	}
-
-	action := tui.NewFormAction(
-		logAction,
-		loadData(input),
-	)
-
-	return tui.NewFormWithAction(action, deployForm), nil
+	}))
 }
 
 func init() {
@@ -129,6 +38,19 @@ func init() {
 		err := command.ParseCommand(cmd, args, &input)
 		if err != nil {
 			return fmt.Errorf("failed to parse command: %w", err)
+		}
+
+		if nonInteractive, err := command.NonInteractive(
+			cmd.Context(),
+			cmd,
+			func() (any, error) {
+				return views.CreateDeploy(cmd.Context(), input)
+			},
+			views.DeployCreateConfirm(cmd.Context(), input),
+		); err != nil {
+			return err
+		} else if nonInteractive {
+			return nil
 		}
 
 		InteractiveDeployCreate(cmd.Context(), input)

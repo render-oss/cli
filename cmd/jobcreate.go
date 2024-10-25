@@ -5,12 +5,9 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/renderinc/render-cli/pkg/client"
 	clientjob "github.com/renderinc/render-cli/pkg/client/jobs"
 	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/job"
-	"github.com/renderinc/render-cli/pkg/pointers"
-	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/spf13/cobra"
 )
 
@@ -20,62 +17,38 @@ var jobCreateCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 }
 
-var InteractiveJobCreate = command.Wrap(jobCreateCmd, createJob, renderJobCreate, nil)
-
-type JobCreateInput struct {
-	ServiceID    string  `cli:"arg:0"`
-	StartCommand *string `cli:"start-command"`
-	PlanID       *string `cli:"plan-id"`
-}
-
-func createJob(ctx context.Context, input JobCreateInput) (*clientjob.Job, error) {
-	c, err := client.NewDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %w", err)
-	}
-
-	jobRepo := job.NewRepo(c)
-
-	return jobRepo.CreateJob(ctx, job.CreateJobInput{
-		ServiceID:    input.ServiceID,
-		StartCommand: pointers.ValueOrDefault(input.StartCommand, ""),
-		PlanID:       pointers.ValueOrDefault(input.PlanID, ""),
-	})
-}
-
-func renderJobCreate(ctx context.Context, createJobFunc func(JobCreateInput) tui.TypedCmd[*clientjob.Job], in JobCreateInput) (tea.Model, error) {
-	form, result := command.HuhForm(jobCreateCmd, &in)
-	var jobCreateInput JobCreateInput
-	err := command.StructFromFormValues(result, &jobCreateInput)
-	if err != nil {
-		return nil, err
-	}
-
-	logAction := func(j *clientjob.Job) tea.Cmd {
-		return InteractiveLogs(ctx, LogInput{
+var InteractiveJobCreate = func(ctx context.Context, input *views.JobCreateInput) tea.Cmd {
+	return command.AddToStackFunc(ctx, sshCmd, input, views.NewJobCreateView(ctx, input, jobCreateCmd, func(j *clientjob.Job) tea.Cmd {
+		return InteractiveLogs(ctx, views.LogInput{
 			ResourceIDs: []string{j.Id},
 			Tail:        true,
 		})
-	}
-
-	action := tui.NewFormAction(
-		logAction,
-		createJobFunc(jobCreateInput),
-	)
-
-	return tui.NewFormWithAction(action, form), nil
+	}))
 }
 
 func init() {
 	jobCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		var input JobCreateInput
+		var input views.JobCreateInput
 
 		err := command.ParseCommand(cmd, args, &input)
 		if err != nil {
 			return fmt.Errorf("failed to parse command: %w", err)
 		}
 
-		InteractiveJobCreate(cmd.Context(), input)
+		if nonInteractive, err := command.NonInteractive(
+			cmd.Context(),
+			cmd,
+			func() (any, error) {
+				return views.CreateJob(cmd.Context(), input)
+			},
+			nil,
+		); err != nil {
+			return err
+		} else if nonInteractive {
+			return nil
+		}
+
+		InteractiveJobCreate(cmd.Context(), &input)
 		return nil
 	}
 

@@ -2,11 +2,10 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/spf13/cobra"
 )
 
@@ -16,55 +15,29 @@ var restartCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 }
 
-var InteractiveRestart = command.Wrap(
-	restartCmd,
-	restartResource,
-	renderRestart,
-	&command.WrapOptions[RestartInput]{
-		RequireConfirm: command.RequireConfirm[RestartInput]{
-			Confirm: true,
-			MessageFunc: func(ctx context.Context, args RestartInput) (string, error) {
-				resourceService, err := newResourceService()
-				if err != nil {
-					return "", fmt.Errorf("failed to create resource service: %w", err)
-				}
-
-				res, err := resourceService.GetResource(ctx, args.ResourceID)
-
-				return fmt.Sprintf("Are you sure you want to restart resource %s?", res.Name()), nil
-			},
-		},
-	},
-)
-
-type RestartInput struct {
-	ResourceID string `cli:"arg:0"`
-}
-
-func restartResource(ctx context.Context, input RestartInput) (string, error) {
-	resourceService, err := newResourceService()
-	if err != nil {
-		return "", fmt.Errorf("failed to create resource service: %w", err)
-	}
-
-	err = resourceService.RestartResource(ctx, input.ResourceID)
-	if err != nil {
-		return "", fmt.Errorf("failed to restart resource: %w", err)
-	}
-
-	return fmt.Sprintf("%s restarted successfully", input.ResourceID), nil
-}
-
-func renderRestart(_ context.Context, loadData func(RestartInput) tui.TypedCmd[string], in RestartInput) (tea.Model, error) {
-	return tui.NewSimpleModel(loadData(in)), nil
+var InteractiveRestart = func(ctx context.Context, input views.RestartInput) tea.Cmd {
+	return command.AddToStackFunc(ctx, restartCmd, &input, views.NewRestartView(ctx, input))
 }
 
 func init() {
 	restartCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		var input RestartInput
+		var input views.RestartInput
 		err := command.ParseCommand(cmd, args, &input)
 		if err != nil {
 			return err
+		}
+
+		if nonInteractive, err := command.NonInteractive(
+			cmd.Context(),
+			cmd,
+			func() (any, error) {
+				return views.RestartResource(cmd.Context(), input)
+			},
+			nil,
+		); err != nil {
+			return err
+		} else if nonInteractive {
+			return nil
 		}
 
 		InteractiveRestart(cmd.Context(), input)

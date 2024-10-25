@@ -6,16 +6,13 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
-	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/environment"
 	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/renderinc/render-cli/pkg/postgres"
-	"github.com/renderinc/render-cli/pkg/project"
 	"github.com/renderinc/render-cli/pkg/resource"
-	resourcetui "github.com/renderinc/render-cli/pkg/resource/tui"
 	"github.com/renderinc/render-cli/pkg/service"
 	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/renderinc/render-cli/pkg/types"
 	"github.com/spf13/cobra"
 )
@@ -27,68 +24,7 @@ var servicesCmd = &cobra.Command{
 In interactive mode you can view logs, restart, deploy, SSH, and open PSQL terminals.`,
 }
 
-var InteractiveServices = command.Wrap(servicesCmd, loadResourceData, renderResources, nil)
-
-func loadResourceData(ctx context.Context, in ListResourceInput) ([]resource.Resource, error) {
-	resourceService, err := newResourceService()
-	if err != nil {
-		return nil, err
-	}
-	return resourceService.ListResources(ctx, in.ToParams())
-}
-
-type ListResourceInput struct {
-	EnvironmentID string `cli:"environment"`
-}
-
-func (l ListResourceInput) ToParams() resource.ResourceParams {
-	return resource.ResourceParams{
-		EnvironmentID: l.EnvironmentID,
-	}
-}
-
-func renderResources(ctx context.Context, loadData func(input ListResourceInput) tui.TypedCmd[[]resource.Resource], in ListResourceInput) (tea.Model, error) {
-	columns := resourcetui.ColumnsForResources()
-
-	createRowFunc := func(r resource.Resource) btable.Row {
-		return resourcetui.RowForResource(r)
-	}
-
-	onSelect := func(rows []btable.Row) tea.Cmd {
-		if len(rows) == 0 {
-			return nil
-		}
-
-		r, ok := rows[0].Data["resource"].(resource.Resource)
-		if !ok {
-			return nil
-		}
-
-		return selectResource(ctx)(r)
-	}
-
-	customOptions := []tui.CustomOption{
-		{
-			Key:   "w",
-			Title: "Change Workspace",
-			Function: func(row btable.Row) tea.Cmd {
-				return InteractiveWorkspaceSet(ctx, ListWorkspaceInput{})
-			},
-		},
-	}
-
-	t := tui.NewTable(
-		columns,
-		loadData(in),
-		createRowFunc,
-		onSelect,
-		tui.WithCustomOptions[resource.Resource](customOptions),
-	)
-
-	return t, nil
-}
-
-func optionallyAddCommand(commands []PaletteCommand, command PaletteCommand, allowedTypes []string, resource resource.Resource) []PaletteCommand {
+func optionallyAddCommand(commands []views.PaletteCommand, command views.PaletteCommand, allowedTypes []string, resource resource.Resource) []views.PaletteCommand {
 	if len(allowedTypes) == 0 {
 		return append(commands, command)
 	}
@@ -102,47 +38,47 @@ func optionallyAddCommand(commands []PaletteCommand, command PaletteCommand, all
 	return commands
 }
 
-func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
-	return func(r resource.Resource) tea.Cmd {
+func selectResource(ctx context.Context) func(resource.Resource) []views.PaletteCommand {
+	return func(r resource.Resource) []views.PaletteCommand {
 		type commandWithAllowedTypes struct {
-			command      PaletteCommand
+			command      views.PaletteCommand
 			allowedTypes []string
 		}
 
-		var commands []PaletteCommand
+		var commands []views.PaletteCommand
 		commandWithTypes := []commandWithAllowedTypes{
 			{
-				command: PaletteCommand{
+				command: views.PaletteCommand{
 					Name:        "logs",
 					Description: "View resource logs",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveLogs(ctx, LogInput{
+						return InteractiveLogs(ctx, views.LogInput{
 							ResourceIDs: []string{r.ID()},
 						})
 					},
 				},
 			},
 			{
-				command: PaletteCommand{
+				command: views.PaletteCommand{
 					Name:        "restart",
 					Description: "Restart the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveRestart(ctx, RestartInput{ResourceID: r.ID()})
+						return InteractiveRestart(ctx, views.RestartInput{ResourceID: r.ID()})
 					},
 				},
 			},
 			{
-				command: PaletteCommand{
+				command: views.PaletteCommand{
 					Name:        "psql",
 					Description: "Connect to the PostgreSQL database",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractivePSQL(ctx, PSQLInput{PostgresID: r.ID()})
+						return InteractivePSQLView(ctx, &views.PSQLInput{PostgresID: r.ID()})
 					},
 				},
 				allowedTypes: []string{postgres.PostgresType},
 			},
 			{
-				command: PaletteCommand{
+				command: views.PaletteCommand{
 					Name:        "deploy create",
 					Description: "Deploy the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
@@ -152,21 +88,21 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 				allowedTypes: service.Types,
 			},
 			{
-				command: PaletteCommand{
+				command: views.PaletteCommand{
 					Name:        "deploy list",
 					Description: "List deploys for the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveDeployList(ctx, DeployListInput{ServiceID: r.ID()})
+						return InteractiveDeployList(ctx, views.DeployListInput{ServiceID: r.ID()})
 					},
 				},
 				allowedTypes: service.Types,
 			},
 			{
-				command: PaletteCommand{
+				command: views.PaletteCommand{
 					Name:        "ssh",
 					Description: "SSH into the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveSSH(ctx, SSHInput{ServiceID: r.ID()})
+						return InteractiveSSHView(ctx, &views.SSHInput{ServiceID: r.ID()})
 					},
 				},
 				allowedTypes: []string{
@@ -175,11 +111,11 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 				},
 			},
 			{
-				command: PaletteCommand{
+				command: views.PaletteCommand{
 					Name:        "jobs list",
 					Description: "List jobs for the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveJobList(ctx, JobListInput{ServiceID: r.ID()})
+						return InteractiveJobList(ctx, views.JobListInput{ServiceID: r.ID()})
 					},
 				},
 				allowedTypes: []string{
@@ -188,11 +124,11 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 				},
 			},
 			{
-				command: PaletteCommand{
+				command: views.PaletteCommand{
 					Name:        "jobs create",
 					Description: "Create a new job for the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveJobCreate(ctx, JobCreateInput{
+						return InteractiveJobCreate(ctx, &views.JobCreateInput{
 							ServiceID:    r.ID(),
 							StartCommand: pointers.From(""),
 							PlanID:       pointers.From(""),
@@ -215,44 +151,48 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 			return commands[i].Name < commands[j].Name
 		})
 
-		return InteractiveCommandPalette(ctx, PaletteCommandInput{
-			Commands: commands,
-		})
+		return commands
 	}
 }
 
-func newResourceService() (*resource.Service, error) {
-	c, err := client.NewDefaultClient()
-	if err != nil {
-		return nil, err
-	}
-
-	serviceRepo := service.NewRepo(c)
-	environmentRepo := environment.NewRepo(c)
-	projectRepo := project.NewRepo(c)
-	postgresRepo := postgres.NewRepo(c)
-
-	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
-	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo)
-
-	resourceService := resource.NewResourceService(
-		serviceService,
-		postgresService,
-		environmentRepo,
-		projectRepo,
+var InteractiveServices = func(ctx context.Context, in views.ListResourceInput) tea.Cmd {
+	return command.AddToStackFunc(ctx, servicesCmd, &in,
+		views.NewResourceWithPaletteView(
+			ctx,
+			in,
+			func(r resource.Resource) []views.PaletteCommand {
+				return selectResource(ctx)(r)
+			},
+			tui.WithCustomOptions[resource.Resource]([]tui.CustomOption{
+				{
+					Key:   "w",
+					Title: "Change Workspace",
+					Function: func(row btable.Row) tea.Cmd {
+						return InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
+					},
+				},
+			}),
+		),
 	)
 
-	return resourceService, nil
 }
 
 func init() {
 	rootCmd.AddCommand(servicesCmd)
 
 	servicesCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		in := ListResourceInput{}
+		in := views.ListResourceInput{}
 		err := command.ParseCommand(cmd, args, &in)
 		if err != nil {
 			return err
+		}
+
+		if nonInteractive, err := command.NonInteractive(cmd.Context(), cmd, func() (any, error) {
+			return views.LoadResourceData(cmd.Context(), in)
+		}, nil); err != nil {
+			return err
+		} else if nonInteractive {
+			return nil
 		}
 
 		InteractiveServices(cmd.Context(), in)

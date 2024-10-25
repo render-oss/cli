@@ -2,14 +2,13 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/environment"
 	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/spf13/cobra"
 )
 
@@ -21,91 +20,41 @@ var environmentCmd = &cobra.Command{
 In interactive mode you can view the services for an environment.`,
 }
 
-var InteractiveEnvironment = command.Wrap(environmentCmd, loadEnvironments, renderEnvironments, nil)
-
-type EnvironmentInput struct {
-	ProjectID string `cli:"arg:0"`
-}
-
-func (e EnvironmentInput) ToParams() *client.ListEnvironmentsParams {
-	return &client.ListEnvironmentsParams{
-		ProjectId: []string{e.ProjectID},
-	}
-}
-
-func loadEnvironments(ctx context.Context, in EnvironmentInput) ([]*client.Environment, error) {
-	c, err := client.NewDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %w", err)
-	}
-
-	environmentRepo := environment.NewRepo(c)
-
-	return environmentRepo.ListEnvironments(ctx, in.ToParams())
-}
-
-func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) tui.TypedCmd[[]*client.Environment], input EnvironmentInput) (tea.Model, error) {
-	columns := []btable.Column{
-		btable.NewColumn("ID", "ID", 25).WithFiltered(true),
-		btable.NewFlexColumn("Name", "Name", 3).WithFiltered(true),
-		btable.NewFlexColumn("Project", "Project", 3).WithFiltered(true),
-		btable.NewFlexColumn("Protected", "Protected", 2).WithFiltered(true),
-	}
-
-	createRowFunc := func(env *client.Environment) btable.Row {
-		return btable.NewRow(btable.RowData{
-			"ID":          env.Id,
-			"Name":        env.Name,
-			"Project":     env.ProjectId,
-			"Protected":   string(env.ProtectedStatus),
-			"environment": env, // this will be hidden in the UI, but will be used to get the environment when selected
-		})
-	}
-
-	onSelect := func(rows []btable.Row) tea.Cmd {
-		if len(rows) == 0 {
-			return nil
-		}
-
-		env, ok := rows[0].Data["environment"].(*client.Environment)
-		if !ok {
-			return nil
-		}
-
-		return InteractiveServices(ctx, ListResourceInput{
-			EnvironmentID: env.Id,
-		})
-	}
-
-	customOptions := []tui.CustomOption{
-		{
-			Key:   "w",
-			Title: "Change Workspace",
-			Function: func(row btable.Row) tea.Cmd {
-				return InteractiveWorkspaceSet(ctx, ListWorkspaceInput{})
-			},
+var InteractiveEnvironment = func(ctx context.Context, input views.EnvironmentInput) tea.Cmd {
+	return command.AddToStackFunc(ctx, environmentCmd, &input, views.NewEnvironmentList(ctx, input,
+		func(ctx context.Context, e *client.Environment) tea.Cmd {
+			return InteractiveServices(ctx, views.ListResourceInput{
+				EnvironmentID: e.Id,
+			})
 		},
-	}
-
-	t := tui.NewTable(
-		columns,
-		loadData(input),
-		createRowFunc,
-		onSelect,
-		tui.WithCustomOptions[*client.Environment](customOptions),
-	)
-
-	return t, nil
+		tui.WithCustomOptions[*client.Environment]([]tui.CustomOption{
+			{
+				Key:   "w",
+				Title: "Change Workspace",
+				Function: func(row btable.Row) tea.Cmd {
+					return InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
+				},
+			},
+		}),
+	))
 }
 
 func init() {
 	rootCmd.AddCommand(environmentCmd)
 
 	environmentCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		var input EnvironmentInput
+		var input views.EnvironmentInput
 		err := command.ParseCommand(cmd, args, &input)
 		if err != nil {
 			return err
+		}
+
+		if nonInteractive, err := command.NonInteractive(cmd.Context(), cmd, func() (any, error) {
+			return views.LoadEnvironments(cmd.Context(), input)
+		}, nil); err != nil {
+			return err
+		} else if nonInteractive {
+			return nil
 		}
 
 		InteractiveEnvironment(cmd.Context(), input)

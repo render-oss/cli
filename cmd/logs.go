@@ -1,34 +1,18 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
-	btable "github.com/evertras/bubble-table/table"
-	"github.com/renderinc/render-cli/pkg/client"
 	lclient "github.com/renderinc/render-cli/pkg/client/logs"
 	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/config"
-	"github.com/renderinc/render-cli/pkg/logs"
-	"github.com/renderinc/render-cli/pkg/pointers"
-	"github.com/renderinc/render-cli/pkg/resource"
-	resourcetui "github.com/renderinc/render-cli/pkg/resource/tui"
-	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
-const defaultLogLimit = 100
-
-// logsCmd represents the logs command
 var logsCmd = &cobra.Command{
 	Use:   "logs",
 	Short: "View logs for services, cron jobs, and databases",
@@ -40,113 +24,8 @@ Unlike in the dashboard you can view logs for multiple resources at once. Set --
 In interactive mode you can update the filters and view logs in real time.`,
 }
 
-var InteractiveLogs = command.Wrap(logsCmd, loadLogData, renderLogs, nil)
-var InteractiveLogsSelectResource = command.Wrap(logsCmd, loadResourceData, renderResourcesForLogs, nil)
-
-type LogInput struct {
-	ResourceIDs []string `cli:"resources"`
-	Instance    []string `cli:"instance"`
-	StartTime   *string  `cli:"start"`
-	EndTime     *string  `cli:"end"`
-	Text        []string `cli:"text"`
-	Level       []string `cli:"level"`
-	Type        []string `cli:"type"`
-
-	Host       []string `cli:"host"`
-	StatusCode []string `cli:"status-code"`
-	Method     []string `cli:"method"`
-	Path       []string `cli:"path"`
-
-	Limit     int    `cli:"limit"`
-	Direction string `cli:"direction"`
-	Tail      bool   `cli:"tail"`
-}
-
-func (l LogInput) ToParam() (*client.ListLogsParams, error) {
-	now := time.Now()
-	ownerID, err := config.WorkspaceID()
-	if err != nil {
-		return nil, fmt.Errorf("error getting workspace ID: %v", err)
-	}
-
-	if l.Limit == 0 {
-		l.Limit = 100
-	}
-
-	return &client.ListLogsParams{
-		Resource:   l.ResourceIDs,
-		OwnerId:    ownerID,
-		Instance:   pointers.FromArray(l.Instance),
-		Limit:      pointers.From(l.Limit),
-		StartTime:  command.ParseTime(now, l.StartTime),
-		EndTime:    command.ParseTime(now, l.EndTime),
-		Text:       pointers.FromArray(l.Text),
-		Level:      pointers.FromArray(l.Level),
-		Type:       pointers.FromArray(l.Type),
-		Host:       pointers.FromArray(l.Host),
-		StatusCode: pointers.FromArray(l.StatusCode),
-		Method:     pointers.FromArray(l.Method),
-		Path:       pointers.FromArray(l.Path),
-		Direction:  pointers.From(mapDirection(l.Direction)),
-	}, nil
-}
-
-func mapDirection(direction string) lclient.LogDirection {
-	switch direction {
-	case "forward":
-		return lclient.Forward
-	case "backward":
-		return lclient.Backward
-	default:
-		return lclient.Backward
-	}
-}
-
-func loadLogData(ctx context.Context, in LogInput) (*tui.LogResult, error) {
-	c, err := client.NewDefaultClient()
-	if err != nil {
-		return nil, err
-	}
-	if err != nil {
-		return nil, fmt.Errorf("error creating client: %v", err)
-	}
-	logRepo := logs.NewLogRepo(c)
-	params, err := in.ToParam()
-	if err != nil {
-		return nil, fmt.Errorf("error converting input to params: %v", err)
-	}
-
-	if in.Tail {
-		logChan, err := logRepo.TailLogs(ctx, params)
-		if err != nil {
-			return nil, fmt.Errorf("error tailing logs: %v", err)
-		}
-		return &tui.LogResult{Logs: &client.Logs200Response{}, LogChannel: logChan}, nil
-	}
-
-	logs, err := logRepo.ListLogs(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("error listing logs: %v", err)
-	}
-	return &tui.LogResult{Logs: logs, LogChannel: nil}, nil
-}
-
-func logForm(ctx context.Context, in LogInput) *tui.FilterModel {
-	form, result := command.HuhForm(logsCmd, &in)
-	return tui.NewFilterModel(form.WithHeight(10), func(form *huh.Form) tea.Cmd {
-		var logInput LogInput
-		err := command.StructFromFormValues(result, &logInput)
-		if err != nil {
-			panic(err)
-		}
-
-		return command.Wrap(logsCmd, loadLogData, renderLogs, nil)(ctx, logInput)
-	})
-}
-
-func renderLogs(ctx context.Context, loadData func(LogInput) tui.TypedCmd[*tui.LogResult], in LogInput) (tea.Model, error) {
-	model := tui.NewLogModel(logForm(ctx, in), loadData(in))
-	return model, nil
+func filterLogs(ctx context.Context, in views.LogInput) tea.Cmd {
+	return command.AddToStackFunc(ctx, logsCmd, &in, views.NewLogsView(ctx, logsCmd, filterLogs, in))
 }
 
 func writeLog(format command.Output, out io.Writer, log *lclient.Log) error {
@@ -166,8 +45,8 @@ func writeLog(format command.Output, out io.Writer, log *lclient.Log) error {
 	return err
 }
 
-func nonInteractiveLogs(format *command.Output, cmd *cobra.Command, input LogInput) error {
-	result, err := loadLogData(cmd.Context(), input)
+func nonInteractiveLogs(format *command.Output, cmd *cobra.Command, input views.LogInput) error {
+	result, err := views.LoadLogData(cmd.Context(), input)
 	if err != nil {
 		return err
 	}
@@ -195,72 +74,27 @@ func nonInteractiveLogs(format *command.Output, cmd *cobra.Command, input LogInp
 	return nil
 }
 
-func renderResourcesForLogs(ctx context.Context, loadData func(input ListResourceInput) tui.TypedCmd[[]resource.Resource], in ListResourceInput) (tea.Model, error) {
-	columns := resourcetui.ColumnsForResources()
-
-	createRowFunc := func(r resource.Resource) btable.Row {
-		return resourcetui.RowForResource(r)
-	}
-
-	onSelect := func(rows []btable.Row) tea.Cmd {
-		if len(rows) == 0 {
-			return nil
-		}
-
-		r, ok := rows[0].Data["resource"].(resource.Resource)
-		if !ok {
-			return nil
-		}
-
-		return InteractiveLogs(ctx, LogInput{ResourceIDs: []string{r.ID()}})
-	}
-
-	customOptions := []tui.CustomOption{
-		{
-			Key:   "w",
-			Title: "Change Workspace",
-			Function: func(row btable.Row) tea.Cmd {
-				return InteractiveWorkspaceSet(ctx, ListWorkspaceInput{})
-			},
-		},
-	}
-
-	t := tui.NewTable(
-		columns,
-		loadData(in),
-		createRowFunc,
-		onSelect,
-		tui.WithCustomOptions[resource.Resource](customOptions),
-	)
-
-	return t, nil
+var InteractiveLogs = func(ctx context.Context, input views.LogInput) tea.Cmd {
+	return command.AddToStackFunc(ctx, logsCmd, &input, views.NewLogsView(ctx, logsCmd, filterLogs, input))
 }
 
 func init() {
 	logsCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		var input LogInput
+		var input views.LogInput
 		err := command.ParseCommand(cmd, args, &input)
 		if err != nil {
 			return err
 		}
 
-		// Normally we'd let the wrapper handle non-interactive mode.
-		// However, logs are a special case where we want to stream new logs
-		// from the server. Since we don't have other commands that stream
-		// we're going to special case this one.
 		format := command.GetFormatFromContext(cmd.Context())
 		if format != nil && (*format == command.JSON || *format == command.YAML) {
 			return nonInteractiveLogs(format, cmd, input)
 		}
 
-		if len(input.ResourceIDs) == 0 {
-			InteractiveLogsSelectResource(cmd.Context(), ListResourceInput{})
-			return nil
-		}
-
 		InteractiveLogs(cmd.Context(), input)
 		return nil
 	}
+
 	logsCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		// Resources flag is required in non-interactive mode
 		format := command.GetFormatFromContext(cmd.Context())
@@ -273,10 +107,9 @@ func init() {
 	rootCmd.AddCommand(logsCmd)
 
 	logsCmd.Flags().StringSliceP("resources", "r", []string{}, "A list of comma separated resource IDs to query. Required in non-interactive mode.")
-
 	logsCmd.Flags().String("start", "", "The start time of the logs to query")
 	logsCmd.Flags().String("end", "", "The end time of the logs to query")
-	logsCmd.Flags().StringSlice("text", []string{}, "A list of comma separated strings to search for in the logs. Only logs that contain all of the strings will be returned. Wildcards * and regular expressions are supported.")
+	logsCmd.Flags().StringSlice("text", []string{}, "A list of comma separated strings to search for in the logs")
 	logsCmd.Flags().StringSlice("level", []string{}, "A list of comma separated log levels to query")
 	logsCmd.Flags().StringSlice("type", []string{}, "A list of comma separated log types to query")
 	logsCmd.Flags().StringSlice("instance", []string{}, "A list of comma separated instance IDs to query")
@@ -284,8 +117,7 @@ func init() {
 	logsCmd.Flags().StringSlice("status-code", []string{}, "A list of comma separated status codes to query")
 	logsCmd.Flags().StringSlice("method", []string{}, "A list of comma separated HTTP methods to query")
 	logsCmd.Flags().StringSlice("path", []string{}, "A list of comma separated paths to query")
-	logsCmd.Flags().Int("limit", defaultLogLimit, "The maximum number of logs to return")
+	logsCmd.Flags().Int("limit", 100, "The maximum number of logs to return")
 	logsCmd.Flags().String("direction", "backward", "The direction to query the logs. Can be 'forward' or 'backward'")
-
 	logsCmd.Flags().Bool("tail", false, "Stream new logs")
 }
