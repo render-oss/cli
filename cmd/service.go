@@ -190,7 +190,7 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 			{
 				command: PaletteCommand{
 					Name:        "jobs create",
-					Description: "List jobs for the service",
+					Description: "Create a new job for the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
 						return InteractiveJobCreate(ctx, JobCreateInput{
 							ServiceID:    r.ID(),
