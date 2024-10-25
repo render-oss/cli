@@ -74,7 +74,7 @@ func createDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy,
 	return d, nil
 }
 
-func renderCreateDeploy(ctx context.Context, loadData func(types.DeployInput) (*client.Deploy, error), input types.DeployInput) (tea.Model, error) {
+func renderCreateDeploy(ctx context.Context, loadData func(types.DeployInput) tui.TypedCmd[*client.Deploy], input types.DeployInput) (tea.Model, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client: %w", err)
@@ -108,37 +108,16 @@ func renderCreateDeploy(ctx context.Context, loadData func(types.DeployInput) (*
 	}
 
 	deployForm := huh.NewForm(huh.NewGroup(inputs...))
-
-	logData := func(in LogInput) (*LogResult, error) {
-		return loadLogData(ctx, in)
-	}
-
-	logModelFunc := func(string) (tea.Model, error) {
-		model, err := renderLogs(ctx, logData, LogInput{
+	logAction := func(_ *client.Deploy) tea.Cmd {
+		return InteractiveLogs(ctx, LogInput{
 			ResourceIDs: []string{input.ServiceID},
 			Tail:        true,
 		})
-		if err != nil {
-			return nil, err
-		}
-		model.Init()
-		return model, nil
-	}
-
-	onSubmit := func() tea.Cmd {
-		return func() tea.Msg {
-			_, err := loadData(input)
-			if err != nil {
-				return tui.ErrorMsg{Err: fmt.Errorf("failed to trigger deploy: %w", err)}
-			}
-
-			return tea.Println("Deploy triggered")
-		}
 	}
 
 	action := tui.NewFormAction(
-		logModelFunc,
-		onSubmit,
+		logAction,
+		loadData(input),
 	)
 
 	return tui.NewFormWithAction(action, deployForm), nil

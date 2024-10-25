@@ -16,7 +16,7 @@ const ConfirmFlag = "confirm"
 
 type WrappedFunc[T any] func(ctx context.Context, args T) tea.Cmd
 
-type InteractiveFunc[T any, D any] func(context.Context, func(T) (D, error), T) (tea.Model, error)
+type InteractiveFunc[T any, D any] func(context.Context, func(T) tui.TypedCmd[D], T) (tea.Model, error)
 
 type RequireConfirm[T any] struct {
 	Confirm     bool
@@ -100,24 +100,44 @@ func Wrap[T any, D any](cmd *cobra.Command, loadData func(context.Context, T) (D
 			}
 		}
 
+		loadDataCmd := func() tea.Msg {
+			return tui.LoadingDataMsg(tea.Sequence(
+				func() tea.Msg {
+					data, err := loadData(ctx, args)
+					if err != nil {
+						return tui.ErrorMsg{Err: err}
+					}
+					return tui.LoadDataMsg[D]{Data: data}
+
+				},
+				func() tea.Msg {
+					return tui.DoneLoadingDataMsg{}
+				},
+			))
+		}
+
+		originalLoadDataCmd := loadDataCmd
+
+		confirm := GetConfirmFromContext(ctx)
+		if opts != nil && opts.RequireConfirm.Confirm && !confirm {
+			loadDataCmd = func() tea.Msg {
+				return tui.ShowConfirmMsg{}
+			}
+		}
+
 		stack := tui.GetStackFromContext(ctx)
-		model, err := interactiveFunc(ctx, func(T) (D, error) { return loadData(ctx, args) }, args)
+		model, err := interactiveFunc(ctx, func(T) tui.TypedCmd[D] { return loadDataCmd }, args)
 		if err != nil {
-			errModel := tui.NewErrorModel(err.Error())
-			stack.Push(tui.ModelWithCmd{
-				Model: errModel, Cmd: cmdString,
-			})
 			_, _ = cmd.ErrOrStderr().Write([]byte(err.Error()))
 			return func() tea.Msg { return tui.ErrorMsg{Err: err} }
 		}
 
-		confirm := GetConfirmFromContext(ctx)
 		if opts != nil && opts.RequireConfirm.Confirm && !confirm {
 			msg, err := opts.RequireConfirm.MessageFunc(ctx, args)
 			if err != nil {
 				return func() tea.Msg { return tui.ErrorMsg{Err: err} }
 			}
-			model = tui.NewModelWithConfirm(model, msg)
+			model = tui.NewModelWithConfirm(model, msg, originalLoadDataCmd)
 		}
 
 		stack.Push(tui.ModelWithCmd{

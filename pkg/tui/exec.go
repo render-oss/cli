@@ -6,37 +6,40 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func NewExecModel(cmd *exec.Cmd) *ExecModel {
+func NewExecModel(loadCmd TypedCmd[*exec.Cmd]) *ExecModel {
 	return &ExecModel{
-		cmd: cmd,
+		loadCmd: loadCmd,
 	}
 }
 
 type ExecModel struct {
-	cmd *exec.Cmd
+	loadCmd TypedCmd[*exec.Cmd]
 }
 
-type ExecDone struct{
+type ExecDone struct {
 	Error error
 }
 
 func (m *ExecModel) Init() tea.Cmd {
-	return tea.ExecProcess(m.cmd, func(err error) tea.Msg {
-		return ExecDone{
-			Error: err,
-		}
-	})
+	return m.loadCmd.Unwrap()
 }
 
 func (m *ExecModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if execMsg, ok := msg.(ExecDone); ok {
-		return m, func() tea.Msg { 
-			if execMsg.Error != nil {
+	switch msg := msg.(type) {
+	case LoadDataMsg[*exec.Cmd]:
+		return m, tea.ExecProcess(msg.Data, func(err error) tea.Msg {
+			return ExecDone{
+				Error: err,
+			}
+		})
+	case ExecDone:
+		return m, func() tea.Msg {
+			if msg.Error != nil {
 				return ErrorMsg{
-					Err: execMsg.Error,
+					Err: msg.Error,
 				}
 			}
-			return DoneMsg{Message: "Done"} 
+			return DoneMsg{Message: "Done"}
 		}
 	}
 

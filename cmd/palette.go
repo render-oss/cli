@@ -36,16 +36,12 @@ const columnDescriptionKey = "Description"
 
 func renderPalette(
 	ctx context.Context,
-	loadData func(PaletteCommandInput) ([]PaletteCommand, error),
+	loadData func(PaletteCommandInput) tui.TypedCmd[[]PaletteCommand],
 	in PaletteCommandInput,
 ) (tea.Model, error) {
 	columns := []btable.Column{
 		btable.NewColumn(columnCommandKey, "Command", 15).WithFiltered(true),
 		btable.NewFlexColumn(columnDescriptionKey, "Description", 3),
-	}
-
-	loadDataFunc := func() ([]PaletteCommand, error) {
-		return loadData(in)
 	}
 
 	createRowFunc := func(cmd PaletteCommand) btable.Row {
@@ -64,7 +60,7 @@ func renderPalette(
 			return nil
 		}
 
-		commands, err := loadData(in)
+		commands, err := loadCommandPalette(ctx, in)
 		if err != nil {
 			return func() tea.Msg {
 				return tui.ErrorMsg{Err: err}
@@ -81,7 +77,7 @@ func renderPalette(
 
 	t := tui.NewTable(
 		columns,
-		loadDataFunc,
+		loadData(in),
 		createRowFunc,
 		onSelect,
 	)

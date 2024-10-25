@@ -31,27 +31,22 @@ type PSQLInput struct {
 	PostgresID string `cli:"arg:0"`
 }
 
-func loadDataPSQL(ctx context.Context, in PSQLInput) (string, error) {
+func loadDataPSQL(ctx context.Context, in PSQLInput) (*exec.Cmd, error) {
 	c, err := client.NewDefaultClient()
-	if err != nil {
-		return "", err
-	}
-
-	connectionInfo, err := postgres.NewRepo(c).GetPostgresConnectionInfo(ctx, in.PostgresID)
-	if err != nil {
-		return "", err
-	}
-
-	return connectionInfo.ExternalConnectionString, nil
-}
-
-func renderPSQL(ctx context.Context, loadData func(in PSQLInput) (string, error), in PSQLInput) (tea.Model, error) {
-	connectionString, err := loadData(in)
 	if err != nil {
 		return nil, err
 	}
 
-	return tui.NewExecModel(exec.Command("psql", connectionString)), nil
+	connectionInfo, err := postgres.NewRepo(c).GetPostgresConnectionInfo(ctx, in.PostgresID)
+	if err != nil {
+		return nil, err
+	}
+
+	return exec.Command("psql", connectionInfo.ExternalConnectionString), nil
+}
+
+func renderPSQL(ctx context.Context, loadData func(in PSQLInput) tui.TypedCmd[*exec.Cmd], in PSQLInput) (tea.Model, error) {
+	return tui.NewExecModel(loadData(in)), nil
 }
 
 func listDatabases(ctx context.Context, _ PSQLInput) ([]*postgres.Model, error) {
@@ -69,12 +64,8 @@ func listDatabases(ctx context.Context, _ PSQLInput) ([]*postgres.Model, error) 
 	return postgresService.ListPostgres(ctx, &client.ListPostgresParams{})
 }
 
-func renderPSQLSelection(ctx context.Context, loadData func(in PSQLInput) ([]*postgres.Model, error), _ PSQLInput) (tea.Model, error) {
+func renderPSQLSelection(ctx context.Context, loadData func(in PSQLInput) tui.TypedCmd[[]*postgres.Model], _ PSQLInput) (tea.Model, error) {
 	columns := postgrestui.Columns()
-
-	loadDataFunc := func() ([]*postgres.Model, error) {
-		return loadData(PSQLInput{})
-	}
 
 	createRowFunc := func(p *postgres.Model) table.Row {
 		return postgrestui.Row(p)
@@ -89,7 +80,7 @@ func renderPSQLSelection(ctx context.Context, loadData func(in PSQLInput) ([]*po
 
 	t := tui.NewTable(
 		columns,
-		loadDataFunc,
+		loadData(PSQLInput{}),
 		createRowFunc,
 		onSelect,
 	)
@@ -106,6 +97,11 @@ func init() {
 		err := command.ParseCommand(cmd, args, &input)
 		if err != nil {
 			return err
+		}
+
+		if input.PostgresID != "" {
+			InteractivePSQL(ctx, input)
+			return nil
 		}
 
 		InteractivePSQLSelectDB(ctx, input)

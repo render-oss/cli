@@ -34,15 +34,15 @@ type SSHInput struct {
 	ServiceID string `cli:"arg:0"`
 }
 
-func loadDataSSH(ctx context.Context, in SSHInput) (string, error) {
+func loadDataSSH(ctx context.Context, in SSHInput) (*exec.Cmd, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	serviceInfo, err := service.NewRepo(c).GetService(ctx, in.ServiceID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var sshAddress *string
@@ -53,23 +53,18 @@ func loadDataSSH(ctx context.Context, in SSHInput) (string, error) {
 	} else if details, err := serviceInfo.ServiceDetails.AsBackgroundWorkerDetails(); err == nil {
 		sshAddress = details.SshAddress
 	} else {
-		return "", fmt.Errorf("unsupported service type")
+		return nil, fmt.Errorf("unsupported service type")
 	}
 
 	if sshAddress == nil {
-		return "", fmt.Errorf("service does not support ssh")
+		return nil, fmt.Errorf("service does not support ssh")
 	}
 
-	return *sshAddress, nil
+	return exec.Command("ssh", *sshAddress), nil
 }
 
-func renderSSH(ctx context.Context, loadData func(in SSHInput) (string, error), in SSHInput) (tea.Model, error) {
-	sshAddress, err := loadData(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return tui.NewExecModel(exec.Command("ssh", sshAddress)), nil
+func renderSSH(ctx context.Context, loadData func(in SSHInput) tui.TypedCmd[*exec.Cmd], in SSHInput) (tea.Model, error) {
+	return tui.NewExecModel(loadData(in)), nil
 }
 
 func listServices(ctx context.Context, _ SSHInput) ([]*service.Model, error) {
@@ -90,12 +85,8 @@ func listServices(ctx context.Context, _ SSHInput) ([]*service.Model, error) {
 	})
 }
 
-func renderSSHSelection(ctx context.Context, loadData func(in SSHInput) ([]*service.Model, error), _ SSHInput) (tea.Model, error) {
+func renderSSHSelection(ctx context.Context, loadData func(in SSHInput) tui.TypedCmd[[]*service.Model], _ SSHInput) (tea.Model, error) {
 	columns := resourcetui.ColumnsForResources()
-
-	loadDataFunc := func() ([]*service.Model, error) {
-		return loadData(SSHInput{})
-	}
 
 	createRowFunc := func(s *service.Model) table.Row {
 		return resourcetui.RowForResource(s)
@@ -110,7 +101,7 @@ func renderSSHSelection(ctx context.Context, loadData func(in SSHInput) ([]*serv
 
 	t := tui.NewTable(
 		columns,
-		loadDataFunc,
+		loadData(SSHInput{}),
 		createRowFunc,
 		onSelect,
 	)
@@ -128,6 +119,11 @@ func init() {
 		err := command.ParseCommand(cmd, args, &input)
 		if err != nil {
 			return err
+		}
+
+		if input.ServiceID != "" {
+			InteractiveSSH(ctx, input)
+			return nil
 		}
 
 		InteractiveSSHSelectService(ctx, input)

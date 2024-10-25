@@ -47,14 +47,10 @@ func loadDeployList(ctx context.Context, input DeployListInput) ([]*client.Deplo
 	return deploys, nil
 }
 
-func renderDeployList(ctx context.Context, loadData func(DeployListInput) ([]*client.Deploy, error), input DeployListInput) (tea.Model, error) {
-	loadFunc := func() ([]*client.Deploy, error) {
-		return loadData(input)
-	}
-
+func renderDeployList(ctx context.Context, loadData func(DeployListInput) tui.TypedCmd[[]*client.Deploy], input DeployListInput) (tea.Model, error) {
 	list := tui.NewList(
 		"Deploys",
-		loadFunc,
+		loadData(input),
 		func(d *client.Deploy) tui.ListItem {
 			return deploy.NewListItem(d)
 		},

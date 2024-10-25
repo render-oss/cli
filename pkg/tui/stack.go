@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -10,7 +11,8 @@ import (
 var stackHeaderStyle = lipgloss.NewStyle().BorderStyle(lipgloss.ThickBorder()).BorderBottom(true).BorderTop(true)
 
 type StackModel struct {
-	stack []ModelWithCmd
+	loadingSpinner *spinner.Model
+	stack          []ModelWithCmd
 
 	width  int
 	height int
@@ -46,6 +48,14 @@ func NewStack() *StackModel {
 	return &StackModel{}
 }
 
+func newSpinner() *spinner.Model {
+	spin := spinner.New()
+	spin.Spinner = spinner.Dot
+	spin.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+
+	return &spin
+}
+
 func (m *StackModel) Push(model ModelWithCmd) {
 	m.stack = append(m.stack, model)
 	model.Model.Init()
@@ -63,7 +73,7 @@ func (m *StackModel) Init() tea.Cmd {
 	for _, model := range m.stack {
 		cmd = tea.Batch(cmd, model.Model.Init())
 	}
-	return cmd
+	return tea.Batch(cmd)
 }
 
 func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -90,9 +100,21 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, func() tea.Msg {
 			return msg.NextMsg
 		}
+	case LoadingDataMsg:
+		m.loadingSpinner = newSpinner()
+		return m, tea.Batch(m.loadingSpinner.Tick, tea.Cmd(msg))
+	case DoneLoadingDataMsg:
+		m.loadingSpinner = nil
+		return m, nil
 	case ErrorMsg:
 		m.Push(ModelWithCmd{Model: NewErrorModel(msg.Err.Error())})
 		return m, nil
+	case spinner.TickMsg:
+		if m.loadingSpinner != nil {
+			spin, cmd := m.loadingSpinner.Update(msg)
+			m.loadingSpinner = &spin
+			return m, cmd
+		}
 	case DoneMsg:
 		m.Pop()
 		if len(m.stack) == 0 {
@@ -128,6 +150,10 @@ func (m *StackModel) StackSizeMsg() StackSizeMsg {
 }
 
 func (m *StackModel) View() string {
+	if m.loadingSpinner != nil {
+		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, fmt.Sprintf("%s Loading...", m.loadingSpinner.View()))
+	}
+
 	if len(m.stack) == 0 {
 		return ""
 	}

@@ -55,10 +55,8 @@ func restartResource(ctx context.Context, input RestartInput) (string, error) {
 	return fmt.Sprintf("%s restarted successfully", input.ResourceID), nil
 }
 
-func renderRestart(_ context.Context, loadData func(RestartInput) (string, error), in RestartInput) (tea.Model, error) {
-	return tui.NewSimpleModel(func() (string, error) {
-		return loadData(in)
-	}), nil
+func renderRestart(_ context.Context, loadData func(RestartInput) tui.TypedCmd[string], in RestartInput) (tea.Model, error) {
+	return tui.NewSimpleModel(loadData(in)), nil
 }
 
 func init() {

@@ -62,11 +62,6 @@ type LogInput struct {
 	Tail      bool   `cli:"tail"`
 }
 
-type LogResult struct {
-	Logs       *client.Logs200Response
-	LogChannel <-chan *lclient.Log
-}
-
 func (l LogInput) ToParam() (*client.ListLogsParams, error) {
 	now := time.Now()
 	ownerID, err := config.WorkspaceID()
@@ -107,7 +102,7 @@ func mapDirection(direction string) lclient.LogDirection {
 	}
 }
 
-func loadLogData(ctx context.Context, in LogInput) (*LogResult, error) {
+func loadLogData(ctx context.Context, in LogInput) (*tui.LogResult, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
 		return nil, err
@@ -126,14 +121,14 @@ func loadLogData(ctx context.Context, in LogInput) (*LogResult, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error tailing logs: %v", err)
 		}
-		return &LogResult{Logs: &client.Logs200Response{}, LogChannel: logChan}, nil
+		return &tui.LogResult{Logs: &client.Logs200Response{}, LogChannel: logChan}, nil
 	}
 
 	logs, err := logRepo.ListLogs(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("error listing logs: %v", err)
 	}
-	return &LogResult{Logs: logs, LogChannel: nil}, nil
+	return &tui.LogResult{Logs: logs, LogChannel: nil}, nil
 }
 
 func logForm(ctx context.Context, in LogInput) *tui.FilterModel {
@@ -149,16 +144,8 @@ func logForm(ctx context.Context, in LogInput) *tui.FilterModel {
 	})
 }
 
-func renderLogs(ctx context.Context, loadData func(LogInput) (*LogResult, error), in LogInput) (tea.Model, error) {
-	loadLogs := func() (*client.Logs200Response, <-chan *lclient.Log, error) {
-		result, err := loadData(in)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return result.Logs, result.LogChannel, nil
-	}
-	model := tui.NewLogModel(logForm(ctx, in), loadLogs)
+func renderLogs(ctx context.Context, loadData func(LogInput) tui.TypedCmd[*tui.LogResult], in LogInput) (tea.Model, error) {
+	model := tui.NewLogModel(logForm(ctx, in), loadData(in))
 	return model, nil
 }
 
@@ -208,12 +195,8 @@ func nonInteractiveLogs(format *command.Output, cmd *cobra.Command, input LogInp
 	return nil
 }
 
-func renderResourcesForLogs(ctx context.Context, loadData func(input ListResourceInput) ([]resource.Resource, error), in ListResourceInput) (tea.Model, error) {
+func renderResourcesForLogs(ctx context.Context, loadData func(input ListResourceInput) tui.TypedCmd[[]resource.Resource], in ListResourceInput) (tea.Model, error) {
 	columns := resourcetui.ColumnsForResources()
-
-	loadDataFunc := func() ([]resource.Resource, error) {
-		return loadData(in)
-	}
 
 	createRowFunc := func(r resource.Resource) btable.Row {
 		return resourcetui.RowForResource(r)
@@ -244,7 +227,7 @@ func renderResourcesForLogs(ctx context.Context, loadData func(input ListResourc
 
 	t := tui.NewTable(
 		columns,
-		loadDataFunc,
+		loadData(in),
 		createRowFunc,
 		onSelect,
 		tui.WithCustomOptions[resource.Resource](customOptions),

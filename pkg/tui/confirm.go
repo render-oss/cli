@@ -29,6 +29,8 @@ var activeButtonStyle = buttonStyle.
 	MarginLeft(2).
 	Underline(true)
 
+type ShowConfirmMsg struct{}
+
 type ConfirmModel struct {
 	onConfirm func() tea.Cmd
 	onCancel  func() tea.Cmd
@@ -117,16 +119,16 @@ type ModelWithConfirm struct {
 	model      tea.Model
 }
 
-func NewModelWithConfirm(model tea.Model, message string) *ModelWithConfirm {
+func NewModelWithConfirm(model tea.Model, message string, onConfirm tea.Cmd) *ModelWithConfirm {
 	mc := &ModelWithConfirm{
-		confirming: true,
+		confirming: false,
 		model:      model,
 	}
 	confirm := &ConfirmModel{
 		message: message,
 		onConfirm: func() tea.Cmd {
 			mc.confirming = false
-			return model.Init()
+			return onConfirm
 		},
 		onCancel: func() tea.Cmd {
 			return func() tea.Msg { return DoneMsg{} }
@@ -139,10 +141,15 @@ func NewModelWithConfirm(model tea.Model, message string) *ModelWithConfirm {
 }
 
 func (m *ModelWithConfirm) Init() tea.Cmd {
-	return m.confirm.Init()
+	return tea.Batch(m.confirm.Init(), m.model.Init())
 }
 
 func (m *ModelWithConfirm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg.(type) {
+	case ShowConfirmMsg:
+		m.confirming = true
+	}
+
 	var cmd tea.Cmd
 	if m.confirming {
 		m.confirm, cmd = m.confirm.Update(msg)

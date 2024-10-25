@@ -44,16 +44,12 @@ func loadEnvironments(ctx context.Context, in EnvironmentInput) ([]*client.Envir
 	return environmentRepo.ListEnvironments(ctx, in.ToParams())
 }
 
-func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) ([]*client.Environment, error), input EnvironmentInput) (tea.Model, error) {
+func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) tui.TypedCmd[[]*client.Environment], input EnvironmentInput) (tea.Model, error) {
 	columns := []btable.Column{
 		btable.NewColumn("ID", "ID", 25).WithFiltered(true),
 		btable.NewFlexColumn("Name", "Name", 3).WithFiltered(true),
 		btable.NewFlexColumn("Project", "Project", 3).WithFiltered(true),
 		btable.NewFlexColumn("Protected", "Protected", 2).WithFiltered(true),
-	}
-
-	loadDataFunc := func() ([]*client.Environment, error) {
-		return loadData(input)
 	}
 
 	createRowFunc := func(env *client.Environment) btable.Row {
@@ -93,7 +89,7 @@ func renderEnvironments(ctx context.Context, loadData func(EnvironmentInput) ([]
 
 	t := tui.NewTable(
 		columns,
-		loadDataFunc,
+		loadData(input),
 		createRowFunc,
 		onSelect,
 		tui.WithCustomOptions[*client.Environment](customOptions),

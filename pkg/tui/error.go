@@ -19,6 +19,8 @@ var style = lipgloss.NewStyle().
 
 type ErrorModel struct {
 	DisplayError string
+	width        int
+	height       int
 }
 
 func NewErrorModel(
@@ -35,10 +37,16 @@ func (m *ErrorModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *ErrorModel) Update(_ tea.Msg) (tea.Model, tea.Cmd) {
-	return m, tea.Quit
+func (m *ErrorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case StackSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+	}
+
+	return m, nil
 }
 
 func (m *ErrorModel) View() string {
-	return style.Render(m.DisplayError)
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, style.Render(m.DisplayError))
 }

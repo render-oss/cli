@@ -2,9 +2,7 @@ package tui
 
 import (
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 type ListItem interface {
@@ -15,19 +13,16 @@ type ListItem interface {
 }
 
 type List[T any] struct {
-	list           list.Model
-	items          []T
-	selected       *T
-	title          string
-	loadData       func() ([]T, error)
-	makeListItem   func(T) ListItem
-	loading        bool
-	spinner        spinner.Model
-	err            error
-	windowHeight   int
-	windowWidth    int
-	maxWidth       int
-	onSelect       func(ListItem) tea.Cmd
+	list         list.Model
+	items        []T
+	selected     *T
+	title        string
+	loadData     TypedCmd[[]T]
+	makeListItem func(T) ListItem
+	windowHeight int
+	windowWidth  int
+	maxWidth     int
+	onSelect     func(ListItem) tea.Cmd
 }
 
 type ListOption[T any] func(*List[T])
@@ -40,7 +35,7 @@ func WithOnSelect[T any](onSelect func(ListItem) tea.Cmd) ListOption[T] {
 
 func NewList[T any](
 	title string,
-	loadData func() ([]T, error),
+	loadData TypedCmd[[]T],
 	makeListItem func(T) ListItem,
 	opts ...ListOption[T],
 ) *List[T] {
@@ -55,17 +50,11 @@ func NewList[T any](
 	// need to avoid using filtering or find a way to swap out the filtering implementation.
 	l.SetFilteringEnabled(false)
 
-	s := spinner.New()
-	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-
 	result := &List[T]{
 		list:         l,
 		title:        title,
 		loadData:     loadData,
 		makeListItem: makeListItem,
-		loading:      true,
-		spinner:      s,
 		maxWidth:     300,
 	}
 
@@ -78,26 +67,9 @@ func NewList[T any](
 
 func (m *List[T]) Init() tea.Cmd {
 	return tea.Batch(
-		m.spinner.Tick,
-		m.load,
+		m.loadData.Unwrap(),
 		tea.WindowSize(),
 	)
-}
-
-func (m *List[T]) load() tea.Msg {
-	items, err := m.loadData()
-	if err != nil {
-		return errMsg{err}
-	}
-	return loadedMsg{items}
-}
-
-type loadedMsg struct {
-	items interface{}
-}
-
-type errMsg struct {
-	err error
 }
 
 func (m *List[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -106,9 +78,8 @@ func (m *List[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.windowHeight = msg.Height
 		m.windowWidth = msg.Width
 		m.updateListSize()
-	case loadedMsg:
-		m.loading = false
-		m.items = msg.items.([]T)
+	case LoadDataMsg[[]T]:
+		m.items = msg.Data
 		listItems := make([]list.Item, len(m.items))
 		for i, item := range m.items {
 			listItems[i] = m.makeListItem(item)
@@ -116,14 +87,6 @@ func (m *List[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.list.SetItems(listItems)
 		m.updateListSize()
 		return m, nil
-	case errMsg:
-		m.loading = false
-		m.err = msg.err
-		return m, nil
-	case spinner.TickMsg:
-		var cmd tea.Cmd
-		m.spinner, cmd = m.spinner.Update(msg)
-		return m, cmd
 	case tea.KeyMsg:
 		if msg.String() == "enter" && m.onSelect != nil {
 			selectedItem := m.list.SelectedItem()
@@ -140,7 +103,6 @@ func (m *List[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *List[T]) updateListSize() {
 	availableHeight := m.windowHeight
-
 
 	listWidth := min(m.windowWidth, m.maxWidth)
 	m.list.SetSize(listWidth, availableHeight)
@@ -161,11 +123,5 @@ func (m *List[T]) updateListSize() {
 }
 
 func (m *List[T]) View() string {
-	if m.loading {
-		return m.spinner.View() + " Loading..."
-	}
-	if m.err != nil {
-		return "Error: " + m.err.Error()
-	}
 	return m.list.View()
 }

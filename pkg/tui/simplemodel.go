@@ -6,13 +6,12 @@ import (
 )
 
 type SimpleModel struct {
-	loadFunc func() (string, error)
+	loadFunc TypedCmd[string]
 	message  string
-	error    error
 	style    lipgloss.Style
 }
 
-func NewSimpleModel(loadFunc func() (string, error)) *SimpleModel {
+func NewSimpleModel(loadFunc TypedCmd[string]) *SimpleModel {
 	return &SimpleModel{
 		loadFunc: loadFunc,
 		style: lipgloss.NewStyle().
@@ -22,22 +21,13 @@ func NewSimpleModel(loadFunc func() (string, error)) *SimpleModel {
 }
 
 func (m *SimpleModel) Init() tea.Cmd {
-	return func() tea.Msg {
-		msg, err := m.loadFunc()
-		if err != nil {
-			return ErrorMsg{Err: err}
-		}
-		return SimpleLoadedMsg(msg)
-	}
+	return m.loadFunc.Unwrap()
 }
 
 func (m *SimpleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case SimpleLoadedMsg:
-		m.message = string(msg)
-		return m, nil
-	case ErrorMsg:
-		m.error = msg.Err
+	case LoadDataMsg[string]:
+		m.message = msg.Data
 		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -49,9 +39,6 @@ func (m *SimpleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *SimpleModel) View() string {
-	if m.error != nil {
-		return NewErrorModel(m.error.Error()).View()
-	}
 	if m.message == "" {
 		return "Loading..."
 	}

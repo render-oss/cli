@@ -47,12 +47,8 @@ func (l ListResourceInput) ToParams() resource.ResourceParams {
 	}
 }
 
-func renderResources(ctx context.Context, loadData func(input ListResourceInput) ([]resource.Resource, error), in ListResourceInput) (tea.Model, error) {
+func renderResources(ctx context.Context, loadData func(input ListResourceInput) tui.TypedCmd[[]resource.Resource], in ListResourceInput) (tea.Model, error) {
 	columns := resourcetui.ColumnsForResources()
-
-	loadDataFunc := func() ([]resource.Resource, error) {
-		return loadData(in)
-	}
 
 	createRowFunc := func(r resource.Resource) btable.Row {
 		return resourcetui.RowForResource(r)
@@ -83,7 +79,7 @@ func renderResources(ctx context.Context, loadData func(input ListResourceInput)
 
 	t := tui.NewTable(
 		columns,
-		loadDataFunc,
+		loadData(in),
 		createRowFunc,
 		onSelect,
 		tui.WithCustomOptions[resource.Resource](customOptions),
@@ -200,7 +196,7 @@ func selectResource(ctx context.Context) func(resource.Resource) tea.Cmd {
 							ServiceID:    r.ID(),
 							StartCommand: pointers.From(""),
 							PlanID:       pointers.From(""),
-						},)
+						})
 					},
 				},
 				allowedTypes: []string{

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/evertras/bubble-table/table"
@@ -34,16 +33,13 @@ type Table[T any] struct {
 	onSelect      func(rows []table.Row) tea.Cmd
 	customOptions []CustomOption
 
-	loadData  func() ([]T, error)
+	loadData  TypedCmd[[]T]
 	createRow func(T) table.Row
 	data      []T
 	columns   []table.Column
 
 	tableWidth  int
 	tableHeight int
-
-	loading bool
-	spinner spinner.Model
 }
 
 type TableOption[T any] func(*Table[T])
@@ -56,7 +52,7 @@ func WithCustomOptions[T any](options []CustomOption) TableOption[T] {
 
 func NewTable[T any](
 	columns []table.Column,
-	loadData func() ([]T, error),
+	loadData TypedCmd[[]T],
 	createRow func(T) table.Row,
 	onSelect func(rows []table.Row) tea.Cmd,
 	tableOptions ...TableOption[T],
@@ -83,37 +79,19 @@ func NewTable[T any](
 }
 
 func (t *Table[T]) Init() tea.Cmd {
-	t.loading = true
-	t.initSpinner()
-
-	return tea.Batch(t.spinner.Tick, t.loadDataCmd(), t.Model.Init())
-}
-
-func (t *Table[T]) loadDataCmd() tea.Cmd {
-	return func() tea.Msg {
-		data, err := t.loadData()
-		if err != nil {
-			return ErrorMsg{Err: err}
-		}
-		return loadDataMsg[T]{data: data}
-	}
-}
-
-type loadDataMsg[T any] struct {
-	data []T
+	return tea.Batch(tea.Cmd(t.loadData), t.Model.Init())
 }
 
 func (t *Table[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
-	case loadDataMsg[T]:
-		t.data = msg.data
+	case LoadDataMsg[[]T]:
+		t.data = msg.Data
 		rows := make([]table.Row, len(t.data))
 		for i, item := range t.data {
 			rows[i] = t.createRow(item)
 		}
 		t.Model = t.Model.WithRows(rows)
-		t.loading = false
 		return t, nil
 	case StackSizeMsg:
 		t.tableWidth = msg.Width
@@ -127,21 +105,11 @@ func (t *Table[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !t.Model.GetIsFilterInputFocused() {
 				for _, option := range t.customOptions {
 					if msg.String() == option.Key {
-						t.loading = true
 						return t, option.Function(t.Model.HighlightedRow())
 					}
 				}
 			}
 		}
-	case spinner.TickMsg:
-		if t.loading {
-			t.spinner, cmd = t.spinner.Update(msg)
-			return t, cmd
-		}
-	}
-
-	if t.loading {
-		return t, t.spinner.Tick
 	}
 
 	t.Model, cmd = t.Model.Update(msg)
@@ -149,10 +117,6 @@ func (t *Table[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (t *Table[T]) View() string {
-	if t.loading {
-		return fmt.Sprintf("\n\n   %s Loading...\n\n", t.spinner.View())
-	}
-
 	var footer string
 
 	var options []string
@@ -177,10 +141,4 @@ func (t *Table[T]) View() string {
 		tableView,
 		footer,
 	)
-}
-
-func (t *Table[T]) initSpinner() {
-	t.spinner = spinner.New()
-	t.spinner.Spinner = spinner.Dot
-	t.spinner.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 }

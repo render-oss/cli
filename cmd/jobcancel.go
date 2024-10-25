@@ -6,7 +6,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/render-cli/pkg/client"
-	clientjob "github.com/renderinc/render-cli/pkg/client/jobs"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/job"
 	"github.com/renderinc/render-cli/pkg/service"
@@ -44,28 +43,23 @@ type JobCancelInput struct {
 	JobID     string `cli:"arg:1"`
 }
 
-func cancelJob(ctx context.Context, input JobCancelInput) (*clientjob.Job, error) {
+func cancelJob(ctx context.Context, input JobCancelInput) (string, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %w", err)
+		return "", fmt.Errorf("failed to create client: %w", err)
 	}
 
 	jobRepo := job.NewRepo(c)
 
-	return jobRepo.CancelJob(ctx, input.ServiceID, input.JobID)
+	_, err = jobRepo.CancelJob(ctx, input.ServiceID, input.JobID)
+	if err != nil {
+		return "", fmt.Errorf("failed to cancel job: %w", err)
+	}
+	return fmt.Sprintf("Job %s successfuly cancelled", input.JobID), nil
 }
 
-func renderJobCancel(ctx context.Context, cancelJobFunc func(JobCancelInput) (*clientjob.Job, error), input JobCancelInput) (tea.Model, error) {
-	loadFunc := func() (string, error) {
-		j, err := cancelJobFunc(input)
-		if err != nil {
-			return "", fmt.Errorf("failed to cancel job: %w", err)
-		}
-
-		return fmt.Sprintf("Job %s successfuly cancelled", j.Id), nil
-	}
-
-	return tui.NewSimpleModel(loadFunc), nil
+func renderJobCancel(ctx context.Context, cancelJobFunc func(JobCancelInput) tui.TypedCmd[string], input JobCancelInput) (tea.Model, error) {
+	return tui.NewSimpleModel(cancelJobFunc(input)), nil
 }
 
 func init() {

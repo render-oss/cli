@@ -39,14 +39,10 @@ func loadJobListData(ctx context.Context, input JobListInput) ([]*clientjob.Job,
 	})
 }
 
-func renderJobList(ctx context.Context, loadData func(JobListInput) ([]*clientjob.Job, error), input JobListInput) (tea.Model, error) {
-	loadFunc := func() ([]*clientjob.Job, error) {
-		return loadData(input)
-	}
-
+func renderJobList(ctx context.Context, loadData func(JobListInput) tui.TypedCmd[[]*clientjob.Job], input JobListInput) (tea.Model, error) {
 	list := tui.NewList(
 		"Jobs",
-		loadFunc,
+		loadData(input),
 		func(j *clientjob.Job) tui.ListItem {
 			return job.NewListItem(j)
 		},

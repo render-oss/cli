@@ -21,15 +21,19 @@ var viewportSylte = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, f
 var logStyle = lipgloss.NewStyle().Padding(1, 2, 2, 2)
 var filterStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, true, false, false)
 
+type LogResult struct {
+	Logs       *client.Logs200Response
+	LogChannel <-chan *lclient.Log
+}
+
 type LoadFunc func() (*client.Logs200Response, <-chan *lclient.Log, error)
 
-func NewLogModel(filter *FilterModel, loadFunc LoadFunc) *LogModel {
+func NewLogModel(filter *FilterModel, loadFunc TypedCmd[*LogResult]) *LogModel {
 	return &LogModel{
 		help:        help.New(),
 		loadFunc:    loadFunc,
 		searching:   false,
 		filterModel: filter,
-		errorModel:  NewErrorModel(""),
 		scrollBar:   NewScrollBarModel(1, 0),
 		viewport:    viewport.New(0, 0),
 	}
@@ -40,17 +44,15 @@ type logState string
 const (
 	logStateLoading logState = "loading"
 	logStateLoaded  logState = "loaded"
-	logStateError   logState = "error"
 )
 
 type LogModel struct {
-	loadFunc    LoadFunc
+	loadFunc    TypedCmd[*LogResult]
 	content     []string
 	state       logState
 	viewport    viewport.Model
 	scrollBar   *ScrollBarModel
 	filterModel *FilterModel
-	errorModel  *ErrorModel
 	help        help.Model
 
 	windowWidth  int
@@ -61,25 +63,11 @@ type LogModel struct {
 	logChan <-chan *lclient.Log
 }
 
-func (m *LogModel) loadData() tea.Msg {
-	logs, logChan, err := m.loadFunc()
-	if err != nil {
-		return loadLogsErrMsg(err)
-	}
-	m.logChan = logChan
-	return loadLogsMsg{data: logs}
-}
-
-type loadLogsMsg struct {
-	data *client.Logs200Response
-}
-
 type appendLogsMsg struct {
 	log *lclient.Log
 }
 
 type logChanClose struct{}
-type loadLogsErrMsg error
 
 var timeStyle = lipgloss.NewStyle().PaddingRight(2)
 
@@ -110,7 +98,7 @@ func (m *LogModel) readFromChannel(ch <-chan *lclient.Log) tea.Cmd {
 }
 
 func (m *LogModel) Init() tea.Cmd {
-	return tea.Batch(m.loadData, m.filterModel.Init(), m.errorModel.Init(), m.scrollBar.Init(), tea.WindowSize())
+	return tea.Batch(m.loadFunc.Unwrap(), m.filterModel.Init(), m.scrollBar.Init(), tea.WindowSize())
 }
 
 func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -129,15 +117,14 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
-	case loadLogsErrMsg:
-		m.errorModel.DisplayError = msg.Error()
-		m.state = logStateError
-	case loadLogsMsg:
-		if msg.data != nil {
-			m.content = formatLogs(msg.data.Logs)
+	case LoadDataMsg[*LogResult]:
+		if msg.Data.Logs != nil {
+			m.content = formatLogs(msg.Data.Logs.Logs)
 		} else {
 			m.content = []string{}
 		}
+
+		m.logChan = msg.Data.LogChannel
 		if m.logChan != nil {
 			cmds = append(cmds, m.readFromChannel(m.logChan))
 		}
@@ -164,7 +151,7 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.searching = !m.searching
 				m.setViewPortSize()
 			} else if k == "r" && m.logChan == nil {
-				cmds = append(cmds, tea.Batch(m.loadData))
+				cmds = append(cmds, tea.Batch(m.loadFunc.Unwrap()))
 			}
 		}
 	case StackSizeMsg:
@@ -202,10 +189,6 @@ func (m *LogModel) setViewPortSize() {
 }
 
 func (m *LogModel) View() string {
-	if m.state == logStateError {
-		return m.errorModel.View()
-	}
-
 	if m.state == logStateLoading {
 		return "\n  Loading Logs..."
 	}

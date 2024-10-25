@@ -51,17 +51,13 @@ func loadWorkspaceData(ctx context.Context, _ ListWorkspaceInput) ([]*client.Own
 
 func renderWorkspaces(
 	ctx context.Context,
-	loadData func(input ListWorkspaceInput) ([]*client.Owner, error),
+	loadData func(input ListWorkspaceInput) tui.TypedCmd[[]*client.Owner],
 	input ListWorkspaceInput,
 ) (tea.Model, error) {
 	columns := []btable.Column{
 		btable.NewColumn(columnWorkspaceIDKey, "ID", 28).WithFiltered(true),
 		btable.NewFlexColumn(columnWorkspaceNameKey, "Name", 1).WithFiltered(true),
 		btable.NewFlexColumn(columnWorkspaceEmailKey, "Email", 1).WithFiltered(true),
-	}
-
-	loadDataFunc := func() ([]*client.Owner, error) {
-		return loadData(input)
 	}
 
 	createRowFunc := func(owner *client.Owner) btable.Row {
@@ -83,7 +79,7 @@ func renderWorkspaces(
 				return nil
 			}
 
-			owners, err := loadData(input)
+			owners, err := loadWorkspaceData(ctx, input)
 			if err != nil {
 				return tui.ErrorMsg{Err: fmt.Errorf("failed to load owners: %w", err)}
 			}
@@ -100,7 +96,7 @@ func renderWorkspaces(
 
 	t := tui.NewTable(
 		columns,
-		loadDataFunc,
+		loadData(input),
 		createRowFunc,
 		onSelect,
 	)

@@ -43,7 +43,7 @@ func createJob(ctx context.Context, input JobCreateInput) (*clientjob.Job, error
 	})
 }
 
-func renderJobCreate(ctx context.Context, createJobFunc func(JobCreateInput) (*clientjob.Job, error), in JobCreateInput) (tea.Model, error) {
+func renderJobCreate(ctx context.Context, createJobFunc func(JobCreateInput) tui.TypedCmd[*clientjob.Job], in JobCreateInput) (tea.Model, error) {
 	form, result := command.HuhForm(jobCreateCmd, &in)
 	var jobCreateInput JobCreateInput
 	err := command.StructFromFormValues(result, &jobCreateInput)
@@ -51,35 +51,16 @@ func renderJobCreate(ctx context.Context, createJobFunc func(JobCreateInput) (*c
 		return nil, err
 	}
 
-	logData := func(in LogInput) (*LogResult, error) {
-		return loadLogData(ctx, in)
-	}
-
-	logModelFunc := func(resourceID string) (tea.Model, error) {
-		model, err := renderLogs(ctx, logData, LogInput{
-			ResourceIDs: []string{resourceID},
+	logAction := func(j *clientjob.Job) tea.Cmd {
+		return InteractiveLogs(ctx, LogInput{
+			ResourceIDs: []string{j.Id},
 			Tail:        true,
 		})
-		if err != nil {
-			return nil, err
-		}
-		return model, nil
-	}
-
-	onSubmit := func() tea.Cmd {
-		return func() tea.Msg {
-			createdJob, err := createJobFunc(jobCreateInput)
-			if err != nil {
-				return tui.ErrorMsg{Err: fmt.Errorf("failed to create job: %w", err)}
-			}
-
-			return tui.SubmittedMsg{ID: createdJob.Id}
-		}
 	}
 
 	action := tui.NewFormAction(
-		logModelFunc,
-		onSubmit,
+		logAction,
+		createJobFunc(jobCreateInput),
 	)
 
 	return tui.NewFormWithAction(action, form), nil

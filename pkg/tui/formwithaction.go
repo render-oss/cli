@@ -5,92 +5,79 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
-type FormAction struct {
-	model     tea.Model
-	modelFunc func(string) (tea.Model, error)
-	onSubmit  func() tea.Cmd
+type FormAction[T any] struct {
+	action    func(T) tea.Cmd
+	onSubmit  TypedCmd[T]
 	submitted bool
 }
 
-func NewFormAction(
-	modelFunc func(string) (tea.Model, error),
-	onSubmit func() tea.Cmd,
-) FormAction {
-	return FormAction{
-		modelFunc: modelFunc,
-		onSubmit:  onSubmit,
+func NewFormAction[T any](
+	action func(T) tea.Cmd,
+	onSubmit TypedCmd[T],
+) FormAction[T] {
+	return FormAction[T]{
+		action:   action,
+		onSubmit: onSubmit,
 	}
 }
 
-func (fa *FormAction) Init() tea.Cmd {
-	return fa.onSubmit()
+func (fa *FormAction[T]) Init() tea.Cmd {
+	return fa.onSubmit.Unwrap()
 }
 
-type SubmittedMsg struct{
-	ID string
-}
-
-func (fa *FormAction) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg.(type) {
-	case SubmittedMsg:
-		if fa.model == nil {
-			var err error
-			fa.model, err = fa.modelFunc(msg.(SubmittedMsg).ID)
-			if err != nil {
-				return fa, func() tea.Msg {
-					return ErrorMsg{Err: err}
-				}
-			}
-			return fa.model, fa.model.Init()
-		}
-	}
-
-	if fa.model != nil {
-		return fa.model.Update(msg)
+func (fa *FormAction[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case LoadDataMsg[T]:
+		cmd := fa.action(msg.Data)
+		return fa, cmd
 	}
 
 	return fa, nil
 }
 
-func (fa *FormAction) View() string {
-	if fa.model == nil {
-		return "Loading..."
-	}
-
-	return fa.model.View()
+func (fa *FormAction[T]) View() string {
+	return "Loading..."
 }
 
-type FormWithAction struct {
+type FormWithAction[T any] struct {
 	done       bool
-	formAction FormAction
+	formAction FormAction[T]
 	huhForm    *huh.Form
 }
 
-func NewFormWithAction(action FormAction, form *huh.Form) *FormWithAction {
-	return &FormWithAction{
+func NewFormWithAction[T any](action FormAction[T], form *huh.Form) *FormWithAction[T] {
+	return &FormWithAction[T]{
 		formAction: action,
 		huhForm:    form,
 	}
 }
 
-func (df *FormWithAction) Init() tea.Cmd {
+func (df *FormWithAction[T]) Init() tea.Cmd {
+	df.done = false
 	return df.huhForm.Init()
 }
 
-func (df *FormWithAction) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (df *FormWithAction[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			return &df.formAction, df.formAction.Init()
+			df.done = true
+			return df, df.formAction.Init()
 		}
 	}
 
-	_, cmd := df.huhForm.Update(msg)
+	var cmd tea.Cmd
+	if df.done {
+		_, cmd = df.formAction.Update(msg)
+	} else {
+		_, cmd = df.huhForm.Update(msg)
+	}
+
 	return df, cmd
 }
 
-func (df *FormWithAction) View() string {
+func (df *FormWithAction[T]) View() string {
 	if df.done {
 		return df.formAction.View()
 	}
