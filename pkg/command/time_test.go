@@ -9,7 +9,7 @@ import (
 )
 
 func TestParseTime(t *testing.T) {
-	now := time.Now().Truncate(time.Second)
+	now := time.Now().Truncate(time.Second).UTC()
 	tcs := []struct {
 		name     string
 		str      string
