@@ -8,9 +8,9 @@ const ResourceIDPrefix = "dpg-"
 const PostgresType = "Postgres"
 
 type Model struct {
-	Postgres    *client.Postgres
-	Project     *client.Project
-	Environment *client.Environment
+	Postgres    *client.Postgres    `json:"postgres,omitempty"`
+	Project     *client.Project     `json:"project,omitempty"`
+	Environment *client.Environment `json:"environment,omitempty"`
 }
 
 func (m Model) ID() string {

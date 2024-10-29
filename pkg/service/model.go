@@ -24,9 +24,9 @@ const ServerResourceIDPrefix = "srv-"
 const CronjobResourceIDPrefix = "crn-"
 
 type Model struct {
-	Service     *client.Service
-	Project     *client.Project
-	Environment *client.Environment
+	Service     *client.Service     `json:"service"`
+	Project     *client.Project     `json:"project,omitempty"`
+	Environment *client.Environment `json:"environment,omitempty"`
 }
 
 func (s Model) ID() string {
