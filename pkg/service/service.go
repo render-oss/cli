@@ -33,11 +33,15 @@ func (s *Service) ListServices(ctx context.Context, params *client.ListServicesP
 		return nil, err
 	}
 
+	envs, err := s.allEnvironments(ctx, projects)
+	if err != nil {
+		return nil, err
+	}
+
 	var serviceModels []*Model
-	var envs []*client.Environment
 
 	for _, service := range services {
-		model, err := s.hydrateServiceModel(ctx, service, projects, &envs)
+		model, err := s.hydrateServiceModelWithEnvs(service, projects, envs)
 		if err != nil {
 			return nil, err
 		}
@@ -58,45 +62,50 @@ func (s *Service) GetService(ctx context.Context, id string) (*Model, error) {
 		return nil, err
 	}
 
-	var envs []*client.Environment
-	return s.hydrateServiceModel(ctx, service, projects, &envs)
+	return s.hydrateServiceModel(ctx, service, projects)
 }
 
 func (s *Service) RestartService(ctx context.Context, id string) error {
 	return s.repo.RestartService(ctx, id)
 }
 
-func (s *Service) hydrateServiceModel(ctx context.Context, service *client.Service, projects []*client.Project, envs *[]*client.Environment) (*Model, error) {
+func (s *Service) hydrateServiceModel(ctx context.Context, service *client.Service, projects []*client.Project) (*Model, error) {
 	model := &Model{Service: service}
 
-	env, err := s.environmentForService(ctx, service, envs)
-	if err != nil {
-		return nil, err
-	}
-	model.Environment = env
-
 	model.Project = s.projectForService(service, projects)
+
+	if model.Project != nil {
+		envs, err := s.allEnvironments(ctx, []*client.Project{model.Project})
+		if err != nil {
+			return nil, err
+		}
+		model.Environment = s.environmentForService(service, envs)
+	}
+
 	return model, nil
 }
 
-func (s *Service) environmentForService(ctx context.Context, svc *client.Service, envs *[]*client.Environment) (*client.Environment, error) {
+func (s *Service) hydrateServiceModelWithEnvs(service *client.Service, projects []*client.Project, envs []*client.Environment) (*Model, error) {
+	model := &Model{Service: service}
+
+	model.Project = s.projectForService(service, projects)
+	model.Environment = s.environmentForService(service, envs)
+
+	return model, nil
+}
+
+func (s *Service) environmentForService(svc *client.Service, envs []*client.Environment) *client.Environment {
 	if svc.EnvironmentId == nil {
-		return nil, nil
+		return nil
 	}
 
-	for _, env := range *envs {
+	for _, env := range envs {
 		if *svc.EnvironmentId == env.Id {
-			return env, nil
+			return env
 		}
 	}
 
-	env, err := s.environmentRepo.GetEnvironment(ctx, *svc.EnvironmentId)
-	if err != nil {
-		return nil, err
-	}
-
-	*envs = append(*envs, env)
-	return env, nil
+	return nil
 }
 
 func (s *Service) projectForService(service *client.Service, projects []*client.Project) *client.Project {
@@ -113,4 +122,16 @@ func (s *Service) projectForService(service *client.Service, projects []*client.
 	}
 
 	return nil
+}
+
+func (s *Service) allEnvironments(ctx context.Context, projects []*client.Project) ([]*client.Environment, error) {
+	if len(projects) == 0 {
+		return nil, nil
+	}
+	var projIDs []string
+	for _, proj := range projects {
+		projIDs = append(projIDs, proj.Id)
+	}
+
+	return s.environmentRepo.ListEnvironments(ctx, &client.ListEnvironmentsParams{ProjectId: projIDs})
 }
