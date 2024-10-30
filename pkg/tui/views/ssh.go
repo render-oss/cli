@@ -14,7 +14,9 @@ import (
 )
 
 type SSHInput struct {
-	ServiceID string `cli:"arg:0"`
+	ServiceID      string `cli:"arg:0"`
+	Project        *client.Project
+	EnvironmentIDs []string
 }
 
 type SSHView struct {
@@ -22,21 +24,47 @@ type SSHView struct {
 	execModel    *tui.ExecModel
 }
 
-func NewSSHView(ctx context.Context, input *SSHInput) *SSHView {
+func NewSSHView(ctx context.Context, input *SSHInput, opts ...tui.TableOption[*service.Model]) *SSHView {
 	sshView := &SSHView{
 		execModel: tui.NewExecModel(command.LoadCmd(ctx, loadDataSSH, input)),
 	}
 
-	if input.ServiceID == "" {
-		sshView.serviceTable = NewServiceList(ctx, func(ctx context.Context, r resource.Resource) tea.Cmd {
+	serviceListInput := ServiceInput{
+		Project:        input.Project,
+		EnvironmentIDs: input.EnvironmentIDs,
+	}
 
+	if input.ServiceID == "" {
+		// If a flag or temporary input is provided, that should take precedence. Only get the persistent filter
+		// if no input is provided.
+		if len(input.EnvironmentIDs) == 0 {
+			defaultInput, err := DefaultListResourceInput(ctx)
+			if err != nil {
+				return &SSHView{
+					execModel: tui.NewExecModel(command.LoadCmd(ctx, func(_ context.Context, _ any) (*exec.Cmd, error) {
+						return nil, fmt.Errorf("failed to load default project filter: %w", err)
+					}, nil)),
+				}
+			}
+
+			serviceListInput.Project = defaultInput.Project
+			serviceListInput.EnvironmentIDs = defaultInput.EnvironmentIDs
+		}
+
+		if serviceListInput.Project != nil {
+			opts = append(opts, tui.WithHeader[*service.Model](
+				fmt.Sprintf("Project: %s", serviceListInput.Project.Name),
+			))
+		}
+
+		sshView.serviceTable = NewServiceList(ctx, serviceListInput, func(ctx context.Context, r resource.Resource) tea.Cmd {
 			return tea.Sequence(
 				func() tea.Msg {
 					input.ServiceID = r.ID()
 					sshView.serviceTable = nil
 					return nil
 				}, sshView.execModel.Init())
-		})
+		}, opts...)
 	}
 	return sshView
 }

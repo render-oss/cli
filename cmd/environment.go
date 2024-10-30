@@ -24,7 +24,7 @@ var InteractiveEnvironment = func(ctx context.Context, input views.EnvironmentIn
 	return command.AddToStackFunc(ctx, environmentCmd, &input, views.NewEnvironmentList(ctx, input,
 		func(ctx context.Context, e *client.Environment) tea.Cmd {
 			return InteractiveServices(ctx, views.ListResourceInput{
-				EnvironmentID: e.Id,
+				EnvironmentIDs: []string{e.Id},
 			})
 		},
 		tui.WithCustomOptions[*client.Environment]([]tui.CustomOption{

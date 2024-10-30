@@ -81,6 +81,9 @@ func NewWorkspaceView(ctx context.Context, input ListWorkspaceInput) *WorkspaceV
 
 			for _, o := range owners {
 				if o.Id == selectedID {
+					if err := config.ClearProjectFilter(); err != nil {
+						return tui.ErrorMsg{Err: fmt.Errorf("failed to clear project filter on workspace change: %w", err)}
+					}
 					return selectWorkspace(o)
 				}
 			}

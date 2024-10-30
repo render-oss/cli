@@ -3,6 +3,10 @@ package cmd
 import (
 	"context"
 
+	btable "github.com/evertras/bubble-table/table"
+	"github.com/renderinc/render-cli/pkg/client"
+	"github.com/renderinc/render-cli/pkg/service"
+	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/renderinc/render-cli/pkg/tui/views"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -18,8 +22,40 @@ var sshCmd = &cobra.Command{
 	Long:  `SSH into a server given a service ID. Optionally pass the service id as an argument.`,
 }
 
-var InteractiveSSHView = func(ctx context.Context, input *views.SSHInput) tea.Cmd {
-	return command.AddToStackFunc(ctx, sshCmd, input, views.NewSSHView(ctx, input))
+func InteractiveSSHView(ctx context.Context, input *views.SSHInput) tea.Cmd {
+	return command.AddToStackFunc(
+		ctx,
+		sshCmd,
+		input,
+		views.NewSSHView(ctx, input, tui.WithCustomOptions[*service.Model](getSSHTableOptions(ctx))),
+	)
+}
+
+func getSSHTableOptions(ctx context.Context) []tui.CustomOption {
+	return []tui.CustomOption{
+		{
+			Key:   "w",
+			Title: "Change Workspace",
+			Function: func(row btable.Row) tea.Cmd {
+				return InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
+			},
+		},
+		{
+			Key:   "f",
+			Title: "Filter by Project",
+			Function: func(row btable.Row) tea.Cmd {
+				return command.AddToStackFunc(ctx, servicesCmd, &views.SSHInput{},
+					views.NewProjectFilterView(ctx, func(ctx context.Context, project *client.Project) tea.Cmd {
+						input := views.SSHInput{}
+						if project != nil {
+							input.Project = project
+							input.EnvironmentIDs = project.EnvironmentIds
+						}
+						return InteractiveSSHView(ctx, &input)
+					}))
+			},
+		},
+	}
 }
 
 func init() {

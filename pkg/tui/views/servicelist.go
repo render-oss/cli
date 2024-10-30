@@ -20,7 +20,7 @@ type ServiceList struct {
 	table *tui.Table[*service.Model]
 }
 
-func NewServiceList(ctx context.Context, selectFunc OnSelectFuncT[resource.Resource]) *ServiceList {
+func NewServiceList(ctx context.Context, in ServiceInput, selectFunc OnSelectFuncT[resource.Resource], opts ...tui.TableOption[*service.Model]) *ServiceList {
 	onSelect := func(rows []btable.Row) tea.Cmd {
 		if len(rows) == 0 {
 			return nil
@@ -36,11 +36,12 @@ func NewServiceList(ctx context.Context, selectFunc OnSelectFuncT[resource.Resou
 
 	t := tui.NewTable(
 		resourcetui.ColumnsForResources(),
-		command.LoadCmd(ctx, listServices, ServiceInput{}),
+		command.LoadCmd(ctx, listServices, in),
 		func(s *service.Model) btable.Row {
 			return resourcetui.RowForResource(s)
 		},
 		onSelect,
+		opts...,
 	)
 
 	return &ServiceList{
@@ -48,9 +49,12 @@ func NewServiceList(ctx context.Context, selectFunc OnSelectFuncT[resource.Resou
 	}
 }
 
-type ServiceInput struct{}
+type ServiceInput struct{
+	Project *client.Project
+	EnvironmentIDs []string
+}
 
-func listServices(ctx context.Context, _ ServiceInput) ([]*service.Model, error) {
+func listServices(ctx context.Context, in ServiceInput) ([]*service.Model, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
 		return nil, err
@@ -62,10 +66,16 @@ func listServices(ctx context.Context, _ ServiceInput) ([]*service.Model, error)
 
 	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
 
-	return serviceService.ListServices(ctx, &client.ListServicesParams{
+	listInput := &client.ListServicesParams{
 		Type:  &[]client.ServiceType{client.WebService, client.PrivateService, client.BackgroundWorker},
 		Limit: pointers.From(100),
-	})
+	}
+
+	if in.EnvironmentIDs != nil {
+		listInput.EnvironmentId = &in.EnvironmentIDs
+	}
+
+	return serviceService.ListServices(ctx, listInput)
 }
 
 func (pl *ServiceList) Init() tea.Cmd {

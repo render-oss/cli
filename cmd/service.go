@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
+	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/renderinc/render-cli/pkg/postgres"
@@ -155,7 +156,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 	}
 }
 
-var InteractiveServices = func(ctx context.Context, in views.ListResourceInput) tea.Cmd {
+func InteractiveServices(ctx context.Context, in views.ListResourceInput) tea.Cmd {
 	return command.AddToStackFunc(ctx, servicesCmd, &in,
 		views.NewResourceWithPaletteView(
 			ctx,
@@ -163,18 +164,36 @@ var InteractiveServices = func(ctx context.Context, in views.ListResourceInput) 
 			func(r resource.Resource) []views.PaletteCommand {
 				return selectResource(ctx)(r)
 			},
-			tui.WithCustomOptions[resource.Resource]([]tui.CustomOption{
-				{
-					Key:   "w",
-					Title: "Change Workspace",
-					Function: func(row btable.Row) tea.Cmd {
-						return InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
-					},
-				},
-			}),
+			tui.WithCustomOptions[resource.Resource](getServiceTableOptions(ctx)),
 		),
 	)
+}
 
+func getServiceTableOptions(ctx context.Context) []tui.CustomOption {
+	return []tui.CustomOption{
+		{
+			Key:   "w",
+			Title: "Change Workspace",
+			Function: func(row btable.Row) tea.Cmd {
+				return InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
+			},
+		},
+		{
+			Key:   "f",
+			Title: "Filter by Project",
+			Function: func(row btable.Row) tea.Cmd {
+				return command.AddToStackFunc(ctx, servicesCmd, &views.ListResourceInput{},
+					views.NewProjectFilterView(ctx, func(ctx context.Context, project *client.Project) tea.Cmd {
+						listResourceInput := views.ListResourceInput{}
+						if project != nil {
+							listResourceInput.Project = project
+							listResourceInput.EnvironmentIDs = project.EnvironmentIds
+						}
+						return InteractiveServices(ctx, listResourceInput)
+					}))
+			},
+		},
+	}
 }
 
 func init() {
@@ -199,5 +218,5 @@ func init() {
 		return nil
 	}
 
-	servicesCmd.Flags().StringP("environment", "e", "", "Comma separated list of environment ids to filter by")
+	servicesCmd.Flags().StringSliceP("environmentIDs", "e", nil, "Comma separated list of environment ids to filter by")
 }

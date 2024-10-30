@@ -47,3 +47,16 @@ func (p *Repo) ListProjects(ctx context.Context) ([]*client.Project, error) {
 
 	return result, nil
 }
+
+func (p *Repo) GetProject(ctx context.Context, id string) (*client.Project, error) {
+	resp, err := p.client.RetrieveProjectWithResponse(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("unexpected response: %v", resp.Status())
+	}
+
+	return resp.JSON200, nil
+}

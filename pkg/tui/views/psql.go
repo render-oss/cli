@@ -2,6 +2,7 @@ package views
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -13,6 +14,8 @@ import (
 
 type PSQLInput struct {
 	PostgresID string `cli:"arg:0"`
+	Project   *client.Project
+	EnvironmentIDs []string
 }
 
 type PSQLView struct {
@@ -20,21 +23,42 @@ type PSQLView struct {
 	execModel     *tui.ExecModel
 }
 
-func NewPSQLView(ctx context.Context, input *PSQLInput) *PSQLView {
+func NewPSQLView(ctx context.Context, input *PSQLInput, opts ...tui.TableOption[*postgres.Model]) (*PSQLView,) {
 	psqlView := &PSQLView{
 		execModel: tui.NewExecModel(command.LoadCmd(ctx, loadDataPSQL, input)),
 	}
 
 	if input.PostgresID == "" {
-		psqlView.postgresTable = NewPostgresList(ctx, func(ctx context.Context, p *postgres.Model) tea.Cmd {
+		// If a flag or temporary input is provided, that should take precedence. Only get the persistent filter
+		// if no input is provided.
+		if input.EnvironmentIDs == nil {
+			defaultInput, err := DefaultListResourceInput(ctx)
+			if err != nil {
+				return &PSQLView{
+					execModel: tui.NewExecModel(command.LoadCmd(ctx, func(_ context.Context, _ any) (*exec.Cmd, error) {
+						return nil, fmt.Errorf("failed to load default project filter: %w", err)
+					}, nil)),
+				}
+			}
 
+			input.Project = defaultInput.Project
+			input.EnvironmentIDs = defaultInput.EnvironmentIDs
+		}
+
+		if input.Project != nil {
+			opts = append(opts, tui.WithHeader[*postgres.Model](
+				fmt.Sprintf("Project: %s", input.Project.Name),
+			))
+		}
+
+		psqlView.postgresTable = NewPostgresList(ctx, func(ctx context.Context, p *postgres.Model) tea.Cmd {
 			return tea.Sequence(
 				func() tea.Msg {
 					input.PostgresID = p.ID()
 					psqlView.postgresTable = nil
 					return nil
 				}, psqlView.execModel.Init())
-		})
+		}, PostgresInput{EnvironmentIDs: input.EnvironmentIDs}, opts...)
 	}
 	return psqlView
 }

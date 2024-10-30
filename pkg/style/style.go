@@ -10,6 +10,7 @@ const (
 	blue   = "#5b74ff"
 	green  = "#12c603"
 	orange = "#ffb727"
+	darkOrange = "#d49822"
 	red    = "#ff0033"
 	grey   = "#a2a2a2"
 )
@@ -21,6 +22,7 @@ var Status = lipgloss.NewStyle().Bold(true)
 
 const ColorOK = lipgloss.Color(green)
 const ColorWarning = lipgloss.Color(orange)
+const ColorWarningDeprioritized = lipgloss.Color(darkOrange)
 const ColorError = lipgloss.Color(red)
 const ColorDeprioritized = lipgloss.Color(grey)
 

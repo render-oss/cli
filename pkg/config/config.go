@@ -15,8 +15,10 @@ var defaultConfigPath string
 const configPathEnvKey = "RENDER_CLI_CONFIG_PATH"
 
 type Config struct {
-	Version   int    `yaml:"version"`
-	Workspace string `yaml:"workspace"`
+	Version         int    `yaml:"version"`
+	Workspace       string `yaml:"workspace"`
+	ProjectFilter   string `yaml:"project_filter,omitempty"`    // Project ID for filtering
+	ProjectName     string `yaml:"project_name,omitempty"`      // Project name for display
 }
 
 func init() {
@@ -56,6 +58,34 @@ func WorkspaceID() (string, error) {
 	return cfg.Workspace, nil
 }
 
+func GetProjectFilter() (projectID string, projectName string, err error) {
+	cfg, err := Load()
+	if err != nil {
+		return "", "", err
+	}
+	return cfg.ProjectFilter, cfg.ProjectName, nil
+}
+
+func SetProjectFilter(projectID string, projectName string) error {
+	cfg, err := Load()
+	if err != nil {
+		return err
+	}
+	cfg.ProjectFilter = projectID
+	cfg.ProjectName = projectName
+	return cfg.Persist()
+}
+
+func ClearProjectFilter() error {
+	cfg, err := Load()
+	if err != nil {
+		return err
+	}
+	cfg.ProjectFilter = ""
+	cfg.ProjectName = ""
+	return cfg.Persist()
+}
+
 func Load() (*Config, error) {
 	path, err := expandPath(getConfigPath())
 	if err != nil {
@@ -90,7 +120,7 @@ func (c *Config) Persist() error {
 		return err
 	}
 
-	err = os.MkdirAll(filepath.Dir(path), 0755)
+	err = os.MkdirAll(filepath.Dir(path), 0644)
 	if err != nil {
 		return err
 	}

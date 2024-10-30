@@ -20,7 +20,7 @@ type PostgresList struct {
 
 type OnSelectFuncT[T any] func(context.Context, T) tea.Cmd
 
-func NewPostgresList(ctx context.Context, selectFunc OnSelectFuncT[*postgres.Model]) *PostgresList {
+func NewPostgresList(ctx context.Context, selectFunc OnSelectFuncT[*postgres.Model], input PostgresInput, opts ...tui.TableOption[*postgres.Model]) *PostgresList {
 	onSelect := func(rows []btable.Row) tea.Cmd {
 		if len(rows) == 0 {
 			return nil
@@ -40,9 +40,10 @@ func NewPostgresList(ctx context.Context, selectFunc OnSelectFuncT[*postgres.Mod
 
 	t := tui.NewTable(
 		postgrestui.Columns(),
-		command.LoadCmd(ctx, listDatabases, PostgresInput{}),
+		command.LoadCmd(ctx, listDatabases, input),
 		createRowFunc,
 		onSelect,
+		opts...,
 	)
 
 	return &PostgresList{
@@ -50,9 +51,11 @@ func NewPostgresList(ctx context.Context, selectFunc OnSelectFuncT[*postgres.Mod
 	}
 }
 
-type PostgresInput struct{}
+type PostgresInput struct{
+	EnvironmentIDs []string
+}
 
-func listDatabases(ctx context.Context, _ PostgresInput) ([]*postgres.Model, error) {
+func listDatabases(ctx context.Context, input PostgresInput) ([]*postgres.Model, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
 		return nil, err
@@ -64,7 +67,11 @@ func listDatabases(ctx context.Context, _ PostgresInput) ([]*postgres.Model, err
 
 	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo)
 
-	return postgresService.ListPostgres(ctx, &client.ListPostgresParams{})
+	params := &client.ListPostgresParams{}
+	if input.EnvironmentIDs != nil {
+		params.EnvironmentId = &input.EnvironmentIDs
+	}
+	return postgresService.ListPostgres(ctx, params)
 }
 
 func (pl *PostgresList) Init() tea.Cmd {

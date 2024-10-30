@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/evertras/bubble-table/table"
+	renderstyle "github.com/renderinc/render-cli/pkg/style"
 )
 
 var styleSubtle = lipgloss.NewStyle().Foreground(lipgloss.Color("#888"))
@@ -15,7 +16,7 @@ const defaultMaxWidth = 100
 
 var defaultFilterCustomOption = CustomOption{
 	Key:   "/",
-	Title: "Filter",
+	Title: "Search",
 }
 
 type CustomOption struct {
@@ -28,10 +29,14 @@ func (o CustomOption) String() string {
 	return fmt.Sprintf("[%s] %s", o.Key, o.Title)
 }
 
+
 type Table[T any] struct {
 	Model         table.Model
 	onSelect      func(rows []table.Row) tea.Cmd
 	customOptions []CustomOption
+
+	headerMessage string
+	headerStyle   lipgloss.Style
 
 	loadData  TypedCmd[[]T]
 	createRow func(T) table.Row
@@ -50,6 +55,12 @@ func WithCustomOptions[T any](options []CustomOption) TableOption[T] {
 	}
 }
 
+func WithHeader[T any](message string) TableOption[T] {
+	return func(t *Table[T]) {
+		t.headerMessage = message
+	}
+}
+
 func NewTable[T any](
 	columns []table.Column,
 	loadData TypedCmd[[]T],
@@ -64,11 +75,12 @@ func NewTable[T any](
 			WithPageSize(25).
 			WithBaseStyle(lipgloss.NewStyle().Align(lipgloss.Left)).
 			WithTargetWidth(defaultMaxWidth),
-		tableWidth: defaultMaxWidth,
-		onSelect:   onSelect,
-		loadData:   loadData,
-		createRow:  createRow,
-		columns:    columns,
+		tableWidth:  defaultMaxWidth,
+		onSelect:    onSelect,
+		loadData:    loadData,
+		createRow:   createRow,
+		columns:     columns,
+		headerStyle: lipgloss.NewStyle().Foreground(renderstyle.ColorWarningDeprioritized),
 	}
 
 	for _, option := range tableOptions {
@@ -118,22 +130,29 @@ func (t *Table[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (t *Table[T]) View() string {
 	var footer string
-
-	var options []string
 	if len(t.customOptions) > 0 {
+		var options []string
 		for _, option := range t.customOptions {
 			options = append(options, styleSubtle.Render(option.String()))
 		}
+		options = append(options, styleSubtle.Render(defaultFilterCustomOption.String()))
+		footer = lipgloss.JoinHorizontal(lipgloss.Left, strings.Join(options, " "))
 	}
-
-	options = append(options, styleSubtle.Render(defaultFilterCustomOption.String()))
-
-	footer = lipgloss.JoinHorizontal(lipgloss.Left, strings.Join(options, " "))
 
 	tableView := t.Model.View()
 
 	if len(t.data) == 0 {
 		tableView = lipgloss.Place(t.tableWidth, t.tableHeight, lipgloss.Center, lipgloss.Center, "No Results")
+	}
+
+
+	if t.headerMessage != "" {
+		return lipgloss.JoinVertical(
+			lipgloss.Left,
+			t.headerStyle.Render(t.headerMessage),
+			tableView,
+			footer,
+		)
 	}
 
 	return lipgloss.JoinVertical(
