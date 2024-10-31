@@ -219,6 +219,6 @@ func init() {
 		return nil
 	}
 
-	servicesCmd.Flags().StringSliceP("environmentIDs", "e", nil, "Comma separated list of environment ids to filter by")
-	servicesCmd.Flags().Bool("includePreviews", false, "Whether to include preview environments when listing services")
+	servicesCmd.Flags().StringSliceP("environment-ids", "e", nil, "Comma separated list of environment ids to filter by")
+	servicesCmd.Flags().Bool("include-previews", false, "Whether to include preview environments when listing services")
 }

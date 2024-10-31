@@ -21,8 +21,8 @@ import (
 
 type ListResourceInput struct {
 	Project         *client.Project
-	EnvironmentIDs  []string `cli:"environmentIDs"`
-	IncludePreviews bool     `cli:"includePreviews"`
+	EnvironmentIDs  []string `cli:"environment-ids"`
+	IncludePreviews bool     `cli:"include-previews"`
 }
 
 func (l ListResourceInput) ToParams() resource.ResourceParams {
