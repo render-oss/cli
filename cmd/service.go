@@ -6,6 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
+	"github.com/spf13/cobra"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/pointers"
@@ -15,7 +17,6 @@ import (
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/renderinc/render-cli/pkg/types"
-	"github.com/spf13/cobra"
 )
 
 var servicesCmd = &cobra.Command{
@@ -219,4 +220,5 @@ func init() {
 	}
 
 	servicesCmd.Flags().StringSliceP("environmentIDs", "e", nil, "Comma separated list of environment ids to filter by")
+	servicesCmd.Flags().Bool("includePreviews", false, "Whether to include preview environments when listing services")
 }

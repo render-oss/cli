@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/config"
@@ -19,13 +20,15 @@ import (
 )
 
 type ListResourceInput struct {
-	Project        *client.Project
-	EnvironmentIDs []string `cli:"environmentIDs"`
+	Project         *client.Project
+	EnvironmentIDs  []string `cli:"environmentIDs"`
+	IncludePreviews bool     `cli:"includePreviews"`
 }
 
 func (l ListResourceInput) ToParams() resource.ResourceParams {
 	return resource.ResourceParams{
-		EnvironmentIDs: l.EnvironmentIDs,
+		EnvironmentIDs:  l.EnvironmentIDs,
+		IncludePreviews: l.IncludePreviews,
 	}
 }
 

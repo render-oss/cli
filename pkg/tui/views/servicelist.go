@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/environment"
@@ -49,9 +50,10 @@ func NewServiceList(ctx context.Context, in ServiceInput, selectFunc OnSelectFun
 	}
 }
 
-type ServiceInput struct{
-	Project *client.Project
-	EnvironmentIDs []string
+type ServiceInput struct {
+	Project         *client.Project
+	EnvironmentIDs  []string
+	IncludePreviews bool
 }
 
 func listServices(ctx context.Context, in ServiceInput) ([]*service.Model, error) {
@@ -67,11 +69,12 @@ func listServices(ctx context.Context, in ServiceInput) ([]*service.Model, error
 	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
 
 	listInput := &client.ListServicesParams{
-		Type:  &[]client.ServiceType{client.WebService, client.PrivateService, client.BackgroundWorker},
-		Limit: pointers.From(100),
+		IncludePreviews: pointers.From(in.IncludePreviews),
+		Type:            &[]client.ServiceType{client.WebService, client.PrivateService, client.BackgroundWorker},
+		Limit:           pointers.From(100),
 	}
 
-	if in.EnvironmentIDs != nil {
+	if len(in.EnvironmentIDs) > 0 {
 		listInput.EnvironmentId = &in.EnvironmentIDs
 	}
 

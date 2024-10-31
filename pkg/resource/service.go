@@ -38,17 +38,20 @@ func NewResourceService(serviceService *service.Service, postgresService *postgr
 }
 
 type ResourceParams struct {
-	EnvironmentIDs []string
+	EnvironmentIDs  []string
+	IncludePreviews bool
 }
 
 func (r ResourceParams) ToServiceParams() *client.ListServicesParams {
-	if len(r.EnvironmentIDs) == 0 {
-		return &client.ListServicesParams{}
+	params := &client.ListServicesParams{
+		IncludePreviews: pointers.From(r.IncludePreviews),
 	}
 
-	return &client.ListServicesParams{
-		EnvironmentId: pointers.From(r.EnvironmentIDs),
+	if len(r.EnvironmentIDs) > 0 {
+		params.EnvironmentId = pointers.From(r.EnvironmentIDs)
 	}
+
+	return params
 }
 
 func (r ResourceParams) ToPostgresParams() *client.ListPostgresParams {
