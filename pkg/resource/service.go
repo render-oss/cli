@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/environment"
 	"github.com/renderinc/render-cli/pkg/pointers"
@@ -65,12 +67,22 @@ func (r ResourceParams) ToPostgresParams() *client.ListPostgresParams {
 }
 
 func (rs *Service) ListResources(ctx context.Context, params ResourceParams) ([]Resource, error) {
-	services, err := rs.serviceService.ListServices(ctx, params.ToServiceParams())
-	if err != nil {
-		return nil, err
-	}
+	var services []*service.Model
+	var postgresDBs []*postgres.Model
+	wg, _ := errgroup.WithContext(ctx)
+	wg.Go(func() error {
+		var err error
+		services, err = rs.serviceService.ListServices(ctx, params.ToServiceParams())
+		return err
+	})
 
-	postgresDBs, err := rs.postgresService.ListPostgres(ctx, params.ToPostgresParams())
+	wg.Go(func() error {
+		var err error
+		postgresDBs, err = rs.postgresService.ListPostgres(ctx, params.ToPostgresParams())
+		return err
+	})
+
+	err := wg.Wait()
 	if err != nil {
 		return nil, err
 	}
