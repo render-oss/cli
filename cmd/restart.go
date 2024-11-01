@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/render-cli/pkg/command"
+	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/spf13/cobra"
 )
@@ -15,8 +16,8 @@ var restartCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 }
 
-var InteractiveRestart = func(ctx context.Context, input views.RestartInput) tea.Cmd {
-	return command.AddToStackFunc(ctx, restartCmd, &input, views.NewRestartView(ctx, input))
+var InteractiveRestart = func(ctx context.Context, input views.RestartInput, breadcrumb string) tea.Cmd {
+	return command.AddToStackFunc(ctx, restartCmd, breadcrumb, &input, views.NewRestartView(ctx, input))
 }
 
 func init() {
@@ -40,7 +41,11 @@ func init() {
 			return nil
 		}
 
-		InteractiveRestart(cmd.Context(), input)
+		r, err := resource.GetResource(cmd.Context(), input.ResourceID)
+		if err != nil {
+			return err
+		}
+		InteractiveRestart(cmd.Context(), input, "Restart " + resource.BreadcrumbForResource(r))
 		return nil
 	}
 

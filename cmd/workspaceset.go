@@ -20,7 +20,7 @@ Currently, you can only select a workspace in interactive mode.`,
 }
 
 var InteractiveWorkspaceSet = func(ctx context.Context, in views.ListWorkspaceInput) tea.Cmd {
-	return command.AddToStackFunc(ctx, workspaceSetCmd, &in, views.NewWorkspaceView(ctx, in))
+	return command.AddToStackFunc(ctx, workspaceSetCmd, "Set Workspace", &in, views.NewWorkspaceView(ctx, in))
 }
 
 func init() {

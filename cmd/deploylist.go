@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/render-cli/pkg/command"
+	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/spf13/cobra"
 )
@@ -15,8 +16,8 @@ var deployListCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 }
 
-var InteractiveDeployList = func(ctx context.Context, input views.DeployListInput) tea.Cmd {
-	return command.AddToStackFunc(ctx, deployListCmd, &input, views.NewDeployListView(ctx, input))
+var InteractiveDeployList = func(ctx context.Context, input views.DeployListInput, breadcrumb string) tea.Cmd {
+	return command.AddToStackFunc(ctx, deployListCmd, breadcrumb, &input, views.NewDeployListView(ctx, input))
 }
 
 func init() {
@@ -40,7 +41,12 @@ func init() {
 			return nil
 		}
 
-		InteractiveDeployList(cmd.Context(), input)
+		r, err := resource.GetResource(cmd.Context(), serviceID)
+		if err != nil {
+			return err
+		}
+
+		InteractiveDeployList(cmd.Context(), input, "List Deploys for " + resource.BreadcrumbForResource(r))
 		return nil
 	}
 }

@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	clientjob "github.com/renderinc/render-cli/pkg/client/jobs"
 	"github.com/renderinc/render-cli/pkg/command"
+	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/spf13/cobra"
 )
@@ -17,13 +18,19 @@ var jobCreateCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 }
 
-var InteractiveJobCreate = func(ctx context.Context, input *views.JobCreateInput) tea.Cmd {
-	return command.AddToStackFunc(ctx, sshCmd, input, views.NewJobCreateView(ctx, input, jobCreateCmd, func(j *clientjob.Job) tea.Cmd {
-		return InteractiveLogs(ctx, views.LogInput{
-			ResourceIDs: []string{j.Id},
-			Tail:        true,
-		})
-	}))
+var InteractiveJobCreate = func(ctx context.Context, input *views.JobCreateInput, breadcrumb string) tea.Cmd {
+	return command.AddToStackFunc(
+		ctx,
+		jobCreateCmd,
+		breadcrumb,
+		input,
+		views.NewJobCreateView(ctx, input, jobCreateCmd, func(j *clientjob.Job) tea.Cmd {
+			return InteractiveLogs(ctx, views.LogInput{
+				ResourceIDs: []string{j.Id},
+				Tail:        true,
+			}, "Logs")
+		}),
+	)
 }
 
 func init() {
@@ -48,7 +55,12 @@ func init() {
 			return nil
 		}
 
-		InteractiveJobCreate(cmd.Context(), &input)
+		r, err := resource.GetResource(cmd.Context(), input.ServiceID)
+		if err != nil {
+			return err
+		}
+
+		InteractiveJobCreate(cmd.Context(), &input, "Create Job " + resource.BreadcrumbForResource(r))
 		return nil
 	}
 

@@ -15,8 +15,8 @@ var jobCancelCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(2),
 }
 
-var InteractiveJobCancel = func(ctx context.Context, input views.JobCancelInput) tea.Cmd {
-	return command.AddToStackFunc(ctx, jobCancelCmd, &input, views.NewJobCancelView(ctx, input))
+var InteractiveJobCancel = func(ctx context.Context, input views.JobCancelInput, breadcrumb string) tea.Cmd {
+	return command.AddToStackFunc(ctx, jobCancelCmd, breadcrumb, &input, views.NewJobCancelView(ctx, input))
 }
 
 func init() {
@@ -42,7 +42,7 @@ func init() {
 			return nil
 		}
 
-		InteractiveJobCancel(cmd.Context(), input)
+		InteractiveJobCancel(cmd.Context(), input, "Cancel job " + input.JobID)
 		return nil
 	}
 }

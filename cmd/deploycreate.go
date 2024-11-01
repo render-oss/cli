@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
+	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/renderinc/render-cli/pkg/types"
 	"github.com/spf13/cobra"
@@ -23,13 +24,20 @@ var deployCreateCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(1),
 }
 
-var InteractiveDeployCreate = func(ctx context.Context, input types.DeployInput) tea.Cmd {
-	return command.AddToStackFunc(ctx, deployCreateCmd, &input, views.NewDeployCreateView(ctx, input, func(d *client.Deploy) tea.Cmd {
-		return InteractiveLogs(ctx, views.LogInput{
-			ResourceIDs: []string{input.ServiceID},
-			Tail:        true,
-		})
-	}))
+var InteractiveDeployCreate = func(ctx context.Context, input types.DeployInput, breadcrumb string) tea.Cmd {
+	return command.AddToStackFunc(
+		ctx,
+		deployCreateCmd,
+		breadcrumb,
+		&input,
+		views.NewDeployCreateView(ctx, input, func(d *client.Deploy) tea.Cmd {
+			return InteractiveLogs(
+				ctx,
+				views.LogInput{
+					ResourceIDs: []string{input.ServiceID},
+					Tail:        true,
+				}, "Logs")
+		}))
 }
 
 func init() {
@@ -53,7 +61,12 @@ func init() {
 			return nil
 		}
 
-		InteractiveDeployCreate(cmd.Context(), input)
+		service, err := resource.GetResource(cmd.Context(), input.ServiceID)
+		if err != nil {
+			return err
+		}
+
+		InteractiveDeployCreate(cmd.Context(), input, "Create Deploy for " + resource.BreadcrumbForResource(service))
 		return nil
 	}
 

@@ -111,14 +111,14 @@ func LoadLogData(ctx context.Context, in LogInput) (*tui.LogResult, error) {
 	return &tui.LogResult{Logs: logs, LogChannel: nil}, nil
 }
 
-func NewLogsView(ctx context.Context, logsCmd *cobra.Command, interactiveLogsCommand func(ctx context.Context, input LogInput) tea.Cmd, input LogInput) *LogsView {
+func NewLogsView(ctx context.Context, logsCmd *cobra.Command, interactiveLogsCommand func(ctx context.Context, input LogInput, breadcrumb string) tea.Cmd, input LogInput) *LogsView {
 	view := &LogsView{}
 
 	// If no resources specified, show resource selection view
 	if len(input.ResourceIDs) == 0 {
 		view.resourceTable = NewResourceView(ctx, ListResourceInput{}, func(r resource.Resource) tea.Cmd {
 			input.ResourceIDs = []string{r.ID()}
-			return interactiveLogsCommand(ctx, input)
+			return interactiveLogsCommand(ctx, input, resource.BreadcrumbForResource(r))
 		})
 	} else {
 		// Create log filter form
@@ -130,7 +130,7 @@ func NewLogsView(ctx context.Context, logsCmd *cobra.Command, interactiveLogsCom
 				return func() tea.Msg { return tui.ErrorMsg{Err: fmt.Errorf("failed to parse form values: %w", err)} }
 			}
 
-			return interactiveLogsCommand(ctx, logInput)
+			return interactiveLogsCommand(ctx, logInput, "") // we don't need a breadcrumb for the filter window
 		})
 
 		// Create log view model

@@ -7,6 +7,7 @@ import (
 	btable "github.com/evertras/bubble-table/table"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
+	"github.com/renderinc/render-cli/pkg/project"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/spf13/cobra"
@@ -20,12 +21,12 @@ var environmentCmd = &cobra.Command{
 In interactive mode you can view the services for an environment.`,
 }
 
-var InteractiveEnvironment = func(ctx context.Context, input views.EnvironmentInput) tea.Cmd {
-	return command.AddToStackFunc(ctx, environmentCmd, &input, views.NewEnvironmentList(ctx, input,
+var InteractiveEnvironment = func(ctx context.Context, input views.EnvironmentInput, breadcrumb string) tea.Cmd {
+	return command.AddToStackFunc(ctx, environmentCmd, breadcrumb, &input, views.NewEnvironmentList(ctx, input,
 		func(ctx context.Context, e *client.Environment) tea.Cmd {
 			return InteractiveServices(ctx, views.ListResourceInput{
 				EnvironmentIDs: []string{e.Id},
-			})
+			}, e.Name)
 		},
 		tui.WithCustomOptions[*client.Environment]([]tui.CustomOption{
 			{
@@ -57,7 +58,17 @@ func init() {
 			return nil
 		}
 
-		InteractiveEnvironment(cmd.Context(), input)
+		c, err := client.NewDefaultClient()
+		if err != nil {
+			return err
+		}
+		projectRepo := project.NewRepo(c)
+		proj, err := projectRepo.GetProject(cmd.Context(), input.ProjectID)
+		if err != nil {
+			return err
+		}
+
+		InteractiveEnvironment(cmd.Context(), input, "Environments for " + proj.Name)
 		return nil
 	}
 }

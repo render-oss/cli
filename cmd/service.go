@@ -56,7 +56,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Action: func(ctx context.Context, args []string) tea.Cmd {
 						return InteractiveLogs(ctx, views.LogInput{
 							ResourceIDs: []string{r.ID()},
-						})
+						}, "Logs")
 					},
 				},
 			},
@@ -65,7 +65,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "restart",
 					Description: "Restart the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveRestart(ctx, views.RestartInput{ResourceID: r.ID()})
+						return InteractiveRestart(ctx, views.RestartInput{ResourceID: r.ID()}, "Restart")
 					},
 				},
 			},
@@ -84,7 +84,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "deploy create",
 					Description: "Deploy the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveDeployCreate(ctx, types.DeployInput{ServiceID: r.ID()})
+						return InteractiveDeployCreate(ctx, types.DeployInput{ServiceID: r.ID()}, "Create Deploy")
 					},
 				},
 				allowedTypes: service.Types,
@@ -94,7 +94,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "deploy list",
 					Description: "List deploys for the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveDeployList(ctx, views.DeployListInput{ServiceID: r.ID()})
+						return InteractiveDeployList(ctx, views.DeployListInput{ServiceID: r.ID()}, "List Deploys")
 					},
 				},
 				allowedTypes: service.Types,
@@ -104,7 +104,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "ssh",
 					Description: "SSH into the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveSSHView(ctx, &views.SSHInput{ServiceID: r.ID()})
+						return InteractiveSSHView(ctx, &views.SSHInput{ServiceID: r.ID()}, "SSH")
 					},
 				},
 				allowedTypes: []string{
@@ -117,7 +117,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "jobs list",
 					Description: "List jobs for the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveJobList(ctx, views.JobListInput{ServiceID: r.ID()})
+						return InteractiveJobList(ctx, views.JobListInput{ServiceID: r.ID()}, "List Jobs")
 					},
 				},
 				allowedTypes: []string{
@@ -134,7 +134,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 							ServiceID:    r.ID(),
 							StartCommand: pointers.From(""),
 							PlanID:       pointers.From(""),
-						})
+						}, resource.BreadcrumbForResource(r))
 					},
 				},
 				allowedTypes: []string{
@@ -157,13 +157,13 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 	}
 }
 
-func InteractiveServices(ctx context.Context, in views.ListResourceInput) tea.Cmd {
-	return command.AddToStackFunc(ctx, servicesCmd, &in,
+func InteractiveServices(ctx context.Context, in views.ListResourceInput, breadcrumb string) tea.Cmd {
+	return command.AddToStackFunc(ctx, servicesCmd, breadcrumb, &in,
 		views.NewResourceWithPaletteView(
 			ctx,
 			in,
-			func(r resource.Resource) []views.PaletteCommand {
-				return selectResource(ctx)(r)
+			func(r resource.Resource) tea.Cmd {
+				return InteractivePalette(ctx, selectResource(ctx)(r), resource.BreadcrumbForResource(r))
 			},
 			tui.WithCustomOptions[resource.Resource](getServiceTableOptions(ctx)),
 		),
@@ -183,14 +183,16 @@ func getServiceTableOptions(ctx context.Context) []tui.CustomOption {
 			Key:   "f",
 			Title: "Filter by Project",
 			Function: func(row btable.Row) tea.Cmd {
-				return command.AddToStackFunc(ctx, servicesCmd, &views.ListResourceInput{},
+				return command.AddToStackFunc(ctx, servicesCmd, "Project Filter", &views.ListResourceInput{},
 					views.NewProjectFilterView(ctx, func(ctx context.Context, project *client.Project) tea.Cmd {
 						listResourceInput := views.ListResourceInput{}
+						breadcrumb := "All Projects"
 						if project != nil {
 							listResourceInput.Project = project
 							listResourceInput.EnvironmentIDs = project.EnvironmentIds
+							breadcrumb = project.Name
 						}
-						return InteractiveServices(ctx, listResourceInput)
+						return InteractiveServices(ctx, listResourceInput, breadcrumb)
 					}))
 			},
 		},
@@ -215,7 +217,7 @@ func init() {
 			return nil
 		}
 
-		InteractiveServices(cmd.Context(), in)
+		InteractiveServices(cmd.Context(), in, "Services")
 		return nil
 	}
 

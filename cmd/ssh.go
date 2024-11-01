@@ -22,16 +22,17 @@ var sshCmd = &cobra.Command{
 	Long:  `SSH into a server given a service ID. Optionally pass the service id as an argument.`,
 }
 
-func InteractiveSSHView(ctx context.Context, input *views.SSHInput) tea.Cmd {
+func InteractiveSSHView(ctx context.Context, input *views.SSHInput, breadcrumb string) tea.Cmd {
 	return command.AddToStackFunc(
 		ctx,
 		sshCmd,
+		breadcrumb,
 		input,
-		views.NewSSHView(ctx, input, tui.WithCustomOptions[*service.Model](getSSHTableOptions(ctx))),
+		views.NewSSHView(ctx, input, tui.WithCustomOptions[*service.Model](getSSHTableOptions(ctx, breadcrumb))),
 	)
 }
 
-func getSSHTableOptions(ctx context.Context) []tui.CustomOption {
+func getSSHTableOptions(ctx context.Context, breadcrumb string) []tui.CustomOption {
 	return []tui.CustomOption{
 		{
 			Key:   "w",
@@ -44,14 +45,14 @@ func getSSHTableOptions(ctx context.Context) []tui.CustomOption {
 			Key:   "f",
 			Title: "Filter by Project",
 			Function: func(row btable.Row) tea.Cmd {
-				return command.AddToStackFunc(ctx, servicesCmd, &views.SSHInput{},
+				return command.AddToStackFunc(ctx, servicesCmd, "Project Filter", &views.SSHInput{},
 					views.NewProjectFilterView(ctx, func(ctx context.Context, project *client.Project) tea.Cmd {
 						input := views.SSHInput{}
 						if project != nil {
 							input.Project = project
 							input.EnvironmentIDs = project.EnvironmentIds
 						}
-						return InteractiveSSHView(ctx, &input)
+						return InteractiveSSHView(ctx, &input, breadcrumb)
 					}))
 			},
 		},
@@ -70,7 +71,7 @@ func init() {
 			return err
 		}
 
-		InteractiveSSHView(ctx, &input)
+		InteractiveSSHView(ctx, &input, "SSH")
 		return nil
 	}
 }

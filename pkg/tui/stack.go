@@ -2,13 +2,17 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	renderstyle "github.com/renderinc/render-cli/pkg/style"
 )
 
-var stackHeaderStyle = lipgloss.NewStyle().BorderStyle(lipgloss.ThickBorder()).BorderBottom(true).BorderTop(true)
+var stackHeaderStyle = lipgloss.NewStyle().MarginTop(1).MarginBottom(1)
+var stackInfoStyle = lipgloss.NewStyle().Foreground(renderstyle.ColorInfo).Bold(true)
 
 type StackModel struct {
 	loadingSpinner *spinner.Model
@@ -21,6 +25,7 @@ type StackModel struct {
 type ModelWithCmd struct {
 	Model tea.Model
 	Cmd   string
+	Breadcrumb string
 }
 
 type StackSizeMsg struct {
@@ -93,6 +98,14 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 			return m, m.Init()
+		case tea.KeyCtrlS:
+			// copy command to clipboard
+			if len(m.stack) > 0 {
+				err := clipboard.WriteAll(m.stack[len(m.stack)-1].Cmd)
+				if err != nil {
+					m.Push(ModelWithCmd{Model: NewErrorModel("Failed to copy command to clipboard")})
+				}
+			}
 		}
 	case ClearScreenMsg:
 		m.stack = m.stack[:0]
@@ -143,7 +156,7 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *StackModel) StackSizeMsg() StackSizeMsg {
 	return StackSizeMsg{
 		Width:  m.width,
-		Height: m.height - lipgloss.Height(m.header()),
+		Height: m.height - lipgloss.Height(m.header()) - lipgloss.Height(m.footer()),
 		Top:    lipgloss.Height(m.header()),
 	}
 }
@@ -157,41 +170,35 @@ func (m *StackModel) View() string {
 		return ""
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, m.header(), m.stack[len(m.stack)-1].Model.View())
+	return lipgloss.JoinVertical(lipgloss.Left, m.header(), m.stack[len(m.stack)-1].Model.View(), m.footer())
 }
 
 func (m *StackModel) header() string {
-	emptyStyle := lipgloss.NewStyle()
+	var breadCrumbs []string
+	for _, model := range m.stack {
+		if model.Breadcrumb != "" {
+			breadCrumbs = append(breadCrumbs, stackInfoStyle.Render(model.Breadcrumb))
+		}
+	}
 
-	escText := "Ctrl+D: Quit"
+	return stackHeaderStyle.Render(strings.Join(breadCrumbs, " > "))
+}
+
+func (m *StackModel) footer() string {
+	quitCommand := fmt.Sprintf("%s Quit", renderstyle.CommandKey.Render("[Ctrl+C]"))
+	prevCommand := fmt.Sprintf("%s Previous command", renderstyle.CommandKey.Render("[Ctrl+D]"))
+	saveToClipboard := fmt.Sprintf("%s Copy command to clipboard", renderstyle.CommandKey.Render("[Ctrl+S]"))
+
+	var commands []string
+	commands = append(commands, quitCommand)
+
 	if len(m.stack) > 1 {
-		escText = "Ctrl+D: Previous command"
+		commands = append(commands, prevCommand)
 	}
-	escVal := emptyStyle.Render(escText)
 
-	globalCmds := "Ctrl+C: Quit"
-	globalCmdsVal := emptyStyle.Render(globalCmds)
-
-	cmdStyle := lipgloss.NewStyle()
-	var cmdText string
 	if m.stack[len(m.stack)-1].Cmd != "" {
-		cmdText = fmt.Sprintf("Current Command: %s", m.stack[len(m.stack)-1].Cmd)
+		commands = append(commands, saveToClipboard)
 	}
 
-	cmdWidth := lipgloss.Width(cmdText)
-	paddingLeft := (m.width-cmdWidth)/2 - lipgloss.Width(escVal)
-	cmdStyle = cmdStyle.PaddingLeft(paddingLeft)
-
-	paddingRight := (m.width-cmdWidth)/2 - lipgloss.Width(globalCmdsVal)
-	cmdStyle = cmdStyle.PaddingRight(paddingRight)
-
-	cmdVal := cmdStyle.Render(cmdText)
-
-	bar := lipgloss.JoinHorizontal(lipgloss.Top,
-		escVal,
-		cmdVal,
-		globalCmdsVal,
-	)
-
-	return stackHeaderStyle.Render(bar)
+	return renderstyle.CommandTitle.Render("Navigation: ") + strings.Join(commands, " ")
 }

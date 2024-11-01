@@ -61,14 +61,7 @@ func NewRestartView(ctx context.Context, input RestartInput) *RestartView {
 		model: tui.NewSimpleModel(command.WrapInConfirm(
 			command.LoadCmd(ctx, RestartResource, input),
 			func() (string, error) {
-				c, err := client.NewDefaultClient()
-				if err != nil {
-					return "", err
-				}
-
-				resourceService := newResourceService(c)
-
-				res, err := resourceService.GetResource(ctx, input.ResourceID)
+				res, err := resource.GetResource(ctx, input.ResourceID)
 				if err != nil {
 					return "", fmt.Errorf("failed to get resource: %w", err)
 				}

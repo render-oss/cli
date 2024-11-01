@@ -25,6 +25,7 @@ func InteractivePSQLView(ctx context.Context, input *views.PSQLInput) tea.Cmd {
 	return command.AddToStackFunc(
 		ctx,
 		psqlCmd,
+		"psql",
 		input,
 		views.NewPSQLView(ctx, input, tui.WithCustomOptions[*postgres.Model](getPsqlTableOptions(ctx))),
 	)
@@ -43,7 +44,7 @@ func getPsqlTableOptions(ctx context.Context) []tui.CustomOption {
 			Key:   "f",
 			Title: "Filter by Project",
 			Function: func(row btable.Row) tea.Cmd {
-				return command.AddToStackFunc(ctx, psqlCmd, &views.PSQLInput{},
+				return command.AddToStackFunc(ctx, psqlCmd, "psql", &views.PSQLInput{},
 					views.NewProjectFilterView(ctx, func(ctx context.Context, project *client.Project) tea.Cmd {
 						input := &views.PSQLInput{}
 						if project != nil {

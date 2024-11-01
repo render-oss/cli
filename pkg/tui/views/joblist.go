@@ -34,16 +34,12 @@ type JobListView struct {
 	palette *PaletteView
 }
 
-func NewJobListView(ctx context.Context, input *JobListInput, generateCommands func(*clientjob.Job) []PaletteCommand) *JobListView {
+func NewJobListView(ctx context.Context, input *JobListInput, generateCommands func(*clientjob.Job) tea.Cmd) *JobListView {
 	listView := &JobListView{}
 
 	onSelect := func(selectedItem tui.ListItem) tea.Cmd {
 		selectedJob := selectedItem.(job.ListItem).Job()
-
-		commands := generateCommands(selectedJob)
-		listView.palette = NewPaletteView(ctx, commands)
-
-		return listView.palette.Init()
+		return generateCommands(selectedJob)
 	}
 
 	listView.list = tui.NewList(

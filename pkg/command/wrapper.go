@@ -84,7 +84,7 @@ func NonInteractive(ctx context.Context, cmd *cobra.Command, loadData func() (an
 	return true, nil
 }
 
-func wrappedModel(model tea.Model, cmd *cobra.Command, in any) (*tui.ModelWithCmd, error) {
+func wrappedModel(model tea.Model, cmd *cobra.Command, breadcrumb string, in any) (*tui.ModelWithCmd, error) {
 	var cmdString string
 
 	if !cmd.Hidden {
@@ -98,12 +98,14 @@ func wrappedModel(model tea.Model, cmd *cobra.Command, in any) (*tui.ModelWithCm
 	confirmModel := tui.NewModelWithConfirm(model)
 
 	return &tui.ModelWithCmd{
-		Model: confirmModel, Cmd: cmdString,
+		Model: confirmModel,
+		Cmd: cmdString,
+		Breadcrumb: breadcrumb,
 	}, nil
 }
 
-func AddToStackFunc[T any](ctx context.Context, cmd *cobra.Command, in T, m tea.Model) tea.Cmd {
-	modelWithCmd, err := wrappedModel(m, cmd, in)
+func AddToStackFunc[T any](ctx context.Context, cmd *cobra.Command, breadcrumb string, in T, m tea.Model) tea.Cmd {
+	modelWithCmd, err := wrappedModel(m, cmd, breadcrumb, in)
 	if err != nil {
 		return nil
 	}

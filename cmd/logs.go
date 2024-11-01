@@ -24,8 +24,8 @@ Unlike in the dashboard you can view logs for multiple resources at once. Set --
 In interactive mode you can update the filters and view logs in real time.`,
 }
 
-func filterLogs(ctx context.Context, in views.LogInput) tea.Cmd {
-	return command.AddToStackFunc(ctx, logsCmd, &in, views.NewLogsView(ctx, logsCmd, filterLogs, in))
+func filterLogs(ctx context.Context, in views.LogInput, breadcrumb string) tea.Cmd {
+	return command.AddToStackFunc(ctx, logsCmd, breadcrumb, &in, views.NewLogsView(ctx, logsCmd, filterLogs, in))
 }
 
 func writeLog(format command.Output, out io.Writer, log *lclient.Log) error {
@@ -74,8 +74,8 @@ func nonInteractiveLogs(format *command.Output, cmd *cobra.Command, input views.
 	return nil
 }
 
-var InteractiveLogs = func(ctx context.Context, input views.LogInput) tea.Cmd {
-	return command.AddToStackFunc(ctx, logsCmd, &input, views.NewLogsView(ctx, logsCmd, filterLogs, input))
+var InteractiveLogs = func(ctx context.Context, input views.LogInput, breadcrumb string) tea.Cmd {
+	return command.AddToStackFunc(ctx, logsCmd, breadcrumb, &input, views.NewLogsView(ctx, logsCmd, filterLogs, input))
 }
 
 func init() {
@@ -91,7 +91,7 @@ func init() {
 			return nonInteractiveLogs(format, cmd, input)
 		}
 
-		InteractiveLogs(cmd.Context(), input)
+		InteractiveLogs(cmd.Context(), input, "Logs")
 		return nil
 	}
 

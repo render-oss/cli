@@ -10,12 +10,9 @@ import (
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/config"
-	"github.com/renderinc/render-cli/pkg/environment"
-	"github.com/renderinc/render-cli/pkg/postgres"
 	"github.com/renderinc/render-cli/pkg/project"
 	"github.com/renderinc/render-cli/pkg/resource"
 	resourcetui "github.com/renderinc/render-cli/pkg/resource/tui"
-	"github.com/renderinc/render-cli/pkg/service"
 	"github.com/renderinc/render-cli/pkg/tui"
 )
 
@@ -36,30 +33,11 @@ type ResourceView struct {
 	table *tui.Table[resource.Resource]
 }
 
-func newResourceService(c *client.ClientWithResponses) *resource.Service {
-	serviceRepo := service.NewRepo(c)
-	environmentRepo := environment.NewRepo(c)
-	projectRepo := project.NewRepo(c)
-	postgresRepo := postgres.NewRepo(c)
-
-	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
-	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo)
-
-	return resource.NewResourceService(
-		serviceService,
-		postgresService,
-		environmentRepo,
-		projectRepo,
-	)
-}
-
 func LoadResourceData(ctx context.Context, in ListResourceInput) ([]resource.Resource, error) {
-	c, err := client.NewDefaultClient()
+	resourceService, err := resource.NewDefaultResourceService()
 	if err != nil {
 		return nil, err
 	}
-
-	resourceService := newResourceService(c)
 
 	return resourceService.ListResources(ctx, in.ToParams())
 }

@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"golang.org/x/sync/errgroup"
@@ -28,6 +29,28 @@ type Service struct {
 	postgresService *postgres.Service
 	environmentRepo *environment.Repo
 	projectRepo     *project.Repo
+}
+
+func NewDefaultResourceService() (*Service, error) {
+	c, err := client.NewDefaultClient()
+	if err != nil {
+		return nil, err
+	}
+
+	serviceRepo := service.NewRepo(c)
+	environmentRepo := environment.NewRepo(c)
+	projectRepo := project.NewRepo(c)
+	postgresRepo := postgres.NewRepo(c)
+
+	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
+	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo)
+
+	return NewResourceService(
+		serviceService,
+		postgresService,
+		environmentRepo,
+		projectRepo,
+	), nil
 }
 
 func NewResourceService(serviceService *service.Service, postgresService *postgres.Service, environmentRepo *environment.Repo, projectRepo *project.Repo) *Service {
@@ -126,4 +149,20 @@ func (rs *Service) RestartResource(ctx context.Context, id string) error {
 	}
 
 	return errors.New("unknown resource type")
+}
+
+func GetResource(ctx context.Context, id string) (Resource, error) {
+	rs, err := NewDefaultResourceService()
+	if err != nil {
+		return nil, err
+	}
+
+	return rs.GetResource(ctx, id)
+}
+
+func BreadcrumbForResource(r Resource) string {
+	if r.ProjectName() != "" && r.EnvironmentName() != "" {
+		return fmt.Sprintf("%s (%s - %s)", r.Name(), r.ProjectName(), r.EnvironmentName())
+	}
+	return r.Name()
 }

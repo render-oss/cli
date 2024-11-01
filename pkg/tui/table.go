@@ -26,9 +26,9 @@ type CustomOption struct {
 }
 
 func (o CustomOption) String() string {
-	return fmt.Sprintf("[%s] %s", o.Key, o.Title)
+	key := renderstyle.CommandKey.Render(fmt.Sprintf("[%s]", o.Key))
+	return key + " " + o.Title
 }
-
 
 type Table[T any] struct {
 	Model         table.Model
@@ -133,10 +133,14 @@ func (t *Table[T]) View() string {
 	if len(t.customOptions) > 0 {
 		var options []string
 		for _, option := range t.customOptions {
-			options = append(options, styleSubtle.Render(option.String()))
+			options = append(options, option.String())
 		}
-		options = append(options, styleSubtle.Render(defaultFilterCustomOption.String()))
-		footer = lipgloss.JoinHorizontal(lipgloss.Left, strings.Join(options, " "))
+		options = append(options, defaultFilterCustomOption.String())
+		footer = lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			renderstyle.CommandTitle.Render("Actions:    "), // extra spaces to align with the commands shown by the stack
+			strings.Join(options, " "),
+		)
 	}
 
 	tableView := t.Model.View()
@@ -145,19 +149,26 @@ func (t *Table[T]) View() string {
 		tableView = lipgloss.Place(t.tableWidth, t.tableHeight, lipgloss.Center, lipgloss.Center, "No Results")
 	}
 
+	view := lipgloss.JoinVertical(
+		lipgloss.Left,
+		tableView,
+	)
 
-	if t.headerMessage != "" {
-		return lipgloss.JoinVertical(
+	if footer != "" {
+		view = lipgloss.JoinVertical(
 			lipgloss.Left,
-			t.headerStyle.Render(t.headerMessage),
-			tableView,
+			view,
 			footer,
 		)
 	}
 
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		tableView,
-		footer,
-	)
+	if t.headerMessage != "" {
+		view = lipgloss.JoinVertical(
+			lipgloss.Left,
+			t.headerStyle.Render(t.headerMessage),
+			view,
+		)
+	}
+
+	return view
 }

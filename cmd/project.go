@@ -20,11 +20,16 @@ In interactive mode you can view the environments for a project.`,
 }
 
 var InteractiveProjectList = func(ctx context.Context) {
-	command.AddToStackFunc(ctx, projectCmd, &views.ProjectInput{}, views.NewProjectList(ctx,
+	command.AddToStackFunc(
+		ctx,
+		projectCmd,
+		"Projects",
+		&views.ProjectInput{},
+		views.NewProjectList(ctx,
 		func(ctx context.Context, p *client.Project) tea.Cmd {
 			return InteractiveEnvironment(ctx, views.EnvironmentInput{
 				ProjectID: p.Id,
-			})
+			}, p.Name)
 		},
 		tui.WithCustomOptions[*client.Project]([]tui.CustomOption{
 			{
