@@ -8,9 +8,10 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/cobra"
+
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/tui"
-	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands

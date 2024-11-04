@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/pointers"
 	rstrings "github.com/renderinc/render-cli/pkg/strings"
@@ -72,17 +73,6 @@ func (i ListItem) FilterValue() string {
 
 func (i ListItem) Height() int {
 	return 5
-}
-
-func formatKeyValue(key, value string) string {
-	return fmt.Sprintf("%s %s", style.Label.Render(key+":"), style.Value.Render(value))
-}
-
-func stringValue(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }
 
 func deployStatusValue(status *client.DeployStatus) string {

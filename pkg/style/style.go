@@ -7,29 +7,49 @@ import (
 )
 
 const (
-	blue   = "#5b74ff"
-	lightBlue = "#9dc6fa"
-	green  = "#12c603"
-	orange = "#ffb727"
-	darkOrange = "#d49822"
-	lightPurple = "#b3a5ff"
-	red    = "#ff0033"
-	grey   = "#a2a2a2"
+	blue         = "#5b74ff"
+	darkOrange   = "#d49822"
+	verySoftBlue = "#bfd5f1"
+
+	ColorWarningDeprioritized = lipgloss.Color(darkOrange)
 )
 
-var Title = lipgloss.NewStyle().Foreground(lipgloss.Color(blue)).Bold(true)
-var Label  = lipgloss.NewStyle().Foreground(lipgloss.Color("#bfd5f1"))
-var Value  = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
-var Status = lipgloss.NewStyle().Bold(true)
-var CommandTitle = lipgloss.NewStyle().Foreground(ColorInfo).Bold(true)
-var CommandKey = lipgloss.NewStyle().Foreground(lipgloss.Color(lightBlue))
+var (
+	ColorOK = lipgloss.AdaptiveColor{
+		Light: green600,
+		Dark:  green200,
+	}
+	ColorWarning = lipgloss.AdaptiveColor{
+		Light: orange500,
+		Dark:  orange200,
+	}
+	ColorError = lipgloss.AdaptiveColor{
+		Light: red600,
+		Dark:  red200,
+	}
+	ColorInfo = lipgloss.AdaptiveColor{
+		Light: purple600,
+		Dark:  purple200,
+	}
+	ColorDeprioritized = lipgloss.AdaptiveColor{
+		Light: gray600,
+		Dark:  gray200,
+	}
 
-const ColorOK = lipgloss.Color(green)
-const ColorWarning = lipgloss.Color(orange)
-const ColorWarningDeprioritized = lipgloss.Color(darkOrange)
-const ColorError = lipgloss.Color(red)
-const ColorDeprioritized = lipgloss.Color(grey)
-const ColorInfo = lipgloss.Color(lightBlue)
+	ColorHighlight = lipgloss.AdaptiveColor{
+		Light: purple100,
+		Dark:  purple700,
+	}
+)
+
+var (
+	Title        = lipgloss.NewStyle().Foreground(lipgloss.Color(blue)).Bold(true)
+	Label        = lipgloss.NewStyle().Foreground(lipgloss.Color(verySoftBlue))
+	Status       = lipgloss.NewStyle().Bold(true)
+	CommandTitle = lipgloss.NewStyle().Foreground(ColorInfo).Bold(true)
+	CommandKey   = lipgloss.NewStyle().Foreground(ColorInfo)
+	Highlight    = lipgloss.NewStyle().Background(ColorHighlight)
+)
 
 func FormatKeyValue(key, value string) string {
 	return fmt.Sprintf("%s %s", Label.Render(key+":"), value)

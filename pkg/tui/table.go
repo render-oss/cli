@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/evertras/bubble-table/table"
+
 	renderstyle "github.com/renderinc/render-cli/pkg/style"
 )
 
@@ -74,7 +75,8 @@ func NewTable[T any](
 			Focused(true).
 			WithPageSize(25).
 			WithBaseStyle(lipgloss.NewStyle().Align(lipgloss.Left)).
-			WithTargetWidth(defaultMaxWidth),
+			WithTargetWidth(defaultMaxWidth).
+			HighlightStyle(renderstyle.Highlight),
 		tableWidth:  defaultMaxWidth,
 		onSelect:    onSelect,
 		loadData:    loadData,
