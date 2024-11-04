@@ -4,13 +4,19 @@ import (
 	"github.com/renderinc/render-cli/pkg/client"
 )
 
-var Types = []string{
+var NonStaticServerTypes = []string{
 	BackgroundWorkerResourceType,
-	CronJobResourceType,
 	PrivateServiceResourceType,
-	StaticSiteResourceType,
 	WebServiceResourceType,
 }
+
+var NonStaticTypes = append([]string{CronJobResourceType},
+	NonStaticServerTypes...,
+)
+
+var Types = append([]string{StaticSiteResourceType},
+	NonStaticTypes...,
+)
 
 const (
 	BackgroundWorkerResourceType = "Background Worker"

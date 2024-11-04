@@ -59,6 +59,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 						}, "Logs")
 					},
 				},
+				allowedTypes: append([]string{postgres.PostgresType}, service.NonStaticTypes...),
 			},
 			{
 				command: views.PaletteCommand{
@@ -68,6 +69,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 						return InteractiveRestart(ctx, views.RestartInput{ResourceID: r.ID()}, "Restart")
 					},
 				},
+				allowedTypes: append([]string{postgres.PostgresType}, service.NonStaticServerTypes...),
 			},
 			{
 				command: views.PaletteCommand{
@@ -107,10 +109,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 						return InteractiveSSHView(ctx, &views.SSHInput{ServiceID: r.ID()}, "SSH")
 					},
 				},
-				allowedTypes: []string{
-					service.WebServiceResourceType, service.PrivateServiceResourceType,
-					service.BackgroundWorkerResourceType,
-				},
+				allowedTypes: service.NonStaticServerTypes,
 			},
 			{
 				command: views.PaletteCommand{
@@ -120,10 +119,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 						return InteractiveJobList(ctx, views.JobListInput{ServiceID: r.ID()}, "List Jobs")
 					},
 				},
-				allowedTypes: []string{
-					service.WebServiceResourceType, service.PrivateServiceResourceType,
-					service.BackgroundWorkerResourceType, service.CronJobResourceType,
-				},
+				allowedTypes: service.NonStaticTypes,
 			},
 			{
 				command: views.PaletteCommand{
@@ -137,10 +133,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 						}, resource.BreadcrumbForResource(r))
 					},
 				},
-				allowedTypes: []string{
-					service.WebServiceResourceType, service.PrivateServiceResourceType,
-					service.BackgroundWorkerResourceType, service.CronJobResourceType,
-				},
+				allowedTypes: service.NonStaticTypes,
 			},
 		}
 
