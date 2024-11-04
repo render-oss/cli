@@ -12,10 +12,6 @@ import (
 	"github.com/renderinc/render-cli/pkg/style"
 )
 
-var (
-	statusStyle = lipgloss.NewStyle().Bold(true)
-)
-
 type ListItem struct {
 	deploy *client.Deploy
 }

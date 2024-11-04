@@ -7,9 +7,7 @@ import (
 )
 
 const (
-	blue         = "#5b74ff"
-	darkOrange   = "#d49822"
-	verySoftBlue = "#bfd5f1"
+	darkOrange = "#d49822"
 
 	ColorWarningDeprioritized = lipgloss.Color(darkOrange)
 )
@@ -40,11 +38,22 @@ var (
 		Light: purple100,
 		Dark:  purple700,
 	}
+
+	ColorInfoBackground = lipgloss.AdaptiveColor{
+		Light: purple100,
+		Dark:  purple700,
+	}
+
+	ColorFocus = lipgloss.AdaptiveColor{
+		Light: gray800,
+		Dark:  white,
+	}
 )
 
 var (
-	Title        = lipgloss.NewStyle().Foreground(lipgloss.Color(blue)).Bold(true)
-	Label        = lipgloss.NewStyle().Foreground(lipgloss.Color(verySoftBlue))
+	Title        = lipgloss.NewStyle().Foreground(ColorInfo).Bold(true)
+	TitleBlock   = lipgloss.NewStyle().Background(ColorInfoBackground).Foreground(ColorInfo).Padding(0, 1)
+	Label        = lipgloss.NewStyle().Foreground(ColorFocus)
 	Status       = lipgloss.NewStyle().Bold(true)
 	CommandTitle = lipgloss.NewStyle().Foreground(ColorInfo).Bold(true)
 	CommandKey   = lipgloss.NewStyle().Foreground(ColorInfo)
@@ -52,5 +61,5 @@ var (
 )
 
 func FormatKeyValue(key, value string) string {
-	return fmt.Sprintf("%s %s", Label.Render(key+":"), value)
+	return fmt.Sprintf("%s %s", Label.Render(key+":"), lipgloss.NewStyle().Foreground(ColorDeprioritized).Render(value))
 }

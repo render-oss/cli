@@ -3,6 +3,8 @@ package tui
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+
+	renderstyle "github.com/renderinc/render-cli/pkg/style"
 )
 
 type ListItem interface {
@@ -42,6 +44,7 @@ func NewList[T any](
 	delegate := list.NewDefaultDelegate()
 
 	l := list.New([]list.Item{}, delegate, 0, 0) // Size is updated in Init
+	l.Styles.Title = renderstyle.TitleBlock
 
 	l.Title = title
 	l.SetShowStatusBar(false)
@@ -108,6 +111,8 @@ func (m *List[T]) updateListSize() {
 	m.list.SetSize(listWidth, availableHeight)
 
 	delegate := list.NewDefaultDelegate()
+	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.BorderForeground(renderstyle.ColorInfo)
+	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.BorderForeground(renderstyle.ColorInfo)
 
 	maxItemHeight := 0
 	for _, item := range m.items {
