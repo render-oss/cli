@@ -4,6 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -65,6 +66,10 @@ either json or yaml.
 
 		output := command.GetFormatFromContext(ctx)
 		if output == nil || *output == command.Interactive {
+			if isPipe() {
+				return errors.New("please specify `-o json` or `-o yaml` to pipe output")
+			}
+
 			stack := tui.GetStackFromContext(ctx)
 			if stack == nil {
 				return nil
@@ -80,6 +85,16 @@ either json or yaml.
 
 		return nil
 	},
+}
+
+func isPipe() bool {
+	stdout, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+
+	isTerminal := (stdout.Mode() & os.ModeCharDevice) == os.ModeCharDevice
+	return !isTerminal
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
