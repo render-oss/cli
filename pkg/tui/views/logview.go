@@ -8,6 +8,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/spf13/cobra"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	lclient "github.com/renderinc/render-cli/pkg/client/logs"
 	"github.com/renderinc/render-cli/pkg/command"
@@ -16,7 +18,6 @@ import (
 	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/tui"
-	"github.com/spf13/cobra"
 )
 
 type LogInput struct {
@@ -36,6 +37,8 @@ type LogInput struct {
 	Limit     int    `cli:"limit"`
 	Direction string `cli:"direction"`
 	Tail      bool   `cli:"tail"`
+
+	ListResourceInput ListResourceInput
 }
 
 func (l LogInput) ToParam() (*client.ListLogsParams, error) {
@@ -111,15 +114,15 @@ func LoadLogData(ctx context.Context, in LogInput) (*tui.LogResult, error) {
 	return &tui.LogResult{Logs: logs, LogChannel: nil}, nil
 }
 
-func NewLogsView(ctx context.Context, logsCmd *cobra.Command, interactiveLogsCommand func(ctx context.Context, input LogInput, breadcrumb string) tea.Cmd, input LogInput) *LogsView {
+func NewLogsView(ctx context.Context, logsCmd *cobra.Command, interactiveLogsCommand func(ctx context.Context, input LogInput, breadcrumb string) tea.Cmd, input LogInput, opts ...tui.TableOption[resource.Resource]) *LogsView {
 	view := &LogsView{}
 
 	// If no resources specified, show resource selection view
 	if len(input.ResourceIDs) == 0 {
-		view.resourceTable = NewResourceView(ctx, ListResourceInput{}, func(r resource.Resource) tea.Cmd {
+		view.resourceTable = NewResourceView(ctx, input.ListResourceInput, func(r resource.Resource) tea.Cmd {
 			input.ResourceIDs = []string{r.ID()}
 			return interactiveLogsCommand(ctx, input, resource.BreadcrumbForResource(r))
-		})
+		}, opts...)
 	} else {
 		// Create log filter form
 		form, result := command.HuhForm(logsCmd, &input)

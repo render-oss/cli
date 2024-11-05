@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	tea "github.com/charmbracelet/bubbletea"
-	btable "github.com/evertras/bubble-table/table"
 	"github.com/spf13/cobra"
 
 	"github.com/renderinc/render-cli/pkg/client"
@@ -165,30 +164,17 @@ func InteractiveServices(ctx context.Context, in views.ListResourceInput, breadc
 
 func getServiceTableOptions(ctx context.Context) []tui.CustomOption {
 	return []tui.CustomOption{
-		{
-			Key:   "w",
-			Title: "Change Workspace",
-			Function: func(row btable.Row) tea.Cmd {
-				return InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
-			},
-		},
-		{
-			Key:   "f",
-			Title: "Filter by Project",
-			Function: func(row btable.Row) tea.Cmd {
-				return command.AddToStackFunc(ctx, servicesCmd, "Project Filter", &views.ListResourceInput{},
-					views.NewProjectFilterView(ctx, func(ctx context.Context, project *client.Project) tea.Cmd {
-						listResourceInput := views.ListResourceInput{}
-						breadcrumb := "All Projects"
-						if project != nil {
-							listResourceInput.Project = project
-							listResourceInput.EnvironmentIDs = project.EnvironmentIds
-							breadcrumb = project.Name
-						}
-						return InteractiveServices(ctx, listResourceInput, breadcrumb)
-					}))
-			},
-		},
+		WithWorkspaceSelection(ctx),
+		WithProjectFilter(ctx, servicesCmd, "Project Filter", &views.ListResourceInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
+			listResourceInput := views.ListResourceInput{}
+			breadcrumb := "All Projects"
+			if project != nil {
+				listResourceInput.Project = project
+				listResourceInput.EnvironmentIDs = project.EnvironmentIds
+				breadcrumb = project.Name
+			}
+			return InteractiveServices(ctx, listResourceInput, breadcrumb)
+		}),
 	}
 }
 

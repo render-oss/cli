@@ -4,12 +4,12 @@ import (
 	"context"
 
 	tea "github.com/charmbracelet/bubbletea"
-	btable "github.com/evertras/bubble-table/table"
+	"github.com/spf13/cobra"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/renderinc/render-cli/pkg/tui/views"
-	"github.com/spf13/cobra"
 )
 
 var projectCmd = &cobra.Command{
@@ -26,21 +26,15 @@ var InteractiveProjectList = func(ctx context.Context) {
 		"Projects",
 		&views.ProjectInput{},
 		views.NewProjectList(ctx,
-		func(ctx context.Context, p *client.Project) tea.Cmd {
-			return InteractiveEnvironment(ctx, views.EnvironmentInput{
-				ProjectID: p.Id,
-			}, p.Name)
-		},
-		tui.WithCustomOptions[*client.Project]([]tui.CustomOption{
-			{
-				Key:   "w",
-				Title: "Change Workspace",
-				Function: func(row btable.Row) tea.Cmd {
-					return InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
-				},
+			func(ctx context.Context, p *client.Project) tea.Cmd {
+				return InteractiveEnvironment(ctx, views.EnvironmentInput{
+					ProjectID: p.Id,
+				}, p.Name)
 			},
-		}),
-	))
+			tui.WithCustomOptions[*client.Project]([]tui.CustomOption{
+				WithWorkspaceSelection(ctx),
+			}),
+		))
 }
 
 func init() {

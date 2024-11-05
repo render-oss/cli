@@ -4,13 +4,13 @@ import (
 	"context"
 
 	tea "github.com/charmbracelet/bubbletea"
-	btable "github.com/evertras/bubble-table/table"
+	"github.com/spf13/cobra"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/project"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/renderinc/render-cli/pkg/tui/views"
-	"github.com/spf13/cobra"
 )
 
 var environmentCmd = &cobra.Command{
@@ -29,13 +29,7 @@ var InteractiveEnvironment = func(ctx context.Context, input views.EnvironmentIn
 			}, e.Name)
 		},
 		tui.WithCustomOptions[*client.Environment]([]tui.CustomOption{
-			{
-				Key:   "w",
-				Title: "Change Workspace",
-				Function: func(row btable.Row) tea.Cmd {
-					return InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
-				},
-			},
+			WithWorkspaceSelection(ctx),
 		}),
 	))
 }
@@ -68,7 +62,7 @@ func init() {
 			return err
 		}
 
-		InteractiveEnvironment(cmd.Context(), input, "Environments for " + proj.Name)
+		InteractiveEnvironment(cmd.Context(), input, "Environments for "+proj.Name)
 		return nil
 	}
 }

@@ -6,11 +6,15 @@ import (
 	"io"
 
 	tea "github.com/charmbracelet/bubbletea"
-	lclient "github.com/renderinc/render-cli/pkg/client/logs"
-	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
+
+	"github.com/renderinc/render-cli/pkg/client"
+	lclient "github.com/renderinc/render-cli/pkg/client/logs"
+	"github.com/renderinc/render-cli/pkg/command"
+	"github.com/renderinc/render-cli/pkg/resource"
+	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/render-cli/pkg/tui/views"
 )
 
 var logsCmd = &cobra.Command{
@@ -74,8 +78,28 @@ func nonInteractiveLogs(format *command.Output, cmd *cobra.Command, input views.
 	return nil
 }
 
-var InteractiveLogs = func(ctx context.Context, input views.LogInput, breadcrumb string) tea.Cmd {
-	return command.AddToStackFunc(ctx, logsCmd, breadcrumb, &input, views.NewLogsView(ctx, logsCmd, filterLogs, input))
+func InteractiveLogs(ctx context.Context, input views.LogInput, breadcrumb string) tea.Cmd {
+	return command.AddToStackFunc(
+		ctx,
+		logsCmd,
+		breadcrumb,
+		&input,
+		views.NewLogsView(ctx, logsCmd, filterLogs, input, tui.WithCustomOptions[resource.Resource](getLogsOptions(ctx, breadcrumb))),
+	)
+}
+
+func getLogsOptions(ctx context.Context, breadcrumb string) []tui.CustomOption {
+	return []tui.CustomOption{
+		WithWorkspaceSelection(ctx),
+		WithProjectFilter(ctx, servicesCmd, "Project Filter", &views.LogInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
+			logInput := views.LogInput{}
+			if project != nil {
+				logInput.ListResourceInput.Project = project
+				logInput.ListResourceInput.EnvironmentIDs = project.EnvironmentIds
+			}
+			return InteractiveLogs(ctx, logInput, breadcrumb)
+		}),
+	}
 }
 
 func init() {

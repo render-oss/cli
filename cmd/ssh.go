@@ -3,15 +3,15 @@ package cmd
 import (
 	"context"
 
-	btable "github.com/evertras/bubble-table/table"
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/service"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/renderinc/render-cli/pkg/tui/views"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/spf13/cobra"
+
+	"github.com/renderinc/render-cli/pkg/command"
 )
 
 // sshCmd represents the ssh command
@@ -34,28 +34,15 @@ func InteractiveSSHView(ctx context.Context, input *views.SSHInput, breadcrumb s
 
 func getSSHTableOptions(ctx context.Context, breadcrumb string) []tui.CustomOption {
 	return []tui.CustomOption{
-		{
-			Key:   "w",
-			Title: "Change Workspace",
-			Function: func(row btable.Row) tea.Cmd {
-				return InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
-			},
-		},
-		{
-			Key:   "f",
-			Title: "Filter by Project",
-			Function: func(row btable.Row) tea.Cmd {
-				return command.AddToStackFunc(ctx, servicesCmd, "Project Filter", &views.SSHInput{},
-					views.NewProjectFilterView(ctx, func(ctx context.Context, project *client.Project) tea.Cmd {
-						input := views.SSHInput{}
-						if project != nil {
-							input.Project = project
-							input.EnvironmentIDs = project.EnvironmentIds
-						}
-						return InteractiveSSHView(ctx, &input, breadcrumb)
-					}))
-			},
-		},
+		WithWorkspaceSelection(ctx),
+		WithProjectFilter(ctx, servicesCmd, "Project Filter", &views.SSHInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
+			input := views.SSHInput{}
+			if project != nil {
+				input.Project = project
+				input.EnvironmentIDs = project.EnvironmentIds
+			}
+			return InteractiveSSHView(ctx, &input, breadcrumb)
+		}),
 	}
 }
 

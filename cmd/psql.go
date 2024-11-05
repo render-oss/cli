@@ -4,13 +4,13 @@ import (
 	"context"
 
 	tea "github.com/charmbracelet/bubbletea"
-	btable "github.com/evertras/bubble-table/table"
+	"github.com/spf13/cobra"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/postgres"
 	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/renderinc/render-cli/pkg/tui/views"
-	"github.com/spf13/cobra"
 )
 
 // psqlCmd represents the psql command
@@ -33,29 +33,15 @@ func InteractivePSQLView(ctx context.Context, input *views.PSQLInput) tea.Cmd {
 
 func getPsqlTableOptions(ctx context.Context) []tui.CustomOption {
 	return []tui.CustomOption{
-		{
-			Key:   "w",
-			Title: "Change Workspace",
-			Function: func(row btable.Row) tea.Cmd {
-				return InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
-			},
-		},
-		{
-			Key:   "f",
-			Title: "Filter by Project",
-			Function: func(row btable.Row) tea.Cmd {
-				return command.AddToStackFunc(ctx, psqlCmd, "psql", &views.PSQLInput{},
-					views.NewProjectFilterView(ctx, func(ctx context.Context, project *client.Project) tea.Cmd {
-						input := &views.PSQLInput{}
-						if project != nil {
-							input.Project = project
-							input.EnvironmentIDs = project.EnvironmentIds
-						}
-						return InteractivePSQLView(ctx, input)
-					}),
-				)
-			},
-		},
+		WithWorkspaceSelection(ctx),
+		WithProjectFilter(ctx, psqlCmd, "psql", &views.PSQLInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
+			input := &views.PSQLInput{}
+			if project != nil {
+				input.Project = project
+				input.EnvironmentIDs = project.EnvironmentIds
+			}
+			return InteractivePSQLView(ctx, input)
+		}),
 	}
 }
 

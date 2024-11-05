@@ -8,9 +8,10 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	"github.com/renderinc/render-cli/pkg/pointers"
 )
 
 type FormValues map[string]*string
@@ -94,6 +95,9 @@ func FormValuesFromStruct(v any) FormValues {
 		case reflect.Float64:
 			val := elemField.Interface().(float64)
 			formValues[cliTag] = pointers.From(fmt.Sprintf("%f", val))
+		case reflect.Struct:
+			// skip nested structs
+			continue
 		default:
 			panic(fmt.Sprintf("unsupported type: %s", field.Type.Kind()))
 		}
