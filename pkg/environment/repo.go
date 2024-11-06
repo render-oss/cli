@@ -33,19 +33,27 @@ func (e *Repo) GetEnvironment(ctx context.Context, id string) (*client.Environme
 }
 
 func (e *Repo) ListEnvironments(ctx context.Context, params *client.ListEnvironmentsParams) ([]*client.Environment, error) {
+	return client.ListAll(ctx, params, e.listPage)
+}
+
+func (e *Repo) listPage(ctx context.Context, params *client.ListEnvironmentsParams) ([]*client.Environment, *client.Cursor, error) {
 	resp, err := e.client.ListEnvironmentsWithResponse(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if resp.JSON200 == nil {
-		return nil, fmt.Errorf("unexpected response: %v", resp.Status())
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, nil, err
+	}
+	if resp.JSON200 == nil || len(*resp.JSON200) == 0 {
+		return nil, nil, nil
 	}
 
-	var envs []*client.Environment
-	for _, env := range *resp.JSON200 {
-		envs = append(envs, &env.Environment)
+	res := *resp.JSON200
+	envs := make([]*client.Environment, 0, len(*resp.JSON200))
+	for _, projectWithCursor := range *resp.JSON200 {
+		envs = append(envs, &projectWithCursor.Environment)
 	}
 
-	return envs, nil
+	return envs, &res[len(res)-1].Cursor, nil
 }

@@ -91,3 +91,32 @@ func clientWithAuth(httpClient *http.Client, server string, token string) (*Clie
 
 	return NewClientWithResponses(server, WithRequestEditorFn(insertAuth), WithHTTPClient(httpClient))
 }
+
+type paginationParams interface {
+	SetCursor(cursor *Cursor)
+	SetLimit(int)
+}
+
+func ListAll[T any, P paginationParams](ctx context.Context, params P, listPage func(ctx context.Context, params P) ([]T, *Cursor, error)) ([]T, error) {
+	limit := 100
+	params.SetLimit(limit)
+
+	var res []T
+	for {
+		page, cursor, err := listPage(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(page) == 0 {
+			return res, nil
+		}
+
+		res = append(res, page...)
+
+		if len(page) < limit {
+			return res, nil
+		}
+		params.SetCursor(cursor)
+	}
+}

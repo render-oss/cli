@@ -18,9 +18,7 @@ type Repo struct {
 }
 
 func (p *Repo) ListProjects(ctx context.Context) ([]*client.Project, error) {
-	params := &client.ListProjectsParams{
-		Limit: pointers.From(100),
-	}
+	params := &client.ListProjectsParams{}
 
 	workspaceId, err := config.WorkspaceID()
 	if err != nil {
@@ -31,21 +29,29 @@ func (p *Repo) ListProjects(ctx context.Context) ([]*client.Project, error) {
 		params.OwnerId = pointers.From([]string{workspaceId})
 	}
 
+	return client.ListAll(ctx, params, p.listPage)
+}
+
+func (p *Repo) listPage(ctx context.Context, params *client.ListProjectsParams) ([]*client.Project, *client.Cursor, error) {
 	resp, err := p.client.ListProjectsWithResponse(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if resp.JSON200 == nil {
-		return nil, fmt.Errorf("unexpected response: %v", resp.Status())
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, nil, err
+	}
+	if resp.JSON200 == nil || len(*resp.JSON200) == 0 {
+		return nil, nil, nil
 	}
 
-	result := make([]*client.Project, 0, len(*resp.JSON200))
+	res := *resp.JSON200
+	projects := make([]*client.Project, 0, len(*resp.JSON200))
 	for _, projectWithCursor := range *resp.JSON200 {
-		result = append(result, &projectWithCursor.Project)
+		projects = append(projects, &projectWithCursor.Project)
 	}
 
-	return result, nil
+	return projects, &res[len(res)-1].Cursor, nil
 }
 
 func (p *Repo) GetProject(ctx context.Context, id string) (*client.Project, error) {

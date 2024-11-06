@@ -20,8 +20,6 @@ func NewRepo(c *client.ClientWithResponses) *Repo {
 }
 
 func (s *Repo) ListServices(ctx context.Context, params *client.ListServicesParams) ([]*client.Service, error) {
-	params.Limit = pointers.From(100)
-
 	workspace, err := config.WorkspaceID()
 	if err != nil {
 		return nil, err
@@ -30,21 +28,29 @@ func (s *Repo) ListServices(ctx context.Context, params *client.ListServicesPara
 		params.OwnerId = pointers.From([]string{workspace})
 	}
 
+	return client.ListAll(ctx, params, s.listPage)
+}
+
+func (s *Repo) listPage(ctx context.Context, params *client.ListServicesParams) ([]*client.Service, *client.Cursor, error) {
 	resp, err := s.client.ListServicesWithResponse(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := client.ErrorFromResponse(resp); err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	if resp.JSON200 == nil || len(*resp.JSON200) == 0 {
+		return nil, nil, nil
 	}
 
-	services := make([]*client.Service, 0, len(*resp.JSON200))
-	for _, serviceWithCursor := range *resp.JSON200 {
-		services = append(services, serviceWithCursor.Service)
+	res := *resp.JSON200
+	services := make([]*client.Service, 0, len(res))
+	for _, serviceWithCursor := range res {
+		services = append(services, &serviceWithCursor.Service)
 	}
 
-	return services, nil
+	return services, &res[len(res)-1].Cursor, nil
 }
 
 func (s *Repo) DeployService(ctx context.Context, svc *client.Service) (*client.Deploy, error) {

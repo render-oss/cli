@@ -1584,8 +1584,8 @@ type ServiceTypeShort string
 
 // ServiceWithCursor defines model for serviceWithCursor.
 type ServiceWithCursor struct {
-	Cursor  *Cursor  `json:"cursor,omitempty"`
-	Service *Service `json:"service,omitempty"`
+	Cursor  Cursor  `json:"cursor"`
+	Service Service `json:"service"`
 }
 
 // SnapshotRestorePOST defines model for snapshotRestorePOST.

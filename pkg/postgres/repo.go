@@ -25,21 +25,29 @@ func (r *Repo) ListPostgres(ctx context.Context, params *client.ListPostgresPara
 
 	params.OwnerId = &client.OwnerIdParam{workspace}
 
+	return client.ListAll(ctx, params, r.listPage)
+}
+
+func (r *Repo) listPage(ctx context.Context, params *client.ListPostgresParams) ([]*client.Postgres, *client.Cursor, error) {
 	resp, err := r.client.ListPostgresWithResponse(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := client.ErrorFromResponse(resp); err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	if resp.JSON200 == nil || len(*resp.JSON200) == 0 {
+		return nil, nil, nil
 	}
 
-	pgs := make([]*client.Postgres, 0, len(*resp.JSON200))
-	for _, pg := range *resp.JSON200 {
+	res := *resp.JSON200
+	pgs := make([]*client.Postgres, 0, len(res))
+	for _, pg := range res {
 		pgs = append(pgs, &pg.Postgres)
 	}
 
-	return pgs, nil
+	return pgs, &res[len(res)-1].Cursor, nil
 }
 
 func (r *Repo) GetPostgres(ctx context.Context, id string) (*client.PostgresDetail, error) {
