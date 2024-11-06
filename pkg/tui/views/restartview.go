@@ -5,11 +5,13 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/environment"
 	"github.com/renderinc/render-cli/pkg/postgres"
 	"github.com/renderinc/render-cli/pkg/project"
+	"github.com/renderinc/render-cli/pkg/redis"
 	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/service"
 	"github.com/renderinc/render-cli/pkg/tui"
@@ -29,13 +31,16 @@ func RestartResource(ctx context.Context, input RestartInput) (string, error) {
 	environmentRepo := environment.NewRepo(c)
 	projectRepo := project.NewRepo(c)
 	postgresRepo := postgres.NewRepo(c)
+	redisRepo := redis.NewRepo(c)
 
 	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
 	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo)
+	redisService := redis.NewService(redisRepo, environmentRepo, projectRepo)
 
 	resourceService := resource.NewResourceService(
 		serviceService,
 		postgresService,
+		redisService,
 		environmentRepo,
 		projectRepo,
 	)

@@ -6,18 +6,20 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/renderinc/render-cli/pkg/resource/util"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/renderinc/render-cli/pkg/resource/util"
 
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/environment"
 	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/renderinc/render-cli/pkg/postgres"
 	"github.com/renderinc/render-cli/pkg/project"
+	"github.com/renderinc/render-cli/pkg/redis"
 	"github.com/renderinc/render-cli/pkg/service"
 )
 
-
+const redisResourceIDPrefix = "red-"
 const postgresResourceIDPrefix = "dpg-"
 const serverResourceIDPrefix = "srv-"
 const cronjobResourceIDPrefix = "crn-"
@@ -33,6 +35,7 @@ type Resource interface {
 type Service struct {
 	serviceService  *service.Service
 	postgresService *postgres.Service
+	redisService    *redis.Service
 	environmentRepo *environment.Repo
 	projectRepo     *project.Repo
 }
@@ -47,22 +50,26 @@ func NewDefaultResourceService() (*Service, error) {
 	environmentRepo := environment.NewRepo(c)
 	projectRepo := project.NewRepo(c)
 	postgresRepo := postgres.NewRepo(c)
+	redisRepo := redis.NewRepo(c)
 
 	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
 	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo)
+	redisService := redis.NewService(redisRepo, environmentRepo, projectRepo)
 
 	return NewResourceService(
 		serviceService,
 		postgresService,
+		redisService,
 		environmentRepo,
 		projectRepo,
 	), nil
 }
 
-func NewResourceService(serviceService *service.Service, postgresService *postgres.Service, environmentRepo *environment.Repo, projectRepo *project.Repo) *Service {
+func NewResourceService(serviceService *service.Service, postgresService *postgres.Service, redisService *redis.Service, environmentRepo *environment.Repo, projectRepo *project.Repo) *Service {
 	return &Service{
 		serviceService:  serviceService,
 		postgresService: postgresService,
+		redisService:    redisService,
 		environmentRepo: environmentRepo,
 		projectRepo:     projectRepo,
 	}
@@ -95,9 +102,20 @@ func (r ResourceParams) ToPostgresParams() *client.ListPostgresParams {
 	}
 }
 
+func (r ResourceParams) ToRedisParams() *client.ListRedisParams {
+	if len(r.EnvironmentIDs) == 0 {
+		return &client.ListRedisParams{}
+	}
+
+	return &client.ListRedisParams{
+		EnvironmentId: pointers.From(r.EnvironmentIDs),
+	}
+}
+
 func (rs *Service) ListResources(ctx context.Context, params ResourceParams) ([]Resource, error) {
 	var services []*service.Model
 	var postgresDBs []*postgres.Model
+	var redisDBs []*redis.Model
 	wg, _ := errgroup.WithContext(ctx)
 	wg.Go(func() error {
 		var err error
@@ -108,6 +126,12 @@ func (rs *Service) ListResources(ctx context.Context, params ResourceParams) ([]
 	wg.Go(func() error {
 		var err error
 		postgresDBs, err = rs.postgresService.ListPostgres(ctx, params.ToPostgresParams())
+		return err
+	})
+
+	wg.Go(func() error {
+		var err error
+		redisDBs, err = rs.redisService.ListRedis(ctx, params.ToRedisParams())
 		return err
 	})
 
@@ -123,6 +147,10 @@ func (rs *Service) ListResources(ctx context.Context, params ResourceParams) ([]
 	}
 
 	for _, db := range postgresDBs {
+		resources = append(resources, db)
+	}
+
+	for _, db := range redisDBs {
 		resources = append(resources, db)
 	}
 
@@ -154,6 +182,10 @@ func (rs *Service) RestartResource(ctx context.Context, id string) error {
 
 	if strings.HasPrefix(id, cronjobResourceIDPrefix) {
 		return errors.New("cron jobs cannot be restarted")
+	}
+
+	if strings.HasPrefix(id, redisResourceIDPrefix) {
+		return errors.New("redises cannot be restarted")
 	}
 
 	return errors.New("unknown resource type")

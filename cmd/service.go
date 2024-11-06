@@ -11,6 +11,7 @@ import (
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/renderinc/render-cli/pkg/postgres"
+	"github.com/renderinc/render-cli/pkg/redis"
 	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/service"
 	"github.com/renderinc/render-cli/pkg/tui"
@@ -58,7 +59,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 						}, "Logs")
 					},
 				},
-				allowedTypes: append([]string{postgres.PostgresType}, service.NonStaticTypes...),
+				allowedTypes: append([]string{postgres.PostgresType, redis.RedisType}, service.NonStaticTypes...),
 			},
 			{
 				command: views.PaletteCommand{

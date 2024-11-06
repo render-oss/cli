@@ -16385,19 +16385,14 @@ func (r UpdateProjectResponse) StatusCode() int {
 type ListRedisResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]struct {
-		Cursor *Cursor `json:"cursor,omitempty"`
-
-		// Redis A Redis instance
-		Redis *Redis `json:"redis,omitempty"`
-	}
-	JSON400 *N400BadRequest
-	JSON401 *N401Unauthorized
-	JSON404 *N404NotFound
-	JSON409 *N409Conflict
-	JSON429 *N429RateLimit
-	JSON500 *N500InternalServerError
-	JSON503 *N503ServiceUnavailable
+	JSON200      *[]RedisWithCursor
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON409      *N409Conflict
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
 }
 
 // Status returns HTTPResponse.Status
@@ -25802,12 +25797,7 @@ func ParseListRedisResponse(rsp *http.Response) (*ListRedisResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []struct {
-			Cursor *Cursor `json:"cursor,omitempty"`
-
-			// Redis A Redis instance
-			Redis *Redis `json:"redis,omitempty"`
-		}
+		var dest []RedisWithCursor
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

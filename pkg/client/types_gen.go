@@ -1358,6 +1358,14 @@ type RedisPOSTInput struct {
 // RedisPlan defines model for redisPlan.
 type RedisPlan string
 
+// RedisWithCursor defines model for redisWithCursor.
+type RedisWithCursor struct {
+	Cursor Cursor `json:"cursor"`
+
+	// Redis A Redis instance
+	Redis Redis `json:"redis"`
+}
+
 // Region Defaults to "oregon"
 type Region string
 
