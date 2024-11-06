@@ -6,6 +6,7 @@ import (
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/environment"
 	"github.com/renderinc/render-cli/pkg/project"
+	"github.com/renderinc/render-cli/pkg/resource/util"
 )
 
 type Service struct {
@@ -43,6 +44,7 @@ func (s *Service) ListRedis(ctx context.Context, params *client.ListRedisParams)
 		redisModels = append(redisModels, model)
 	}
 
+	util.SortResources(redisModels)
 	return redisModels, nil
 }
 
