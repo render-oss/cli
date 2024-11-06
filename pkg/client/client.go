@@ -24,7 +24,7 @@ func NewDefaultClient() (*ClientWithResponses, error) {
 }
 
 func AddHeaders(header http.Header, token string) http.Header {
-	header.Add("user-agent", "render-cli")
+	header.Add("user-agent", "render-cli/"+cfg.Version)
 	header.Add("authorization", fmt.Sprintf("Bearer %s", token))
 	return header
 }

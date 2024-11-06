@@ -2,6 +2,8 @@ package cfg
 
 import "os"
 
+var Version = "dev"
+
 func GetHost() string {
 	if host := os.Getenv("RENDER_HOST"); host != "" {
 		return host
