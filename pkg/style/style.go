@@ -6,12 +6,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const (
-	darkOrange = "#d49822"
-
-	ColorWarningDeprioritized = lipgloss.Color(darkOrange)
-)
-
 var (
 	ColorOK = lipgloss.AdaptiveColor{
 		Light: green600,
@@ -45,8 +39,21 @@ var (
 	}
 
 	ColorFocus = lipgloss.AdaptiveColor{
-		Light: gray800,
+		Light: gray900,
 		Dark:  white,
+	}
+
+	ColorWarningDeprioritized = lipgloss.AdaptiveColor{
+		Light: blue600,
+		Dark:  blue200,
+	}
+	ColorBreadcrumb = lipgloss.AdaptiveColor{
+		Light: black,
+		Dark:  white,
+	}
+	ColorBorder = lipgloss.AdaptiveColor{
+		Light: gray200,
+		Dark:  gray600,
 	}
 )
 
@@ -57,7 +64,7 @@ var (
 	Status       = lipgloss.NewStyle().Bold(true)
 	CommandTitle = lipgloss.NewStyle().Foreground(ColorInfo).Bold(true)
 	CommandKey   = lipgloss.NewStyle().Foreground(ColorInfo)
-	Highlight    = lipgloss.NewStyle().Background(ColorHighlight)
+	Highlight    = lipgloss.NewStyle().Background(ColorHighlight).Foreground(ColorFocus)
 )
 
 func FormatKeyValue(key, value string) string {

@@ -8,11 +8,12 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
 	renderstyle "github.com/renderinc/render-cli/pkg/style"
 )
 
 var stackHeaderStyle = lipgloss.NewStyle().MarginTop(1).MarginBottom(1)
-var stackInfoStyle = lipgloss.NewStyle().Foreground(renderstyle.ColorInfo).Bold(true)
+var stackInfoStyle = lipgloss.NewStyle().Foreground(renderstyle.ColorBreadcrumb).Bold(true)
 
 type StackModel struct {
 	loadingSpinner *spinner.Model
@@ -23,8 +24,8 @@ type StackModel struct {
 }
 
 type ModelWithCmd struct {
-	Model tea.Model
-	Cmd   string
+	Model      tea.Model
+	Cmd        string
 	Breadcrumb string
 }
 

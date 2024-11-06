@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/cobra"
+
 	clientjob "github.com/renderinc/render-cli/pkg/client/jobs"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/job"
 	"github.com/renderinc/render-cli/pkg/pointers"
 	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/tui/views"
-	"github.com/spf13/cobra"
 )
 
 var jobListCmd = &cobra.Command{
@@ -109,7 +110,7 @@ func init() {
 			return err
 		}
 
-		InteractiveJobList(cmd.Context(), input, "List Jobs "+resource.BreadcrumbForResource(r))
+		InteractiveJobList(cmd.Context(), input, "Jobs for "+resource.BreadcrumbForResource(r))
 		return nil
 	}
 }

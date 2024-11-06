@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	clientjob "github.com/renderinc/render-cli/pkg/client/jobs"
 	"github.com/renderinc/render-cli/pkg/command"
@@ -43,7 +44,7 @@ func NewJobListView(ctx context.Context, input *JobListInput, generateCommands f
 	}
 
 	listView.list = tui.NewList(
-		"Jobs",
+		"",
 		command.LoadCmd(ctx, LoadJobListData, *input),
 		func(j *clientjob.Job) tui.ListItem {
 			return job.NewListItem(j)

@@ -1,7 +1,6 @@
 package deploy
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -39,7 +38,7 @@ func (i ListItem) Description() string {
 	}
 
 	statusLine := status.Render(statusValue)
-	triggerLine := fmt.Sprintf("Triggered by %s", triggerValue(i.deploy.Trigger))
+	triggerLine := style.FormatKeyValue("Trigger", triggerValue(i.deploy.Trigger))
 
 	timeLine := lipgloss.JoinHorizontal(lipgloss.Left,
 		style.FormatKeyValue("Created", pointers.TimeValue(i.deploy.CreatedAt)),
@@ -57,7 +56,8 @@ func (i ListItem) Description() string {
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left,
-		lipgloss.JoinHorizontal(lipgloss.Left, statusLine, "  |  ", triggerLine),
+		statusLine,
+		triggerLine,
 		timeLine,
 		deployInfoLine,
 	)

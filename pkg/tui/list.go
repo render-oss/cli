@@ -44,9 +44,13 @@ func NewList[T any](
 	delegate := list.NewDefaultDelegate()
 
 	l := list.New([]list.Item{}, delegate, 0, 0) // Size is updated in Init
-	l.Styles.Title = renderstyle.TitleBlock
 
-	l.Title = title
+	if title != "" {
+		l.Styles.Title = renderstyle.TitleBlock
+		l.Title = title
+	} else {
+		l.SetShowTitle(false)
+	}
 	l.SetShowStatusBar(false)
 
 	// Filtering isn't well-supported for lists with color styling or for multi-value FilterValues. We will likely

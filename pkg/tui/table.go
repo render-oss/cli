@@ -11,8 +11,6 @@ import (
 	renderstyle "github.com/renderinc/render-cli/pkg/style"
 )
 
-var styleSubtle = lipgloss.NewStyle().Foreground(lipgloss.Color("#888"))
-
 const defaultMaxWidth = 100
 
 var defaultFilterCustomOption = CustomOption{
@@ -69,12 +67,16 @@ func NewTable[T any](
 	onSelect func(rows []table.Row) tea.Cmd,
 	tableOptions ...TableOption[T],
 ) *Table[T] {
+	baseStyle := lipgloss.NewStyle().
+		Align(lipgloss.Left).
+		BorderForeground(renderstyle.ColorBorder)
+
 	t := &Table[T]{
 		Model: table.New(columns).
 			Filtered(true).
 			Focused(true).
 			WithPageSize(25).
-			WithBaseStyle(lipgloss.NewStyle().Align(lipgloss.Left)).
+			WithBaseStyle(baseStyle).
 			WithTargetWidth(defaultMaxWidth).
 			HighlightStyle(renderstyle.Highlight),
 		tableWidth:  defaultMaxWidth,

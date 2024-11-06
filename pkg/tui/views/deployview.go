@@ -45,7 +45,7 @@ type DeployListView struct {
 
 func NewDeployListView(ctx context.Context, input DeployListInput) *DeployListView {
 	list := tui.NewList(
-		"Deploys",
+		"",
 		command.LoadCmd(ctx, LoadDeployList, input),
 		func(d *client.Deploy) tui.ListItem {
 			return deploy.NewListItem(d)

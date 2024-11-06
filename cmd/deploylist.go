@@ -4,10 +4,11 @@ import (
 	"context"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/cobra"
+
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/tui/views"
-	"github.com/spf13/cobra"
 )
 
 var deployListCmd = &cobra.Command{
@@ -46,7 +47,7 @@ func init() {
 			return err
 		}
 
-		InteractiveDeployList(cmd.Context(), input, "List Deploys for " + resource.BreadcrumbForResource(r))
+		InteractiveDeployList(cmd.Context(), input, "Deploys for "+resource.BreadcrumbForResource(r))
 		return nil
 	}
 }

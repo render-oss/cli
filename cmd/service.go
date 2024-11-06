@@ -95,7 +95,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "deploy list",
 					Description: "List deploys for the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveDeployList(ctx, views.DeployListInput{ServiceID: r.ID()}, "List Deploys")
+						return InteractiveDeployList(ctx, views.DeployListInput{ServiceID: r.ID()}, "Deploys")
 					},
 				},
 				allowedTypes: service.Types,
@@ -115,7 +115,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "jobs list",
 					Description: "List jobs for the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveJobList(ctx, views.JobListInput{ServiceID: r.ID()}, "List Jobs")
+						return InteractiveJobList(ctx, views.JobListInput{ServiceID: r.ID()}, "Jobs")
 					},
 				},
 				allowedTypes: service.NonStaticTypes,
