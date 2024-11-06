@@ -22,20 +22,20 @@ var psqlCmd = &cobra.Command{
 }
 
 func InteractivePSQLView(ctx context.Context, input *views.PSQLInput) tea.Cmd {
+	input.Tool = views.PSQL
 	return command.AddToStackFunc(
 		ctx,
 		psqlCmd,
 		"psql",
 		input,
-		views.NewPSQLView(ctx, input, tui.WithCustomOptions[*postgres.Model](getPsqlTableOptions(ctx))),
+		views.NewPSQLView(ctx, input, tui.WithCustomOptions[*postgres.Model](getPsqlTableOptions(ctx, input))),
 	)
 }
 
-func getPsqlTableOptions(ctx context.Context) []tui.CustomOption {
+func getPsqlTableOptions(ctx context.Context, input *views.PSQLInput) []tui.CustomOption {
 	return []tui.CustomOption{
 		WithWorkspaceSelection(ctx),
-		WithProjectFilter(ctx, psqlCmd, "psql", &views.PSQLInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
-			input := &views.PSQLInput{}
+		WithProjectFilter(ctx, psqlCmd, "psql", input, func(ctx context.Context, project *client.Project) tea.Cmd {
 			if project != nil {
 				input.Project = project
 				input.EnvironmentIDs = project.EnvironmentIds

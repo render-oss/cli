@@ -74,9 +74,19 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 			{
 				command: views.PaletteCommand{
 					Name:        "psql",
-					Description: "Connect to the PostgreSQL database",
+					Description: "Connect to the PostgreSQL database using psql",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
 						return InteractivePSQLView(ctx, &views.PSQLInput{PostgresID: r.ID()})
+					},
+				},
+				allowedTypes: []string{postgres.PostgresType},
+			},
+			{
+				command: views.PaletteCommand{
+					Name:        "pgcli",
+					Description: "Connect to the PostgreSQL database using pgcli",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractivePGCLIView(ctx, &views.PSQLInput{PostgresID: r.ID()})
 					},
 				},
 				allowedTypes: []string{postgres.PostgresType},

@@ -6,16 +6,23 @@ import (
 	"os/exec"
 
 	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/postgres"
 	"github.com/renderinc/render-cli/pkg/tui"
 )
 
+type PSQLTool string
+
+const PSQL PSQLTool = "psql"
+const PGCLI PSQLTool = "pgcli"
+
 type PSQLInput struct {
-	PostgresID string `cli:"arg:0"`
-	Project   *client.Project
+	PostgresID     string `cli:"arg:0"`
+	Project        *client.Project
 	EnvironmentIDs []string
+	Tool           PSQLTool
 }
 
 type PSQLView struct {
@@ -23,7 +30,7 @@ type PSQLView struct {
 	execModel     *tui.ExecModel
 }
 
-func NewPSQLView(ctx context.Context, input *PSQLInput, opts ...tui.TableOption[*postgres.Model]) (*PSQLView,) {
+func NewPSQLView(ctx context.Context, input *PSQLInput, opts ...tui.TableOption[*postgres.Model]) *PSQLView {
 	psqlView := &PSQLView{
 		execModel: tui.NewExecModel(command.LoadCmd(ctx, loadDataPSQL, input)),
 	}
@@ -74,7 +81,7 @@ func loadDataPSQL(ctx context.Context, in *PSQLInput) (*exec.Cmd, error) {
 		return nil, err
 	}
 
-	return exec.Command("psql", connectionInfo.ExternalConnectionString), nil
+	return exec.Command(string(in.Tool), connectionInfo.ExternalConnectionString), nil
 }
 
 func (v *PSQLView) Init() tea.Cmd {
