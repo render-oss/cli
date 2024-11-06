@@ -26,9 +26,6 @@ const (
 	WebServiceResourceType       = "Web Service"
 )
 
-const ServerResourceIDPrefix = "srv-"
-const CronjobResourceIDPrefix = "crn-"
-
 type Model struct {
 	Service     *client.Service     `json:"service"`
 	Project     *client.Project     `json:"project,omitempty"`

@@ -6,6 +6,7 @@ import (
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/environment"
 	"github.com/renderinc/render-cli/pkg/project"
+	"github.com/renderinc/render-cli/pkg/resource/util"
 )
 
 type Service struct {
@@ -42,6 +43,8 @@ func (s *Service) ListPostgres(ctx context.Context, params *client.ListPostgresP
 		}
 		postgresModels = append(postgresModels, model)
 	}
+
+	util.SortResources(postgresModels)
 
 	return postgresModels, nil
 }

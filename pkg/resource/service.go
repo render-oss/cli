@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/renderinc/render-cli/pkg/resource/util"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/renderinc/render-cli/pkg/client"
@@ -15,6 +16,11 @@ import (
 	"github.com/renderinc/render-cli/pkg/project"
 	"github.com/renderinc/render-cli/pkg/service"
 )
+
+
+const postgresResourceIDPrefix = "dpg-"
+const serverResourceIDPrefix = "srv-"
+const cronjobResourceIDPrefix = "crn-"
 
 type Resource interface {
 	ID() string
@@ -120,15 +126,17 @@ func (rs *Service) ListResources(ctx context.Context, params ResourceParams) ([]
 		resources = append(resources, db)
 	}
 
+	util.SortResources(resources)
+
 	return resources, nil
 }
 
 func (rs *Service) GetResource(ctx context.Context, id string) (Resource, error) {
-	if strings.HasPrefix(id, service.ServerResourceIDPrefix) {
+	if strings.HasPrefix(id, serverResourceIDPrefix) {
 		return rs.serviceService.GetService(ctx, id)
 	}
 
-	if strings.HasPrefix(id, postgres.ResourceIDPrefix) {
+	if strings.HasPrefix(id, postgresResourceIDPrefix) {
 		return rs.postgresService.GetPostgres(ctx, id)
 	}
 
@@ -136,15 +144,15 @@ func (rs *Service) GetResource(ctx context.Context, id string) (Resource, error)
 }
 
 func (rs *Service) RestartResource(ctx context.Context, id string) error {
-	if strings.HasPrefix(id, service.ServerResourceIDPrefix) {
+	if strings.HasPrefix(id, serverResourceIDPrefix) {
 		return rs.serviceService.RestartService(ctx, id)
 	}
 
-	if strings.HasPrefix(id, postgres.ResourceIDPrefix) {
+	if strings.HasPrefix(id, postgresResourceIDPrefix) {
 		return rs.postgresService.RestartPostgresDatabase(ctx, id)
 	}
 
-	if strings.HasPrefix(id, service.CronjobResourceIDPrefix) {
+	if strings.HasPrefix(id, cronjobResourceIDPrefix) {
 		return errors.New("cron jobs cannot be restarted")
 	}
 

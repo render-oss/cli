@@ -6,6 +6,7 @@ import (
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/environment"
 	"github.com/renderinc/render-cli/pkg/project"
+	"github.com/renderinc/render-cli/pkg/resource/util"
 )
 
 type Service struct {
@@ -48,6 +49,7 @@ func (s *Service) ListServices(ctx context.Context, params *client.ListServicesP
 		serviceModels = append(serviceModels, model)
 	}
 
+	util.SortResources(serviceModels)
 	return serviceModels, nil
 }
 

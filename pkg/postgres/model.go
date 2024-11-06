@@ -4,7 +4,6 @@ import (
 	"github.com/renderinc/render-cli/pkg/client"
 )
 
-const ResourceIDPrefix = "dpg-"
 const PostgresType = "Postgres"
 
 type Model struct {
