@@ -26,7 +26,7 @@ type CustomOption struct {
 
 func (o CustomOption) String() string {
 	key := renderstyle.CommandKey.Render(fmt.Sprintf("[%s]", o.Key))
-	return key + " " + o.Title
+	return key + ": " + o.Title + " "
 }
 
 type Table[T any] struct {

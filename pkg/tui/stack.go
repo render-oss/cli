@@ -186,9 +186,9 @@ func (m *StackModel) header() string {
 }
 
 func (m *StackModel) footer() string {
-	quitCommand := fmt.Sprintf("%s Quit", renderstyle.CommandKey.Render("[Ctrl+C]"))
-	prevCommand := fmt.Sprintf("%s Previous command", renderstyle.CommandKey.Render("[Ctrl+D]"))
-	saveToClipboard := fmt.Sprintf("%s Copy command to clipboard", renderstyle.CommandKey.Render("[Ctrl+S]"))
+	quitCommand := fmt.Sprintf("%s: Quit", renderstyle.CommandKey.Render("[Ctrl+C]"))
+	prevCommand := fmt.Sprintf("%s: Previous command", renderstyle.CommandKey.Render("[Ctrl+D]"))
+	saveToClipboard := fmt.Sprintf("%s: Copy command to clipboard", renderstyle.CommandKey.Render("[Ctrl+S]"))
 
 	var commands []string
 	commands = append(commands, quitCommand)
@@ -201,5 +201,5 @@ func (m *StackModel) footer() string {
 		commands = append(commands, saveToClipboard)
 	}
 
-	return renderstyle.CommandTitle.Render("Navigation: ") + strings.Join(commands, " ")
+	return renderstyle.CommandTitle.Render("Navigation: ") + strings.Join(commands, "  ")
 }
