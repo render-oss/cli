@@ -51,7 +51,7 @@ func init() {
 	pgcliCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 		var input views.PSQLInput
-		err := command.ParseCommand(cmd, args, &input)
+		err := command.ParseCommandInteractiveOnly(cmd, args, &input)
 		if err != nil {
 			return err
 		}

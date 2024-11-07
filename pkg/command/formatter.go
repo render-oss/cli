@@ -14,6 +14,10 @@ const (
 	YAML        Output = "yaml"
 )
 
+func (o *Output) Interactive() bool {
+	return o == nil || *o == Interactive
+}
+
 func StringToOutput(s string) (Output, error) {
 	switch s {
 	case "json":

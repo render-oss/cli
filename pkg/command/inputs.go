@@ -119,6 +119,15 @@ func getBoolValue(flags *pflag.FlagSet, args []string, tag string) (*bool, error
 	return &val, nil
 }
 
+func ParseCommandInteractiveOnly(cmd *cobra.Command, args []string, v any) error {
+	format := GetFormatFromContext(cmd.Context())
+	if !format.Interactive() {
+		return fmt.Errorf("`%s` can only be used in interactive mode", cmd.CommandPath())
+	}
+
+	return ParseCommand(cmd, args, v)
+}
+
 func ParseCommand(cmd *cobra.Command, args []string, v any) error {
 	flags := cmd.Flags()
 

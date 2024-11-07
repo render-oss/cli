@@ -50,7 +50,7 @@ func init() {
 	redisCLICmd.RunE = func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 		var input views.RedisCLIInput
-		err := command.ParseCommand(cmd, args, &input)
+		err := command.ParseCommandInteractiveOnly(cmd, args, &input)
 		if err != nil {
 			return err
 		}

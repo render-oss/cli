@@ -53,7 +53,7 @@ func init() {
 		ctx := cmd.Context()
 
 		input := views.SSHInput{}
-		err := command.ParseCommand(cmd, args, &input)
+		err := command.ParseCommandInteractiveOnly(cmd, args, &input)
 		if err != nil {
 			return err
 		}
