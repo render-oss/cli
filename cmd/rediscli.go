@@ -15,10 +15,11 @@ import (
 
 // redisCLICmd represents the redisCLI command
 var redisCLICmd = &cobra.Command{
-	Use:   "redis-cli [redisID]",
-	Args:  cobra.MaximumNArgs(1),
-	Short: "Open a redis-cli session to a Render Redis database",
-	Long:  `Open a redis-cli session to a Render Redis database. Optionally pass the redis id as an argument.`,
+	Use:     "redis-cli [redisID]",
+	Args:    cobra.MaximumNArgs(1),
+	Short:   "Open a redis-cli session to a Render Redis database",
+	Long:    `Open a redis-cli session to a Render Redis database. Optionally pass the redis id as an argument.`,
+	GroupID: GroupSession.ID,
 }
 
 func InteractiveRedisView(ctx context.Context, input *views.RedisCLIInput) tea.Cmd {

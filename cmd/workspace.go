@@ -5,8 +5,9 @@ import (
 )
 
 var workspaceCmd = &cobra.Command{
-	Use:   "workspace",
-	Short: "Manage workspaces",
+	Use:     "workspace",
+	Short:   "Manage CLI targeted workspace",
+	GroupID: GroupAuth.ID,
 }
 
 func init() {

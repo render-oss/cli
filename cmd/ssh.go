@@ -16,10 +16,11 @@ import (
 
 // sshCmd represents the ssh command
 var sshCmd = &cobra.Command{
-	Use:   "ssh [serviceID]",
-	Args:  cobra.MaximumNArgs(1),
-	Short: "SSH into a server",
-	Long:  `SSH into a server given a service ID. Optionally pass the service id as an argument.`,
+	Use:     "ssh [serviceID]",
+	Args:    cobra.MaximumNArgs(1),
+	Short:   "SSH into a server",
+	Long:    `SSH into a server given a service ID. Optionally pass the service id as an argument.`,
+	GroupID: GroupSession.ID,
 }
 
 func InteractiveSSHView(ctx context.Context, input *views.SSHInput, breadcrumb string) tea.Cmd {

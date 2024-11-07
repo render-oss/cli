@@ -17,6 +17,7 @@ var projectCmd = &cobra.Command{
 	Short: "List projects",
 	Long: `List projects for the currently set workspace.
 In interactive mode you can view the environments for a project.`,
+	GroupID: GroupManagement.ID,
 }
 
 var InteractiveProjectList = func(ctx context.Context) {

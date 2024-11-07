@@ -4,9 +4,10 @@ import (
 	"context"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/cobra"
+
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/tui/views"
-	"github.com/spf13/cobra"
 )
 
 var jobCancelCmd = &cobra.Command{
@@ -42,7 +43,7 @@ func init() {
 			return nil
 		}
 
-		InteractiveJobCancel(cmd.Context(), input, "Cancel job " + input.JobID)
+		InteractiveJobCancel(cmd.Context(), input, "Cancel job "+input.JobID)
 		return nil
 	}
 }

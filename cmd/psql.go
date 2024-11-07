@@ -15,10 +15,11 @@ import (
 
 // psqlCmd represents the psql command
 var psqlCmd = &cobra.Command{
-	Use:   "psql [postgresID]",
-	Args:  cobra.MaximumNArgs(1),
-	Short: "Open a psql session to a Render Postgres database",
-	Long:  `Open a psql session to a Render Postgres database. Optionally pass the database id as an argument.`,
+	Use:     "psql [postgresID]",
+	Args:    cobra.MaximumNArgs(1),
+	Short:   "Open a psql session to a Render Postgres database",
+	Long:    `Open a psql session to a Render Postgres database. Optionally pass the database id as an argument.`,
+	GroupID: GroupSession.ID,
 }
 
 func InteractivePSQLView(ctx context.Context, input *views.PSQLInput) tea.Cmd {

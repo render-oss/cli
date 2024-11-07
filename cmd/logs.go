@@ -26,6 +26,7 @@ Use flags to filter logs by resource, instance, time, text, level, type, host, s
 Unlike in the dashboard you can view logs for multiple resources at once. Set --tail=true to stream new logs (currently only in interactive mode).
 
 In interactive mode you can update the filters and view logs in real time.`,
+	GroupID: GroupCore.ID,
 }
 
 func filterLogs(ctx context.Context, in views.LogInput, breadcrumb string) tea.Cmd {

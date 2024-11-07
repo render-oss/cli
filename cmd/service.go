@@ -24,6 +24,7 @@ var servicesCmd = &cobra.Command{
 	Short: "List and manage services, cron jobs, and postgres databases",
 	Long: `List services, cron jobs, and postgres databases for the currently set workspace.
 In interactive mode you can view logs, restart, deploy, SSH, and open PSQL terminals.`,
+	GroupID: GroupCore.ID,
 }
 
 func optionallyAddCommand(commands []views.PaletteCommand, command views.PaletteCommand, allowedTypes []string, resource resource.Resource) []views.PaletteCommand {

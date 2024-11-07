@@ -5,9 +5,10 @@ import (
 )
 
 var jobCmd = &cobra.Command{
-	Use:   "jobs",
-	Short: "Manage jobs",
-	Long:  `List, create, and cancel jobs for services.`,
+	Use:     "jobs",
+	Short:   "Manage jobs",
+	Long:    `List, create, and cancel jobs for services.`,
+	GroupID: GroupCore.ID,
 }
 
 func init() {

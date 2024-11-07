@@ -5,11 +5,12 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/cobra"
+
 	clientjob "github.com/renderinc/render-cli/pkg/client/jobs"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/tui/views"
-	"github.com/spf13/cobra"
 )
 
 var jobCreateCmd = &cobra.Command{
@@ -60,7 +61,7 @@ func init() {
 			return err
 		}
 
-		InteractiveJobCreate(cmd.Context(), &input, "Create Job " + resource.BreadcrumbForResource(r))
+		InteractiveJobCreate(cmd.Context(), &input, "Create Job "+resource.BreadcrumbForResource(r))
 		return nil
 	}
 

@@ -5,17 +5,19 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/cobra"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/resource"
 	"github.com/renderinc/render-cli/pkg/tui/views"
 	"github.com/renderinc/render-cli/pkg/types"
-	"github.com/spf13/cobra"
 )
 
 var deployCmd = &cobra.Command{
-	Use:   "deploys",
-	Short: "Manage deployments",
+	Use:     "deploys",
+	Short:   "Manage deployments",
+	GroupID: GroupCore.ID,
 }
 
 var deployCreateCmd = &cobra.Command{
@@ -66,7 +68,7 @@ func init() {
 			return err
 		}
 
-		InteractiveDeployCreate(cmd.Context(), input, "Create Deploy for " + resource.BreadcrumbForResource(service))
+		InteractiveDeployCreate(cmd.Context(), input, "Create Deploy for "+resource.BreadcrumbForResource(service))
 		return nil
 	}
 

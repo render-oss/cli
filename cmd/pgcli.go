@@ -15,10 +15,11 @@ import (
 
 // pgcliCmd represents the pgcli command
 var pgcliCmd = &cobra.Command{
-	Use:   "pgcli [postgresID]",
-	Args:  cobra.MaximumNArgs(1),
-	Short: "Open a pgcli session to a Render Postgres database",
-	Long:  `Open a pgcli session to a Render Postgres database. Optionally pass the database id as an argument.`,
+	Use:     "pgcli [postgresID]",
+	Args:    cobra.MaximumNArgs(1),
+	Short:   "Open a pgcli session to a Render Postgres database",
+	Long:    `Open a pgcli session to a Render Postgres database. Optionally pass the database id as an argument.`,
+	GroupID: GroupSession.ID,
 }
 
 func InteractivePGCLIView(ctx context.Context, input *views.PSQLInput) tea.Cmd {

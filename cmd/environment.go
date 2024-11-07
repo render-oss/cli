@@ -19,6 +19,7 @@ var environmentCmd = &cobra.Command{
 	Short: "List environments",
 	Long: `List environments for the currently set workspace and the specified project.
 In interactive mode you can view the services for an environment.`,
+	GroupID: GroupManagement.ID,
 }
 
 var InteractiveEnvironment = func(ctx context.Context, input views.EnvironmentInput, breadcrumb string) tea.Cmd {
