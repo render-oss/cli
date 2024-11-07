@@ -7,9 +7,10 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/renderinc/render-cli/pkg/tui"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
+
+	"github.com/renderinc/render-cli/pkg/tui"
 )
 
 const ConfirmFlag = "confirm"
@@ -98,8 +99,8 @@ func wrappedModel(model tea.Model, cmd *cobra.Command, breadcrumb string, in any
 	confirmModel := tui.NewModelWithConfirm(model)
 
 	return &tui.ModelWithCmd{
-		Model: confirmModel,
-		Cmd: cmdString,
+		Model:      confirmModel,
+		Cmd:        cmdString,
 		Breadcrumb: breadcrumb,
 	}, nil
 }

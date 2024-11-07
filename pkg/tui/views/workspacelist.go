@@ -23,6 +23,7 @@ func selectWorkspace(o *client.Owner) tea.Msg {
 	}
 
 	conf.Workspace = o.Id
+	conf.WorkspaceName = o.Name
 	if err := conf.Persist(); err != nil {
 		return tui.ErrorMsg{Err: fmt.Errorf("failed to persist config: %w", err)}
 	}

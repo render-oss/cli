@@ -15,10 +15,11 @@ var defaultConfigPath string
 const configPathEnvKey = "RENDER_CLI_CONFIG_PATH"
 
 type Config struct {
-	Version         int    `yaml:"version"`
-	Workspace       string `yaml:"workspace"`
-	ProjectFilter   string `yaml:"project_filter,omitempty"`    // Project ID for filtering
-	ProjectName     string `yaml:"project_name,omitempty"`      // Project name for display
+	Version       int    `yaml:"version"`
+	Workspace     string `yaml:"workspace"`
+	WorkspaceName string `yaml:"workspace_name"`
+	ProjectFilter string `yaml:"project_filter,omitempty"` // Project ID for filtering
+	ProjectName   string `yaml:"project_name,omitempty"`   // Project name for display
 }
 
 func init() {
@@ -56,6 +57,17 @@ func WorkspaceID() (string, error) {
 		return "", errors.New("no workspace set. Use `render workspace` to set a workspace")
 	}
 	return cfg.Workspace, nil
+}
+
+func WorkspaceName() (string, error) {
+	cfg, err := Load()
+	if err != nil {
+		return "", err
+	}
+	if cfg.WorkspaceName == "" {
+		return "", errors.New("no workspace set. Use `render workspace` to set a workspace")
+	}
+	return cfg.WorkspaceName, nil
 }
 
 func GetProjectFilter() (projectID string, projectName string, err error) {

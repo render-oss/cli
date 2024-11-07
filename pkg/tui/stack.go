@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/renderinc/render-cli/pkg/config"
 	renderstyle "github.com/renderinc/render-cli/pkg/style"
 )
 
@@ -176,6 +177,12 @@ func (m *StackModel) View() string {
 
 func (m *StackModel) header() string {
 	var breadCrumbs []string
+
+	workspace, _ := config.WorkspaceName()
+	if workspace != "" {
+		breadCrumbs = append(breadCrumbs, stackInfoStyle.Render(workspace))
+	}
+
 	for _, model := range m.stack {
 		if model.Breadcrumb != "" {
 			breadCrumbs = append(breadCrumbs, stackInfoStyle.Render(model.Breadcrumb))
