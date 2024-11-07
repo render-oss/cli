@@ -53,10 +53,11 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 			{
 				command: views.PaletteCommand{
 					Name:        "logs",
-					Description: "View resource logs",
+					Description: "Tail resource logs",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
 						return InteractiveLogs(ctx, views.LogInput{
 							ResourceIDs: []string{r.ID()},
+							Tail:        true,
 						}, "Logs")
 					},
 				},
