@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/project"
@@ -19,8 +20,8 @@ type OnSelectFunc func(context.Context, *client.Project) tea.Cmd
 
 func NewProjectList(ctx context.Context, selectEnvironment OnSelectFunc, opts ...tui.TableOption[*client.Project]) *ProjectList {
 	columns := []btable.Column{
+		btable.NewFlexColumn("Name", "Name", 4).WithFiltered(true),
 		btable.NewColumn("ID", "ID", 25).WithFiltered(true),
-		btable.NewFlexColumn("Name", "Name", 40).WithFiltered(true),
 	}
 
 	createRowFunc := func(p *client.Project) btable.Row {

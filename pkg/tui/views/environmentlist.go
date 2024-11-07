@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/environment"
@@ -39,10 +40,10 @@ type EnvironmentList struct {
 
 func NewEnvironmentList(ctx context.Context, input EnvironmentInput, selectEnvironment OnSelectFuncT[*client.Environment], opts ...tui.TableOption[*client.Environment]) *EnvironmentList {
 	columns := []btable.Column{
-		btable.NewColumn("ID", "ID", 25).WithFiltered(true),
 		btable.NewFlexColumn("Name", "Name", 3).WithFiltered(true),
 		btable.NewFlexColumn("Project", "Project", 3).WithFiltered(true),
 		btable.NewFlexColumn("Protected", "Protected", 2).WithFiltered(true),
+		btable.NewColumn("ID", "ID", 25).WithFiltered(true),
 	}
 
 	createRowFunc := func(env *client.Environment) btable.Row {

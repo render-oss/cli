@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/command"
 	"github.com/renderinc/render-cli/pkg/config"
@@ -50,9 +51,9 @@ type WorkspaceView struct {
 
 func NewWorkspaceView(ctx context.Context, input ListWorkspaceInput) *WorkspaceView {
 	columns := []btable.Column{
-		btable.NewColumn("ID", "ID", 28).WithFiltered(true),
 		btable.NewFlexColumn("Name", "Name", 1).WithFiltered(true),
 		btable.NewFlexColumn("Email", "Email", 1).WithFiltered(true),
+		btable.NewColumn("ID", "ID", 28).WithFiltered(true),
 	}
 
 	createRowFunc := func(owner *client.Owner) btable.Row {
