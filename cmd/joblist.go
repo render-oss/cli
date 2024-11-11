@@ -97,9 +97,13 @@ func init() {
 			return fmt.Errorf("failed to parse command: %w", err)
 		}
 
-		if nonInteractive, err := command.NonInteractive(cmd.Context(), cmd, func() (any, error) {
-			return views.LoadJobListData(cmd.Context(), input)
-		}, nil); err != nil {
+		if nonInteractive, err := command.NonInteractive(
+			cmd,
+			func() (any, error) {
+				return views.LoadJobListData(cmd.Context(), input)
+			},
+			nil,
+		); err != nil {
 			return err
 		} else if nonInteractive {
 			return nil

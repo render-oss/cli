@@ -201,9 +201,13 @@ func init() {
 			return err
 		}
 
-		if nonInteractive, err := command.NonInteractive(cmd.Context(), cmd, func() (any, error) {
-			return views.LoadResourceData(cmd.Context(), in)
-		}, nil); err != nil {
+		if nonInteractive, err := command.NonInteractive(
+			cmd,
+			func() (any, error) {
+				return views.LoadResourceData(cmd.Context(), in)
+			},
+			nil,
+		); err != nil {
 			return err
 		} else if nonInteractive {
 			return nil

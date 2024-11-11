@@ -3,10 +3,11 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/config"
 	"github.com/renderinc/render-cli/pkg/owner"
-	"github.com/spf13/cobra"
 )
 
 var workspaceCurrentCmd = &cobra.Command{
@@ -29,8 +30,7 @@ var workspaceCurrentCmd = &cobra.Command{
 			return fmt.Errorf("failed to list owners: %w", err)
 		}
 
-		fmt.Printf("Active Workspace: %s (%s)\n", owner.Name, owner.Id)
-		return nil
+		return printWorkspace(cmd, "Active Workspace", owner)
 	},
 }
 

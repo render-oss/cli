@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/owner"
-	"github.com/spf13/cobra"
 )
 
 var whoamiCmd = &cobra.Command{
@@ -25,7 +26,7 @@ func runWhoami(ctx context.Context) error {
 
 	ownerRepo := owner.NewRepo(c)
 
-	owners, err := ownerRepo.ListOwners(ctx)
+	owners, err := ownerRepo.ListOwners(ctx, owner.ListInput{})
 	if err != nil {
 		return fmt.Errorf("failed to list owners: %w", err)
 	}

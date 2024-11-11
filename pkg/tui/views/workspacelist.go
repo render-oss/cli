@@ -3,6 +3,7 @@ package views
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
@@ -14,21 +15,64 @@ import (
 	"github.com/renderinc/render-cli/pkg/tui"
 )
 
+const teamIDPrefix = "tea-"
+const userIDPrefix = "usr-"
+
 type ListWorkspaceInput struct{}
 
-func selectWorkspace(o *client.Owner) tea.Msg {
+type GetWorkspaceInput struct {
+	IDOrName string
+}
+
+func SelectWorkspace(ctx context.Context, input GetWorkspaceInput) (*client.Owner, error) {
+	c, err := client.NewDefaultClient()
+	if err != nil {
+		return nil, err
+	}
+
+	ownerRepo := owner.NewRepo(c)
+
+	var own *client.Owner
+	if strings.HasPrefix(input.IDOrName, teamIDPrefix) || strings.HasPrefix(input.IDOrName, userIDPrefix) {
+		own, err = ownerRepo.RetrieveOwner(ctx, input.IDOrName)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		owners, err := ownerRepo.ListOwners(ctx, owner.ListInput{Name: input.IDOrName})
+		if err != nil {
+			return nil, err
+		}
+		if len(owners) == 0 {
+			return nil, fmt.Errorf("no workspaces found with name %s", input.IDOrName)
+		}
+
+		if len(owners) > 1 {
+			return nil, fmt.Errorf("multiple workspaces found with name %s; please specify workspace id", input.IDOrName)
+		}
+		own = owners[0]
+	}
+
+	_, err = selectWorkspace(own)
+	if err != nil {
+		return nil, err
+	}
+	return own, nil
+}
+
+func selectWorkspace(o *client.Owner) (string, error) {
 	conf, err := config.Load()
 	if err != nil {
-		return tui.ErrorMsg{Err: fmt.Errorf("failed to load config: %w", err)}
+		return "", fmt.Errorf("failed to load config: %w", err)
 	}
 
 	conf.Workspace = o.Id
 	conf.WorkspaceName = o.Name
 	if err := conf.Persist(); err != nil {
-		return tui.ErrorMsg{Err: fmt.Errorf("failed to persist config: %w", err)}
+		return "", fmt.Errorf("failed to persist config: %w", err)
 	}
 
-	return tui.DoneMsg{Message: fmt.Sprintf("Workspace set to %s", o.Name)}
+	return fmt.Sprintf("Workspace set to %s", o.Name), nil
 }
 
 func loadWorkspaceData(ctx context.Context, _ ListWorkspaceInput) ([]*client.Owner, error) {
@@ -38,7 +82,7 @@ func loadWorkspaceData(ctx context.Context, _ ListWorkspaceInput) ([]*client.Own
 	}
 
 	ownerRepo := owner.NewRepo(c)
-	result, err := ownerRepo.ListOwners(ctx)
+	result, err := ownerRepo.ListOwners(ctx, owner.ListInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +130,11 @@ func NewWorkspaceView(ctx context.Context, input ListWorkspaceInput) *WorkspaceV
 					if err := config.ClearProjectFilter(); err != nil {
 						return tui.ErrorMsg{Err: fmt.Errorf("failed to clear project filter on workspace change: %w", err)}
 					}
-					return selectWorkspace(o)
+					msg, err := selectWorkspace(o)
+					if err != nil {
+						return tui.ErrorMsg{Err: err}
+					}
+					return tui.DoneMsg{Message: msg}
 				}
 			}
 

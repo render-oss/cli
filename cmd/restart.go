@@ -31,7 +31,6 @@ func init() {
 		}
 
 		if nonInteractive, err := command.NonInteractive(
-			cmd.Context(),
 			cmd,
 			func() (any, error) {
 				return views.RestartResource(cmd.Context(), input)

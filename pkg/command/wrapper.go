@@ -28,15 +28,15 @@ type WrapOptions[T any] struct {
 	RequireConfirm RequireConfirm[T]
 }
 
-func NonInteractive(ctx context.Context, cmd *cobra.Command, loadData func() (any, error), confirmMessageFunc func() (string, error)) (bool, error) {
-	outputFormat := GetFormatFromContext(ctx)
+func NonInteractive(cmd *cobra.Command, loadData func() (any, error), confirmMessageFunc func() (string, error)) (bool, error) {
+	outputFormat := GetFormatFromContext(cmd.Context())
 
 	if outputFormat == nil || !(*outputFormat == JSON || *outputFormat == YAML) {
 		return false, nil
 	}
 
 	if confirmMessageFunc != nil {
-		if confirm := GetConfirmFromContext(ctx); !confirm {
+		if confirm := GetConfirmFromContext(cmd.Context()); !confirm {
 			message, err := confirmMessageFunc()
 			if err != nil {
 				return false, err
@@ -63,26 +63,29 @@ func NonInteractive(ctx context.Context, cmd *cobra.Command, loadData func() (an
 		return false, err
 	}
 
+	return PrintData(cmd, data)
+}
+
+func PrintData(cmd *cobra.Command, data any) (bool, error) {
+	outputFormat := GetFormatFromContext(cmd.Context())
+
 	switch *outputFormat {
 	case JSON:
 		jsonStr, err := json.MarshalIndent(data, "", "  ")
 		if err != nil {
-			return false, err
+			return true, err
 		}
-		if _, err := cmd.OutOrStdout().Write(jsonStr); err != nil {
-			return false, err
-		}
+		_, err = cmd.OutOrStdout().Write(jsonStr)
+		return true, err
 	case YAML:
 		yamlStr, err := yaml.Marshal(data)
 		if err != nil {
-			return false, err
+			return true, err
 		}
-		if _, err := cmd.OutOrStdout().Write(yamlStr); err != nil {
-			return false, err
-		}
+		_, err = cmd.OutOrStdout().Write(yamlStr)
+		return true, err
 	}
-
-	return true, nil
+	return false, nil
 }
 
 func wrappedModel(model tea.Model, cmd *cobra.Command, breadcrumb string, in any) (*tui.ModelWithCmd, error) {

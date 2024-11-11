@@ -44,7 +44,6 @@ func init() {
 		}
 
 		if nonInteractive, err := command.NonInteractive(
-			cmd.Context(),
 			cmd,
 			func() (any, error) {
 				return views.CreateJob(cmd.Context(), input)

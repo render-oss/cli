@@ -42,9 +42,13 @@ func init() {
 	rootCmd.AddCommand(projectCmd)
 
 	projectCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		if nonInteractive, err := command.NonInteractive(cmd.Context(), cmd, func() (any, error) {
-			return views.LoadProjects(cmd.Context(), views.ProjectInput{})
-		}, nil); err != nil {
+		if nonInteractive, err := command.NonInteractive(
+			cmd,
+			func() (any, error) {
+				return views.LoadProjects(cmd.Context(), views.ProjectInput{})
+			},
+			nil,
+		); err != nil {
 			return err
 		} else if nonInteractive {
 			return nil

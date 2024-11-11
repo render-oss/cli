@@ -30,7 +30,6 @@ func init() {
 		input := views.DeployListInput{ServiceID: serviceID}
 
 		if nonInteractive, err := command.NonInteractive(
-			cmd.Context(),
 			cmd,
 			func() (any, error) {
 				return views.LoadDeployList(cmd.Context(), input)
