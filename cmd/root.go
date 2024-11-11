@@ -44,6 +44,10 @@ var rootCmd = &cobra.Command{
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 
+		if err := checkForDeprecatedFlagUsage(cmd); err != nil {
+			return err
+		}
+
 		confirmFlag, err := cmd.Flags().GetBool(command.ConfirmFlag)
 		if err != nil {
 			panic(err)
@@ -129,4 +133,36 @@ func init() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "interactive, json, or yaml")
 	rootCmd.PersistentFlags().Bool(command.ConfirmFlag, false, "set to skip confirmation prompts")
+
+	// Flags from the old CLI that we error with a helpful message
+	rootCmd.PersistentFlags().Bool("pretty-json", false, "use --output json instead")
+	if err := rootCmd.PersistentFlags().MarkHidden("pretty-json"); err != nil {
+		panic(err)
+	}
+	rootCmd.PersistentFlags().Bool("json-record-per-line", false, "use --output json instead")
+	if err := rootCmd.PersistentFlags().MarkHidden("json-record-per-line"); err != nil {
+		panic(err)
+	}
+}
+
+// checkForDeprecatedFlagUsage checks for usage of deprecated flags and returns an error with the new flag if found.
+// These can be removed after a few months.
+func checkForDeprecatedFlagUsage(cmd *cobra.Command) error {
+	prettyFlag, err := cmd.Flags().GetBool("pretty-json")
+	if err == nil && prettyFlag {
+		return errors.New("use `--output json` instead of `--pretty-json`")
+	}
+
+	recordPerLineFlag, err := cmd.Flags().GetBool("json-record-per-line")
+	if err == nil && recordPerLineFlag {
+		return errors.New("use `--output json` instead of `--json-record-per-line`")
+	}
+
+	// used in services command
+	serviceID, err := cmd.Flags().GetString("service-id")
+	if err == nil && serviceID != "" {
+		return errors.New("provide service ID as an argument instead of using the --service-id flag")
+	}
+
+	return nil
 }

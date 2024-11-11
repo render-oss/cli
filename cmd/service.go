@@ -195,6 +195,10 @@ func init() {
 	rootCmd.AddCommand(servicesCmd)
 
 	servicesCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		if err := checkForDeprecatedFlagUsage(cmd); err != nil {
+			return err
+		}
+
 		in := views.ListResourceInput{}
 		err := command.ParseCommand(cmd, args, &in)
 		if err != nil {
@@ -219,4 +223,10 @@ func init() {
 
 	servicesCmd.Flags().StringSliceP("environment-ids", "e", nil, "Comma separated list of environment ids to filter by")
 	servicesCmd.Flags().Bool("include-previews", false, "Whether to include preview environments when listing services")
+
+	// Flags from the old CLI that we error with a helpful message
+	servicesCmd.Flags().String("service-id", "", "")
+	if err := servicesCmd.Flags().MarkHidden("service-id"); err != nil {
+		panic(err)
+	}
 }
