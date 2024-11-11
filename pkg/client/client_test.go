@@ -4,11 +4,21 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/stretchr/testify/require"
+
+	"github.com/renderinc/render-cli/pkg/client"
 )
 
 func TestErrorFromResponse(t *testing.T) {
+	t.Run("status code 401", func(t *testing.T) {
+		err := client.ErrorFromResponse(&client.ListSnapshotsResponse{
+			Body:         []byte("unauthorized"),
+			HTTPResponse: &http.Response{StatusCode: 401},
+		})
+
+		require.ErrorIs(t, err, client.ErrUnauthorized)
+	})
+
 	t.Run("status code >= 400", func(t *testing.T) {
 		t.Run("when body is an error type", func(t *testing.T) {
 			err := client.ErrorFromResponse(&client.ListSnapshotsResponse{
@@ -21,11 +31,11 @@ func TestErrorFromResponse(t *testing.T) {
 
 		t.Run("when body is not an error type", func(t *testing.T) {
 			err := client.ErrorFromResponse(&client.ListSnapshotsResponse{
-				Body:         []byte(`unauthorized`),
+				Body:         []byte(`unknown error`),
 				HTTPResponse: &http.Response{StatusCode: 400},
 			})
 
-			require.ErrorContains(t, err, "received response code 400: unauthorized")
+			require.ErrorContains(t, err, "received response code 400: unknown error")
 		})
 	})
 

@@ -4,16 +4,20 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
+	"github.com/renderinc/render-cli/pkg/client"
 	"github.com/renderinc/render-cli/pkg/tui"
 )
 
 const ConfirmFlag = "confirm"
+
+var ErrTokenExpired = errors.New("your token is expired; run `render login` to get a new one")
 
 type WrappedFunc[T any] func(ctx context.Context, args T) tea.Cmd
 
@@ -59,6 +63,9 @@ func NonInteractive(cmd *cobra.Command, loadData func() (any, error), confirmMes
 	}
 
 	data, err := loadData()
+	if errors.Is(err, client.ErrUnauthorized) {
+		return false, ErrTokenExpired
+	}
 	if err != nil {
 		return false, err
 	}
@@ -124,6 +131,9 @@ func LoadCmd[T any, D any](ctx context.Context, loadData func(context.Context, T
 		return tui.LoadingDataMsg(tea.Sequence(
 			func() tea.Msg {
 				data, err := loadData(ctx, in)
+				if errors.Is(err, client.ErrUnauthorized) {
+					return tui.ErrorMsg{Err: ErrTokenExpired}
+				}
 				if err != nil {
 					return tui.ErrorMsg{Err: err}
 				}

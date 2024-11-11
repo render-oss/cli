@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -10,6 +11,8 @@ import (
 	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/config"
 )
+
+var ErrUnauthorized = errors.New("unauthorized")
 
 func NewDefaultClient() (*ClientWithResponses, error) {
 	apiCfg := config.APIConfig{
@@ -38,6 +41,10 @@ func ErrorFromResponse(v any) error {
 	responseErr := firstNonNilErrorField(v)
 	if responseErr == nil {
 		return nil
+	}
+
+	if responseErr.Code == http.StatusUnauthorized {
+		return ErrUnauthorized
 	}
 
 	if responseErr.Message != nil && *responseErr.Message != "" {
