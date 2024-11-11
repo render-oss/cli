@@ -2,6 +2,9 @@ package cfg
 
 import "os"
 
+const RepoURL = "https://api.github.com/repos/render-oss/cli"
+const InstallationInstructionsURL = "https://docs.render.com/cli#installation"
+
 var Version = "dev"
 
 func GetHost() string {

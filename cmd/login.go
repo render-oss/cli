@@ -9,11 +9,14 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
 	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client/devicegrant"
+	"github.com/renderinc/render-cli/pkg/client/version"
 	"github.com/renderinc/render-cli/pkg/config"
+	renderstyle "github.com/renderinc/render-cli/pkg/style"
 )
 
 var loginCmd = &cobra.Command{
@@ -26,6 +29,8 @@ var loginCmd = &cobra.Command{
 
 func runLogin(ctx context.Context) error {
 	c := devicegrant.NewClient(cfg.GetHost())
+	vc := version.NewClient(cfg.RepoURL)
+
 	dg, err := c.CreateGrant(ctx)
 	if err != nil {
 		return err
@@ -52,8 +57,14 @@ func runLogin(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
 	fmt.Println("Success! You are now authenticated.")
+
+	newVersion, err := vc.NewVersionAvailable()
+	if err == nil && newVersion != "" {
+		fmt.Printf("\n%s\n\n", lipgloss.NewStyle().Foreground(renderstyle.ColorWarning).
+			Render(fmt.Sprintf("render v%s is available. Current version is %s.\nInstallation instructions can be found at: %s", newVersion, cfg.Version, cfg.InstallationInstructionsURL)))
+	}
+
 	return nil
 }
 
