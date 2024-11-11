@@ -16,13 +16,13 @@ import (
 
 var deployCmd = &cobra.Command{
 	Use:     "deploys",
-	Short:   "Manage deployments",
+	Short:   "Manage service deploys",
 	GroupID: GroupCore.ID,
 }
 
 var deployCreateCmd = &cobra.Command{
 	Use:   "create [serviceID]",
-	Short: "Deploy a service and tail logs",
+	Short: "Trigger a service deploy and tail logs",
 	Args:  cobra.MaximumNArgs(1),
 }
 

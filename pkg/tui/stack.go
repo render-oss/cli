@@ -194,7 +194,7 @@ func (m *StackModel) header() string {
 
 func (m *StackModel) footer() string {
 	quitCommand := fmt.Sprintf("%s: Quit", renderstyle.CommandKey.Render("[Ctrl+C]"))
-	prevCommand := fmt.Sprintf("%s: Previous command", renderstyle.CommandKey.Render("[Ctrl+D]"))
+	prevCommand := fmt.Sprintf("%s: Back", renderstyle.CommandKey.Render("[Ctrl+D]"))
 	saveToClipboard := fmt.Sprintf("%s: Copy command to clipboard", renderstyle.CommandKey.Render("[Ctrl+S]"))
 
 	var commands []string

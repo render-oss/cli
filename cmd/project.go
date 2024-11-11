@@ -15,7 +15,7 @@ import (
 var projectCmd = &cobra.Command{
 	Use:   "projects",
 	Short: "List projects",
-	Long: `List projects for the currently set workspace.
+	Long: `List projects for the active workspace.
 In interactive mode you can view the environments for a project.`,
 	GroupID: GroupManagement.ID,
 }

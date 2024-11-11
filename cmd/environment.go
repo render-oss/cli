@@ -17,8 +17,8 @@ var environmentCmd = &cobra.Command{
 	Use:   "environments [projectID]",
 	Args:  cobra.ExactArgs(1),
 	Short: "List environments",
-	Long: `List environments for the currently set workspace and the specified project.
-In interactive mode you can view the services for an environment.`,
+	Long: `List environments for a specified project in the active workspace.
+In interactive mode you can view each environment's individual services.`,
 	GroupID: GroupManagement.ID,
 }
 

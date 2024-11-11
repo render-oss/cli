@@ -6,8 +6,7 @@ import (
 
 var jobCmd = &cobra.Command{
 	Use:     "jobs",
-	Short:   "Manage jobs",
-	Long:    `List, create, and cancel jobs for services.`,
+	Short:   "Manage one-off jobs",
 	GroupID: GroupCore.ID,
 }
 

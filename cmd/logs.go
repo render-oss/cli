@@ -19,11 +19,11 @@ import (
 
 var logsCmd = &cobra.Command{
 	Use:   "logs",
-	Short: "View logs for services, cron jobs, and databases",
-	Long: `View logs for services, cron jobs, and databases.
+	Short: "View logs for services and datastores",
+	Long: `View logs for services and datastores.
 
 Use flags to filter logs by resource, instance, time, text, level, type, host, status code, method, or path.
-Unlike in the dashboard you can view logs for multiple resources at once. Set --tail=true to stream new logs (currently only in interactive mode).
+Unlike in the dashboard, you can view logs for multiple resources at once. Set --tail=true to stream new logs (currently only in interactive mode).
 
 In interactive mode you can update the filters and view logs in real time.`,
 	GroupID: GroupCore.ID,

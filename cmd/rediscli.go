@@ -17,8 +17,8 @@ import (
 var redisCLICmd = &cobra.Command{
 	Use:     "redis-cli [redisID]",
 	Args:    cobra.MaximumNArgs(1),
-	Short:   "Open a redis-cli session to a Render Redis database",
-	Long:    `Open a redis-cli session to a Render Redis database. Optionally pass the redis id as an argument.`,
+	Short:   "Open a redis-cli session to a Redis instance",
+	Long:    `Open a redis-cli session to a Redis instance. Optionally pass the redis id as an argument.`,
 	GroupID: GroupSession.ID,
 }
 

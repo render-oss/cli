@@ -14,10 +14,11 @@ import (
 
 var workspaceSetCmd = &cobra.Command{
 	Use:   "set [workspaceName|workspaceID]",
-	Short: "Select a workspace to run commands against",
-	Long: `Select a workspace to run commands against.
-Your specified workspace will be saved in a config file specified by the RENDER_CLI_CONFIG_PATH environment variable.
-If unspecified, the config file will be saved in $HOME/.render/cli.yaml. All subsequent commands will run against this workspace.`,
+	Short: "Set the CLI's active workspace",
+	Long: `Set the CLI's active workspace. All CLI commands run against the active workspace.
+
+The active workspace is saved in a config file specified by the RENDER_CLI_CONFIG_PATH environment variable.
+If unspecified, the config file is saved in $HOME/.render/cli.yaml.`,
 }
 
 var InteractiveWorkspaceSet = func(ctx context.Context, in views.ListWorkspaceInput) tea.Cmd {

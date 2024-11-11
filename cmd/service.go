@@ -21,9 +21,9 @@ import (
 
 var servicesCmd = &cobra.Command{
 	Use:   "services",
-	Short: "List and manage services, cron jobs, and postgres databases",
-	Long: `List services, cron jobs, and postgres databases for the currently set workspace.
-In interactive mode you can view logs, restart, deploy, SSH, and open PSQL terminals.`,
+	Short: "Manage services and datastores",
+	Long: `Manage services and datastores for the active workspace.
+In interactive mode you can view logs, restart, deploy, SSH, and open PSQL sessions.`,
 	GroupID: GroupCore.ID,
 }
 

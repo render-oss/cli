@@ -18,8 +18,8 @@ import (
 var sshCmd = &cobra.Command{
 	Use:     "ssh [serviceID]",
 	Args:    cobra.MaximumNArgs(1),
-	Short:   "SSH into a server",
-	Long:    `SSH into a server given a service ID. Optionally pass the service id as an argument.`,
+	Short:   "SSH into a service instance",
+	Long:    `SSH into a service instance. Optionally pass the service id as an argument.`,
 	GroupID: GroupSession.ID,
 }
 

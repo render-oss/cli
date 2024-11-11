@@ -16,6 +16,7 @@ var whoamiCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runWhoami(cmd.Context())
 	},
+	GroupID: GroupAuth.ID,
 }
 
 func runWhoami(ctx context.Context) error {
