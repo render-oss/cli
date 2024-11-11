@@ -18,6 +18,7 @@ import (
 const ConfirmFlag = "confirm"
 
 var ErrTokenExpired = errors.New("your token is expired; run `render login` to get a new one")
+var ErrActionNotAllowed = errors.New("you are not allowed to take this action")
 
 type WrappedFunc[T any] func(ctx context.Context, args T) tea.Cmd
 
@@ -63,11 +64,8 @@ func NonInteractive(cmd *cobra.Command, loadData func() (any, error), confirmMes
 	}
 
 	data, err := loadData()
-	if errors.Is(err, client.ErrUnauthorized) {
-		return false, ErrTokenExpired
-	}
 	if err != nil {
-		return false, err
+		return false, convertToUserFacingErr(err)
 	}
 
 	return PrintData(cmd, data)
@@ -131,11 +129,8 @@ func LoadCmd[T any, D any](ctx context.Context, loadData func(context.Context, T
 		return tui.LoadingDataMsg(tea.Sequence(
 			func() tea.Msg {
 				data, err := loadData(ctx, in)
-				if errors.Is(err, client.ErrUnauthorized) {
-					return tui.ErrorMsg{Err: ErrTokenExpired}
-				}
 				if err != nil {
-					return tui.ErrorMsg{Err: err}
+					return tui.ErrorMsg{Err: convertToUserFacingErr(err)}
 				}
 				return tui.LoadDataMsg[D]{Data: data}
 
@@ -160,4 +155,16 @@ func WrapInConfirm[D any](cmd tui.TypedCmd[D], msgFunc func() (string, error)) t
 			OnConfirm: func() tea.Cmd { return cmd.Unwrap() },
 		}
 	}
+}
+
+func convertToUserFacingErr(err error) error {
+	if errors.Is(err, client.ErrUnauthorized) {
+		return ErrTokenExpired
+	}
+
+	if errors.Is(err, client.ErrForbidden) {
+		return ErrActionNotAllowed
+	}
+
+	return err
 }

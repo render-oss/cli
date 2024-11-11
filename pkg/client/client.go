@@ -13,6 +13,9 @@ import (
 )
 
 var ErrUnauthorized = errors.New("unauthorized")
+var ErrForbidden = errors.New("forbidden")
+
+var ErrLogin = errors.New("run `render login` to authenticate")
 
 func NewDefaultClient() (*ClientWithResponses, error) {
 	apiCfg := config.APIConfig{
@@ -23,9 +26,13 @@ func NewDefaultClient() (*ClientWithResponses, error) {
 	var err error
 	if apiCfg.Key == "" {
 		apiCfg, err = config.GetAPIConfig()
-		if err != nil {
-			return nil, fmt.Errorf("no API key set for env var RENDER_API_KEY")
+		if err != nil || apiCfg.Key == "" {
+			return nil, ErrLogin
 		}
+	}
+
+	if apiCfg.Host == "" {
+		apiCfg.Host = cfg.GetHost()
 	}
 
 	return clientWithAuth(&http.Client{}, apiCfg)
@@ -45,6 +52,9 @@ func ErrorFromResponse(v any) error {
 
 	if responseErr.Code == http.StatusUnauthorized {
 		return ErrUnauthorized
+	}
+	if responseErr.Code == http.StatusForbidden {
+		return ErrForbidden
 	}
 
 	if responseErr.Message != nil && *responseErr.Message != "" {
