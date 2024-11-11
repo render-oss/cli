@@ -70,3 +70,7 @@ var (
 func FormatKeyValue(key, value string) string {
 	return fmt.Sprintf("%s %s", Label.Render(key+":"), lipgloss.NewStyle().Foreground(ColorDeprioritized).Render(value))
 }
+
+func Bold(s string) string {
+	return lipgloss.NewStyle().Bold(true).Render(s)
+}

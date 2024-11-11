@@ -9,26 +9,38 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
 	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/command"
+	renderstyle "github.com/renderinc/render-cli/pkg/style"
 	"github.com/renderinc/render-cli/pkg/tui"
 )
 
+var welcomeMsg = lipgloss.NewStyle().Bold(true).Foreground(renderstyle.ColorFocus).
+	Render("Welcome to the Render CLI!")
+
+var betaMsg = lipgloss.NewStyle().Foreground(renderstyle.ColorInfo).
+	Render("Note: The Render CLI is currently in beta, and may change as we release improvements and new features.")
+
+var longHelp = fmt.Sprintf(`%s
+
+%s
+
+The Render CLI lets you manage your Render projects, environments, and services directly from the command line.
+You can trigger deployments, view logs, and more—right from your terminal.
+
+The CLI defaults to %s mode, offering an easy-to-use visual experience that makes it easier to find what you're looking for.
+Prefer working without the interface? Use %s mode by specifying the --output option with either json or yaml for structured, scriptable responses.
+`, welcomeMsg, betaMsg, renderstyle.Bold("interactive"), renderstyle.Bold("non-interactive"))
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "render",
-	Short: "**ALPHA** Interact with resources on Render",
-	Long: `**WARNING: CLI IN ALPHA, ALL INTERACTIONS SUBJECT TO CHANGE**
+	Use: "render",
 
-The Render CLI allows you to interact with resources on Render from the command line.
-View your projects, environments, and services, trigger deployments, view logs, and more.
-
-By default the CLI will run in interactive mode, giving you a visual interface to interact with resources.
-You can also use the CLI in non-interactive mode by specifying the output format with the --output with
-either json or yaml.
-`,
+	Short: "Interact with resources on Render",
+	Long:  longHelp,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 
