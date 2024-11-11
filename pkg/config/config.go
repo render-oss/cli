@@ -20,6 +20,13 @@ type Config struct {
 	WorkspaceName string `yaml:"workspace_name"`
 	ProjectFilter string `yaml:"project_filter,omitempty"` // Project ID for filtering
 	ProjectName   string `yaml:"project_name,omitempty"`   // Project name for display
+
+	APIConfig `yaml:"api"`
+}
+
+type APIConfig struct {
+	Key  string `yaml:"key,omitempty"`
+	Host string `json:"host,omitempty"`
 }
 
 func init() {
@@ -95,6 +102,26 @@ func ClearProjectFilter() error {
 	}
 	cfg.ProjectFilter = ""
 	cfg.ProjectName = ""
+	return cfg.Persist()
+}
+
+func GetAPIConfig() (APIConfig, error) {
+	cfg, err := Load()
+	if err != nil {
+		return APIConfig{}, err
+	}
+
+	return cfg.APIConfig, nil
+}
+
+func SetAPIConfig(host, apiKey string) error {
+	cfg, err := Load()
+	if err != nil {
+		return err
+	}
+
+	cfg.Host = host
+	cfg.Key = apiKey
 	return cfg.Persist()
 }
 

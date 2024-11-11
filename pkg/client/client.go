@@ -8,19 +8,24 @@ import (
 	"reflect"
 
 	"github.com/renderinc/render-cli/pkg/cfg"
+	"github.com/renderinc/render-cli/pkg/config"
 )
 
 func NewDefaultClient() (*ClientWithResponses, error) {
-	apiKey := cfg.GetAPIKey()
-	if apiKey == "" {
-		return nil, fmt.Errorf("no API key set for env var RENDER_API_KEY")
+	apiCfg := config.APIConfig{
+		Key:  cfg.GetAPIKey(),
+		Host: cfg.GetHost(),
 	}
 
-	return clientWithAuth(
-		&http.Client{},
-		cfg.GetHost(),
-		cfg.GetAPIKey(),
-	)
+	var err error
+	if apiCfg.Key == "" {
+		apiCfg, err = config.GetAPIConfig()
+		if err != nil {
+			return nil, fmt.Errorf("no API key set for env var RENDER_API_KEY")
+		}
+	}
+
+	return clientWithAuth(&http.Client{}, apiCfg)
 }
 
 func AddHeaders(header http.Header, token string) http.Header {
@@ -83,13 +88,13 @@ func firstNonNilErrorField(response any) *ErrorWithCode {
 	return &ErrorWithCode{Error: httpError, Code: httpResponse.StatusCode}
 }
 
-func clientWithAuth(httpClient *http.Client, server string, token string) (*ClientWithResponses, error) {
+func clientWithAuth(httpClient *http.Client, apiCfg config.APIConfig) (*ClientWithResponses, error) {
 	insertAuth := func(ctx context.Context, req *http.Request) error {
-		req.Header = AddHeaders(req.Header, token)
+		req.Header = AddHeaders(req.Header, apiCfg.Key)
 		return nil
 	}
 
-	return NewClientWithResponses(server, WithRequestEditorFn(insertAuth), WithHTTPClient(httpClient))
+	return NewClientWithResponses(apiCfg.Host, WithRequestEditorFn(insertAuth), WithHTTPClient(httpClient))
 }
 
 type paginationParams interface {
