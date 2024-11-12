@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
-	"github.com/renderinc/render-cli/pkg/cfg"
 	"github.com/renderinc/render-cli/pkg/client"
 	lclient "github.com/renderinc/render-cli/pkg/client/logs"
+	"github.com/renderinc/render-cli/pkg/config"
 )
 
 func NewLogRepo(c *client.ClientWithResponses) *LogRepo {
@@ -34,14 +34,18 @@ func (l *LogRepo) ListLogs(ctx context.Context, params *client.ListLogsParams) (
 
 func (l *LogRepo) TailLogs(ctx context.Context, params *client.ListLogsParams) (<-chan *lclient.Log, error) {
 	subscribeParams := client.SubscribeLogsParams(*params)
-	req, err := client.NewSubscribeLogsRequest(cfg.GetHost(), &subscribeParams)
+	apiConfig, err := config.GetAPIConfig()
+	if err != nil {
+		return nil, err
+	}
+	req, err := client.NewSubscribeLogsRequest(apiConfig.Host, &subscribeParams)
 	dialer := websocket.Dialer{}
 
 	u := req.URL
 	u.Scheme = "wss"
 
 	// Establish WebSocket connection using the custom dialer
-	conn, _, err := dialer.Dial(u.String(), client.AddHeaders(http.Header{}, cfg.GetAPIKey()))
+	conn, _, err := dialer.Dial(u.String(), client.AddHeaders(http.Header{}, apiConfig.Key))
 	if err != nil {
 		return nil, err
 	}
