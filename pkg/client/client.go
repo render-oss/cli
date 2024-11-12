@@ -17,6 +17,15 @@ var ErrForbidden = errors.New("forbidden")
 
 var ErrLogin = errors.New("run `render login` to authenticate")
 
+var osInfo string
+
+func getOSInfoOnce() string {
+	if osInfo == "" {
+		osInfo = getOSInfo()
+	}
+	return osInfo
+}
+
 func NewDefaultClient() (*ClientWithResponses, error) {
 	apiCfg := config.APIConfig{
 		Key:  cfg.GetAPIKey(),
@@ -38,8 +47,13 @@ func NewDefaultClient() (*ClientWithResponses, error) {
 	return clientWithAuth(&http.Client{}, apiCfg)
 }
 
+func AddUserAgent(header http.Header) http.Header {
+	header.Add("user-agent", fmt.Sprintf("render-cli/%s (%s)", cfg.Version, getOSInfoOnce()))
+	return header
+}
+
 func AddHeaders(header http.Header, token string) http.Header {
-	header.Add("user-agent", "render-cli/"+cfg.Version)
+	header = AddUserAgent(header)
 	header.Add("authorization", fmt.Sprintf("Bearer %s", token))
 	return header
 }

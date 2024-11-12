@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/renderinc/render-cli/pkg/client"
 )
 
 const cliOauthClientID = "429024F5E608930E2A65EF92591A25CC"
@@ -53,6 +55,11 @@ func NewClient(host string) *Client {
 	}
 }
 
+func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	req.Header = client.AddUserAgent(req.Header)
+	return c.c.Do(req)
+}
+
 func (c *Client) CreateGrant(ctx context.Context) (*DeviceGrant, error) {
 	body := &GrantRequestBody{ClientID: cliOauthClientID}
 
@@ -94,7 +101,7 @@ func (c *Client) postFor(ctx context.Context, path string, body any, v any) erro
 	}
 
 	req = req.WithContext(ctx)
-	resp, err := c.c.Do(req)
+	resp, err := c.Do(req)
 	if err != nil {
 		return err
 	}
