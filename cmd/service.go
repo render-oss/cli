@@ -95,7 +95,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 			},
 			{
 				command: views.PaletteCommand{
-					Name:        "deploy create",
+					Name:        "deploys create",
 					Description: "Deploy the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
 						return InteractiveDeployCreate(ctx, types.DeployInput{ServiceID: r.ID()}, "Create Deploy")
@@ -105,7 +105,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 			},
 			{
 				command: views.PaletteCommand{
-					Name:        "deploy list",
+					Name:        "deploys list",
 					Description: "List deploys for the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
 						return InteractiveDeployList(ctx, views.DeployListInput{ServiceID: r.ID()}, "Deploys")

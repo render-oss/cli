@@ -208,5 +208,5 @@ func (m *StackModel) footer() string {
 		commands = append(commands, saveToClipboard)
 	}
 
-	return renderstyle.CommandTitle.Render("Navigation: ") + strings.Join(commands, "  ")
+	return strings.Join(commands, "  ")
 }

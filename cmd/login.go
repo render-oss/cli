@@ -25,6 +25,7 @@ var loginCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runLogin(cmd.Context())
 	},
+	GroupID: GroupAuth.ID,
 }
 
 func runLogin(ctx context.Context) error {
