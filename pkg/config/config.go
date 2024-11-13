@@ -131,6 +131,9 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
+	// Ignore the error if we can't chmod try to continue
+	_ = os.Chmod(filepath.Dir(path), 0755)
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -159,7 +162,10 @@ func (c *Config) Persist() error {
 		return err
 	}
 
-	err = os.MkdirAll(filepath.Dir(path), 0644)
+	// Ignore the error if we can't chmod try to continue
+	_ = os.Chmod(filepath.Dir(path), 0755)
+
+	err = os.MkdirAll(filepath.Dir(path), 0755)
 	if err != nil {
 		return err
 	}
