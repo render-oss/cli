@@ -4,8 +4,8 @@ import (
 	"context"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/renderinc/render-cli/pkg/resource"
-	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/cli/pkg/resource"
+	"github.com/renderinc/cli/pkg/tui"
 )
 
 type ResourceWithPaletteView struct {

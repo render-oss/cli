@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/evertras/bubble-table/table"
 
-	renderstyle "github.com/renderinc/render-cli/pkg/style"
+	renderstyle "github.com/renderinc/cli/pkg/style"
 )
 
 const defaultMaxWidth = 100

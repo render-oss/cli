@@ -7,12 +7,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	clientjob "github.com/renderinc/render-cli/pkg/client/jobs"
-	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/job"
-	"github.com/renderinc/render-cli/pkg/pointers"
-	"github.com/renderinc/render-cli/pkg/resource"
-	"github.com/renderinc/render-cli/pkg/tui/views"
+	clientjob "github.com/renderinc/cli/pkg/client/jobs"
+	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/job"
+	"github.com/renderinc/cli/pkg/pointers"
+	"github.com/renderinc/cli/pkg/resource"
+	"github.com/renderinc/cli/pkg/tui/views"
 )
 
 var jobListCmd = &cobra.Command{

@@ -3,7 +3,7 @@ package tui
 import (
 	"github.com/evertras/bubble-table/table"
 
-	"github.com/renderinc/render-cli/pkg/resource"
+	"github.com/renderinc/cli/pkg/resource"
 )
 
 func Columns() []table.Column {

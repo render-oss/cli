@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/renderinc/render-cli/pkg/client"
+	"github.com/renderinc/cli/pkg/client"
 )
 
 const cliOauthClientID = "429024F5E608930E2A65EF92591A25CC"

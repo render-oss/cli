@@ -6,13 +6,13 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
-	"github.com/renderinc/render-cli/pkg/client"
-	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/deploy"
-	"github.com/renderinc/render-cli/pkg/pointers"
-	"github.com/renderinc/render-cli/pkg/service"
-	"github.com/renderinc/render-cli/pkg/tui"
-	"github.com/renderinc/render-cli/pkg/types"
+	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/deploy"
+	"github.com/renderinc/cli/pkg/pointers"
+	"github.com/renderinc/cli/pkg/service"
+	"github.com/renderinc/cli/pkg/tui"
+	"github.com/renderinc/cli/pkg/types"
 )
 
 func CreateDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy, error) {

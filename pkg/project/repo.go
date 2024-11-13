@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/renderinc/render-cli/pkg/client"
-	"github.com/renderinc/render-cli/pkg/config"
-	"github.com/renderinc/render-cli/pkg/pointers"
+	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/config"
+	"github.com/renderinc/cli/pkg/pointers"
 )
 
 func NewRepo(client *client.ClientWithResponses) *Repo {

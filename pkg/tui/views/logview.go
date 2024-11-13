@@ -10,14 +10,14 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 
-	"github.com/renderinc/render-cli/pkg/client"
-	lclient "github.com/renderinc/render-cli/pkg/client/logs"
-	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/config"
-	"github.com/renderinc/render-cli/pkg/logs"
-	"github.com/renderinc/render-cli/pkg/pointers"
-	"github.com/renderinc/render-cli/pkg/resource"
-	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/cli/pkg/client"
+	lclient "github.com/renderinc/cli/pkg/client/logs"
+	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/config"
+	"github.com/renderinc/cli/pkg/logs"
+	"github.com/renderinc/cli/pkg/pointers"
+	"github.com/renderinc/cli/pkg/resource"
+	"github.com/renderinc/cli/pkg/tui"
 )
 
 type LogInput struct {

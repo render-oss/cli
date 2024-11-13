@@ -3,10 +3,10 @@ package redis
 import (
 	"context"
 
-	"github.com/renderinc/render-cli/pkg/client"
-	"github.com/renderinc/render-cli/pkg/environment"
-	"github.com/renderinc/render-cli/pkg/project"
-	"github.com/renderinc/render-cli/pkg/resource/util"
+	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/environment"
+	"github.com/renderinc/cli/pkg/project"
+	"github.com/renderinc/cli/pkg/resource/util"
 )
 
 type Service struct {

@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/renderinc/render-cli/pkg/pointers"
+	"github.com/renderinc/cli/pkg/pointers"
 )
 
 type FormValues map[string]*string

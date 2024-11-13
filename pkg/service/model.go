@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/renderinc/render-cli/pkg/client"
+	"github.com/renderinc/cli/pkg/client"
 )
 
 var NonStaticServerTypes = []string{

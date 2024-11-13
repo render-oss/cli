@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
-	externalRef0 "github.com/renderinc/render-cli/pkg/client/autoscaling"
-	externalRef2 "github.com/renderinc/render-cli/pkg/client/disks"
-	externalRef4 "github.com/renderinc/render-cli/pkg/client/jobs"
+	externalRef0 "github.com/renderinc/cli/pkg/client/autoscaling"
+	externalRef2 "github.com/renderinc/cli/pkg/client/disks"
+	externalRef4 "github.com/renderinc/cli/pkg/client/jobs"
 )
 
 // Defines values for CronJobRunStatus.

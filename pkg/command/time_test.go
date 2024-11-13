@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/renderinc/render-cli/pkg/command"
+	"github.com/renderinc/cli/pkg/command"
 	"github.com/stretchr/testify/require"
 )
 

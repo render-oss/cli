@@ -8,11 +8,11 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
 
-	"github.com/renderinc/render-cli/pkg/client"
-	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/config"
-	"github.com/renderinc/render-cli/pkg/owner"
-	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/config"
+	"github.com/renderinc/cli/pkg/owner"
+	"github.com/renderinc/cli/pkg/tui"
 )
 
 const teamIDPrefix = "tea-"

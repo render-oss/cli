@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/renderinc/render-cli/pkg/client"
-	clientjob "github.com/renderinc/render-cli/pkg/client/jobs"
-	"github.com/renderinc/render-cli/pkg/pointers"
+	"github.com/renderinc/cli/pkg/client"
+	clientjob "github.com/renderinc/cli/pkg/client/jobs"
+	"github.com/renderinc/cli/pkg/pointers"
 )
 
 type Repo struct {
@@ -53,7 +53,7 @@ func (r *Repo) ListJobs(ctx context.Context, input ListJobsInput) ([]*clientjob.
 		StartedAfter:   input.StartedAfter,
 		FinishedBefore: input.FinishedBefore,
 		FinishedAfter:  input.FinishedAfter,
-		Limit:			pointers.From(100),
+		Limit:          pointers.From(100),
 	}
 
 	if len(statusFilters) > 0 {

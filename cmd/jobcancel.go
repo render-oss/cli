@@ -6,8 +6,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/tui/views"
+	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/tui/views"
 )
 
 var jobCancelCmd = &cobra.Command{

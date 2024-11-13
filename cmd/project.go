@@ -6,10 +6,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/renderinc/render-cli/pkg/client"
-	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/tui"
-	"github.com/renderinc/render-cli/pkg/tui/views"
+	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/tui"
+	"github.com/renderinc/cli/pkg/tui/views"
 )
 
 var projectCmd = &cobra.Command{

@@ -5,10 +5,10 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/renderinc/render-cli/pkg/client"
-	"github.com/renderinc/render-cli/pkg/pointers"
-	rstrings "github.com/renderinc/render-cli/pkg/strings"
-	"github.com/renderinc/render-cli/pkg/style"
+	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/pointers"
+	rstrings "github.com/renderinc/cli/pkg/strings"
+	"github.com/renderinc/cli/pkg/style"
 )
 
 type ListItem struct {

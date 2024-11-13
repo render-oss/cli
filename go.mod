@@ -1,4 +1,4 @@
-module github.com/renderinc/render-cli
+module github.com/renderinc/cli
 
 go 1.22
 

@@ -3,10 +3,10 @@ package service
 import (
 	"context"
 
-	"github.com/renderinc/render-cli/pkg/client"
-	"github.com/renderinc/render-cli/pkg/config"
-	"github.com/renderinc/render-cli/pkg/pointers"
-	"github.com/renderinc/render-cli/pkg/validate"
+	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/config"
+	"github.com/renderinc/cli/pkg/pointers"
+	"github.com/renderinc/cli/pkg/validate"
 )
 
 type Repo struct {

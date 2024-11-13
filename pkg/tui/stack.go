@@ -9,8 +9,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/renderinc/render-cli/pkg/config"
-	renderstyle "github.com/renderinc/render-cli/pkg/style"
+	"github.com/renderinc/cli/pkg/config"
+	renderstyle "github.com/renderinc/cli/pkg/style"
 )
 
 var stackHeaderStyle = lipgloss.NewStyle().MarginTop(1).MarginBottom(1)

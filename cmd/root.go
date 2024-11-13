@@ -12,10 +12,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
-	"github.com/renderinc/render-cli/pkg/cfg"
-	"github.com/renderinc/render-cli/pkg/command"
-	renderstyle "github.com/renderinc/render-cli/pkg/style"
-	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/cli/pkg/cfg"
+	"github.com/renderinc/cli/pkg/command"
+	renderstyle "github.com/renderinc/cli/pkg/style"
+	"github.com/renderinc/cli/pkg/tui"
 )
 
 var welcomeMsg = lipgloss.NewStyle().Bold(true).Foreground(renderstyle.ColorFocus).

@@ -3,7 +3,7 @@ package validate
 import (
 	"fmt"
 
-	"github.com/renderinc/render-cli/pkg/config"
+	"github.com/renderinc/cli/pkg/config"
 )
 
 // WorkspaceMatches gets the workspace from the config and validates that it matches the provided input. If the

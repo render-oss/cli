@@ -3,7 +3,7 @@ package command_test
 import (
 	"testing"
 
-	"github.com/renderinc/render-cli/pkg/command"
+	"github.com/renderinc/cli/pkg/command"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 )

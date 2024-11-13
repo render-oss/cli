@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/renderinc/render-cli/pkg/client/devicegrant"
+	"github.com/renderinc/cli/pkg/client/devicegrant"
 )
 
 func TestClient_CreateGrant(t *testing.T) {

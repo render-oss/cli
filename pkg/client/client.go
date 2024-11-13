@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/renderinc/render-cli/pkg/cfg"
-	"github.com/renderinc/render-cli/pkg/config"
+	"github.com/renderinc/cli/pkg/cfg"
+	"github.com/renderinc/cli/pkg/config"
 )
 
 var ErrUnauthorized = errors.New("unauthorized")

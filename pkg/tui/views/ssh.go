@@ -6,11 +6,11 @@ import (
 	"os/exec"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/renderinc/render-cli/pkg/client"
-	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/resource"
-	"github.com/renderinc/render-cli/pkg/service"
-	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/resource"
+	"github.com/renderinc/cli/pkg/service"
+	"github.com/renderinc/cli/pkg/tui"
 )
 
 type SSHInput struct {

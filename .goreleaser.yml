@@ -10,7 +10,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - "-s -w -X 'github.com/renderinc/render-cli/pkg/cfg.Version={{ .Version }}'"
+      - "-s -w -X 'github.com/renderinc/cli/pkg/cfg.Version={{ .Version }}'"
     goos:
       - freebsd
       - windows

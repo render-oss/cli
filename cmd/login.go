@@ -12,11 +12,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
-	"github.com/renderinc/render-cli/pkg/cfg"
-	"github.com/renderinc/render-cli/pkg/client/devicegrant"
-	"github.com/renderinc/render-cli/pkg/client/version"
-	"github.com/renderinc/render-cli/pkg/config"
-	renderstyle "github.com/renderinc/render-cli/pkg/style"
+	"github.com/renderinc/cli/pkg/cfg"
+	"github.com/renderinc/cli/pkg/client/devicegrant"
+	"github.com/renderinc/cli/pkg/client/version"
+	"github.com/renderinc/cli/pkg/config"
+	renderstyle "github.com/renderinc/cli/pkg/style"
 )
 
 var loginCmd = &cobra.Command{

@@ -3,8 +3,8 @@ package postgres
 import (
 	"context"
 
-	"github.com/renderinc/render-cli/pkg/client"
-	"github.com/renderinc/render-cli/pkg/config"
+	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/config"
 )
 
 type Repo struct {

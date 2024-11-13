@@ -1,7 +1,7 @@
 package redis
 
 import (
-	"github.com/renderinc/render-cli/pkg/client"
+	"github.com/renderinc/cli/pkg/client"
 )
 
 const RedisType = "Redis"

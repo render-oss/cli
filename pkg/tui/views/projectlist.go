@@ -6,10 +6,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
 
-	"github.com/renderinc/render-cli/pkg/client"
-	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/project"
-	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/project"
+	"github.com/renderinc/cli/pkg/tui"
 )
 
 type ProjectList struct {

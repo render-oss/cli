@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/renderinc/render-cli/pkg/client"
+	"github.com/renderinc/cli/pkg/client"
 )
 
 type Repo struct {

@@ -9,8 +9,8 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/renderinc/render-cli/pkg/client"
-	lclient "github.com/renderinc/render-cli/pkg/client/logs"
+	"github.com/renderinc/cli/pkg/client"
+	lclient "github.com/renderinc/cli/pkg/client/logs"
 )
 
 const (

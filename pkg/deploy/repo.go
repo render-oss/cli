@@ -3,7 +3,7 @@ package deploy
 import (
 	"context"
 
-	"github.com/renderinc/render-cli/pkg/client"
+	"github.com/renderinc/cli/pkg/client"
 )
 
 type Repo struct {

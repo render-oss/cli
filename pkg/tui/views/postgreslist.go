@@ -5,13 +5,13 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
-	"github.com/renderinc/render-cli/pkg/client"
-	"github.com/renderinc/render-cli/pkg/command"
-	"github.com/renderinc/render-cli/pkg/environment"
-	"github.com/renderinc/render-cli/pkg/postgres"
-	postgrestui "github.com/renderinc/render-cli/pkg/postgres/tui"
-	"github.com/renderinc/render-cli/pkg/project"
-	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/environment"
+	"github.com/renderinc/cli/pkg/postgres"
+	postgrestui "github.com/renderinc/cli/pkg/postgres/tui"
+	"github.com/renderinc/cli/pkg/project"
+	"github.com/renderinc/cli/pkg/tui"
 )
 
 type PostgresList struct {
@@ -51,7 +51,7 @@ func NewPostgresList(ctx context.Context, selectFunc OnSelectFuncT[*postgres.Mod
 	}
 }
 
-type PostgresInput struct{
+type PostgresInput struct {
 	EnvironmentIDs []string
 }
 

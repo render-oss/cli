@@ -2,7 +2,7 @@ package testhelper
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/renderinc/render-cli/pkg/tui"
+	"github.com/renderinc/cli/pkg/tui"
 )
 
 func Stackify(m tea.Model) tea.Model {
