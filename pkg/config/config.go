@@ -131,6 +131,11 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
+	err = os.Chmod(filepath.Dir(path), 0755)
+	if err != nil {
+		return nil, err
+	}
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -155,6 +160,11 @@ func (c *Config) Persist() error {
 	}
 
 	data, err := yaml.Marshal(c)
+	if err != nil {
+		return err
+	}
+
+	err = os.Chmod(filepath.Dir(path), 0755)
 	if err != nil {
 		return err
 	}
