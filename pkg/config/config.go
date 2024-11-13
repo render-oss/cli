@@ -159,7 +159,7 @@ func (c *Config) Persist() error {
 		return err
 	}
 
-	err = os.MkdirAll(filepath.Dir(path), 0644)
+	err = os.MkdirAll(filepath.Dir(path), 0755)
 	if err != nil {
 		return err
 	}
