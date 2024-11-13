@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os/exec"
 	"runtime"
@@ -13,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/renderinc/cli/pkg/cfg"
+	"github.com/renderinc/cli/pkg/client"
 	"github.com/renderinc/cli/pkg/client/devicegrant"
 	"github.com/renderinc/cli/pkg/client/version"
 	"github.com/renderinc/cli/pkg/config"
@@ -30,9 +32,49 @@ var loginCmd = &cobra.Command{
 }
 
 func runLogin(ctx context.Context) error {
-	c := devicegrant.NewClient(cfg.GetHost())
+	dc := devicegrant.NewClient(cfg.GetHost())
 	vc := version.NewClient(cfg.RepoURL)
 
+	alreadyLoggedIn := isAlreadyLoggedIn(ctx)
+	if alreadyLoggedIn {
+		fmt.Println("Success! You are authenticated.")
+		return nil
+	}
+
+	err := login(ctx, dc)
+	if err != nil {
+		return err
+	}
+
+	setWorkspaceIfNotInConfig(ctx, err)
+
+	fmt.Println("Success! You are now authenticated.")
+
+	newVersion, err := vc.NewVersionAvailable()
+	if err == nil && newVersion != "" {
+		fmt.Printf("\n%s\n\n", lipgloss.NewStyle().Foreground(renderstyle.ColorWarning).
+			Render(fmt.Sprintf("render v%s is available. Current version is %s.\nInstallation instructions can be found at: %s", newVersion, cfg.Version, cfg.InstallationInstructionsURL)))
+	}
+
+	return nil
+}
+
+func isAlreadyLoggedIn(ctx context.Context) bool {
+	c, err := client.NewDefaultClient()
+	if err != nil {
+		return false
+	}
+
+	workspace, err := config.WorkspaceID()
+	if err != nil {
+		return false
+	}
+
+	resp, err := c.RetrieveOwner(ctx, workspace)
+	return err == nil && resp.StatusCode == http.StatusOK
+}
+
+func login(ctx context.Context, c *devicegrant.Client) error {
 	dg, err := c.CreateGrant(ctx)
 	if err != nil {
 		return err
@@ -55,25 +97,14 @@ func runLogin(ctx context.Context) error {
 		return err
 	}
 
-	err = config.SetAPIConfig(cfg.GetHost(), token)
-	if err != nil {
-		return err
-	}
+	return config.SetAPIConfig(cfg.GetHost(), token)
+}
 
+func setWorkspaceIfNotInConfig(ctx context.Context, err error) {
 	workspace, err := config.WorkspaceID()
 	if err != nil || workspace == "" {
 		InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
 	}
-
-	fmt.Println("Success! You are now authenticated.")
-
-	newVersion, err := vc.NewVersionAvailable()
-	if err == nil && newVersion != "" {
-		fmt.Printf("\n%s\n\n", lipgloss.NewStyle().Foreground(renderstyle.ColorWarning).
-			Render(fmt.Sprintf("render v%s is available. Current version is %s.\nInstallation instructions can be found at: %s", newVersion, cfg.Version, cfg.InstallationInstructionsURL)))
-	}
-
-	return nil
 }
 
 func dashboardAuthURL(dg *devicegrant.DeviceGrant) (*url.URL, error) {
