@@ -17,6 +17,7 @@ import (
 	"github.com/renderinc/cli/pkg/client/version"
 	"github.com/renderinc/cli/pkg/config"
 	renderstyle "github.com/renderinc/cli/pkg/style"
+	"github.com/renderinc/cli/pkg/tui/views"
 )
 
 var loginCmd = &cobra.Command{
@@ -58,6 +59,12 @@ func runLogin(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	workspace, err := config.WorkspaceID()
+	if err != nil || workspace == "" {
+		InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
+	}
+
 	fmt.Println("Success! You are now authenticated.")
 
 	newVersion, err := vc.NewVersionAvailable()
