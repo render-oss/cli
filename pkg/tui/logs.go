@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
 	"github.com/renderinc/cli/pkg/client"
 	lclient "github.com/renderinc/cli/pkg/client/logs"
 )
@@ -36,6 +37,7 @@ func NewLogModel(filter *FilterModel, loadFunc TypedCmd[*LogResult]) *LogModel {
 		filterModel: filter,
 		scrollBar:   NewScrollBarModel(1, 0),
 		viewport:    viewport.New(0, 0),
+		state:       logStateLoading,
 	}
 }
 
@@ -189,7 +191,7 @@ func (m *LogModel) setViewPortSize() {
 }
 
 func (m *LogModel) View() string {
-	if m.state == logStateLoading {
+	if m.state != logStateLoaded {
 		return "\n  Loading Logs..."
 	}
 	logContent := viewportSylte.Render(m.viewport.View())
