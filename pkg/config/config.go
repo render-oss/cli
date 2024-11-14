@@ -13,6 +13,7 @@ const currentVersion = 1
 var defaultConfigPath string
 
 const configPathEnvKey = "RENDER_CLI_CONFIG_PATH"
+const workspaceEnvKey = "RENDER_WORKSPACE"
 
 type Config struct {
 	Version       int    `yaml:"version"`
@@ -56,6 +57,10 @@ func expandPath(path string) (string, error) {
 }
 
 func WorkspaceID() (string, error) {
+	if workspaceID := os.Getenv(workspaceEnvKey); workspaceID != "" {
+		return workspaceID, nil
+	}
+
 	cfg, err := Load()
 	if err != nil {
 		return "", err
@@ -67,6 +72,10 @@ func WorkspaceID() (string, error) {
 }
 
 func WorkspaceName() (string, error) {
+	if workspaceID := os.Getenv(workspaceEnvKey); workspaceID != "" {
+		return workspaceID, nil
+	}
+
 	cfg, err := Load()
 	if err != nil {
 		return "", err

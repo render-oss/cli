@@ -1,0 +1,35 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    env:
+      ENABLE_E2E: ${{ secrets.ENABLE_E2E }}
+
+    steps:
+      - uses: actions/checkout@v4
+        if: ${{ env.ENABLE_E2E == 'true' }}
+
+      - name: Set up Go
+        if: ${{ env.ENABLE_E2E == 'true' }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: CLI E2E
+        if: ${{ env.ENABLE_E2E == 'true' }}
+        env:
+          RENDER_EMAIL: ${{ secrets.RENDER_EMAIL }}
+          RENDER_PASSWORD: ${{ secrets.RENDER_PASSWORD }}
+          RENDER_WORKSPACE: ${{ secrets.RENDER_WORKSPACE }}
+        run: go test -v ./e2e/...

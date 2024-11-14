@@ -172,3 +172,6 @@ func checkForDeprecatedFlagUsage(cmd *cobra.Command) error {
 
 	return nil
 }
+
+// RootCmd is set to export the root command for use in tests
+var RootCmd = rootCmd

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os/exec"
@@ -25,12 +26,12 @@ var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Login to Render using the dashboard",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runLogin(cmd.Context())
+		return runLogin(cmd.Context(), cmd.OutOrStdout())
 	},
 	GroupID: GroupAuth.ID,
 }
 
-func runLogin(ctx context.Context) error {
+func runLogin(ctx context.Context, out io.Writer) error {
 	dc := devicegrant.NewClient(cfg.GetHost())
 	vc := version.NewClient(cfg.RepoURL)
 
@@ -40,16 +41,16 @@ func runLogin(ctx context.Context) error {
 		return nil
 	}
 
-	err := login(ctx, dc)
+	err := login(ctx, dc, out)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Success! You are now authenticated.")
+	_, _ = fmt.Fprintln(out, "Success! You are now authenticated.")
 
 	newVersion, err := vc.NewVersionAvailable()
 	if err == nil && newVersion != "" {
-		fmt.Printf("\n%s\n\n", lipgloss.NewStyle().Foreground(renderstyle.ColorWarning).
+		_, _ = fmt.Fprintf(out, "\n%s\n\n", lipgloss.NewStyle().Foreground(renderstyle.ColorWarning).
 			Render(fmt.Sprintf("render v%s is available. Current version is %s.\nInstallation instructions can be found at: %s", newVersion, cfg.Version, cfg.InstallationInstructionsURL)))
 	}
 
@@ -71,7 +72,7 @@ func isAlreadyLoggedIn(ctx context.Context) bool {
 	return err == nil && resp.StatusCode == http.StatusOK
 }
 
-func login(ctx context.Context, c *devicegrant.Client) error {
+func login(ctx context.Context, c *devicegrant.Client, out io.Writer) error {
 	dg, err := c.CreateGrant(ctx)
 	if err != nil {
 		return err
@@ -82,12 +83,12 @@ func login(ctx context.Context, c *devicegrant.Client) error {
 		return err
 	}
 
-	fmt.Printf("Complete the login via the dashboard. Launching browser to:\n\n\t%s\n\n", u)
+	_, _ = fmt.Fprintf(out, "Complete the login via the dashboard. Launching browser to:\n\n\t%s\n\n", u)
 	err = openBrowser(u.String())
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Waiting for login to complete...\n\n")
+	_, _ = fmt.Fprintf(out, "Waiting for login to complete...\n\n")
 
 	token, err := pollForToken(ctx, c, dg)
 	if err != nil {

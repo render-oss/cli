@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strings"
 )
+
+// Parse Windows version from output like "Microsoft Windows [Version 10.0.19044.2604]"
+var versionRegex = regexp.MustCompile(`\[Version ([.\d]+)`)
 
 func getOSInfo() string {
 	goos := runtime.GOOS
@@ -17,10 +21,8 @@ func getOSInfo() string {
 		cmd := exec.Command("cmd", "ver")
 		output, err := cmd.Output()
 		if err == nil {
-			// Parse Windows version from output like "Microsoft Windows [Version 10.0.19044.2604]"
-			version := strings.Split(string(output), "[Version ")
-			if len(version) > 1 {
-				osVersion = strings.TrimRight(version[1], "]\r\n")
+			if versionRegex.Match(output) {
+				osVersion = versionRegex.FindStringSubmatch(string(output))[1]
 			}
 		}
 		osName = "Windows"
