@@ -19,7 +19,7 @@ const (
 )
 
 var viewportSylte = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, false, true, false)
-var logStyle = lipgloss.NewStyle().Padding(1, 2, 2, 2)
+var logStyle = lipgloss.NewStyle().Padding(1, 2, 2, 0)
 var filterStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, true, false, false)
 
 type LogResult struct {
