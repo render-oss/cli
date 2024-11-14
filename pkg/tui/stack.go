@@ -73,10 +73,13 @@ func (m *StackModel) Push(model ModelWithCmd) tea.Cmd {
 	return tea.Batch(model.Model.Init(), func() tea.Msg { return m.StackSizeMsg() })
 }
 
-func (m *StackModel) Pop() {
+func (m *StackModel) Pop() *ModelWithCmd {
 	if len(m.stack) > 0 {
+		popped := m.stack[len(m.stack)-1]
 		m.stack = m.stack[:len(m.stack)-1]
+		return &popped
 	}
+	return nil
 }
 
 func (m *StackModel) Init() tea.Cmd {
@@ -130,7 +133,19 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loadingSpinner = nil
 		return m, nil
 	case ErrorMsg:
-		m.Push(ModelWithCmd{Model: NewErrorModel(msg.Err.Error())})
+		// We want to keep the breadcrumb but pop the model that caused the error
+		// this way ctrl+D doesn't go back to the command that caused the error
+		previous := m.Pop()
+
+		var breadcrumb string
+		if previous != nil {
+			breadcrumb = previous.Breadcrumb
+		}
+
+		m.Push(ModelWithCmd{
+			Model:      NewErrorModel(msg.Err.Error()),
+			Breadcrumb: breadcrumb,
+		})
 		return m, nil
 	case spinner.TickMsg:
 		if m.loadingSpinner != nil {
