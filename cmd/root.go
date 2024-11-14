@@ -16,6 +16,7 @@ import (
 	"github.com/renderinc/cli/pkg/command"
 	renderstyle "github.com/renderinc/cli/pkg/style"
 	"github.com/renderinc/cli/pkg/tui"
+	"github.com/renderinc/cli/pkg/tui/views"
 )
 
 var welcomeMsg = lipgloss.NewStyle().Bold(true).Foreground(renderstyle.ColorFocus).
@@ -92,7 +93,12 @@ var rootCmd = &cobra.Command{
 				return nil
 			}
 
-			p := tea.NewProgram(stack, tea.WithAltScreen())
+			parentStack := tui.NewStack()
+			command.AddToStack(parentStack, workspaceSetCmd, "Set Workspace", &views.ListWorkspaceInput{}, views.NewWorkspaceView(ctx, views.ListWorkspaceInput{}))
+			wrappedStack := tui.NewConfigWrapper(stack, parentStack)
+			parentStack.WithDone(wrappedStack.Update)
+
+			p := tea.NewProgram(wrappedStack, tea.WithAltScreen())
 			_, err := p.Run()
 			if err != nil {
 				panic(fmt.Sprintf("failed to initialize interface: %v", err))

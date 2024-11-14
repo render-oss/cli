@@ -114,14 +114,17 @@ func wrappedModel(model tea.Model, cmd *cobra.Command, breadcrumb string, in any
 }
 
 func AddToStackFunc[T any](ctx context.Context, cmd *cobra.Command, breadcrumb string, in T, m tea.Model) tea.Cmd {
+	stack := tui.GetStackFromContext(ctx)
+	return AddToStack(stack, cmd, breadcrumb, in, m)
+}
+
+func AddToStack[T any](stack *tui.StackModel, cmd *cobra.Command, breadcrumb string, in T, m tea.Model) tea.Cmd {
 	modelWithCmd, err := wrappedModel(m, cmd, breadcrumb, in)
 	if err != nil {
 		return nil
 	}
 
-	stack := tui.GetStackFromContext(ctx)
 	return stack.Push(*modelWithCmd)
-
 }
 
 func LoadCmd[T any, D any](ctx context.Context, loadData func(context.Context, T) (D, error), in T) tui.TypedCmd[D] {

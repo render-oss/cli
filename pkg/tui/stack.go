@@ -22,6 +22,7 @@ type StackModel struct {
 
 	width  int
 	height int
+	done   func(msg tea.Msg) (tea.Model, tea.Cmd)
 }
 
 type ModelWithCmd struct {
@@ -55,6 +56,10 @@ func NewStack() *StackModel {
 	return &StackModel{}
 }
 
+func (m *StackModel) WithDone(f func(tea.Msg) (tea.Model, tea.Cmd)) {
+	m.done = f
+}
+
 func newSpinner() *spinner.Model {
 	spin := spinner.New()
 	spin.Spinner = spinner.Dot
@@ -75,6 +80,10 @@ func (m *StackModel) Pop() {
 }
 
 func (m *StackModel) Init() tea.Cmd {
+	if len(m.stack) == 0 {
+		return tea.Quit
+	}
+
 	var cmd tea.Cmd
 	for _, model := range m.stack {
 		cmd = tea.Batch(cmd, model.Model.Init())
@@ -132,6 +141,10 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case DoneMsg:
 		m.Pop()
 		if len(m.stack) == 0 {
+			if m.done != nil {
+				return m.done(msg)
+			}
+
 			return m, tea.Sequence(
 				tea.Println(msg.Message),
 				tea.Quit,

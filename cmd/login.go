@@ -19,7 +19,6 @@ import (
 	"github.com/renderinc/cli/pkg/client/version"
 	"github.com/renderinc/cli/pkg/config"
 	renderstyle "github.com/renderinc/cli/pkg/style"
-	"github.com/renderinc/cli/pkg/tui/views"
 )
 
 var loginCmd = &cobra.Command{
@@ -45,8 +44,6 @@ func runLogin(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	setWorkspaceIfNotInConfig(ctx, err)
 
 	fmt.Println("Success! You are now authenticated.")
 
@@ -98,13 +95,6 @@ func login(ctx context.Context, c *devicegrant.Client) error {
 	}
 
 	return config.SetAPIConfig(cfg.GetHost(), token)
-}
-
-func setWorkspaceIfNotInConfig(ctx context.Context, err error) {
-	workspace, err := config.WorkspaceID()
-	if err != nil || workspace == "" {
-		InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
-	}
 }
 
 func dashboardAuthURL(dg *devicegrant.DeviceGrant) (*url.URL, error) {
