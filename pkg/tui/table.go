@@ -142,7 +142,6 @@ func (t *Table[T]) View() string {
 		options = append(options, defaultFilterCustomOption.String())
 		footer = lipgloss.JoinHorizontal(
 			lipgloss.Left,
-			renderstyle.CommandTitle.Render("Actions:    "), // extra spaces to align with the commands shown by the stack
 			strings.Join(options, " "),
 		)
 	}
