@@ -262,6 +262,8 @@ func StructFromFormValues(formValues FormValues, v any) error {
 				return err
 			}
 			elemField.SetFloat(floatVal)
+		case reflect.Struct:
+			// skip nested structs
 		default:
 			return fmt.Errorf("unsupported type: %s", field.Type.Kind())
 		}
