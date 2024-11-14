@@ -58,12 +58,14 @@ func RestartResource(ctx context.Context, input RestartInput) (string, error) {
 }
 
 type RestartView struct {
-	model *tui.SimpleModel
+	restart tui.TypedCmd[string]
+	logs    func() tea.Cmd
 }
 
-func NewRestartView(ctx context.Context, input RestartInput) *RestartView {
+func NewRestartView(ctx context.Context, input RestartInput, logCmd func() tea.Cmd) *RestartView {
 	return &RestartView{
-		model: tui.NewSimpleModel(command.WrapInConfirm(
+		logs: logCmd,
+		restart: command.WrapInConfirm(
 			command.LoadCmd(ctx, RestartResource, input),
 			func() (string, error) {
 				res, err := resource.GetResource(ctx, input.ResourceID)
@@ -73,19 +75,22 @@ func NewRestartView(ctx context.Context, input RestartInput) *RestartView {
 
 				return fmt.Sprintf("Are you sure you want to restart resource %s?", res.Name()), nil
 			},
-		)),
+		),
 	}
 }
 
 func (v *RestartView) Init() tea.Cmd {
-	return v.model.Init()
+	return v.restart.Unwrap()
 }
 
 func (v *RestartView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	_, cmd := v.model.Update(msg)
-	return v, cmd
+	switch msg.(type) {
+	case tui.LoadDataMsg[string]:
+		return v, v.logs()
+	}
+	return v, nil
 }
 
 func (v *RestartView) View() string {
-	return v.model.View()
+	return "Loading..."
 }

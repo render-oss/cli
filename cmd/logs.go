@@ -79,6 +79,15 @@ func nonInteractiveLogs(format *command.Output, cmd *cobra.Command, input views.
 	return nil
 }
 
+func TailResourceLogs(ctx context.Context, resourceID string) tea.Cmd {
+	return InteractiveLogs(
+		ctx,
+		views.LogInput{
+			ResourceIDs: []string{resourceID},
+			Tail:        true,
+		}, "Logs")
+}
+
 func InteractiveLogs(ctx context.Context, input views.LogInput, breadcrumb string) tea.Cmd {
 	return command.AddToStackFunc(
 		ctx,

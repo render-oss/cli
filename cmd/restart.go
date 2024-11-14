@@ -19,7 +19,9 @@ var restartCmd = &cobra.Command{
 }
 
 var InteractiveRestart = func(ctx context.Context, input views.RestartInput, breadcrumb string) tea.Cmd {
-	return command.AddToStackFunc(ctx, restartCmd, breadcrumb, &input, views.NewRestartView(ctx, input))
+	return command.AddToStackFunc(ctx, restartCmd, breadcrumb, &input, views.NewRestartView(ctx, input, func() tea.Cmd {
+		return TailResourceLogs(ctx, input.ResourceID)
+	}))
 }
 
 func init() {

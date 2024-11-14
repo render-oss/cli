@@ -33,12 +33,7 @@ var InteractiveDeployCreate = func(ctx context.Context, input types.DeployInput,
 		breadcrumb,
 		&input,
 		views.NewDeployCreateView(ctx, input, func(d *client.Deploy) tea.Cmd {
-			return InteractiveLogs(
-				ctx,
-				views.LogInput{
-					ResourceIDs: []string{input.ServiceID},
-					Tail:        true,
-				}, "Logs")
+			return TailResourceLogs(ctx, input.ServiceID)
 		}))
 }
 
