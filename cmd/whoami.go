@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/renderinc/cli/pkg/user"
 	"github.com/spf13/cobra"
 
 	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/owner"
 )
 
 var whoamiCmd = &cobra.Command{
@@ -25,28 +25,13 @@ func runWhoami(ctx context.Context) error {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
 
-	ownerRepo := owner.NewRepo(c)
-
-	owners, err := ownerRepo.ListOwners(ctx, owner.ListInput{})
+	userRepo := user.NewRepo(c)
+	currentUser, err := userRepo.CurrentUser(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list owners: %w", err)
-	}
-
-	var currentUser *client.Owner
-	// an owner list response will always have exactly one owner of type user
-	for _, o := range owners {
-		if o.Type == client.OwnerTypeUser {
-			currentUser = o
-			break
-		}
-	}
-
-	if currentUser == nil {
-		return fmt.Errorf("no user found in the list of owners")
+		return fmt.Errorf("failed to get current user: %w", err)
 	}
 
 	fmt.Printf("Name: %s\n", currentUser.Name)
-	fmt.Printf("ID: %s\n", currentUser.Id)
 	fmt.Printf("Email: %s\n", currentUser.Email)
 
 	return nil
