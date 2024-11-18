@@ -15,6 +15,8 @@ var defaultConfigPath string
 const configPathEnvKey = "RENDER_CLI_CONFIG_PATH"
 const workspaceEnvKey = "RENDER_WORKSPACE"
 
+var ErrNoWorkspace = errors.New("no workspace set. Use `render workspace set` to set a workspace")
+
 type Config struct {
 	Version       int    `yaml:"version"`
 	Workspace     string `yaml:"workspace"`
@@ -66,7 +68,7 @@ func WorkspaceID() (string, error) {
 		return "", err
 	}
 	if cfg.Workspace == "" {
-		return "", errors.New("no workspace set. Use `render workspace` to set a workspace")
+		return "", ErrNoWorkspace
 	}
 	return cfg.Workspace, nil
 }
@@ -81,7 +83,7 @@ func WorkspaceName() (string, error) {
 		return "", err
 	}
 	if cfg.WorkspaceName == "" {
-		return "", errors.New("no workspace set. Use `render workspace` to set a workspace")
+		return "", ErrNoWorkspace
 	}
 	return cfg.WorkspaceName, nil
 }

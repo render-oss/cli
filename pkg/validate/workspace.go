@@ -14,7 +14,7 @@ func WorkspaceMatches(workspaceID string) error {
 		return err
 	}
 	if cfg.Workspace != "" && cfg.Workspace != workspaceID {
-		return fmt.Errorf("resource in workspace %s does not match the workspace in the current workspace context %s. Run `render workspace` to change contexts", workspaceID, cfg.Workspace)
+		return fmt.Errorf("resource in workspace does not match the workspace in the current workspace context %s. Run `render workspace set %s` to change contexts", cfg.Workspace, workspaceID)
 	}
 	return nil
 }
