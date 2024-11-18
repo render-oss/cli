@@ -116,6 +116,9 @@ func (t *Table[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
+			// The table component doesn't expose a function to blur the filter input. We set the filter input
+			// value to the current filter value to blur it instead.
+			t.Model = t.Model.WithFilterInputValue(t.Model.GetCurrentFilter())
 			return t, t.onSelect([]table.Row{t.Model.HighlightedRow()})
 		default:
 			if !t.Model.GetIsFilterInputFocused() {
