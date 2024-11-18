@@ -15,6 +15,10 @@ type ListItem struct {
 	deploy *client.Deploy
 }
 
+func (i ListItem) Deploy() *client.Deploy {
+	return i.deploy
+}
+
 func NewListItem(d *client.Deploy) ListItem {
 	return ListItem{deploy: d}
 }

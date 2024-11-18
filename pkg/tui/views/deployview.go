@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-
 	"github.com/renderinc/cli/pkg/client"
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/deploy"
@@ -43,13 +42,19 @@ type DeployListView struct {
 	list *tui.List[*client.Deploy]
 }
 
-func NewDeployListView(ctx context.Context, input DeployListInput) *DeployListView {
+func NewDeployListView(ctx context.Context, input DeployListInput, generateCommands func(*client.Deploy, string) tea.Cmd) *DeployListView {
+	onSelect := func(selectedItem tui.ListItem) tea.Cmd {
+		selectedDeploy := selectedItem.(deploy.ListItem).Deploy()
+		return generateCommands(selectedDeploy, input.ServiceID)
+	}
+
 	list := tui.NewList(
 		"",
 		command.LoadCmd(ctx, LoadDeployList, input),
 		func(d *client.Deploy) tui.ListItem {
 			return deploy.NewListItem(d)
 		},
+		tui.WithOnSelect[*client.Deploy](onSelect),
 	)
 
 	return &DeployListView{
