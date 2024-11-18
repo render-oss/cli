@@ -14,6 +14,7 @@ import (
 
 	"github.com/renderinc/cli/pkg/cfg"
 	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/config"
 	renderstyle "github.com/renderinc/cli/pkg/style"
 	"github.com/renderinc/cli/pkg/tui"
 	"github.com/renderinc/cli/pkg/tui/views"
@@ -93,12 +94,19 @@ var rootCmd = &cobra.Command{
 				return nil
 			}
 
-			parentStack := tui.NewStack()
-			command.AddToStack(parentStack, workspaceSetCmd, "Set Workspace", &views.ListWorkspaceInput{}, views.NewWorkspaceView(ctx, views.ListWorkspaceInput{}))
-			wrappedStack := tui.NewConfigWrapper(stack, parentStack)
-			parentStack.WithDone(wrappedStack.Update)
+			var m tea.Model = stack
 
-			p := tea.NewProgram(wrappedStack, tea.WithAltScreen())
+			if cmd.Name() != workspaceSetCmd.Name() {
+				if !config.IsWorkspaceSet() {
+					m = tui.NewConfigWrapper(m, "Set Workspace", views.NewWorkspaceView(ctx, views.ListWorkspaceInput{}))
+				}
+			}
+
+			if cmd.Name() != loginCmd.Name() {
+				m = tui.NewConfigWrapper(m, "Login", views.NewLoginView(ctx))
+			}
+
+			p := tea.NewProgram(m, tea.WithAltScreen())
 			_, err := p.Run()
 			if err != nil {
 				panic(fmt.Sprintf("failed to initialize interface: %v", err))

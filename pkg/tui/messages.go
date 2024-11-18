@@ -6,7 +6,10 @@ type LoadDataMsg[T any] struct {
 	Data T
 }
 
-type LoadingDataMsg tea.Cmd
+type LoadingDataMsg struct {
+	Cmd            tea.Cmd
+	LoadingMsgTmpl string
+}
 type DoneLoadingDataMsg struct{}
 
 // TypedCmd is a wrapper around tea.Cmd that allows us to specify the type of

@@ -73,6 +73,11 @@ func WorkspaceID() (string, error) {
 	return cfg.Workspace, nil
 }
 
+func IsWorkspaceSet() bool {
+	id, _ := WorkspaceID()
+	return id != ""
+}
+
 func WorkspaceName() (string, error) {
 	if workspaceID := os.Getenv(workspaceEnvKey); workspaceID != "" {
 		return workspaceID, nil

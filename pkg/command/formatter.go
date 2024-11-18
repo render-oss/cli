@@ -38,3 +38,10 @@ func CommandName(cmd *cobra.Command, v any) (string, error) {
 	}
 	return fmt.Sprintf("%s %s", cmd.CommandPath(), inputString), nil
 }
+
+func Println(cmd *cobra.Command, format string, a ...any) {
+	_, err := cmd.OutOrStdout().Write([]byte(fmt.Sprintf(format, a...) + "\n"))
+	if err != nil {
+		panic(err)
+	}
+}

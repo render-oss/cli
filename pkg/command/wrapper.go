@@ -129,19 +129,20 @@ func AddToStack[T any](stack *tui.StackModel, cmd *cobra.Command, breadcrumb str
 
 func LoadCmd[T any, D any](ctx context.Context, loadData func(context.Context, T) (D, error), in T) tui.TypedCmd[D] {
 	loadDataCmd := func() tea.Msg {
-		return tui.LoadingDataMsg(tea.Sequence(
-			func() tea.Msg {
-				data, err := loadData(ctx, in)
-				if err != nil {
-					return tui.ErrorMsg{Err: convertToUserFacingErr(err)}
-				}
-				return tui.LoadDataMsg[D]{Data: data}
-
-			},
-			func() tea.Msg {
-				return tui.DoneLoadingDataMsg{}
-			},
-		))
+		return tui.LoadingDataMsg{
+			Cmd: tea.Sequence(
+				func() tea.Msg {
+					data, err := loadData(ctx, in)
+					if err != nil {
+						return tui.ErrorMsg{Err: convertToUserFacingErr(err)}
+					}
+					return tui.LoadDataMsg[D]{Data: data}
+				},
+				func() tea.Msg {
+					return tui.DoneLoadingDataMsg{}
+				},
+			),
+		}
 	}
 	return loadDataCmd
 }

@@ -20,9 +20,10 @@ type StackModel struct {
 	loadingSpinner *spinner.Model
 	stack          []ModelWithCmd
 
-	width  int
-	height int
-	done   func(msg tea.Msg) (tea.Model, tea.Cmd)
+	width      int
+	height     int
+	done       func(msg tea.Msg) (tea.Model, tea.Cmd)
+	loadingMsg string
 }
 
 type ModelWithCmd struct {
@@ -128,9 +129,13 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case LoadingDataMsg:
 		m.loadingSpinner = newSpinner()
-		return m, tea.Batch(m.loadingSpinner.Tick, tea.Cmd(msg))
+		if msg.LoadingMsgTmpl != "" {
+			m.loadingMsg = msg.LoadingMsgTmpl
+		}
+		return m, tea.Batch(m.loadingSpinner.Tick, msg.Cmd)
 	case DoneLoadingDataMsg:
 		m.loadingSpinner = nil
+		m.loadingMsg = ""
 		return m, nil
 	case ErrorMsg:
 		// We want to keep the breadcrumb but pop the model that caused the error
@@ -193,7 +198,11 @@ func (m *StackModel) StackSizeMsg() StackSizeMsg {
 
 func (m *StackModel) View() string {
 	if m.loadingSpinner != nil {
-		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, fmt.Sprintf("%s Loading...", m.loadingSpinner.View()))
+		loadingTmpl := "%s Loading..."
+		if m.loadingMsg != "" {
+			loadingTmpl = m.loadingMsg
+		}
+		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, fmt.Sprintf(loadingTmpl, m.loadingSpinner.View()))
 	}
 
 	if len(m.stack) == 0 {
