@@ -178,6 +178,10 @@ func (l *LoginView) View() string {
 }
 
 func isAlreadyLoggedIn(ctx context.Context) bool {
+	if cfg.GetAPIKey() != "" {
+		return true
+	}
+
 	c, err := client.NewDefaultClient()
 	if err != nil {
 		return false
