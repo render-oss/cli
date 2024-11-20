@@ -39,7 +39,7 @@ func (c *ConfigWrapper) Init() tea.Cmd {
 
 func (c *ConfigWrapper) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if c.configured {
-		return c.next, c.next.Init()
+		return c.next, nil
 	}
 
 	switch msg.(type) {
