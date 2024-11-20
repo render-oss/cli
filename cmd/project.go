@@ -8,6 +8,7 @@ import (
 
 	"github.com/renderinc/cli/pkg/client"
 	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/text"
 	"github.com/renderinc/cli/pkg/tui"
 	"github.com/renderinc/cli/pkg/tui/views"
 )
@@ -42,13 +43,9 @@ func init() {
 	rootCmd.AddCommand(projectCmd)
 
 	projectCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		if nonInteractive, err := command.NonInteractive(
-			cmd,
-			func() (any, error) {
-				return views.LoadProjects(cmd.Context(), views.ProjectInput{})
-			},
-			nil,
-		); err != nil {
+		if nonInteractive, err := command.NonInteractive(cmd, func() ([]*client.Project, error) {
+			return views.LoadProjects(cmd.Context(), views.ProjectInput{})
+		}, text.ProjectTable); err != nil {
 			return err
 		} else if nonInteractive {
 			return nil

@@ -14,6 +14,7 @@ import (
 	"github.com/renderinc/cli/pkg/redis"
 	"github.com/renderinc/cli/pkg/resource"
 	"github.com/renderinc/cli/pkg/service"
+	"github.com/renderinc/cli/pkg/text"
 	"github.com/renderinc/cli/pkg/tui"
 	"github.com/renderinc/cli/pkg/tui/views"
 	"github.com/renderinc/cli/pkg/types"
@@ -205,13 +206,9 @@ func init() {
 			return err
 		}
 
-		if nonInteractive, err := command.NonInteractive(
-			cmd,
-			func() (any, error) {
-				return views.LoadResourceData(cmd.Context(), in)
-			},
-			nil,
-		); err != nil {
+		if nonInteractive, err := command.NonInteractive(cmd, func() ([]resource.Resource, error) {
+			return views.LoadResourceData(cmd.Context(), in)
+		}, text.ResourceTable); err != nil {
 			return err
 		} else if nonInteractive {
 			return nil

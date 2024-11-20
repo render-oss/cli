@@ -9,6 +9,7 @@ import (
 
 	"github.com/renderinc/cli/pkg/client"
 	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/text"
 	"github.com/renderinc/cli/pkg/tui/views"
 )
 
@@ -53,13 +54,23 @@ func nonInteractiveSetWorkspace(cmd *cobra.Command, workspaceIDOrName string) er
 	return printWorkspace(cmd, "Workspace set to", o)
 }
 
+type printableOwner struct {
+	*client.Owner `json:"inline"`
+	prefix        string
+}
+
+func (p *printableOwner) String() string {
+	return fmt.Sprintf("%s: %s (%s)\n", p.prefix, p.Name, p.Id)
+}
+
 func printWorkspace(cmd *cobra.Command, prefix string, o *client.Owner) error {
-	printedData, err := command.PrintData(cmd, o)
-	if err != nil {
-		return err
+	po := &printableOwner{
+		Owner:  o,
+		prefix: prefix,
 	}
-	if !printedData {
-		fmt.Printf("%s: %s (%s)\n", prefix, o.Name, o.Id)
-	}
-	return nil
+
+	_, err := command.PrintData(cmd, po, func(p *printableOwner) string {
+		return text.FormatStringF("%s: %s (%s)", prefix, o.Name, o.Id)
+	})
+	return err
 }

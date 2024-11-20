@@ -9,6 +9,7 @@ import (
 	"github.com/renderinc/cli/pkg/client"
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/project"
+	"github.com/renderinc/cli/pkg/text"
 	"github.com/renderinc/cli/pkg/tui"
 	"github.com/renderinc/cli/pkg/tui/views"
 )
@@ -45,13 +46,9 @@ func init() {
 			return err
 		}
 
-		if nonInteractive, err := command.NonInteractive(
-			cmd,
-			func() (any, error) {
-				return views.LoadEnvironments(cmd.Context(), input)
-			},
-			nil,
-		); err != nil {
+		if nonInteractive, err := command.NonInteractive(cmd, func() ([]*client.Environment, error) {
+			return views.LoadEnvironments(cmd.Context(), input)
+		}, text.EnvironmentTable); err != nil {
 			return err
 		} else if nonInteractive {
 			return nil

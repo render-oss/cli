@@ -67,6 +67,9 @@ var rootCmd = &cobra.Command{
 			println(err.Error())
 			os.Exit(1)
 		}
+		if output == command.Interactive && (isPipe() || isCI()) {
+			output = command.TEXT
+		}
 		ctx = command.SetFormatInContext(ctx, &output)
 
 		if output == command.Interactive {
@@ -85,10 +88,6 @@ var rootCmd = &cobra.Command{
 
 		output := command.GetFormatFromContext(ctx)
 		if output == nil || *output == command.Interactive {
-			if isPipe() {
-				return errors.New("please specify `-o json` or `-o yaml` to pipe output")
-			}
-
 			stack := tui.GetStackFromContext(ctx)
 			if stack == nil {
 				return nil
@@ -128,6 +127,11 @@ func isPipe() bool {
 	return !isTerminal
 }
 
+func isCI() bool {
+	ci := os.Getenv("CI")
+	return ci == "true" || ci == "1"
+}
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
@@ -145,7 +149,7 @@ func init() {
 
 	rootCmd.Version = cfg.Version
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "interactive, json, or yaml")
+	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "interactive, json, yaml, or text")
 	rootCmd.PersistentFlags().Bool(command.ConfirmFlag, false, "set to skip confirmation prompts")
 
 	// Flags from the old CLI that we error with a helpful message

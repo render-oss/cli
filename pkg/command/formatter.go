@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -12,6 +13,7 @@ const (
 	Interactive Output = "interactive"
 	JSON        Output = "json"
 	YAML        Output = "yaml"
+	TEXT        Output = "text"
 )
 
 func (o *Output) Interactive() bool {
@@ -19,11 +21,13 @@ func (o *Output) Interactive() bool {
 }
 
 func StringToOutput(s string) (Output, error) {
-	switch s {
+	switch strings.ToLower(s) {
 	case "json":
 		return JSON, nil
 	case "yaml":
 		return YAML, nil
+	case "text":
+		return TEXT, nil
 	case "interactive":
 		return Interactive, nil
 	default:

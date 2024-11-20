@@ -3,7 +3,9 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -40,6 +42,8 @@ func writeLog(format command.Output, out io.Writer, log *lclient.Log) error {
 		str, err = json.MarshalIndent(log, "", "  ")
 	} else if format == command.YAML {
 		str, err = yaml.Marshal(log)
+	} else if format == command.TEXT {
+		str = []byte(fmt.Sprintf("%s  %s\n", log.Timestamp.Format(time.DateTime), log.Message))
 	}
 
 	if err != nil {
@@ -121,7 +125,7 @@ func init() {
 		}
 
 		format := command.GetFormatFromContext(cmd.Context())
-		if format != nil && (*format == command.JSON || *format == command.YAML) {
+		if format != nil && (*format != command.Interactive) {
 			return nonInteractiveLogs(format, cmd, input)
 		}
 

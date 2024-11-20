@@ -33,10 +33,18 @@ type WrapOptions[T any] struct {
 	RequireConfirm RequireConfirm[T]
 }
 
-func NonInteractive(cmd *cobra.Command, loadData func() (any, error), confirmMessageFunc func() (string, error)) (bool, error) {
+type LoadDataFunc[T any] func() (T, error)
+type FormatTextFunc[T any] func(T) string
+type ConfirmFunc func() (string, error)
+
+func NonInteractive[T any](cmd *cobra.Command, loadData LoadDataFunc[T], formatText FormatTextFunc[T]) (bool, error) {
+	return NonInteractiveWithConfirm(cmd, loadData, formatText, nil)
+}
+
+func NonInteractiveWithConfirm[T any](cmd *cobra.Command, loadData LoadDataFunc[T], formatText FormatTextFunc[T], confirmMessageFunc ConfirmFunc) (bool, error) {
 	outputFormat := GetFormatFromContext(cmd.Context())
 
-	if outputFormat == nil || !(*outputFormat == JSON || *outputFormat == YAML) {
+	if outputFormat == nil || (*outputFormat == Interactive) {
 		return false, nil
 	}
 
@@ -68,20 +76,20 @@ func NonInteractive(cmd *cobra.Command, loadData func() (any, error), confirmMes
 		return false, convertToUserFacingErr(err)
 	}
 
-	return PrintData(cmd, data)
+	return PrintData(cmd, data, formatText)
 }
 
-func PrintData(cmd *cobra.Command, data any) (bool, error) {
+type TextTable interface {
+	Header() []string
+	Row() []string
+}
+
+func PrintData[T any](cmd *cobra.Command, data T, formatText FormatTextFunc[T]) (bool, error) {
 	outputFormat := GetFormatFromContext(cmd.Context())
 
 	switch *outputFormat {
 	case JSON:
-		jsonStr, err := json.MarshalIndent(data, "", "  ")
-		if err != nil {
-			return true, err
-		}
-		_, err = cmd.OutOrStdout().Write(jsonStr)
-		return true, err
+		return true, printJSON(cmd, data)
 	case YAML:
 		yamlStr, err := yaml.Marshal(data)
 		if err != nil {
@@ -89,8 +97,20 @@ func PrintData(cmd *cobra.Command, data any) (bool, error) {
 		}
 		_, err = cmd.OutOrStdout().Write(yamlStr)
 		return true, err
+	case TEXT:
+		_, err := cmd.OutOrStdout().Write([]byte(formatText(data)))
+		return true, err
 	}
 	return false, nil
+}
+
+func printJSON(cmd *cobra.Command, data any) error {
+	jsonStr, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return err
+	}
+	_, err = cmd.OutOrStdout().Write(jsonStr)
+	return err
 }
 
 func wrappedModel(model tea.Model, cmd *cobra.Command, breadcrumb string, in any) (*tui.ModelWithCmd, error) {

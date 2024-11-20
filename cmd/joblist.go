@@ -12,6 +12,7 @@ import (
 	"github.com/renderinc/cli/pkg/job"
 	"github.com/renderinc/cli/pkg/pointers"
 	"github.com/renderinc/cli/pkg/resource"
+	"github.com/renderinc/cli/pkg/text"
 	"github.com/renderinc/cli/pkg/tui/views"
 )
 
@@ -97,13 +98,9 @@ func init() {
 			return fmt.Errorf("failed to parse command: %w", err)
 		}
 
-		if nonInteractive, err := command.NonInteractive(
-			cmd,
-			func() (any, error) {
-				return views.LoadJobListData(cmd.Context(), input)
-			},
-			nil,
-		); err != nil {
+		if nonInteractive, err := command.NonInteractive(cmd, func() ([]*clientjob.Job, error) {
+			return views.LoadJobListData(cmd.Context(), input)
+		}, text.JobTable); err != nil {
 			return err
 		} else if nonInteractive {
 			return nil

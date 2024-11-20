@@ -10,6 +10,7 @@ import (
 	"github.com/renderinc/cli/pkg/client"
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/resource"
+	"github.com/renderinc/cli/pkg/text"
 	"github.com/renderinc/cli/pkg/tui/views"
 	"github.com/renderinc/cli/pkg/types"
 )
@@ -45,13 +46,11 @@ func init() {
 			return fmt.Errorf("failed to parse command: %w", err)
 		}
 
-		if nonInteractive, err := command.NonInteractive(
-			cmd,
-			func() (any, error) {
-				return views.CreateDeploy(cmd.Context(), input)
-			},
-			views.DeployCreateConfirm(cmd.Context(), input),
-		); err != nil {
+		if nonInteractive, err := command.NonInteractiveWithConfirm(cmd, func() (*client.Deploy, error) {
+			return views.CreateDeploy(cmd.Context(), input)
+		}, func(deploy *client.Deploy) string {
+			return text.FormatStringF("Created deploy %s for service %s", deploy.Id, input.ServiceID)
+		}, views.DeployCreateConfirm(cmd.Context(), input)); err != nil {
 			return err
 		} else if nonInteractive {
 			return nil

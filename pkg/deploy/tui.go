@@ -97,3 +97,25 @@ func triggerValue(trigger *client.DeployTrigger) string {
 	words := strings.Split(triggerStr, "_")
 	return strings.Join(words, " ")
 }
+
+func Header() []string {
+	return []string{"Status", "Commit/Image", "Trigger", "Created", "Finished", "ID"}
+}
+
+func Row(deploy *client.Deploy) []string {
+	var commitOrImage string
+	if deploy.Image != nil {
+		commitOrImage = pointers.StringValue(deploy.Image.Ref)
+	} else if deploy.Commit != nil {
+		commitOrImage = pointers.StringValue(deploy.Commit.Id)
+	}
+
+	return []string{
+		deployStatusValue(deploy.Status),
+		commitOrImage,
+		triggerValue(deploy.Trigger),
+		pointers.TimeValue(deploy.CreatedAt),
+		pointers.TimeValue(deploy.FinishedAt),
+		deploy.Id,
+	}
+}

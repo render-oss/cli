@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/text"
 	"github.com/renderinc/cli/pkg/tui/views"
 )
 
@@ -29,15 +30,14 @@ func init() {
 			return err
 		}
 
-		if nonInteractive, err := command.NonInteractive(
+		nonInteractive, err := command.NonInteractiveWithConfirm(
 			cmd,
-			func() (any, error) {
-				return views.CancelDeploy(cmd.Context(), input)
-			},
-			func() (string, error) {
-				return views.RequireConfirmationForCancelDeploy(cmd.Context(), input)
-			},
-		); err != nil {
+			cancelDeploy(cmd.Context(), input),
+			text.FormatString,
+			confirmDeploy(cmd.Context(), input),
+		)
+
+		if err != nil {
 			return err
 		} else if nonInteractive {
 			return nil
@@ -45,5 +45,17 @@ func init() {
 
 		InteractiveDeployCancel(cmd.Context(), input, "Cancel deploy "+input.DeployID)
 		return nil
+	}
+}
+
+func cancelDeploy(ctx context.Context, input views.DeployCancelInput) func() (string, error) {
+	return func() (string, error) {
+		return views.CancelDeploy(ctx, input)
+	}
+}
+
+func confirmDeploy(ctx context.Context, input views.DeployCancelInput) func() (string, error) {
+	return func() (string, error) {
+		return views.RequireConfirmationForCancelDeploy(ctx, input)
 	}
 }

@@ -4,10 +4,12 @@ import (
 	"context"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/cobra"
+
 	"github.com/renderinc/cli/pkg/client"
 	"github.com/renderinc/cli/pkg/deploy"
 	"github.com/renderinc/cli/pkg/pointers"
-	"github.com/spf13/cobra"
+	"github.com/renderinc/cli/pkg/text"
 
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/resource"
@@ -52,7 +54,7 @@ func commandsForDeploy(dep *client.Deploy, serviceID string) []views.PaletteComm
 						ResourceIDs: []string{serviceID},
 						StartTime:   startTime,
 						EndTime:     endTime,
-						Direction:  "forward",
+						Direction:   "forward",
 					},
 					"Logs",
 				)
@@ -85,13 +87,9 @@ func init() {
 
 		input := views.DeployListInput{ServiceID: serviceID}
 
-		if nonInteractive, err := command.NonInteractive(
-			cmd,
-			func() (any, error) {
-				return views.LoadDeployList(cmd.Context(), input)
-			},
-			nil,
-		); err != nil {
+		if nonInteractive, err := command.NonInteractive(cmd, func() ([]*client.Deploy, error) {
+			return views.LoadDeployList(cmd.Context(), input)
+		}, text.DeployTable); err != nil {
 			return err
 		} else if nonInteractive {
 			return nil

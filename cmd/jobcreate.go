@@ -10,6 +10,7 @@ import (
 	clientjob "github.com/renderinc/cli/pkg/client/jobs"
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/resource"
+	"github.com/renderinc/cli/pkg/text"
 	"github.com/renderinc/cli/pkg/tui/views"
 )
 
@@ -43,13 +44,11 @@ func init() {
 			return fmt.Errorf("failed to parse command: %w", err)
 		}
 
-		if nonInteractive, err := command.NonInteractive(
-			cmd,
-			func() (any, error) {
-				return views.CreateJob(cmd.Context(), input)
-			},
-			nil,
-		); err != nil {
+		if nonInteractive, err := command.NonInteractive(cmd, func() (*clientjob.Job, error) {
+			return views.CreateJob(cmd.Context(), input)
+		}, func(j *clientjob.Job) string {
+			return text.FormatStringF("Created job %s for %s", j.Id, input.ServiceID)
+		}); err != nil {
 			return err
 		} else if nonInteractive {
 			return nil

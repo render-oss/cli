@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/text"
 	"github.com/renderinc/cli/pkg/tui/views"
 )
 
@@ -28,14 +29,11 @@ func init() {
 			return err
 		}
 
-		if nonInteractive, err := command.NonInteractive(
+		if nonInteractive, err := command.NonInteractiveWithConfirm(
 			cmd,
-			func() (any, error) {
-				return views.CancelJob(cmd.Context(), input)
-			},
-			func() (string, error) {
-				return views.RequireConfirmationForCancelJob(cmd.Context(), input)
-			},
+			cancelJob(cmd, input),
+			text.FormatString,
+			confirmJobCancel(cmd, input),
 		); err != nil {
 			return err
 		} else if nonInteractive {
@@ -44,5 +42,17 @@ func init() {
 
 		InteractiveJobCancel(cmd.Context(), input, "Cancel job "+input.JobID)
 		return nil
+	}
+}
+
+func cancelJob(cmd *cobra.Command, input views.JobCancelInput) func() (string, error) {
+	return func() (string, error) {
+		return views.CancelJob(cmd.Context(), input)
+	}
+}
+
+func confirmJobCancel(cmd *cobra.Command, input views.JobCancelInput) func() (string, error) {
+	return func() (string, error) {
+		return views.RequireConfirmationForCancelJob(cmd.Context(), input)
 	}
 }
