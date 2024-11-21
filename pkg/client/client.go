@@ -15,8 +15,6 @@ import (
 var ErrUnauthorized = errors.New("unauthorized")
 var ErrForbidden = errors.New("forbidden")
 
-var ErrLogin = errors.New("run `render login` to authenticate")
-
 var osInfo string
 
 func getOSInfoOnce() string {
@@ -27,23 +25,10 @@ func getOSInfoOnce() string {
 }
 
 func NewDefaultClient() (*ClientWithResponses, error) {
-	apiCfg := config.APIConfig{
-		Key:  cfg.GetAPIKey(),
-		Host: cfg.GetHost(),
+	apiCfg, err := config.DefaultAPIConfig()
+	if err != nil {
+		return nil, err
 	}
-
-	var err error
-	if apiCfg.Key == "" {
-		apiCfg, err = config.GetAPIConfig()
-		if err != nil || apiCfg.Key == "" {
-			return nil, ErrLogin
-		}
-	}
-
-	if apiCfg.Host == "" {
-		apiCfg.Host = cfg.GetHost()
-	}
-
 	return clientWithAuth(&http.Client{}, apiCfg)
 }
 

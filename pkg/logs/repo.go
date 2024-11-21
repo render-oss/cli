@@ -34,7 +34,7 @@ func (l *LogRepo) ListLogs(ctx context.Context, params *client.ListLogsParams) (
 
 func (l *LogRepo) TailLogs(ctx context.Context, params *client.ListLogsParams) (<-chan *lclient.Log, error) {
 	subscribeParams := client.SubscribeLogsParams(*params)
-	apiConfig, err := config.GetAPIConfig()
+	apiConfig, err := config.DefaultAPIConfig()
 	if err != nil {
 		return nil, err
 	}

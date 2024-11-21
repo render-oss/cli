@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/renderinc/cli/pkg/cfg"
 	"gopkg.in/yaml.v3"
 )
 
@@ -16,6 +17,7 @@ const configPathEnvKey = "RENDER_CLI_CONFIG_PATH"
 const workspaceEnvKey = "RENDER_WORKSPACE"
 
 var ErrNoWorkspace = errors.New("no workspace set. Use `render workspace set` to set a workspace")
+var ErrLogin = errors.New("run `render login` to authenticate")
 
 type Config struct {
 	Version       int    `yaml:"version"`
@@ -38,6 +40,27 @@ func init() {
 		panic(err)
 	}
 	defaultConfigPath = filepath.Join(home, ".render", "cli.yaml")
+}
+
+func DefaultAPIConfig() (APIConfig, error) {
+	apiCfg := APIConfig{
+		Key:  cfg.GetAPIKey(),
+		Host: cfg.GetHost(),
+	}
+
+	var err error
+	if apiCfg.Key == "" {
+		apiCfg, err = getAPIConfig()
+		if err != nil || apiCfg.Key == "" {
+			return APIConfig{}, ErrLogin
+		}
+	}
+
+	if apiCfg.Host == "" {
+		apiCfg.Host = cfg.GetHost()
+	}
+
+	return apiCfg, nil
 }
 
 func getConfigPath() string {
@@ -121,7 +144,7 @@ func ClearProjectFilter() error {
 	return cfg.Persist()
 }
 
-func GetAPIConfig() (APIConfig, error) {
+func getAPIConfig() (APIConfig, error) {
 	cfg, err := Load()
 	if err != nil {
 		return APIConfig{}, err
