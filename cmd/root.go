@@ -67,7 +67,8 @@ var rootCmd = &cobra.Command{
 			println(err.Error())
 			os.Exit(1)
 		}
-		if output == command.Interactive && (isPipe() || isCI()) {
+		// Honor the output flag if it's set
+		if outputFlag == "" && output == command.Interactive && (isPipe() || isCI()) {
 			output = command.TEXT
 		}
 		ctx = command.SetFormatInContext(ctx, &output)

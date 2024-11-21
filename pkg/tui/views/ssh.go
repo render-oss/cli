@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/renderinc/cli/pkg/client"
 	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/deploy"
 	"github.com/renderinc/cli/pkg/resource"
 	"github.com/renderinc/cli/pkg/service"
 	"github.com/renderinc/cli/pkg/tui"
@@ -88,7 +89,32 @@ func loadDataSSH(ctx context.Context, in *SSHInput) (*exec.Cmd, error) {
 	} else if details, err := serviceInfo.ServiceDetails.AsBackgroundWorkerDetails(); err == nil {
 		sshAddress = details.SshAddress
 	} else {
-		return nil, fmt.Errorf("unsupported service type")
+		return nil, tui.UserFacingError{
+			Title: "Failed to SSH", Message: fmt.Sprintf("Cannot SSH into %s service type.", serviceInfo.Type),
+		}
+	}
+
+	if serviceInfo.Suspended == client.ServiceSuspendedSuspended {
+		return nil, tui.UserFacingError{Title: "Failed to SSH", Message: "Cannot SSH into a suspended service."}
+	}
+
+	deploys, err := deploy.NewRepo(c).ListDeploysForService(ctx, in.ServiceID, &client.ListDeploysParams{})
+	if err != nil {
+		return nil, err
+	}
+
+	foundLiveDeploy := false
+	for _, deploy := range deploys {
+		if deploy.Status != nil && *deploy.Status == client.DeployStatusLive {
+			foundLiveDeploy = true
+			break
+		}
+	}
+
+	if !foundLiveDeploy {
+		return nil, tui.UserFacingError{
+			Title: "Failed to SSH", Message: "Cannot SSH into a service with no live deploys.",
+		}
 	}
 
 	if sshAddress == nil {

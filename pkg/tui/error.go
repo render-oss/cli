@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"errors"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -18,16 +20,16 @@ var style = lipgloss.NewStyle().
 	MarginBottom(1)
 
 type ErrorModel struct {
-	DisplayError string
-	width        int
-	height       int
+	Err    error
+	width  int
+	height int
 }
 
 func NewErrorModel(
-	displayError string,
+	err error,
 ) *ErrorModel {
 	m := &ErrorModel{
-		DisplayError: displayError,
+		Err: err,
 	}
 
 	return m
@@ -48,5 +50,24 @@ func (m *ErrorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *ErrorModel) View() string {
-	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, style.Render(m.DisplayError))
+	var title string
+	var message string
+
+	userFacingError := &UserFacingError{}
+	if errors.As(m.Err, userFacingError) {
+		title = userFacingError.Title
+		message = userFacingError.Message
+	} else {
+		message = m.Err.Error()
+	}
+
+	var interior string
+
+	if title == "" {
+		interior = lipgloss.JoinVertical(lipgloss.Center, message)
+	} else {
+		interior = lipgloss.JoinVertical(lipgloss.Center, title, message)
+	}
+
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, style.Render(interior))
 }

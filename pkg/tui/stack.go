@@ -13,6 +13,16 @@ import (
 	renderstyle "github.com/renderinc/cli/pkg/style"
 )
 
+type UserFacingError struct {
+	Title   string
+	Message string
+	Err     error
+}
+
+func (u UserFacingError) Error() string {
+	return u.Err.Error()
+}
+
 var stackHeaderStyle = lipgloss.NewStyle().MarginTop(1).MarginBottom(1)
 var stackInfoStyle = lipgloss.NewStyle().Foreground(renderstyle.ColorBreadcrumb).Bold(true)
 
@@ -71,7 +81,7 @@ func newSpinner() *spinner.Model {
 
 func (m *StackModel) Push(model ModelWithCmd) tea.Cmd {
 	m.stack = append(m.stack, model)
-	return tea.Batch(model.Model.Init(), func() tea.Msg { return m.StackSizeMsg() })
+	return tea.Sequence(model.Model.Init(), tea.WindowSize())
 }
 
 func (m *StackModel) Pop() *ModelWithCmd {
@@ -118,7 +128,7 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(m.stack) > 0 {
 				err := clipboard.WriteAll(m.stack[len(m.stack)-1].Cmd)
 				if err != nil {
-					m.Push(ModelWithCmd{Model: NewErrorModel("Failed to copy command to clipboard")})
+					m.Push(ModelWithCmd{Model: NewErrorModel(fmt.Errorf("Failed to copy command to clipboard"))})
 				}
 			}
 		}
@@ -147,11 +157,10 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			breadcrumb = previous.Breadcrumb
 		}
 
-		m.Push(ModelWithCmd{
-			Model:      NewErrorModel(msg.Err.Error()),
+		return m, m.Push(ModelWithCmd{
+			Model:      NewErrorModel(msg.Err),
 			Breadcrumb: breadcrumb,
 		})
-		return m, nil
 	case spinner.TickMsg:
 		if m.loadingSpinner != nil {
 			spin, cmd := m.loadingSpinner.Update(msg)

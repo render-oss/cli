@@ -14,8 +14,8 @@ func NewRepo(c *client.ClientWithResponses) *Repo {
 	return &Repo{client: c}
 }
 
-func (d *Repo) ListDeploysForService(ctx context.Context, serviceID string) ([]*client.Deploy, error) {
-	resp, err := d.client.ListDeploysWithResponse(ctx, serviceID, nil)
+func (d *Repo) ListDeploysForService(ctx context.Context, serviceID string, params *client.ListDeploysParams) ([]*client.Deploy, error) {
+	resp, err := d.client.ListDeploysWithResponse(ctx, serviceID, params)
 	if err != nil {
 		return nil, err
 	}
