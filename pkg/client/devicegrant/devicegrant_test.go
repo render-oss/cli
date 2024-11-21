@@ -28,11 +28,12 @@ func TestClient_CreateGrant(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, &devicegrant.DeviceGrant{
-		DeviceCode:      "some device code",
-		UserCode:        "some user code",
-		VerificationUri: "some verification uri",
-		ExpiresIn:       1,
-		Interval:        2,
+		DeviceCode:              "some device code",
+		UserCode:                "some user code",
+		VerificationUri:         "some verification uri",
+		VerificationUriComplete: "some complete verification uri",
+		ExpiresIn:               1,
+		Interval:                2,
 	}, dg)
 }
 
@@ -79,11 +80,12 @@ func TestClient_GetDeviceToken(t *testing.T) {
 }
 
 const deviceGrantResp = `{
-	"deviceCode": "some device code",
-	"userCode": "some user code",
-	"verificationUri": "some verification uri",
-	"expiresIn": 1,
+	"device_code": "some device code",
+	"user_code": "some user code",
+	"verification_uri": "some verification uri",
+	"verification_uri_complete": "some complete verification uri",
+	"expires_in": 1,
 	"interval": 2
 }`
 
-const deviceTokenResp = `{"deviceToken": "some device token"}`
+const deviceTokenResp = `{"access_token": "some device token"}`

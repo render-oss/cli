@@ -197,7 +197,7 @@ func isAlreadyLoggedIn(ctx context.Context) bool {
 }
 
 func dashboardAuthURL(dg *devicegrant.DeviceGrant) (*url.URL, error) {
-	u, err := url.Parse(dg.VerificationUri)
+	u, err := url.Parse(dg.VerificationUriComplete)
 	if err != nil {
 		return nil, err
 	}

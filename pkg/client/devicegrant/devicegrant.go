@@ -19,24 +19,28 @@ const authorizationPendingAPIMsg = "authorization_pending"
 var ErrAuthorizationPending = errors.New("authorization pending")
 
 type DeviceGrant struct {
-	DeviceCode      string `json:"deviceCode"`
-	UserCode        string `json:"userCode"`
-	VerificationUri string `json:"verificationUri"`
-	ExpiresIn       int    `json:"expiresIn"`
-	Interval        int    `json:"interval"`
+	DeviceCode              string `json:"device_code"`
+	UserCode                string `json:"user_code"`
+	VerificationUri         string `json:"verification_uri"`
+	VerificationUriComplete string `json:"verification_uri_complete"`
+	ExpiresIn               int    `json:"expires_in"`
+	Interval                int    `json:"interval"`
 }
 
 type GrantRequestBody struct {
-	ClientID string `json:"clientId"`
+	ClientID string `json:"client_id"`
 }
 
 type DeviceToken struct {
-	DeviceToken string `json:"deviceToken"`
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
 }
 
 type TokenRequestBody struct {
-	ClientID   string `json:"clientId"`
-	DeviceCode string `json:"deviceCode"`
+	GrantType  string `json:"grant_type"`
+	ClientID   string `json:"client_id"`
+	DeviceCode string `json:"device_code"`
 }
 
 type ErrorResponse struct {
@@ -73,7 +77,10 @@ func (c *Client) CreateGrant(ctx context.Context) (*DeviceGrant, error) {
 }
 
 func (c *Client) GetDeviceToken(ctx context.Context, dg *DeviceGrant) (string, error) {
-	body := &TokenRequestBody{ClientID: cliOauthClientID, DeviceCode: dg.DeviceCode}
+	body := &TokenRequestBody{
+		ClientID: cliOauthClientID, DeviceCode: dg.DeviceCode,
+		GrantType: "urn:ietf:params:oauth:grant-type:device_code",
+	}
 
 	var token DeviceToken
 	err := c.postFor(ctx, "/device-token", body, &token)
@@ -85,7 +92,7 @@ func (c *Client) GetDeviceToken(ctx context.Context, dg *DeviceGrant) (string, e
 		return "", err
 	}
 
-	return token.DeviceToken, nil
+	return token.AccessToken, nil
 }
 
 func (c *Client) postFor(ctx context.Context, path string, body any, v any) error {
@@ -101,6 +108,7 @@ func (c *Client) postFor(ctx context.Context, path string, body any, v any) erro
 	}
 
 	req = req.WithContext(ctx)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := c.Do(req)
 	if err != nil {
 		return err
