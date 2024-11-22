@@ -17,17 +17,17 @@ type JobListInput struct {
 	ServiceID string `cli:"arg:0"`
 }
 
-func LoadJobListData(ctx context.Context, input JobListInput) ([]*clientjob.Job, error) {
+func LoadJobListData(ctx context.Context, input JobListInput, cur client.Cursor) (client.Cursor, []*clientjob.Job, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %w", err)
+		return "", nil, fmt.Errorf("failed to create client: %w", err)
 	}
 
 	jobRepo := job.NewRepo(c)
 
 	return jobRepo.ListJobs(ctx, job.ListJobsInput{
 		ServiceID: input.ServiceID,
-	})
+	}, cur)
 }
 
 type JobListView struct {
@@ -45,7 +45,7 @@ func NewJobListView(ctx context.Context, input *JobListInput, generateCommands f
 
 	listView.list = tui.NewList(
 		"",
-		command.LoadCmd(ctx, LoadJobListData, *input),
+		command.PaginatedLoadCmd(ctx, LoadJobListData, *input),
 		func(j *clientjob.Job) tui.ListItem {
 			return job.NewListItem(j)
 		},

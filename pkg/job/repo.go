@@ -29,7 +29,7 @@ type ListJobsInput struct {
 	FinishedAfter  *time.Time
 }
 
-func (r *Repo) ListJobs(ctx context.Context, input ListJobsInput) ([]*clientjob.Job, error) {
+func (r *Repo) ListJobs(ctx context.Context, input ListJobsInput, cur client.Cursor) (client.Cursor, []*clientjob.Job, error) {
 	var statusFilters []client.ListJobParamsStatus
 	for _, status := range input.Status {
 		switch status {
@@ -42,10 +42,11 @@ func (r *Repo) ListJobs(ctx context.Context, input ListJobsInput) ([]*clientjob.
 		case "succeeded":
 			statusFilters = append(statusFilters, client.Succeeded)
 		default:
-			return nil, fmt.Errorf("invalid status: %s", status)
+			return "", nil, fmt.Errorf("invalid status: %s", status)
 		}
 	}
 
+	pageSize := 20
 	params := &client.ListJobParams{
 		CreatedBefore:  input.CreatedBefore,
 		CreatedAfter:   input.CreatedAfter,
@@ -53,7 +54,11 @@ func (r *Repo) ListJobs(ctx context.Context, input ListJobsInput) ([]*clientjob.
 		StartedAfter:   input.StartedAfter,
 		FinishedBefore: input.FinishedBefore,
 		FinishedAfter:  input.FinishedAfter,
-		Limit:          pointers.From(100),
+		Limit:          pointers.From(pageSize),
+	}
+
+	if cur != "" {
+		params.Cursor = &cur
 	}
 
 	if len(statusFilters) > 0 {
@@ -62,19 +67,24 @@ func (r *Repo) ListJobs(ctx context.Context, input ListJobsInput) ([]*clientjob.
 
 	resp, err := r.client.ListJobWithResponse(ctx, input.ServiceID, params)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	if err := client.ErrorFromResponse(resp); err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
-	jobs := make([]*clientjob.Job, len(*resp.JSON200))
-	for i, job := range *resp.JSON200 {
+	respOK := *resp.JSON200
+	jobs := make([]*clientjob.Job, len(respOK))
+	for i, job := range respOK {
 		jobs[i] = &job.Job
 	}
 
-	return jobs, nil
+	if len(jobs) < pageSize {
+		return "", jobs, nil
+	}
+
+	return respOK[len(respOK)-1].Cursor, jobs, nil
 }
 
 type CreateJobInput struct {

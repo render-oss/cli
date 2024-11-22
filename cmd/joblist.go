@@ -99,7 +99,8 @@ func init() {
 		}
 
 		if nonInteractive, err := command.NonInteractive(cmd, func() ([]*clientjob.Job, error) {
-			return views.LoadJobListData(cmd.Context(), input)
+			_, jobs, err := views.LoadJobListData(cmd.Context(), input, "")
+			return jobs, err
 		}, text.JobTable); err != nil {
 			return err
 		} else if nonInteractive {
