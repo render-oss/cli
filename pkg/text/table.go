@@ -10,7 +10,7 @@ import (
 )
 
 func ResourceTable(v []resource.Resource) string {
-	t := table.NewWriter()
+	t := newTable()
 	t.AppendHeader(table.Row{"Name", "Project", "Environment", "Type", "ID"})
 	for _, r := range v {
 		t.AppendRow(table.Row{r.Name(), r.ProjectName(), r.EnvironmentName(), r.Type(), r.ID()})
@@ -19,7 +19,8 @@ func ResourceTable(v []resource.Resource) string {
 }
 
 func JobTable(v []*clientjob.Job) string {
-	t := table.NewWriter()
+	t := newTable()
+	t.Style().Options.DrawBorder = false
 	t.AppendHeader(table.Row{"Command", "Started", "Finished", "Plan", "ID"})
 	for _, r := range v {
 		t.AppendRow(table.Row{r.StartCommand, r.StartedAt, r.FinishedAt, r.PlanId, r.Id})
@@ -28,7 +29,7 @@ func JobTable(v []*clientjob.Job) string {
 }
 
 func DeployTable(v []*client.Deploy) string {
-	t := table.NewWriter()
+	t := newTable()
 	t.AppendHeader(toRow(deploy.Header()))
 	for _, r := range v {
 		t.AppendRow(toRow(deploy.Row(r)))
@@ -37,7 +38,7 @@ func DeployTable(v []*client.Deploy) string {
 }
 
 func ProjectTable(v []*client.Project) string {
-	t := table.NewWriter()
+	t := newTable()
 	t.AppendHeader(table.Row{"Name", "ID"})
 	for _, r := range v {
 		t.AppendRow(table.Row{r.Name, r.Id})
@@ -46,12 +47,22 @@ func ProjectTable(v []*client.Project) string {
 }
 
 func EnvironmentTable(v []*client.Environment) string {
-	t := table.NewWriter()
+	t := newTable()
 	t.AppendHeader(table.Row{"Name", "Protected", "ID"})
 	for _, r := range v {
 		t.AppendRow(table.Row{r.Name, r.ProtectedStatus, r.Id})
 	}
 	return FormatString(t.Render())
+}
+
+func newTable() table.Writer {
+	t := table.NewWriter()
+	t.Style().Options.DrawBorder = false
+	t.Style().Options.SeparateColumns = false
+	t.Style().Options.SeparateHeader = false
+	t.Style().Box.PaddingRight = "    "
+	t.Style().Box.PaddingLeft = ""
+	return t
 }
 
 func toRow(r []string) table.Row {
