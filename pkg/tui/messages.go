@@ -3,7 +3,8 @@ package tui
 import tea "github.com/charmbracelet/bubbletea"
 
 type LoadDataMsg[T any] struct {
-	Data T
+	Data    T
+	HasMore bool
 }
 
 type LoadingDataMsg struct {

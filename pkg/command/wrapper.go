@@ -167,6 +167,28 @@ func LoadCmd[T any, D any](ctx context.Context, loadData func(context.Context, T
 	return loadDataCmd
 }
 
+func PaginatedLoadCmd[T any, D any](ctx context.Context, loadData func(context.Context, T, client.Cursor) (client.Cursor, D, error), in T) tui.TypedCmd[D] {
+	cursor := ""
+	loadDataCmd := func() tea.Msg {
+		return tui.LoadingDataMsg{
+			Cmd: tea.Sequence(
+				func() tea.Msg {
+					next, data, err := loadData(ctx, in, cursor)
+					if err != nil {
+						return tui.ErrorMsg{Err: convertToUserFacingErr(err)}
+					}
+					cursor = next
+					return tui.LoadDataMsg[D]{Data: data, HasMore: cursor != ""}
+				},
+				func() tea.Msg {
+					return tui.DoneLoadingDataMsg{}
+				},
+			),
+		}
+	}
+	return loadDataCmd
+}
+
 func WrapInConfirm[D any](cmd tui.TypedCmd[D], msgFunc func() (string, error)) tui.TypedCmd[D] {
 	return func() tea.Msg {
 		strMessage, err := msgFunc()

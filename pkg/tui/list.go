@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -25,6 +26,8 @@ type List[T any] struct {
 	windowWidth  int
 	maxWidth     int
 	onSelect     func(ListItem) tea.Cmd
+
+	hasMoreData bool
 }
 
 type ListOption[T any] func(*List[T])
@@ -86,15 +89,23 @@ func (m *List[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.windowWidth = msg.Width
 		m.updateListSize()
 	case LoadDataMsg[[]T]:
-		m.items = msg.Data
+		m.items = append(m.items, msg.Data...)
 		listItems := make([]list.Item, len(m.items))
 		for i, item := range m.items {
 			listItems[i] = m.makeListItem(item)
 		}
 		m.list.SetItems(listItems)
 		m.updateListSize()
+		m.hasMoreData = msg.HasMore
 		return m, nil
 	case tea.KeyMsg:
+		if isKeyDown(msg, m.list) && m.hasMoreData && m.list.Index() == len(m.items)-1 {
+			// set hasMoreData to false so we don't load multiple times
+			// if the down button is continuously pressed
+			m.hasMoreData = false
+			return m, m.loadData.Unwrap()
+		}
+
 		if msg.String() == "enter" && m.onSelect != nil {
 			selectedItem := m.list.SelectedItem()
 			if selectedItem != nil {
@@ -106,6 +117,12 @@ func (m *List[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.list, cmd = m.list.Update(msg)
 	return m, cmd
+}
+
+func isKeyDown(msg tea.KeyMsg, list list.Model) bool {
+	return key.Matches(msg.Type, list.KeyMap.CursorDown) ||
+		key.Matches(msg.Type, list.KeyMap.NextPage) ||
+		key.Matches(msg.Type, list.KeyMap.GoToEnd)
 }
 
 func (m *List[T]) updateListSize() {

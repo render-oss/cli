@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/renderinc/cli/pkg/client"
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/deploy"
@@ -15,27 +16,38 @@ type DeployListInput struct {
 	ServiceID string `cli:"arg:0"`
 }
 
-func LoadDeployList(ctx context.Context, input DeployListInput) ([]*client.Deploy, error) {
+func LoadDeployList(ctx context.Context, input DeployListInput, cur client.Cursor) (client.Cursor, []*client.Deploy, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %w", err)
+		return "", nil, fmt.Errorf("failed to create client: %w", err)
 	}
 
-	resp, err := c.ListDeploysWithResponse(ctx, input.ServiceID, nil)
+	pageSize := 20
+	params := &client.ListDeploysParams{Limit: &pageSize}
+	if cur != "" {
+		params.Cursor = &cur
+	}
+
+	resp, err := c.ListDeploysWithResponse(ctx, input.ServiceID, params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list deploys: %w", err)
+		return "", nil, fmt.Errorf("failed to list deploys: %w", err)
 	}
 
 	if resp.JSON200 == nil {
-		return nil, fmt.Errorf("unexpected response: %s", resp.Status())
+		return "", nil, fmt.Errorf("unexpected response: %s", resp.Status())
 	}
 
-	deploys := make([]*client.Deploy, len(*resp.JSON200))
-	for i, d := range *resp.JSON200 {
+	respOK := *resp.JSON200
+	deploys := make([]*client.Deploy, len(respOK))
+	for i, d := range respOK {
 		deploys[i] = d.Deploy
 	}
 
-	return deploys, nil
+	if len(deploys) < pageSize {
+		return "", deploys, nil
+	}
+
+	return *respOK[len(respOK)-1].Cursor, deploys, nil
 }
 
 type DeployListView struct {
@@ -50,7 +62,7 @@ func NewDeployListView(ctx context.Context, input DeployListInput, generateComma
 
 	list := tui.NewList(
 		"",
-		command.LoadCmd(ctx, LoadDeployList, input),
+		command.PaginatedLoadCmd(ctx, LoadDeployList, input),
 		func(d *client.Deploy) tui.ListItem {
 			return deploy.NewListItem(d)
 		},

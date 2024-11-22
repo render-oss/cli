@@ -88,7 +88,8 @@ func init() {
 		input := views.DeployListInput{ServiceID: serviceID}
 
 		if nonInteractive, err := command.NonInteractive(cmd, func() ([]*client.Deploy, error) {
-			return views.LoadDeployList(cmd.Context(), input)
+			_, res, err := views.LoadDeployList(cmd.Context(), input, "")
+			return res, err
 		}, text.DeployTable); err != nil {
 			return err
 		} else if nonInteractive {
