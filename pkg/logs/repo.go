@@ -3,6 +3,8 @@ package logs
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -45,8 +47,18 @@ func (l *LogRepo) TailLogs(ctx context.Context, params *client.ListLogsParams) (
 	u.Scheme = "wss"
 
 	// Establish WebSocket connection using the custom dialer
-	conn, _, err := dialer.Dial(u.String(), client.AddHeaders(http.Header{}, apiConfig.Key))
+	conn, resp, err := dialer.Dial(u.String(), client.AddHeaders(http.Header{}, apiConfig.Key))
 	if err != nil {
+		// Return the http error if it exists, fall back to the websocket error
+		if resp != nil && resp.StatusCode != http.StatusSwitchingProtocols {
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+
+			return nil, fmt.Errorf("failed to tail logs: %s", body)
+		}
+
 		return nil, err
 	}
 
