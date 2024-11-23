@@ -856,7 +856,7 @@ type JobWithCursor struct {
 type MaintenanceMode struct {
 	Enabled bool `json:"enabled"`
 
-	// Uri The page to be served when [maintenance mode](https://docs.render.com/maintenance-mode) is enabled. When empty, the default maintenance mode page is served.
+	// Uri The page to be served when [maintenance mode](https://render.com/docs/maintenance-mode) is enabled. When empty, the default maintenance mode page is served.
 	Uri string `json:"uri"`
 }
 
@@ -2043,25 +2043,25 @@ type ListLogsParams struct {
 	// Instance Filter logs by the instance they were emitted from. An instance is the id of a specific running server.
 	Instance *externalRef5.LogFilterInstance `form:"instance,omitempty" json:"instance,omitempty"`
 
-	// Host Filter request logs by their host. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Host Filter request logs by their host. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Host *externalRef5.LogFilterHost `form:"host,omitempty" json:"host,omitempty"`
 
-	// StatusCode Filter request logs by their status code. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// StatusCode Filter request logs by their status code. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	StatusCode *externalRef5.LogFilterStatusCode `form:"statusCode,omitempty" json:"statusCode,omitempty"`
 
-	// Method Filter request logs by their requests method. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Method Filter request logs by their requests method. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Method *externalRef5.LogFilterMethod `form:"method,omitempty" json:"method,omitempty"`
 
-	// Level Filter logs by their severity level. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Level Filter logs by their severity level. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Level *externalRef5.LogFilterLevel `form:"level,omitempty" json:"level,omitempty"`
 
 	// Type Filter logs by their type. Types include `app` for application logs, `request` for request logs, and `build` for build logs. You can find the full set of types available for a query by using the `GET /logs/values` endpoint.
 	Type *externalRef5.LogFilterType `form:"type,omitempty" json:"type,omitempty"`
 
-	// Text Filter by the text of the logs. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Text Filter by the text of the logs. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Text *externalRef5.LogFilterText `form:"text,omitempty" json:"text,omitempty"`
 
-	// Path Filter request logs by their path. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Path Filter request logs by their path. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Path *externalRef5.LogFilterPath `form:"path,omitempty" json:"path,omitempty"`
 
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
@@ -2110,25 +2110,25 @@ type SubscribeLogsParams struct {
 	// Instance Filter logs by the instance they were emitted from. An instance is the id of a specific running server.
 	Instance *externalRef5.LogFilterInstance `form:"instance,omitempty" json:"instance,omitempty"`
 
-	// Host Filter request logs by their host. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Host Filter request logs by their host. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Host *externalRef5.LogFilterHost `form:"host,omitempty" json:"host,omitempty"`
 
-	// StatusCode Filter request logs by their status code. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// StatusCode Filter request logs by their status code. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	StatusCode *externalRef5.LogFilterStatusCode `form:"statusCode,omitempty" json:"statusCode,omitempty"`
 
-	// Method Filter request logs by their requests method. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Method Filter request logs by their requests method. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Method *externalRef5.LogFilterMethod `form:"method,omitempty" json:"method,omitempty"`
 
-	// Level Filter logs by their severity level. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Level Filter logs by their severity level. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Level *externalRef5.LogFilterLevel `form:"level,omitempty" json:"level,omitempty"`
 
 	// Type Filter logs by their type. Types include `app` for application logs, `request` for request logs, and `build` for build logs. You can find the full set of types available for a query by using the `GET /logs/values` endpoint.
 	Type *externalRef5.LogFilterType `form:"type,omitempty" json:"type,omitempty"`
 
-	// Text Filter by the text of the logs. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Text Filter by the text of the logs. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Text *externalRef5.LogFilterText `form:"text,omitempty" json:"text,omitempty"`
 
-	// Path Filter request logs by their path. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Path Filter request logs by their path. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Path *externalRef5.LogFilterPath `form:"path,omitempty" json:"path,omitempty"`
 
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
@@ -2159,25 +2159,25 @@ type ListLogsValuesParams struct {
 	// Instance Filter logs by the instance they were emitted from. An instance is the id of a specific running server.
 	Instance *externalRef5.LogFilterInstance `form:"instance,omitempty" json:"instance,omitempty"`
 
-	// Host Filter request logs by their host. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Host Filter request logs by their host. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Host *externalRef5.LogFilterHost `form:"host,omitempty" json:"host,omitempty"`
 
-	// StatusCode Filter request logs by their status code. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// StatusCode Filter request logs by their status code. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	StatusCode *externalRef5.LogFilterStatusCode `form:"statusCode,omitempty" json:"statusCode,omitempty"`
 
-	// Method Filter request logs by their requests method. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Method Filter request logs by their requests method. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Method *externalRef5.LogFilterMethod `form:"method,omitempty" json:"method,omitempty"`
 
-	// Level Filter logs by their severity level. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Level Filter logs by their severity level. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Level *externalRef5.LogFilterLevel `form:"level,omitempty" json:"level,omitempty"`
 
 	// Type Filter logs by their type. Types include `app` for application logs, `request` for request logs, and `build` for build logs. You can find the full set of types available for a query by using the `GET /logs/values` endpoint.
 	Type *externalRef5.LogFilterType `form:"type,omitempty" json:"type,omitempty"`
 
-	// Text Filter by the text of the logs. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Text Filter by the text of the logs. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Text *externalRef5.LogFilterText `form:"text,omitempty" json:"text,omitempty"`
 
-	// Path Filter request logs by their path. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Path Filter request logs by their path. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Path *externalRef5.LogFilterPath `form:"path,omitempty" json:"path,omitempty"`
 
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
