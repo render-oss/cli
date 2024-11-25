@@ -3,7 +3,7 @@ package cfg
 import "os"
 
 const RepoURL = "https://api.github.com/repos/render-oss/cli"
-const InstallationInstructionsURL = "https://docs.render.com/cli#1-install"
+const InstallationInstructionsURL = "https://render.com/docs/cli#1-install"
 
 var Version = "dev"
 
