@@ -109,7 +109,7 @@ var rootCmd = &cobra.Command{
 			p := tea.NewProgram(m, tea.WithAltScreen())
 			_, err := p.Run()
 			if err != nil {
-				panic(fmt.Sprintf("failed to initialize interface: %v", err))
+				panic(fmt.Sprintf("Failed to initialize interface. Use -o to specify a non-interactive output mode: %v", err))
 			}
 			return nil
 		}
