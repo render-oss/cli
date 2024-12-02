@@ -2,14 +2,17 @@ package config
 
 import (
 	"errors"
+	"net/url"
 	"os"
 	"path/filepath"
 
-	"github.com/renderinc/cli/pkg/cfg"
 	"gopkg.in/yaml.v3"
+
+	"github.com/renderinc/cli/pkg/cfg"
 )
 
 const currentVersion = 1
+const defaultDashboardURL = "https://dashboard.render.com"
 
 var defaultConfigPath string
 
@@ -26,7 +29,8 @@ type Config struct {
 	ProjectFilter string `yaml:"project_filter,omitempty"` // Project ID for filtering
 	ProjectName   string `yaml:"project_name,omitempty"`   // Project name for display
 
-	APIConfig `yaml:"api"`
+	APIConfig    `yaml:"api"`
+	DashboardURL string `yaml:"dashboard_url,omitempty"`
 }
 
 type APIConfig struct {
@@ -61,6 +65,31 @@ func DefaultAPIConfig() (APIConfig, error) {
 	}
 
 	return apiCfg, nil
+}
+
+func DashboardURL() string {
+	cfg, err := Load()
+	if err != nil {
+		return defaultDashboardURL
+	}
+	return cfg.DashboardURL
+}
+
+func SetDashboardURL(u string) error {
+	cfg, err := Load()
+	if err != nil {
+		return err
+	}
+
+	fullURL, err := url.Parse(u)
+	if err != nil {
+		return err
+	}
+
+	fullURL.Path = ""
+
+	cfg.DashboardURL = fullURL.String()
+	return cfg.Persist()
 }
 
 func getConfigPath() string {

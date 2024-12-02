@@ -9,6 +9,7 @@ import (
 
 	"github.com/renderinc/cli/pkg/client"
 	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/dashboard"
 	"github.com/renderinc/cli/pkg/pointers"
 	"github.com/renderinc/cli/pkg/postgres"
 	"github.com/renderinc/cli/pkg/redis"
@@ -109,7 +110,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "deploys list",
 					Description: "List deploys for the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveDeployList(ctx, views.DeployListInput{ServiceID: r.ID()}, "Deploys")
+						return InteractiveDeployList(ctx, views.DeployListInput{ServiceID: r.ID()}, r, "Deploys")
 					},
 				},
 				allowedTypes: service.Types,
@@ -147,6 +148,16 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					},
 				},
 				allowedTypes: service.NonStaticTypes,
+			},
+			{
+				command: views.PaletteCommand{
+					Name:        "dashboard",
+					Description: "Open Render Dashboard to the service's page",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						err := dashboard.OpenResource(r.ID(), r.Type())
+						return command.AddErrToStack(ctx, servicesCmd, err)
+					},
+				},
 			},
 		}
 

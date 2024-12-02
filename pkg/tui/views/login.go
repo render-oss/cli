@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os/exec"
-	"runtime"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -20,6 +18,7 @@ import (
 	"github.com/renderinc/cli/pkg/client/version"
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/config"
+	"github.com/renderinc/cli/pkg/dashboard"
 	renderstyle "github.com/renderinc/cli/pkg/style"
 	"github.com/renderinc/cli/pkg/tui"
 )
@@ -62,7 +61,7 @@ func login(cmd *cobra.Command, c *devicegrant.Client) error {
 	}
 
 	command.Println(cmd, "Complete the login via the dashboard. Launching browser to:\n\n\t%s\n\n", u)
-	err = openBrowser(u.String())
+	err = dashboard.Open(u.String())
 	if err != nil {
 		return err
 	}
@@ -115,7 +114,7 @@ func startLogin(ctx context.Context, dc *devicegrant.Client) tea.Cmd {
 			return tui.ErrorMsg{Err: err}
 		}
 
-		err = openBrowser(u.String())
+		err = dashboard.Open(u.String())
 		if err != nil {
 			return tui.ErrorMsg{Err: err}
 		}
@@ -201,6 +200,12 @@ func dashboardAuthURL(dg *devicegrant.DeviceGrant) (*url.URL, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	err = config.SetDashboardURL(dg.VerificationUri)
+	if err != nil {
+		return nil, err
+	}
+
 	return u, nil
 }
 
@@ -223,18 +228,5 @@ func pollForToken(ctx context.Context, c *devicegrant.Client, dg *devicegrant.De
 
 			return token, nil
 		}
-	}
-}
-
-func openBrowser(url string) error {
-	switch runtime.GOOS {
-	case "linux":
-		return exec.Command("xdg-open", url).Start()
-	case "windows":
-		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-	case "darwin":
-		return exec.Command("open", url).Start()
-	default:
-		return nil
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/dashboard"
 	"github.com/renderinc/cli/pkg/deploy"
 	"github.com/renderinc/cli/pkg/pointers"
 	"github.com/renderinc/cli/pkg/text"
@@ -22,17 +23,17 @@ var deployListCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 }
 
-var InteractiveDeployList = func(ctx context.Context, input views.DeployListInput, breadcrumb string) tea.Cmd {
+var InteractiveDeployList = func(ctx context.Context, input views.DeployListInput, r resource.Resource, breadcrumb string) tea.Cmd {
 	return command.AddToStackFunc(ctx, deployListCmd, breadcrumb, &input, views.NewDeployListView(
 		ctx,
 		input,
-		func(c *client.Deploy, s string) tea.Cmd {
-			return InteractivePalette(ctx, commandsForDeploy(c, s), c.Id)
+		func(c *client.Deploy) tea.Cmd {
+			return InteractivePalette(ctx, commandsForDeploy(c, r.ID(), r.Type()), c.Id)
 		},
 	))
 }
 
-func commandsForDeploy(dep *client.Deploy, serviceID string) []views.PaletteCommand {
+func commandsForDeploy(dep *client.Deploy, serviceID, serviceType string) []views.PaletteCommand {
 	var startTime *string
 	if dep.CreatedAt != nil {
 		startTime = pointers.From(dep.CreatedAt.String())
@@ -58,6 +59,14 @@ func commandsForDeploy(dep *client.Deploy, serviceID string) []views.PaletteComm
 					},
 					"Logs",
 				)
+			},
+		},
+		{
+			Name:        "dashboard",
+			Description: "Open Render Dashboard to the service's page",
+			Action: func(ctx context.Context, args []string) tea.Cmd {
+				err := dashboard.OpenDeploy(serviceID, serviceType, dep.Id)
+				return command.AddErrToStack(ctx, servicesCmd, err)
 			},
 		},
 	}
@@ -101,7 +110,7 @@ func init() {
 			return err
 		}
 
-		InteractiveDeployList(cmd.Context(), input, "Deploys for "+resource.BreadcrumbForResource(r))
+		InteractiveDeployList(cmd.Context(), input, r, "Deploys for "+resource.BreadcrumbForResource(r))
 		return nil
 	}
 }

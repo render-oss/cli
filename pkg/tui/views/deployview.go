@@ -54,10 +54,10 @@ type DeployListView struct {
 	list *tui.List[*client.Deploy]
 }
 
-func NewDeployListView(ctx context.Context, input DeployListInput, generateCommands func(*client.Deploy, string) tea.Cmd) *DeployListView {
+func NewDeployListView(ctx context.Context, input DeployListInput, generateCommands func(*client.Deploy) tea.Cmd) *DeployListView {
 	onSelect := func(selectedItem tui.ListItem) tea.Cmd {
 		selectedDeploy := selectedItem.(deploy.ListItem).Deploy()
-		return generateCommands(selectedDeploy, input.ServiceID)
+		return generateCommands(selectedDeploy)
 	}
 
 	list := tui.NewList(

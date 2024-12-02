@@ -133,6 +133,14 @@ func wrappedModel(model tea.Model, cmd *cobra.Command, breadcrumb string, in any
 	}, nil
 }
 
+func AddErrToStack(ctx context.Context, cmd *cobra.Command, err error) tea.Cmd {
+	if err == nil {
+		return nil
+	}
+
+	return AddToStackFunc(ctx, cmd, "", err, tui.NewErrorModel(err))
+}
+
 func AddToStackFunc[T any](ctx context.Context, cmd *cobra.Command, breadcrumb string, in T, m tea.Model) tea.Cmd {
 	stack := tui.GetStackFromContext(ctx)
 	return AddToStack(stack, cmd, breadcrumb, in, m)
