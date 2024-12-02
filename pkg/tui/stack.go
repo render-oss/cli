@@ -63,6 +63,10 @@ type ClearScreenMsg struct {
 	NextMsg tea.Msg
 }
 
+type BackMsg struct {
+	Handled bool
+}
+
 func NewStack() *StackModel {
 	return &StackModel{}
 }
@@ -105,6 +109,14 @@ func (m *StackModel) Init() tea.Cmd {
 	return tea.Batch(cmd)
 }
 
+func (m *StackModel) back() tea.Cmd {
+	m.Pop()
+	if len(m.stack) == 0 {
+		return tea.Quit
+	}
+	return m.Init()
+}
+
 func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if len(m.stack) == 0 {
 		return m, tea.Quit
@@ -118,11 +130,9 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC:
 			return m, tea.Quit
 		case tea.KeyCtrlD:
-			m.Pop()
-			if len(m.stack) == 0 {
-				return m, tea.Quit
-			}
-			return m, m.Init()
+			return m, m.back()
+		case tea.KeyEsc:
+			subMsg = &BackMsg{}
 		case tea.KeyCtrlS:
 			// copy command to clipboard
 			if len(m.stack) > 0 {
@@ -194,6 +204,12 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.stack[len(m.stack)-1].Model, cmd = m.stack[len(m.stack)-1].Model.Update(subMsg)
 	}
 
+	if backMsg, ok := subMsg.(*BackMsg); ok {
+		if !backMsg.Handled {
+			return m, m.back()
+		}
+	}
+
 	return m, cmd
 }
 
@@ -240,7 +256,7 @@ func (m *StackModel) header() string {
 
 func (m *StackModel) footer() string {
 	quitCommand := fmt.Sprintf("%s: Quit", renderstyle.CommandKey.Render("[Ctrl+C]"))
-	prevCommand := fmt.Sprintf("%s: Back", renderstyle.CommandKey.Render("[Ctrl+D]"))
+	prevCommand := fmt.Sprintf("%s: Back", renderstyle.CommandKey.Render("[Esc]"))
 	saveToClipboard := fmt.Sprintf("%s: Copy command to clipboard", renderstyle.CommandKey.Render("[Ctrl+S]"))
 
 	var commands []string

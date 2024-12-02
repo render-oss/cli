@@ -100,6 +100,8 @@ func (t *Table[T]) Init() tea.Cmd {
 
 func (t *Table[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+	subMsg := msg
+
 	switch msg := msg.(type) {
 	case LoadDataMsg[[]T]:
 		t.data = msg.Data
@@ -129,9 +131,16 @@ func (t *Table[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
+	case *BackMsg:
+		if t.Model.GetIsFilterInputFocused() {
+			subMsg = tea.KeyMsg{
+				Type: tea.KeyEsc,
+			}
+			msg.Handled = true
+		}
 	}
 
-	t.Model, cmd = t.Model.Update(msg)
+	t.Model, cmd = t.Model.Update(subMsg)
 	return t, cmd
 }
 
