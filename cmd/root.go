@@ -68,12 +68,12 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		// Honor the output flag if it's set
-		if outputFlag == "" && output == command.Interactive && (isPipe() || isCI()) {
+		if outputFlag == "" && output.Interactive() && (isPipe() || isCI()) {
 			output = command.TEXT
 		}
 		ctx = command.SetFormatInContext(ctx, &output)
 
-		if output == command.Interactive {
+		if output.Interactive() {
 			stack := tui.NewStack()
 
 			ctx = tui.SetStackInContext(ctx, stack)
@@ -88,7 +88,7 @@ var rootCmd = &cobra.Command{
 		ctx := cmd.Context()
 
 		output := command.GetFormatFromContext(ctx)
-		if output == nil || *output == command.Interactive {
+		if output.Interactive() {
 			stack := tui.GetStackFromContext(ctx)
 			if stack == nil {
 				return nil

@@ -59,6 +59,19 @@ func (d *Repo) TriggerDeploy(ctx context.Context, serviceID string, input Trigge
 	return resp.JSON201, nil
 }
 
+func (d *Repo) GetDeploy(ctx context.Context, serviceID, deployID string) (*client.Deploy, error) {
+	resp, err := d.client.RetrieveDeployWithResponse(ctx, serviceID, deployID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+
+	return resp.JSON200, nil
+}
+
 func (d *Repo) CancelDeploy(ctx context.Context, serviceID, deployID string) (*client.Deploy, error) {
 	resp, err := d.client.CancelDeployWithResponse(ctx, serviceID, deployID)
 	if err != nil {

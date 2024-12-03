@@ -3,9 +3,11 @@ package views
 import (
 	"context"
 	"fmt"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+
 	"github.com/renderinc/cli/pkg/client"
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/deploy"
@@ -15,13 +17,13 @@ import (
 	"github.com/renderinc/cli/pkg/types"
 )
 
-func CreateDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy, error) {
-	c, err := client.NewDefaultClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %w", err)
-	}
+const deployTimeout = time.Hour
 
-	deployRepo := deploy.NewRepo(c)
+func CreateDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy, error) {
+	deployRepo, err := newDeployRepo()
+	if err != nil {
+		return nil, err
+	}
 
 	if input.CommitID != nil && *input.CommitID == "" {
 		input.CommitID = nil
@@ -41,6 +43,48 @@ func CreateDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy,
 	}
 
 	return d, nil
+}
+
+func newDeployRepo() (*deploy.Repo, error) {
+	c, err := client.NewDefaultClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client: %w", err)
+	}
+
+	deployRepo := deploy.NewRepo(c)
+	return deployRepo, nil
+}
+
+func WaitForDeploy(ctx context.Context, serviceID, deployID string) (*client.Deploy, error) {
+	deployRepo, err := newDeployRepo()
+	if err != nil {
+		return nil, err
+	}
+
+	timeoutTimer := time.NewTimer(deployTimeout)
+
+	for {
+		select {
+		case <-timeoutTimer.C:
+			return nil, fmt.Errorf("timed out waiting for deploy to finish")
+		default:
+			d, err := deployRepo.GetDeploy(ctx, serviceID, deployID)
+			if err != nil {
+				return nil, err
+			}
+
+			if deploy.IsComplete(d.Status) {
+				return d, nil
+			}
+
+			if d.Status == nil || *d.Status == client.DeployStatusCreated {
+				time.Sleep(10 * time.Second)
+			} else {
+				// if the deploy has started, poll more frequently
+				time.Sleep(5 * time.Second)
+			}
+		}
+	}
 }
 
 type DeployCreateView struct {
