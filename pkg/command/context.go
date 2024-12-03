@@ -1,6 +1,10 @@
 package command
 
-import "context"
+import (
+	"context"
+
+	"github.com/spf13/cobra"
+)
 
 type CTXOutputKey struct{}
 type CTXOutputValue struct {
@@ -34,4 +38,13 @@ func GetConfirmFromContext(ctx context.Context) bool {
 
 func SetConfirmInContext(ctx context.Context, confirm bool) context.Context {
 	return context.WithValue(ctx, CTXConfirmKey{}, &CTXConfirmValue{Confirm: confirm})
+}
+
+func DefaultFormatNonInteractive(cmd *cobra.Command) {
+	format := GetFormatFromContext(cmd.Context())
+	if format.Interactive() {
+		newFormat := TEXT
+		ctx := SetFormatInContext(cmd.Context(), &newFormat)
+		cmd.SetContext(ctx)
+	}
 }

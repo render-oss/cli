@@ -72,10 +72,8 @@ func init() {
 		}
 
 		// if wait flag is used, default to non-interactive output
-		outputFormat := command.GetFormatFromContext(cmd.Context())
-		if input.Wait && outputFormat.Interactive() {
-			output := command.TEXT
-			cmd.SetContext(command.SetFormatInContext(cmd.Context(), &output))
+		if input.Wait {
+			command.DefaultFormatNonInteractive(cmd)
 		}
 
 		nonInteractive := nonInteractiveDeployCreate(cmd, input)

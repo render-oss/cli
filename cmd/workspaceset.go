@@ -55,8 +55,8 @@ func nonInteractiveSetWorkspace(cmd *cobra.Command, workspaceIDOrName string) er
 }
 
 type printableOwner struct {
-	*client.Owner `json:"inline"`
-	prefix        string
+	*client.Owner
+	prefix string
 }
 
 func (p *printableOwner) String() string {

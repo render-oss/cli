@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/config"
 	"github.com/renderinc/cli/pkg/owner"
 )
@@ -14,6 +15,8 @@ var workspaceCurrentCmd = &cobra.Command{
 	Use:   "current",
 	Short: "Show the currently selected workspace",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		command.DefaultFormatNonInteractive(cmd)
+
 		c, err := client.NewDefaultClient()
 		if err != nil {
 			return fmt.Errorf("failed to create client: %w", err)
