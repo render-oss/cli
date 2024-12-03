@@ -10,11 +10,11 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/renderinc/cli/pkg/client/oauth"
 	"github.com/spf13/cobra"
 
 	"github.com/renderinc/cli/pkg/cfg"
 	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/client/devicegrant"
 	"github.com/renderinc/cli/pkg/client/version"
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/config"
@@ -24,7 +24,7 @@ import (
 )
 
 func NonInteractiveLogin(cmd *cobra.Command) error {
-	dc := devicegrant.NewClient(cfg.GetHost())
+	dc := oauth.NewClient(cfg.GetHost())
 	vc := version.NewClient(cfg.RepoURL)
 
 	alreadyLoggedIn := isAlreadyLoggedIn(cmd.Context())
@@ -49,7 +49,7 @@ func NonInteractiveLogin(cmd *cobra.Command) error {
 	return nil
 }
 
-func login(cmd *cobra.Command, c *devicegrant.Client) error {
+func login(cmd *cobra.Command, c *oauth.Client) error {
 	dg, err := c.CreateGrant(cmd.Context())
 	if err != nil {
 		return err
@@ -72,20 +72,21 @@ func login(cmd *cobra.Command, c *devicegrant.Client) error {
 		return err
 	}
 
-	return config.SetAPIConfig(cfg.GetHost(), token)
+	apiCfg := configForToken(token)
+	return config.SetAPIConfig(apiCfg)
 }
 
 type LoginView struct {
 	ctx context.Context
 
-	dc *devicegrant.Client
+	dc *oauth.Client
 	vc *version.Client
 
 	dashURL string
 }
 
 func NewLoginView(ctx context.Context) *LoginView {
-	dc := devicegrant.NewClient(cfg.GetHost())
+	dc := oauth.NewClient(cfg.GetHost())
 	vc := version.NewClient(cfg.RepoURL)
 
 	return &LoginView{
@@ -97,12 +98,12 @@ func NewLoginView(ctx context.Context) *LoginView {
 
 type loginStartedMsg struct {
 	dashURL     string
-	deviceGrant *devicegrant.DeviceGrant
+	deviceGrant *oauth.DeviceGrant
 }
 
 type loginCompleteMsg struct{}
 
-func startLogin(ctx context.Context, dc *devicegrant.Client) tea.Cmd {
+func startLogin(ctx context.Context, dc *oauth.Client) tea.Cmd {
 	return func() tea.Msg {
 		dg, err := dc.CreateGrant(ctx)
 		if err != nil {
@@ -126,14 +127,15 @@ func startLogin(ctx context.Context, dc *devicegrant.Client) tea.Cmd {
 	}
 }
 
-func pollForLogin(ctx context.Context, dc *devicegrant.Client, msg loginStartedMsg) tea.Cmd {
+func pollForLogin(ctx context.Context, dc *oauth.Client, msg loginStartedMsg) tea.Cmd {
 	return func() tea.Msg {
 		token, err := pollForToken(ctx, dc, msg.deviceGrant)
 		if err != nil {
 			return tui.ErrorMsg{Err: err}
 		}
 
-		err = config.SetAPIConfig(cfg.GetHost(), token)
+		apiCfg := configForToken(token)
+		err = config.SetAPIConfig(apiCfg)
 		if err != nil {
 			return tui.ErrorMsg{Err: err}
 		}
@@ -195,7 +197,7 @@ func isAlreadyLoggedIn(ctx context.Context) bool {
 	return err == nil && resp.StatusCode == http.StatusOK
 }
 
-func dashboardAuthURL(dg *devicegrant.DeviceGrant) (*url.URL, error) {
+func dashboardAuthURL(dg *oauth.DeviceGrant) (*url.URL, error) {
 	u, err := url.Parse(dg.VerificationUriComplete)
 	if err != nil {
 		return nil, err
@@ -209,24 +211,33 @@ func dashboardAuthURL(dg *devicegrant.DeviceGrant) (*url.URL, error) {
 	return u, nil
 }
 
-func pollForToken(ctx context.Context, c *devicegrant.Client, dg *devicegrant.DeviceGrant) (string, error) {
+func pollForToken(ctx context.Context, c *oauth.Client, dg *oauth.DeviceGrant) (*oauth.DeviceToken, error) {
 	timeout := time.NewTimer(time.Duration(dg.ExpiresIn) * time.Second)
 	interval := time.NewTicker(time.Duration(dg.Interval) * time.Second)
 
 	for {
 		select {
 		case <-timeout.C:
-			return "", errors.New("timed out")
+			return nil, errors.New("timed out")
 		case <-interval.C:
-			token, err := c.GetDeviceToken(ctx, dg)
-			if errors.Is(err, devicegrant.ErrAuthorizationPending) {
+			token, err := c.GetDeviceTokenResponse(ctx, dg)
+			if errors.Is(err, oauth.ErrAuthorizationPending) {
 				continue
 			}
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 
 			return token, nil
 		}
+	}
+}
+
+func configForToken(token *oauth.DeviceToken) config.APIConfig {
+	return config.APIConfig{
+		Host:         cfg.GetHost(),
+		Key:          token.AccessToken,
+		ExpiresAt:    time.Now().Add(time.Duration(token.ExpiresIn) * time.Second).Unix(),
+		RefreshToken: token.RefreshToken,
 	}
 }

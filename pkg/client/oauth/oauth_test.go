@@ -1,4 +1,4 @@
-package devicegrant_test
+package oauth_test
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/renderinc/cli/pkg/client/devicegrant"
+	"github.com/renderinc/cli/pkg/client/oauth"
 )
 
 func TestClient_CreateGrant(t *testing.T) {
@@ -22,12 +22,12 @@ func TestClient_CreateGrant(t *testing.T) {
 		require.NoError(t, err)
 	}))
 
-	c := devicegrant.NewClient(s.URL)
+	c := oauth.NewClient(s.URL)
 
 	dg, err := c.CreateGrant(context.Background())
 	require.NoError(t, err)
 
-	assert.Equal(t, &devicegrant.DeviceGrant{
+	assert.Equal(t, &oauth.DeviceGrant{
 		DeviceCode:              "some device code",
 		UserCode:                "some user code",
 		VerificationUri:         "some verification uri",
@@ -39,7 +39,7 @@ func TestClient_CreateGrant(t *testing.T) {
 
 func TestClient_GetDeviceToken(t *testing.T) {
 	t.Run("it gets the device token", func(t *testing.T) {
-		var gotBody devicegrant.TokenRequestBody
+		var gotBody oauth.TokenRequestBody
 		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			require.Equal(t, "POST", r.Method)
 			require.Equal(t, "/device-token", r.URL.Path)
@@ -50,14 +50,14 @@ func TestClient_GetDeviceToken(t *testing.T) {
 			require.NoError(t, err)
 		}))
 
-		c := devicegrant.NewClient(s.URL)
+		c := oauth.NewClient(s.URL)
 
-		token, err := c.GetDeviceToken(context.Background(), &devicegrant.DeviceGrant{
+		token, err := c.GetDeviceTokenResponse(context.Background(), &oauth.DeviceGrant{
 			DeviceCode: "some device code",
 		})
 		require.NoError(t, err)
 
-		assert.Equal(t, "some device token", token)
+		assert.Equal(t, "some device token", token.AccessToken)
 
 		assert.Equal(t, "some device code", gotBody.DeviceCode)
 		assert.NotZero(t, gotBody.ClientID)
@@ -70,12 +70,12 @@ func TestClient_GetDeviceToken(t *testing.T) {
 			require.NoError(t, err)
 		}))
 
-		c := devicegrant.NewClient(s.URL)
+		c := oauth.NewClient(s.URL)
 
-		_, err := c.GetDeviceToken(context.Background(), &devicegrant.DeviceGrant{
+		_, err := c.GetDeviceTokenResponse(context.Background(), &oauth.DeviceGrant{
 			DeviceCode: "some device code",
 		})
-		require.ErrorIs(t, err, devicegrant.ErrAuthorizationPending)
+		require.ErrorIs(t, err, oauth.ErrAuthorizationPending)
 	})
 }
 

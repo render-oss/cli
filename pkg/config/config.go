@@ -35,7 +35,9 @@ type Config struct {
 
 type APIConfig struct {
 	Key  string `yaml:"key,omitempty"`
+	ExpiresAt int64 `yaml:"expires_at,omitempty"`
 	Host string `json:"host,omitempty"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 }
 
 func init() {
@@ -182,14 +184,16 @@ func getAPIConfig() (APIConfig, error) {
 	return cfg.APIConfig, nil
 }
 
-func SetAPIConfig(host, apiKey string) error {
+func SetAPIConfig(input APIConfig) error {
 	cfg, err := Load()
 	if err != nil {
 		return err
 	}
 
-	cfg.Host = host
-	cfg.Key = apiKey
+	cfg.Host = input.Host
+	cfg.Key = input.Key
+	cfg.ExpiresAt = input.ExpiresAt
+	cfg.RefreshToken = input.RefreshToken
 	return cfg.Persist()
 }
 

@@ -1,4 +1,4 @@
-package devicegrant
+package oauth
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/cfg"
 )
 
 const cliOauthClientID = "429024F5E608930E2A65EF92591A25CC"
@@ -32,9 +32,10 @@ type GrantRequestBody struct {
 }
 
 type DeviceToken struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
-	ExpiresIn   int    `json:"expires_in"`
+	AccessToken           string `json:"access_token"`
+	TokenType             string `json:"token_type"`
+	ExpiresIn             int    `json:"expires_in"`
+	RefreshToken          string `json:"refresh_token"`
 }
 
 type TokenRequestBody struct {
@@ -60,7 +61,7 @@ func NewClient(host string) *Client {
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	req.Header = client.AddUserAgent(req.Header)
+	req.Header = cfg.AddUserAgent(req.Header)
 	return c.c.Do(req)
 }
 
@@ -76,7 +77,7 @@ func (c *Client) CreateGrant(ctx context.Context) (*DeviceGrant, error) {
 	return &grant, nil
 }
 
-func (c *Client) GetDeviceToken(ctx context.Context, dg *DeviceGrant) (string, error) {
+func (c *Client) GetDeviceTokenResponse(ctx context.Context, dg *DeviceGrant) (*DeviceToken, error) {
 	body := &TokenRequestBody{
 		ClientID: cliOauthClientID, DeviceCode: dg.DeviceCode,
 		GrantType: "urn:ietf:params:oauth:grant-type:device_code",
@@ -86,13 +87,33 @@ func (c *Client) GetDeviceToken(ctx context.Context, dg *DeviceGrant) (string, e
 	err := c.postFor(ctx, "/device-token", body, &token)
 	if err != nil {
 		if err.Error() == authorizationPendingAPIMsg {
-			return "", ErrAuthorizationPending
+			return nil, ErrAuthorizationPending
 		}
 
-		return "", err
+		return nil, err
 	}
 
-	return token.AccessToken, nil
+	return &token, nil
+}
+
+type RefreshTokenRequestBody struct {
+	GrantType    string `json:"grant_type"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (*DeviceToken, error) {
+	body := &RefreshTokenRequestBody{
+		GrantType: "refresh_token",
+		RefreshToken: refreshToken,
+	}
+
+	var token DeviceToken
+	err := c.postFor(ctx, "/token/refresh/", body, &token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &token, nil
 }
 
 func (c *Client) postFor(ctx context.Context, path string, body any, v any) error {
