@@ -21,7 +21,7 @@ import (
 )
 
 var welcomeMsg = lipgloss.NewStyle().Bold(true).Foreground(renderstyle.ColorFocus).
-	Render("Welcome to the Render CLI!")
+	Render("Render CLI v" + cfg.Version)
 
 var betaMsg = lipgloss.NewStyle().Foreground(renderstyle.ColorInfo).
 	Render("Note: The Render CLI is currently in beta, and may change as we release improvements and new features.")
@@ -30,11 +30,14 @@ var longHelp = fmt.Sprintf(`%s
 
 %s
 
-The Render CLI lets you manage your Render projects, environments, and services directly from the command line.
-You can trigger deployments, view logs, and more—right from your terminal.
+Welcome! Use the Render CLI to manage your services, datastores, and
+environments directly from the command line. Trigger deploys, view logs,
+start psql/SSH sessions, and more.
 
-The CLI defaults to %s mode, offering an easy-to-use visual experience that makes it easier to find what you're looking for.
-Prefer working without the interface? Use %s mode by specifying the --output option with either json or yaml for structured, scriptable responses.
+The CLI's default %s mode provides intuitive, menu-based navigation.
+
+To use in %s mode (such as in a script), set each command's --output
+option to either json or yaml for structured responses.
 `, welcomeMsg, betaMsg, renderstyle.Bold("interactive"), renderstyle.Bold("non-interactive"))
 
 // rootCmd represents the base command when called without any subcommands

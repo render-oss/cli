@@ -29,7 +29,7 @@ func NonInteractiveLogin(cmd *cobra.Command) error {
 
 	alreadyLoggedIn := isAlreadyLoggedIn(cmd.Context())
 	if alreadyLoggedIn {
-		command.Println(cmd, "Success! You are authenticated.")
+		command.Println(cmd, "Success: CLI is already authenticated.")
 		return nil
 	}
 
@@ -38,12 +38,12 @@ func NonInteractiveLogin(cmd *cobra.Command) error {
 		return err
 	}
 
-	command.Println(cmd, "Success! You are now authenticated.")
+	command.Println(cmd, "Login successful! CLI token saved.")
 
 	newVersion, err := vc.NewVersionAvailable()
 	if err == nil && newVersion != "" {
 		_, _ = cmd.ErrOrStderr().Write([]byte(fmt.Sprintf("\n%s\n\n", lipgloss.NewStyle().Foreground(renderstyle.ColorWarning).
-			Render(fmt.Sprintf("render v%s is available. Current version is %s.\nInstallation instructions can be found at: %s", newVersion, cfg.Version, cfg.InstallationInstructionsURL)))))
+			Render(fmt.Sprintf("render v%s is available. Current version is %s.\nInstallation instructions: %s", newVersion, cfg.Version, cfg.InstallationInstructionsURL)))))
 	}
 
 	return nil
@@ -60,12 +60,12 @@ func login(cmd *cobra.Command, c *oauth.Client) error {
 		return err
 	}
 
-	command.Println(cmd, "Complete the login via the dashboard. Launching browser to:\n\n\t%s\n\n", u)
+	command.Println(cmd, "Complete login in the Render Dashboard. Opening your browser to:\n\n\t%s\n\n", u)
 	err = dashboard.Open(u.String())
 	if err != nil {
 		return err
 	}
-	command.Println(cmd, "Waiting for login to complete...\n\n")
+	command.Println(cmd, "Waiting for login...\n\n")
 
 	token, err := pollForToken(cmd.Context(), c, dg)
 	if err != nil {
@@ -165,7 +165,7 @@ func (l *LoginView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return tui.DoneLoadingDataMsg{}
 					},
 				),
-				LoadingMsgTmpl: fmt.Sprintf("Complete the login via the dashboard. Launching browser to:\n\n\t%s\n\n%%sWaiting for login...\n", l.dashURL),
+				LoadingMsgTmpl: fmt.Sprintf("Complete login in the Render Dashboard. Opening your browser to:\n\n\t%s\n\n%%sWaiting for login...\n", l.dashURL),
 			}
 		})
 	case loginCompleteMsg:
@@ -175,7 +175,7 @@ func (l *LoginView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (l *LoginView) View() string {
-	return fmt.Sprintf("Complete the login via the dashboard. Launching browser to:\n\n\t%s\n\nWaiting for login...\n", l.dashURL)
+	return fmt.Sprintf("Complete login in the Render Dashboard. Opening your browser to:\n\n\t%s\n\nWaiting for login...\n", l.dashURL)
 }
 
 func isAlreadyLoggedIn(ctx context.Context) bool {
