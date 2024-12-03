@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"errors"
+	"fmt"
 	"os/exec"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -28,9 +30,25 @@ func (m *ExecModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case LoadDataMsg[*exec.Cmd]:
 		return m, tea.ExecProcess(msg.Data, func(err error) tea.Msg {
-			return ExecDone{
-				Error: err,
+			// We have a number of precondition checks to ensure that we can provide a user-friendly error message. If
+			// it's a user-facing error, just return it as-is.
+			if errors.As(err, &UserFacingError{}) {
+				return ExecDone{
+					Error: err,
+				}
 			}
+
+			// This error occurred when running the SSH command. Wrap it in a user-facing error with a helpful message.
+			if err != nil {
+				return ExecDone{
+					Error: UserFacingError{
+						Title:   "Failed to SSH",
+						Message: fmt.Sprintf("Check the docs (https://render.com/docs/ssh) to ensure SSH is properly configured: %s", err),
+					},
+				}
+			}
+
+			return nil
 		})
 	case ExecDone:
 		return m, func() tea.Msg {
