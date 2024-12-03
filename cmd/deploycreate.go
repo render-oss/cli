@@ -40,6 +40,29 @@ var InteractiveDeployCreate = func(ctx context.Context, input types.DeployInput,
 		}))
 }
 
+func interactiveDeployCreate(cmd *cobra.Command, input types.DeployInput) tea.Cmd {
+	ctx := cmd.Context()
+	if input.ServiceID == "" {
+		return command.AddToStackFunc(
+			ctx,
+			cmd,
+			"Create Deploy",
+			&input,
+			views.NewServiceList(ctx, views.ServiceInput{}, func(ctx context.Context, r resource.Resource) tea.Cmd {
+				input.ServiceID = r.ID()
+				return InteractiveDeployCreate(ctx, input, resource.BreadcrumbForResource(r))
+			}),
+		)
+	}
+
+	service, err := resource.GetResource(ctx, input.ServiceID)
+	if err != nil {
+		command.Fatal(cmd, err)
+	}
+
+	return InteractiveDeployCreate(ctx, input, "Create Deploy for "+resource.BreadcrumbForResource(service))
+}
+
 func init() {
 	deployCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input types.DeployInput
@@ -60,12 +83,7 @@ func init() {
 			return nil
 		}
 
-		service, err := resource.GetResource(cmd.Context(), input.ServiceID)
-		if err != nil {
-			return err
-		}
-
-		InteractiveDeployCreate(cmd.Context(), input, "Create Deploy for "+resource.BreadcrumbForResource(service))
+		interactiveDeployCreate(cmd, input)
 		return nil
 	}
 

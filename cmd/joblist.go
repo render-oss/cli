@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
+	"github.com/renderinc/cli/pkg/client"
 	clientjob "github.com/renderinc/cli/pkg/client/jobs"
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/job"
@@ -19,7 +20,7 @@ import (
 var jobListCmd = &cobra.Command{
 	Use:   "list [serviceID]",
 	Short: "List jobs for a service",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 }
 
 var InteractiveJobList = func(ctx context.Context, input views.JobListInput, breadcrumb string) tea.Cmd {
@@ -29,6 +30,31 @@ var InteractiveJobList = func(ctx context.Context, input views.JobListInput, bre
 			return InteractivePalette(ctx, commandsForJob(j), j.Id)
 		},
 	))
+}
+
+func interactiveJobList(cmd *cobra.Command, input views.JobListInput) tea.Cmd {
+	ctx := cmd.Context()
+	if input.ServiceID == "" {
+		return command.AddToStackFunc(
+			ctx,
+			cmd,
+			"Jobs",
+			&input,
+			views.NewServiceList(ctx, views.ServiceInput{
+				Types: []client.ServiceType{client.WebService, client.BackgroundWorker, client.PrivateService, client.CronJob},
+			}, func(ctx context.Context, r resource.Resource) tea.Cmd {
+				input.ServiceID = r.ID()
+				return InteractiveJobList(ctx, input, resource.BreadcrumbForResource(r))
+			}),
+		)
+	}
+
+	service, err := resource.GetResource(ctx, input.ServiceID)
+	if err != nil {
+		command.Fatal(cmd, err)
+	}
+
+	return InteractiveJobList(ctx, input, "Jobs for "+resource.BreadcrumbForResource(service))
 }
 
 func commandsForJob(j *clientjob.Job) []views.PaletteCommand {
@@ -107,12 +133,7 @@ func init() {
 			return nil
 		}
 
-		r, err := resource.GetResource(cmd.Context(), input.ServiceID)
-		if err != nil {
-			return err
-		}
-
-		InteractiveJobList(cmd.Context(), input, "Jobs for "+resource.BreadcrumbForResource(r))
+		interactiveJobList(cmd, input)
 		return nil
 	}
 }

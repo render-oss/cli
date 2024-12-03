@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -48,4 +49,13 @@ func Println(cmd *cobra.Command, format string, a ...any) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func Fatal(cmd *cobra.Command, err error) {
+	_, err = cmd.OutOrStderr().Write([]byte(err.Error() + "\n"))
+	if err != nil {
+		panic(err)
+	}
+
+	os.Exit(1)
 }

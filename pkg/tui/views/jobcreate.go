@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/cobra"
+
 	"github.com/renderinc/cli/pkg/client"
 	clientjob "github.com/renderinc/cli/pkg/client/jobs"
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/job"
 	"github.com/renderinc/cli/pkg/pointers"
 	"github.com/renderinc/cli/pkg/tui"
-	"github.com/spf13/cobra"
 )
 
 type JobCreateInput struct {

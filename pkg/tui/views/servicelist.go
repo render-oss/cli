@@ -54,6 +54,7 @@ type ServiceInput struct {
 	Project         *client.Project
 	EnvironmentIDs  []string
 	IncludePreviews bool
+	Types           []client.ServiceType
 }
 
 func listServices(ctx context.Context, in ServiceInput) ([]*service.Model, error) {
@@ -70,8 +71,11 @@ func listServices(ctx context.Context, in ServiceInput) ([]*service.Model, error
 
 	listInput := &client.ListServicesParams{
 		IncludePreviews: pointers.From(in.IncludePreviews),
-		Type:            &[]client.ServiceType{client.WebService, client.PrivateService, client.BackgroundWorker},
 		Limit:           pointers.From(100),
+	}
+
+	if len(in.Types) > 0 {
+		listInput.Type = &in.Types
 	}
 
 	if len(in.EnvironmentIDs) > 0 {

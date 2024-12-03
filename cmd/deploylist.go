@@ -2,25 +2,25 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
 	"github.com/renderinc/cli/pkg/client"
+	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/dashboard"
 	"github.com/renderinc/cli/pkg/deploy"
 	"github.com/renderinc/cli/pkg/pointers"
-	"github.com/renderinc/cli/pkg/text"
-
-	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/resource"
+	"github.com/renderinc/cli/pkg/text"
 	"github.com/renderinc/cli/pkg/tui/views"
 )
 
 var deployListCmd = &cobra.Command{
 	Use:   "list [serviceID]",
 	Short: "List deploys for a service",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 }
 
 var InteractiveDeployList = func(ctx context.Context, input views.DeployListInput, r resource.Resource, breadcrumb string) tea.Cmd {
@@ -31,6 +31,29 @@ var InteractiveDeployList = func(ctx context.Context, input views.DeployListInpu
 			return InteractivePalette(ctx, commandsForDeploy(c, r.ID(), r.Type()), c.Id)
 		},
 	))
+}
+
+func interactiveDeployList(cmd *cobra.Command, input views.DeployListInput) tea.Cmd {
+	ctx := cmd.Context()
+	if input.ServiceID == "" {
+		return command.AddToStackFunc(
+			ctx,
+			cmd,
+			"Deploys",
+			&input,
+			views.NewServiceList(ctx, views.ServiceInput{}, func(ctx context.Context, r resource.Resource) tea.Cmd {
+				input.ServiceID = r.ID()
+				return InteractiveDeployList(ctx, input, r, resource.BreadcrumbForResource(r))
+			}),
+		)
+	}
+
+	service, err := resource.GetResource(ctx, input.ServiceID)
+	if err != nil {
+		command.Fatal(cmd, err)
+	}
+
+	return InteractiveDeployList(ctx, input, service, "Deploys for "+resource.BreadcrumbForResource(service))
 }
 
 func commandsForDeploy(dep *client.Deploy, serviceID, serviceType string) []views.PaletteCommand {
@@ -92,9 +115,11 @@ func init() {
 	deployCmd.AddCommand(deployListCmd)
 
 	deployListCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		serviceID := args[0]
-
-		input := views.DeployListInput{ServiceID: serviceID}
+		var input views.DeployListInput
+		err := command.ParseCommand(cmd, args, &input)
+		if err != nil {
+			return fmt.Errorf("failed to parse command: %w", err)
+		}
 
 		if nonInteractive, err := command.NonInteractive(cmd, func() ([]*client.Deploy, error) {
 			_, res, err := views.LoadDeployList(cmd.Context(), input, "")
@@ -105,12 +130,7 @@ func init() {
 			return nil
 		}
 
-		r, err := resource.GetResource(cmd.Context(), serviceID)
-		if err != nil {
-			return err
-		}
-
-		InteractiveDeployList(cmd.Context(), input, r, "Deploys for "+resource.BreadcrumbForResource(r))
+		interactiveDeployList(cmd, input)
 		return nil
 	}
 }

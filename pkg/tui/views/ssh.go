@@ -6,6 +6,7 @@ import (
 	"os/exec"
 
 	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/renderinc/cli/pkg/client"
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/deploy"
@@ -33,6 +34,7 @@ func NewSSHView(ctx context.Context, input *SSHInput, opts ...tui.TableOption[*s
 	serviceListInput := ServiceInput{
 		Project:        input.Project,
 		EnvironmentIDs: input.EnvironmentIDs,
+		Types:          []client.ServiceType{client.WebService, client.PrivateService, client.BackgroundWorker},
 	}
 
 	if input.ServiceID == "" {
