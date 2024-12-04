@@ -23,6 +23,8 @@ import (
 	"github.com/renderinc/cli/pkg/tui"
 )
 
+type notLoggedInMsg struct{}
+
 func NonInteractiveLogin(cmd *cobra.Command) error {
 	dc := oauth.NewClient(cfg.GetHost())
 	vc := version.NewClient(cfg.RepoURL)
@@ -145,16 +147,24 @@ func pollForLogin(ctx context.Context, dc *oauth.Client, msg loginStartedMsg) te
 }
 
 func (l *LoginView) Init() tea.Cmd {
-	alreadyLoggedIn := isAlreadyLoggedIn(l.ctx)
-	if alreadyLoggedIn {
-		return nil
-	}
-
-	return startLogin(l.ctx, l.dc)
+	return tea.Sequence(
+		func() tea.Msg { return tui.LoadingDataMsg{} },
+		func() tea.Msg {
+			if isAlreadyLoggedIn(l.ctx) {
+				return tui.DoneMsg{}
+			} else {
+				return notLoggedInMsg{}
+			}
+		},
+	)
 }
 
 func (l *LoginView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case notLoggedInMsg:
+		return l, tea.Sequence(func() tea.Msg {
+			return tui.DoneLoadingDataMsg{}
+		}, startLogin(l.ctx, l.dc))
 	case loginStartedMsg:
 		l.dashURL = msg.dashURL
 		return l, tea.Batch(func() tea.Msg {
