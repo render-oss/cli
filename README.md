@@ -1,7 +1,5 @@
 # Render CLI
 
-This is the beta version of the Render CLI.
-
 # Getting Started
 
 ## Installation

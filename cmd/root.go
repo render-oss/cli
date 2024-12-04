@@ -23,12 +23,7 @@ import (
 var welcomeMsg = lipgloss.NewStyle().Bold(true).Foreground(renderstyle.ColorFocus).
 	Render("Render CLI v" + cfg.Version)
 
-var betaMsg = lipgloss.NewStyle().Foreground(renderstyle.ColorInfo).
-	Render("Note: The Render CLI is currently in beta, and may change as we release improvements and new features.")
-
 var longHelp = fmt.Sprintf(`%s
-
-%s
 
 Welcome! Use the Render CLI to manage your services, datastores, and
 environments directly from the command line. Trigger deploys, view logs,
@@ -38,7 +33,7 @@ The CLI's default %s mode provides intuitive, menu-based navigation.
 
 To use in %s mode (such as in a script), set each command's --output
 option to either json or yaml for structured responses.
-`, welcomeMsg, betaMsg, renderstyle.Bold("interactive"), renderstyle.Bold("non-interactive"))
+`, welcomeMsg, renderstyle.Bold("interactive"), renderstyle.Bold("non-interactive"))
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
