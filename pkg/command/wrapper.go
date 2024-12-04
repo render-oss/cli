@@ -91,7 +91,20 @@ func PrintData[T any](cmd *cobra.Command, data T, formatText FormatTextFunc[T]) 
 	case JSON:
 		return true, printJSON(cmd, data)
 	case YAML:
-		yamlStr, err := yaml.Marshal(data)
+		// Convert to JSON before converting to YAML to remove the top-level key of the containing struct and
+		// null values that have omit_empty json tags. This is for consistency between JSON and YAML output.
+		jsonStr, err := json.Marshal(data)
+		if err != nil {
+			return true, err
+		}
+
+		var yamlData interface{}
+		err = json.Unmarshal(jsonStr, &yamlData)
+		if err != nil {
+			return true, err
+		}
+
+		yamlStr, err := yaml.Marshal(yamlData)
 		if err != nil {
 			return true, err
 		}
