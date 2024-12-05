@@ -117,6 +117,15 @@ func getLogsOptions(ctx context.Context, breadcrumb string) []tui.CustomOption {
 }
 
 func init() {
+	directionFlag := command.NewEnumInput([]string{"backward", "forward"}, false)
+	levelFlag := command.NewEnumInput([]string{
+		"debug", "info", "notice", "warning", "error", "critical", "alert", "emergency",
+	}, true)
+	logTypeFlag := command.NewEnumInput([]string{"app", "request", "build"}, true)
+	methodTypeFlag := command.NewEnumInput([]string{
+		"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "CONNECT", "TRACE",
+	}, true)
+
 	logsCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input views.LogInput
 		err := command.ParseCommand(cmd, args, &input)
@@ -148,14 +157,14 @@ func init() {
 	logsCmd.Flags().String("start", "", "The start time of the logs to query")
 	logsCmd.Flags().String("end", "", "The end time of the logs to query")
 	logsCmd.Flags().StringSlice("text", []string{}, "A list of comma separated strings to search for in the logs")
-	logsCmd.Flags().StringSlice("level", []string{}, "A list of comma separated log levels to query")
-	logsCmd.Flags().StringSlice("type", []string{}, "A list of comma separated log types to query")
+	logsCmd.Flags().Var(levelFlag, "level", "A list of comma separated log levels to query")
+	logsCmd.Flags().Var(logTypeFlag, "type", "A list of comma separated log types to query")
 	logsCmd.Flags().StringSlice("instance", []string{}, "A list of comma separated instance IDs to query")
 	logsCmd.Flags().StringSlice("host", []string{}, "A list of comma separated hosts to query")
 	logsCmd.Flags().StringSlice("status-code", []string{}, "A list of comma separated status codes to query")
-	logsCmd.Flags().StringSlice("method", []string{}, "A list of comma separated HTTP methods to query")
+	logsCmd.Flags().Var(methodTypeFlag, "method", "A list of comma separated HTTP methods to query")
 	logsCmd.Flags().StringSlice("path", []string{}, "A list of comma separated paths to query")
 	logsCmd.Flags().Int("limit", 100, "The maximum number of logs to return")
-	logsCmd.Flags().String("direction", "backward", "The direction to query the logs. Can be 'forward' or 'backward'")
+	logsCmd.Flags().Var(directionFlag, "direction", "The direction to query the logs. Can be 'forward' or 'backward'")
 	logsCmd.Flags().Bool("tail", false, "Stream new logs")
 }

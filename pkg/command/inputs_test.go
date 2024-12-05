@@ -25,6 +25,40 @@ func TestParseCommand(t *testing.T) {
 		require.Equal(t, "bar", v.Foo)
 	})
 
+	t.Run("parse single select enum", func(t *testing.T) {
+		enumInput := command.NewEnumInput([]string{"bar", "baz"}, false)
+
+		type testStruct struct {
+			Foo string `cli:"foo"`
+		}
+		var v testStruct
+		cmd := &cobra.Command{}
+		cmd.Flags().Var(enumInput, "foo", "")
+		require.NoError(t, cmd.ParseFlags([]string{"--foo", "baz"}))
+
+		err := command.ParseCommand(cmd, []string{}, &v)
+		require.NoError(t, err)
+
+		require.Equal(t, "baz", v.Foo)
+	})
+
+	t.Run("parse multi select enum", func(t *testing.T) {
+		enumInput := command.NewEnumInput([]string{"a", "b", "c"}, true)
+
+		type testStruct struct {
+			Foo []string `cli:"foo"`
+		}
+		var v testStruct
+		cmd := &cobra.Command{}
+		cmd.Flags().Var(enumInput, "foo", "")
+		require.NoError(t, cmd.ParseFlags([]string{"--foo", "a,c"}))
+
+		err := command.ParseCommand(cmd, []string{}, &v)
+		require.NoError(t, err)
+
+		require.Equal(t, []string{"a", "c"}, v.Foo)
+	})
+
 	t.Run("parse pointer", func(t *testing.T) {
 		type testStruct struct {
 			Foo *string `cli:"foo"`

@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -17,14 +16,7 @@ type FilterModel struct {
 
 func NewFilterModel(form *huh.Form, search func(*huh.Form) tea.Cmd) *FilterModel {
 	return &FilterModel{
-		form: form.WithKeyMap(&huh.KeyMap{
-			Input: huh.InputKeyMap{
-				AcceptSuggestion: key.NewBinding(key.WithKeys("ctrl+e"), key.WithHelp("ctrl+e", "complete")),
-				Prev:             key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "back")),
-				Next:             key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next")),
-				Submit:           key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "to submit")),
-			},
-		}),
+		form:   form,
 		search: search,
 	}
 }

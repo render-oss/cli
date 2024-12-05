@@ -43,11 +43,38 @@ func getStringValue(flags *pflag.FlagSet, args []string, tag string) (*string, e
 		}
 	}
 
+	if flag := flags.Lookup(tag); flag != nil {
+		if flag.Value.Type() == EnumType {
+			val := flag.Value.String()
+			return &val, nil
+		}
+	}
+
 	val, err := flags.GetString(tag)
 	if err != nil {
 		return nil, err
 	}
 	return &val, nil
+}
+
+func getStringSliceValue(flags *pflag.FlagSet, tag string) ([]string, error) {
+	if flag := flags.Lookup(tag); flag != nil {
+		if flag.Value.Type() == EnumType {
+			cobraEnum, ok := flag.Value.(*CobraEnum)
+			if !ok {
+				return nil, fmt.Errorf("unexpected enum type")
+			}
+
+			val := cobraEnum.SelectedValues()
+			return val, nil
+		}
+	}
+
+	val, err := flags.GetStringSlice(tag)
+	if err != nil {
+		return nil, err
+	}
+	return val, nil
 }
 
 func getIntValue(flags *pflag.FlagSet, args []string, tag string) (*int, error) {
@@ -178,7 +205,7 @@ func ParseCommand(cmd *cobra.Command, args []string, v any) error {
 		case reflect.Slice:
 			switch field.Type.Elem().Kind() {
 			case reflect.String:
-				val, err := flags.GetStringSlice(cliTag)
+				val, err := getStringSliceValue(flags, cliTag)
 				if err != nil {
 					return err
 				}
