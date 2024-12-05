@@ -14,6 +14,7 @@ import (
 	"github.com/renderinc/cli/pkg/client"
 	lclient "github.com/renderinc/cli/pkg/client/logs"
 	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/pointers"
 	"github.com/renderinc/cli/pkg/resource"
 	"github.com/renderinc/cli/pkg/tui"
 	"github.com/renderinc/cli/pkg/tui/views"
@@ -87,6 +88,7 @@ func TailResourceLogs(ctx context.Context, resourceID string) tea.Cmd {
 	return InteractiveLogs(
 		ctx,
 		views.LogInput{
+			StartTime:   pointers.From(time.Now().Format(time.RFC3339)),
 			ResourceIDs: []string{resourceID},
 			Tail:        true,
 		}, "Logs")

@@ -52,13 +52,21 @@ func (l LogInput) ToParam() (*client.ListLogsParams, error) {
 		l.Limit = 100
 	}
 
+	start, err := command.ParseTime(now, l.StartTime)
+	if err != nil {
+		return nil, err
+	}
+	end, err := command.ParseTime(now, l.EndTime)
+	if err != nil {
+		return nil, err
+	}
 	return &client.ListLogsParams{
 		Resource:   l.ResourceIDs,
 		OwnerId:    ownerID,
 		Instance:   pointers.FromArray(l.Instance),
 		Limit:      pointers.From(l.Limit),
-		StartTime:  command.ParseTime(now, l.StartTime),
-		EndTime:    command.ParseTime(now, l.EndTime),
+		StartTime:  start,
+		EndTime:    end,
 		Text:       pointers.FromArray(l.Text),
 		Level:      pointers.FromArray(l.Level),
 		Type:       pointers.FromArray(l.Type),

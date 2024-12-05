@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
+
 	"github.com/renderinc/cli/pkg/client"
 	lclient "github.com/renderinc/cli/pkg/client/logs"
 	"github.com/renderinc/cli/pkg/config"

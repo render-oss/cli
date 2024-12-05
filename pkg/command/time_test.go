@@ -4,8 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/renderinc/cli/pkg/command"
 	"github.com/stretchr/testify/require"
+
+	"github.com/renderinc/cli/pkg/command"
+	"github.com/renderinc/cli/pkg/pointers"
 )
 
 func TestParseTime(t *testing.T) {
@@ -39,8 +41,26 @@ func TestParseTime(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := command.ParseTime(now, &tc.str)
+			actual, err := command.ParseTime(now, &tc.str)
+			require.NoError(t, err)
 			require.Equal(t, tc.expected, *actual)
 		})
 	}
+
+	t.Run("should handle nil", func(t *testing.T) {
+		actual, err := command.ParseTime(now, nil)
+		require.NoError(t, err)
+		require.Nil(t, actual)
+	})
+
+	t.Run("should not error when passed empty string", func(t *testing.T) {
+		actual, err := command.ParseTime(now, pointers.From(""))
+		require.NoError(t, err)
+		require.Nil(t, actual)
+	})
+
+	t.Run("should error when passed time is invalid", func(t *testing.T) {
+		_, err := command.ParseTime(now, pointers.From("a long time ago"))
+		require.Error(t, err)
+	})
 }

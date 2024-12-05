@@ -1,6 +1,7 @@
 package command
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"time"
@@ -30,19 +31,19 @@ func parseRelativeTime(now time.Time, str string) *time.Time {
 	return &t
 }
 
-func ParseTime(now time.Time, str *string) *time.Time {
-	if str == nil {
-		return nil
+func ParseTime(now time.Time, str *string) (*time.Time, error) {
+	if str == nil || *str == "" {
+		return nil, nil
 	}
 
 	if t := parseRelativeTime(now, *str); t != nil {
-		return t
+		return t, nil
 	}
 
 	t, err := time.Parse(time.RFC3339, *str)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("invalid timestamp: %w", err)
 	}
 
-	return &t
+	return &t, nil
 }
