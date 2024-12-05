@@ -62,7 +62,7 @@ func login(cmd *cobra.Command, c *oauth.Client) error {
 		return err
 	}
 
-	command.Println(cmd, "Complete login in the Render Dashboard. Opening your browser to:\n\n\t%s\n\n", u)
+	command.Println(cmd, "Complete login in the Render Dashboard with code: %s\n\nOpening your browser to:\n\n\t%s\n\n", dg.UserCode, u)
 	err = dashboard.Open(u.String())
 	if err != nil {
 		return err
