@@ -16,10 +16,10 @@ import (
 
 // sshCmd represents the ssh command
 var sshCmd = &cobra.Command{
-	Use:     "ssh [serviceID]",
-	Args:    cobra.MaximumNArgs(1),
-	Short:   "SSH into a service instance",
-	Long:    `SSH into a service instance. Optionally pass the service id as an argument.`,
+	Use:   "ssh [serviceID]",
+	Short: "SSH into a service instance",
+	Long: `SSH into a service instance. Optionally pass the service id as an argument.
+To pass arguments to ssh, use the following syntax: render ssh [serviceID] -- [ssh args]`,
 	GroupID: GroupSession.ID,
 }
 
@@ -57,6 +57,14 @@ func init() {
 		err := command.ParseCommandInteractiveOnly(cmd, args, &input)
 		if err != nil {
 			return err
+		}
+
+		if cmd.ArgsLenAtDash() == 0 {
+			input.ServiceID = ""
+		}
+
+		if cmd.ArgsLenAtDash() >= 0 {
+			input.Args = args[cmd.ArgsLenAtDash():]
 		}
 
 		InteractiveSSHView(ctx, &input, "SSH")

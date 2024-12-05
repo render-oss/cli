@@ -26,6 +26,8 @@ type PSQLInput struct {
 	Project        *client.Project
 	EnvironmentIDs []string
 	Tool           PSQLTool
+
+	Args []string
 }
 
 type PSQLView struct {
@@ -104,7 +106,12 @@ func loadDataPSQL(ctx context.Context, in *PSQLInput) (*exec.Cmd, error) {
 		return nil, err
 	}
 
-	return exec.Command(string(in.Tool), connectionInfo.ExternalConnectionString), nil
+	args := []string{connectionInfo.ExternalConnectionString}
+	for _, arg := range in.Args {
+		args = append(args, arg)
+	}
+
+	return exec.Command(string(in.Tool), args...), nil
 }
 
 func hasAccessToPostgres(pg *client.PostgresDetail, userIP net.IP) (bool, error) {

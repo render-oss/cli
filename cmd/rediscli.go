@@ -15,10 +15,10 @@ import (
 
 // redisCLICmd represents the redisCLI command
 var redisCLICmd = &cobra.Command{
-	Use:     "redis-cli [redisID]",
-	Args:    cobra.MaximumNArgs(1),
-	Short:   "Open a redis-cli session to a Redis instance",
-	Long:    `Open a redis-cli session to a Redis instance. Optionally pass the redis id as an argument.`,
+	Use:   "redis-cli [redisID]",
+	Short: "Open a redis-cli session to a Redis instance",
+	Long: `Open a redis-cli session to a Redis instance. Optionally pass the redis id as an argument.
+To pass arguments to redis-cli, use the following syntax: render redis-cli [redisID] -- [redis-cli args]`,
 	GroupID: GroupSession.ID,
 }
 
@@ -54,6 +54,14 @@ func init() {
 		err := command.ParseCommandInteractiveOnly(cmd, args, &input)
 		if err != nil {
 			return err
+		}
+
+		if cmd.ArgsLenAtDash() == 0 {
+			input.RedisID = ""
+		}
+
+		if cmd.ArgsLenAtDash() >= 0 {
+			input.Args = args[cmd.ArgsLenAtDash():]
 		}
 
 		InteractiveRedisView(ctx, &input)

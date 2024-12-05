@@ -19,6 +19,8 @@ type SSHInput struct {
 	ServiceID      string `cli:"arg:0"`
 	Project        *client.Project
 	EnvironmentIDs []string
+
+	Args []string
 }
 
 type SSHView struct {
@@ -123,7 +125,12 @@ func loadDataSSH(ctx context.Context, in *SSHInput) (*exec.Cmd, error) {
 		return nil, fmt.Errorf("service does not support ssh")
 	}
 
-	return exec.Command("ssh", *sshAddress), nil
+	args := []string{*sshAddress}
+	for _, arg := range in.Args {
+		args = append(args, arg)
+	}
+
+	return exec.Command("ssh", args...), nil
 }
 
 func (v *SSHView) Init() tea.Cmd {

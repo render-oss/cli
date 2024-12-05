@@ -48,7 +48,7 @@ func (m *ExecModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-			return nil
+			return ExecDone{}
 		})
 	case ExecDone:
 		return m, func() tea.Msg {

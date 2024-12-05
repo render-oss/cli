@@ -18,6 +18,8 @@ type RedisCLIInput struct {
 	RedisID        string `cli:"arg:0"`
 	Project        *client.Project
 	EnvironmentIDs []string
+
+	Args []string
 }
 
 type RedisCLIView struct {
@@ -92,6 +94,10 @@ func loadDataRedisCLI(ctx context.Context, in *RedisCLIInput) (*exec.Cmd, error)
 		} else {
 			env = append(env, part)
 		}
+	}
+
+	for _, arg := range in.Args {
+		cmdArgs = append(cmdArgs, arg)
 	}
 
 	cmd := exec.Command("redis-cli", cmdArgs...)
