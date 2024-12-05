@@ -15,7 +15,7 @@ import (
 	"github.com/renderinc/cli/pkg/tui/views"
 )
 
-var jobCreateCmd = &cobra.Command{
+var JobCreateCmd = &cobra.Command{
 	Use:   "create [serviceID]",
 	Short: "Create a new job for a service",
 	Args:  cobra.MaximumNArgs(1),
@@ -24,10 +24,10 @@ var jobCreateCmd = &cobra.Command{
 var InteractiveJobCreate = func(ctx context.Context, input *views.JobCreateInput, breadcrumb string) tea.Cmd {
 	return command.AddToStackFunc(
 		ctx,
-		jobCreateCmd,
+		JobCreateCmd,
 		breadcrumb,
 		input,
-		views.NewJobCreateView(ctx, input, jobCreateCmd, func(j *clientjob.Job) tea.Cmd {
+		views.NewJobCreateView(ctx, input, JobCreateCmd, views.CreateJob, func(j *clientjob.Job) tea.Cmd {
 			return InteractiveLogs(ctx, views.LogInput{
 				ResourceIDs: []string{j.Id},
 				Tail:        true,
@@ -45,7 +45,9 @@ func interactiveJobCreate(cmd *cobra.Command, input *views.JobCreateInput) tea.C
 			"Create Job",
 			input,
 			views.NewServiceList(ctx, views.ServiceInput{
-				Types: []client.ServiceType{client.WebService, client.BackgroundWorker, client.PrivateService, client.CronJob},
+				Types: []client.ServiceType{
+					client.WebService, client.BackgroundWorker, client.PrivateService, client.CronJob,
+				},
 			}, func(ctx context.Context, r resource.Resource) tea.Cmd {
 				input.ServiceID = r.ID()
 				return InteractiveJobCreate(ctx, input, resource.BreadcrumbForResource(r))
@@ -62,7 +64,7 @@ func interactiveJobCreate(cmd *cobra.Command, input *views.JobCreateInput) tea.C
 }
 
 func init() {
-	jobCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
+	JobCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input views.JobCreateInput
 
 		err := command.ParseCommand(cmd, args, &input)
@@ -84,6 +86,6 @@ func init() {
 		return nil
 	}
 
-	jobCreateCmd.Flags().String("start-command", "", "The command to run for the job")
-	jobCreateCmd.Flags().String("plan-id", "", "The plan ID for the job (optional)")
+	JobCreateCmd.Flags().String("start-command", "", "The command to run for the job")
+	JobCreateCmd.Flags().String("plan-id", "", "The plan ID for the job (optional)")
 }

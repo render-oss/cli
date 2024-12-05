@@ -12,5 +12,5 @@ var jobCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(jobCmd)
-	jobCmd.AddCommand(jobListCmd, jobCreateCmd, jobCancelCmd)
+	jobCmd.AddCommand(jobListCmd, JobCreateCmd, jobCancelCmd)
 }

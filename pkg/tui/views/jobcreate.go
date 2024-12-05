@@ -40,14 +40,27 @@ type JobCreateView struct {
 	formAction *tui.FormWithAction[*clientjob.Job]
 }
 
-func NewJobCreateView(ctx context.Context, input *JobCreateInput, cobraCmd *cobra.Command, action func(j *clientjob.Job) tea.Cmd) *JobCreateView {
-	form, _ := command.HuhForm(cobraCmd, input)
+func NewJobCreateView(
+	ctx context.Context,
+	input *JobCreateInput,
+	cobraCmd *cobra.Command,
+	createJob func(ctx context.Context, input JobCreateInput) (*clientjob.Job, error),
+	action func(j *clientjob.Job) tea.Cmd,
+) *JobCreateView {
+	form, values := command.HuhForm(cobraCmd, input)
 
 	return &JobCreateView{
 		formAction: tui.NewFormWithAction(
 			tui.NewFormAction(
 				action,
-				command.LoadCmd(ctx, CreateJob, *input),
+				func() tea.Msg {
+					var createJobInput JobCreateInput
+					err := command.StructFromFormValues(values, &createJobInput)
+					if err != nil {
+						return tui.ErrorMsg{Err: err}
+					}
+					return command.LoadCmd(ctx, createJob, createJobInput)()
+				},
 			),
 			form,
 		),

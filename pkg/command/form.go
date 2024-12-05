@@ -64,6 +64,7 @@ func FormValuesFromStruct(v any) FormValues {
 		case reflect.Ptr:
 			if elemField.IsNil() {
 				formValues[cliTag] = NewStringFormValue("")
+				break
 			}
 
 			switch field.Type.Elem().Kind() {
