@@ -35,6 +35,7 @@ func InteractiveSSHView(ctx context.Context, input *views.SSHInput, breadcrumb s
 
 func getSSHTableOptions(ctx context.Context, breadcrumb string) []tui.CustomOption {
 	return []tui.CustomOption{
+		WithCopyID(ctx, servicesCmd),
 		WithWorkspaceSelection(ctx),
 		WithProjectFilter(ctx, servicesCmd, "Project Filter", &views.SSHInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
 			input := views.SSHInput{}

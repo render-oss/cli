@@ -35,6 +35,7 @@ func InteractivePGCLIView(ctx context.Context, input *views.PSQLInput) tea.Cmd {
 
 func getPGCLITableOptions(ctx context.Context, input *views.PSQLInput) []tui.CustomOption {
 	return []tui.CustomOption{
+		WithCopyID(ctx, servicesCmd),
 		WithWorkspaceSelection(ctx),
 		WithProjectFilter(ctx, pgcliCmd, "pgcli", input, func(ctx context.Context, project *client.Project) tea.Cmd {
 			if project != nil {

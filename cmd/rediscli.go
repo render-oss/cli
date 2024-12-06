@@ -34,6 +34,7 @@ func InteractiveRedisView(ctx context.Context, input *views.RedisCLIInput) tea.C
 
 func getRedisTableOptions(ctx context.Context) []tui.CustomOption {
 	return []tui.CustomOption{
+		WithCopyID(ctx, servicesCmd),
 		WithWorkspaceSelection(ctx),
 		WithProjectFilter(ctx, redisCLICmd, "redisCLI", &views.RedisCLIInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
 			input := &views.RedisCLIInput{}

@@ -34,6 +34,7 @@ var InteractiveProjectList = func(ctx context.Context) {
 				}, p.Name)
 			},
 			tui.WithCustomOptions[*client.Project]([]tui.CustomOption{
+				WithCopyID(ctx, servicesCmd),
 				WithWorkspaceSelection(ctx),
 			}),
 		))

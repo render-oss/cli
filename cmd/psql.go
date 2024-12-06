@@ -35,6 +35,7 @@ func InteractivePSQLView(ctx context.Context, input *views.PSQLInput) tea.Cmd {
 
 func getPsqlTableOptions(ctx context.Context, input *views.PSQLInput) []tui.CustomOption {
 	return []tui.CustomOption{
+		WithCopyID(ctx, servicesCmd),
 		WithWorkspaceSelection(ctx),
 		WithProjectFilter(ctx, psqlCmd, "psql", input, func(ctx context.Context, project *client.Project) tea.Cmd {
 			if project != nil {

@@ -88,6 +88,10 @@ func (m *StackModel) Push(model ModelWithCmd) tea.Cmd {
 	return tea.Sequence(model.Model.Init(), tea.WindowSize())
 }
 
+func (m *StackModel) PushError(err error) tea.Cmd {
+	return m.Push(ModelWithCmd{Model: NewErrorModel(err)})
+}
+
 func (m *StackModel) Pop() *ModelWithCmd {
 	if len(m.stack) > 0 {
 		popped := m.stack[len(m.stack)-1]
@@ -138,7 +142,7 @@ func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(m.stack) > 0 {
 				err := clipboard.WriteAll(m.stack[len(m.stack)-1].Cmd)
 				if err != nil {
-					m.Push(ModelWithCmd{Model: NewErrorModel(fmt.Errorf("Failed to copy command to clipboard"))})
+					m.PushError(fmt.Errorf("Failed to copy command to clipboard"))
 				}
 			}
 		}

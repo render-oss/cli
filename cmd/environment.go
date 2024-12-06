@@ -31,6 +31,7 @@ var InteractiveEnvironment = func(ctx context.Context, input views.EnvironmentIn
 			}, e.Name)
 		},
 		tui.WithCustomOptions[*client.Environment]([]tui.CustomOption{
+			WithCopyID(ctx, servicesCmd),
 			WithWorkspaceSelection(ctx),
 		}),
 	))

@@ -189,6 +189,7 @@ func InteractiveServices(ctx context.Context, in views.ListResourceInput, breadc
 
 func getServiceTableOptions(ctx context.Context) []tui.CustomOption {
 	return []tui.CustomOption{
+		WithCopyID(ctx, servicesCmd),
 		WithWorkspaceSelection(ctx),
 		WithProjectFilter(ctx, servicesCmd, "Project Filter", &views.ListResourceInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
 			listResourceInput := views.ListResourceInput{}

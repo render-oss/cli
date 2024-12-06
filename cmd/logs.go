@@ -106,6 +106,7 @@ func InteractiveLogs(ctx context.Context, input views.LogInput, breadcrumb strin
 
 func getLogsOptions(ctx context.Context, breadcrumb string) []tui.CustomOption {
 	return []tui.CustomOption{
+		WithCopyID(ctx, servicesCmd),
 		WithWorkspaceSelection(ctx),
 		WithProjectFilter(ctx, servicesCmd, "Project Filter", &views.LogInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
 			logInput := views.LogInput{}
