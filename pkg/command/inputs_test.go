@@ -2,6 +2,7 @@ package command_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/pointers"
@@ -57,6 +58,24 @@ func TestParseCommand(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, []string{"a", "c"}, v.Foo)
+	})
+
+	t.Run("parse time", func(t *testing.T) {
+		timeInput := command.NewTimeInput()
+
+		type testStruct struct {
+			Foo *command.TimeOrRelative `cli:"foo"`
+		}
+		var v testStruct
+		cmd := &cobra.Command{}
+		cmd.Flags().Var(timeInput, "foo", "")
+		require.NoError(t, cmd.ParseFlags([]string{"--foo", "5m"}))
+
+		err := command.ParseCommand(cmd, []string{}, &v)
+		require.NoError(t, err)
+
+		require.Equal(t, "5m", *v.Foo.Relative)
+		require.WithinDuration(t, *v.Foo.T, time.Now().Add(-5*time.Minute), time.Second)
 	})
 
 	t.Run("parse pointer", func(t *testing.T) {

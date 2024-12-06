@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/x/ansi"
@@ -63,7 +64,13 @@ func FormValuesFromStruct(v any) FormValues {
 		case reflect.Ptr:
 			if elemField.IsNil() {
 				formValues[cliTag] = NewStringFormValue("")
-				break
+				continue
+			}
+
+			if field.Type == reflect.TypeOf(&TimeOrRelative{}) {
+				val := elemField.Interface().(*TimeOrRelative)
+				formValues[cliTag] = NewStringFormValue(val.String())
+				continue
 			}
 
 			switch field.Type.Elem().Kind() {
@@ -159,6 +166,21 @@ func StructFromFormValues(formValues FormValues, v any) error {
 
 		switch field.Type.Kind() {
 		case reflect.Ptr:
+			if field.Type == reflect.TypeOf(&TimeOrRelative{}) {
+				val, ok := formValues[cliTag]
+				if !ok {
+					continue
+				}
+
+				timeOrRelative, err := ParseTime(time.Now(), pointers.From(val.String()))
+				if err != nil {
+					return err
+				}
+
+				elemField.Set(reflect.ValueOf(timeOrRelative))
+				continue
+			}
+
 			switch field.Type.Elem().Kind() {
 			case reflect.String:
 				val, ok := formValues[cliTag]
@@ -337,6 +359,17 @@ func HuhFormFields(cmd *cobra.Command, v any) ([]huh.Field, FormValues) {
 
 				huhFieldMap[flag.Name] = huh.NewSelect[string]().Key(flag.Name).Title(flag.Name).Description(wrappedDescription).Options(options...).Value((*string)(strValue))
 			}
+		} else if flag.Value.Type() == TimeType {
+			timeValue := NewStringFormValue(value.String())
+			formValues[flag.Name] = timeValue
+
+			huhFieldMap[flag.Name] = huh.NewInput().
+				Key(flag.Name).
+				Title(flag.Name).
+				Description(wrappedDescription).
+				Value((*string)(timeValue)).
+				Placeholder(fmt.Sprintf("Relative time or %s", time.RFC3339)).
+				SuggestionsFunc(func() []string { return TimeSuggestion(timeValue.String()) }, timeValue)
 		} else {
 			strValue := NewStringFormValue(value.String())
 			formValues[flag.Name] = strValue

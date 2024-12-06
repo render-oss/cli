@@ -88,7 +88,7 @@ func TailResourceLogs(ctx context.Context, resourceID string) tea.Cmd {
 	return InteractiveLogs(
 		ctx,
 		views.LogInput{
-			StartTime:   pointers.From(time.Now().Format(time.RFC3339)),
+			StartTime:   &command.TimeOrRelative{T: pointers.From(time.Now())},
 			ResourceIDs: []string{resourceID},
 			Tail:        true,
 		}, "Logs")
@@ -128,6 +128,9 @@ func init() {
 		"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "CONNECT", "TRACE",
 	}, true)
 
+	startTimeFlag := command.NewTimeInput()
+	endTimeFlag := command.NewTimeInput()
+
 	LogsCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input views.LogInput
 		err := command.ParseCommand(cmd, args, &input)
@@ -156,8 +159,8 @@ func init() {
 	rootCmd.AddCommand(LogsCmd)
 
 	LogsCmd.Flags().StringSliceP("resources", "r", []string{}, "A list of comma separated resource IDs to query. Required in non-interactive mode.")
-	LogsCmd.Flags().String("start", "", "The start time of the logs to query")
-	LogsCmd.Flags().String("end", "", "The end time of the logs to query")
+	LogsCmd.Flags().Var(startTimeFlag, "start", "The start time of the logs to query")
+	LogsCmd.Flags().Var(endTimeFlag, "end", "The end time of the logs to query")
 	LogsCmd.Flags().StringSlice("text", []string{}, "A list of comma separated strings to search for in the logs")
 	LogsCmd.Flags().Var(levelFlag, "level", "A list of comma separated log levels to query")
 	LogsCmd.Flags().Var(logTypeFlag, "type", "A list of comma separated log types to query")

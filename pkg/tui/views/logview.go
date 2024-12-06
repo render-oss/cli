@@ -47,8 +47,8 @@ type LogInput struct {
 	Level       []string `cli:"level"`
 	Type        []string `cli:"type"`
 
-	StartTime *string `cli:"start"`
-	EndTime   *string `cli:"end"`
+	StartTime *command.TimeOrRelative `cli:"start"`
+	EndTime   *command.TimeOrRelative `cli:"end"`
 
 	Host       []string `cli:"host"`
 	StatusCode []string `cli:"status-code"`
@@ -63,7 +63,6 @@ type LogInput struct {
 }
 
 func (l LogInput) ToParam() (*client.ListLogsParams, error) {
-	now := time.Now()
 	ownerID, err := config.WorkspaceID()
 	if err != nil {
 		return nil, fmt.Errorf("error getting workspace ID: %v", err)
@@ -73,21 +72,23 @@ func (l LogInput) ToParam() (*client.ListLogsParams, error) {
 		l.Limit = 100
 	}
 
-	start, err := command.ParseTime(now, l.StartTime)
-	if err != nil {
-		return nil, err
+	var startTime *time.Time
+	if l.StartTime != nil {
+		startTime = l.StartTime.T
 	}
-	end, err := command.ParseTime(now, l.EndTime)
-	if err != nil {
-		return nil, err
+
+	var endTime *time.Time
+	if l.EndTime != nil {
+		endTime = l.EndTime.T
 	}
+
 	return &client.ListLogsParams{
 		Resource:   l.ResourceIDs,
 		OwnerId:    ownerID,
 		Instance:   pointers.FromArray(l.Instance),
 		Limit:      pointers.From(l.Limit),
-		StartTime:  start,
-		EndTime:    end,
+		StartTime:  startTime,
+		EndTime:    endTime,
 		Text:       pointers.FromArray(l.Text),
 		Level:      pointers.FromArray(l.Level),
 		Type:       pointers.FromArray(l.Type),

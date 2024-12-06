@@ -34,6 +34,21 @@ func getArgValue(tag string, args []string) (*string, error) {
 	return &args[index], nil
 }
 
+func getTimeValue(flags *pflag.FlagSet, tag string) (*TimeOrRelative, error) {
+	if flag := flags.Lookup(tag); flag != nil {
+		if flag.Value.Type() == TimeType {
+			cobraTime, ok := flag.Value.(*CobraTime)
+			if !ok {
+				return nil, fmt.Errorf("unexpected time type")
+			}
+			val := cobraTime.t
+			return val, nil
+		}
+	}
+
+	return nil, nil
+}
+
 func getStringValue(flags *pflag.FlagSet, args []string, tag string) (*string, error) {
 	if isArg(tag) {
 		if val, err := getArgValue(tag, args); err != nil {
@@ -176,6 +191,16 @@ func ParseCommand(cmd *cobra.Command, args []string, v any) error {
 
 		switch field.Type.Kind() {
 		case reflect.Ptr:
+			if field.Type == reflect.TypeOf(&TimeOrRelative{}) {
+				val, err := getTimeValue(flags, cliTag)
+				if err != nil {
+					return err
+				}
+
+				elemField.Set(reflect.ValueOf(val))
+				continue
+			}
+
 			switch field.Type.Elem().Kind() {
 			case reflect.String:
 				val, err := getStringValue(flags, args, cliTag)

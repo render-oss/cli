@@ -11,7 +11,6 @@ import (
 	clientjob "github.com/renderinc/cli/pkg/client/jobs"
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/job"
-	"github.com/renderinc/cli/pkg/pointers"
 	"github.com/renderinc/cli/pkg/resource"
 	"github.com/renderinc/cli/pkg/text"
 	"github.com/renderinc/cli/pkg/tui/views"
@@ -41,7 +40,9 @@ func interactiveJobList(cmd *cobra.Command, input views.JobListInput) tea.Cmd {
 			"Jobs",
 			&input,
 			views.NewServiceList(ctx, views.ServiceInput{
-				Types: []client.ServiceType{client.WebService, client.BackgroundWorker, client.PrivateService, client.CronJob},
+				Types: []client.ServiceType{
+					client.WebService, client.BackgroundWorker, client.PrivateService, client.CronJob,
+				},
 			}, func(ctx context.Context, r resource.Resource) tea.Cmd {
 				input.ServiceID = r.ID()
 				return InteractiveJobList(ctx, input, resource.BreadcrumbForResource(r))
@@ -58,14 +59,14 @@ func interactiveJobList(cmd *cobra.Command, input views.JobListInput) tea.Cmd {
 }
 
 func commandsForJob(j *clientjob.Job) []views.PaletteCommand {
-	var startTime *string
+	var startTime *command.TimeOrRelative
 	if j.StartedAt != nil {
-		startTime = pointers.From(j.StartedAt.String())
+		startTime = &command.TimeOrRelative{T: j.StartedAt}
 	}
 
-	var endTime *string
+	var endTime *command.TimeOrRelative
 	if j.FinishedAt != nil {
-		endTime = pointers.From(j.FinishedAt.String())
+		endTime = &command.TimeOrRelative{T: j.FinishedAt}
 	}
 
 	commands := []views.PaletteCommand{

@@ -2,6 +2,7 @@ package command_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/charmbracelet/huh"
 	"github.com/renderinc/cli/pkg/command"
@@ -72,6 +73,38 @@ func TestStructFromFormValues(t *testing.T) {
 		require.NoError(t, command.StructFromFormValues(formValues, &v))
 		require.Equal(t, []string{"owner-id-1", "owner-id-2"}, v.OwnerIDs)
 	})
+
+	t.Run("converts time type", func(t *testing.T) {
+		type testStruct struct {
+			Time *command.TimeOrRelative `cli:"time"`
+		}
+		str := "1m"
+		formValues := command.FormValues{"time": command.NewStringFormValue(str)}
+		v := testStruct{}
+		require.NoError(t, command.StructFromFormValues(formValues, &v))
+		require.Equal(t, "1m", v.Time.String())
+		require.WithinDuration(t, *v.Time.T, time.Now().Add(-time.Minute), time.Second)
+	})
+
+	t.Run("converts enum type", func(t *testing.T) {
+		type testStruct struct {
+			Foo string `cli:"foo"`
+		}
+		formValues := command.FormValues{"foo": command.NewStringFormValue("value")}
+		v := testStruct{}
+		require.NoError(t, command.StructFromFormValues(formValues, &v))
+		require.Equal(t, "value", v.Foo)
+	})
+
+	t.Run("converts enum multi type", func(t *testing.T) {
+		type testStruct struct {
+			Foo []string `cli:"foo"`
+		}
+		formValues := command.FormValues{"foo": command.NewStringFormValue("value,other")}
+		v := testStruct{}
+		require.NoError(t, command.StructFromFormValues(formValues, &v))
+		require.Equal(t, []string{"value", "other"}, v.Foo)
+	})
 }
 
 func TestHuhForm(t *testing.T) {
@@ -115,5 +148,25 @@ func TestHuhForm(t *testing.T) {
 
 		require.Contains(t, form.View(), "multi choice 3")
 		require.Contains(t, form.View(), "single choice 2")
+	})
+
+	t.Run("creates form with time", func(t *testing.T) {
+		type testStruct struct {
+			Foo *command.TimeOrRelative `cli:"foo"`
+		}
+		v := testStruct{}
+		cmd := cobra.Command{}
+
+		// foo is multi select
+		fooInput := command.NewTimeInput()
+		cmd.Flags().Var(fooInput, "foo", "")
+
+		fields, _ := command.HuhFormFields(&cmd, &v)
+		form := huh.NewForm(huh.NewGroup(fields...))
+		form.Init()
+
+		require.Contains(t, form.View(), "foo")
+		// Find placeholder text
+		require.Contains(t, form.View(), "Relative time or")
 	})
 }

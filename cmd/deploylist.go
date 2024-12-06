@@ -11,7 +11,6 @@ import (
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/renderinc/cli/pkg/dashboard"
 	"github.com/renderinc/cli/pkg/deploy"
-	"github.com/renderinc/cli/pkg/pointers"
 	"github.com/renderinc/cli/pkg/resource"
 	"github.com/renderinc/cli/pkg/text"
 	"github.com/renderinc/cli/pkg/tui/views"
@@ -57,14 +56,14 @@ func interactiveDeployList(cmd *cobra.Command, input views.DeployListInput) tea.
 }
 
 func commandsForDeploy(dep *client.Deploy, serviceID, serviceType string) []views.PaletteCommand {
-	var startTime *string
+	var startTime *command.TimeOrRelative
 	if dep.CreatedAt != nil {
-		startTime = pointers.From(dep.CreatedAt.String())
+		startTime = &command.TimeOrRelative{T: dep.CreatedAt}
 	}
 
-	var endTime *string
+	var endTime *command.TimeOrRelative
 	if dep.FinishedAt != nil {
-		endTime = pointers.From(dep.FinishedAt.String())
+		endTime = &command.TimeOrRelative{T: dep.FinishedAt}
 	}
 
 	commands := []views.PaletteCommand{
