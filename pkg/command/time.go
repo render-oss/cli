@@ -11,15 +11,18 @@ import (
 var RFC3339RegexString = []string{
 	`\d`, `\d`, `\d`, `\d`, `-`, `\d`, `\d`, `-`, `\d`, `\d`,
 	`T`, `\d`, `\d`, `:`, `\d`, `\d`, `:`, `\d`, `\d`,
-	`Z`, `\d`, `\d`, `:`, `\d`, `\d`,
 }
+
+const timestampFormatWithoutOffset = "2006-01-02T15:04:05Z"
 
 func TimeSuggestion(str string) []string {
 	var suggestion string
 	if i, err := strconv.Atoi(str); err == nil && i <= 60 {
 		suggestion = fmt.Sprintf("%dm", i)
-	} else if re, err := regexp.Compile(strings.Join(RFC3339RegexString[:len(str)], "")); err == nil && re.MatchString(str) {
-		suggestion = str + time.RFC3339[len(str):]
+	} else if len(str) <= len(RFC3339RegexString) {
+		if re, err := regexp.Compile(strings.Join(RFC3339RegexString[:len(str)], "")); err == nil && re.MatchString(str) {
+			suggestion = str + timestampFormatWithoutOffset[len(str):]
+		}
 	}
 
 	return []string{suggestion}
@@ -66,11 +69,13 @@ func ParseTime(now time.Time, str *string) (*TimeOrRelative, error) {
 		return nil, nil
 	}
 
-	if t := parseRelativeTime(now, *str); t != nil {
+	trimmedString := strings.Trim(*str, " ")
+
+	if t := parseRelativeTime(now, trimmedString); t != nil {
 		return t, nil
 	}
 
-	absoluteTime, err := time.Parse(time.RFC3339, *str)
+	absoluteTime, err := time.Parse(time.RFC3339, trimmedString)
 	if err != nil {
 		return nil, fmt.Errorf("invalid timestamp, time must either be relative (1m, 5h, etc) or in RFC3339 format: %s", time.RFC3339)
 	}

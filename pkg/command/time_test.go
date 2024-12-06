@@ -37,6 +37,14 @@ func TestParseTime(t *testing.T) {
 			str:      now.Format(time.RFC3339),
 			expected: command.TimeOrRelative{T: &now},
 		},
+		{
+			name: "trims whitespace",
+			str:  "  1m  ",
+			expected: command.TimeOrRelative{
+				T:        pointers.From(now.Add(-time.Minute)),
+				Relative: pointers.From("1m"),
+			},
+		},
 	}
 
 	for _, tc := range tcs {
@@ -95,7 +103,7 @@ func TestTimeSuggestion(t *testing.T) {
 		{
 			name:     "empty string",
 			str:      "",
-			expected: []string{"2006-01-02T15:04:05Z07:00"},
+			expected: []string{"2006-01-02T15:04:05Z"},
 		},
 		{
 			name:     "< 60 int",
@@ -105,7 +113,12 @@ func TestTimeSuggestion(t *testing.T) {
 		{
 			name:     "match time format",
 			str:      "202",
-			expected: []string{"2026-01-02T15:04:05Z07:00"},
+			expected: []string{"2026-01-02T15:04:05Z"},
+		},
+		{
+			name:     "no suggestion if time is too long",
+			str:      "2026-01-02T15:04:05ZABC",
+			expected: []string{""},
 		},
 	}
 
