@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/renderinc/cli/pkg/pointers"
@@ -298,7 +297,7 @@ func StructFromFormValues(formValues FormValues, v any) error {
 	return nil
 }
 
-func HuhForm(cmd *cobra.Command, v any) (*huh.Form, FormValues) {
+func HuhFormFields(cmd *cobra.Command, v any) ([]huh.Field, FormValues) {
 	huhFieldMap := make(map[string]huh.Field)
 	formValues := FormValuesFromStruct(v)
 
@@ -315,9 +314,9 @@ func HuhForm(cmd *cobra.Command, v any) (*huh.Form, FormValues) {
 		}
 
 		// We have to wrap the description because of this bug in lipgloss: https://github.com/charmbracelet/lipgloss/issues/85
-		// It's unfortunate to set a default width of 55, but this should work with our current
+		// It's unfortunate to set a default width of 53, but this should work with our current
 		// filter component. We can adjust if needed.
-		wrappedDescription := ansi.Wrap(flag.Usage, 55, "-")
+		wrappedDescription := ansi.Wrap(flag.Usage, 53, "-")
 
 		if flag.Value.Type() == EnumType {
 			enumFlag := flag.Value.(*CobraEnum)
@@ -347,7 +346,7 @@ func HuhForm(cmd *cobra.Command, v any) (*huh.Form, FormValues) {
 	})
 
 	// Order the fields in the form by the order they have in the struct
-	var huhFields []huh.Field
+	var fields []huh.Field
 	vtype := reflect.TypeOf(v).Elem()
 	for i := 0; i < vtype.NumField(); i++ {
 		// Get the field
@@ -357,19 +356,9 @@ func HuhForm(cmd *cobra.Command, v any) (*huh.Form, FormValues) {
 		cliTag := field.Tag.Get("cli")
 
 		if huhField, ok := huhFieldMap[cliTag]; ok {
-			huhFields = append(huhFields, huhField)
+			fields = append(fields, huhField)
 		}
 	}
 
-	// If no fields were created, return an empty form
-	if len(huhFields) == 0 {
-		return huh.NewForm(), formValues
-	}
-
-	keyMap := huh.NewDefaultKeyMap()
-	keyMap.Input.Next = key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next"))
-	keyMap.Select.Next = key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next"))
-	keyMap.MultiSelect.Next = key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next"))
-
-	return huh.NewForm(huh.NewGroup(huhFields...)).WithKeyMap(keyMap), formValues
+	return fields, formValues
 }

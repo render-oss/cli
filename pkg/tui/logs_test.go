@@ -7,7 +7,6 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/x/exp/teatest"
 	"github.com/renderinc/cli/pkg/client"
 	lclient "github.com/renderinc/cli/pkg/client/logs"
@@ -18,10 +17,6 @@ import (
 )
 
 func TestNewLogModel(t *testing.T) {
-	filter := tui.NewFilterModel(huh.NewForm(huh.NewGroup(huh.NewInput())), func(form *huh.Form) tea.Cmd {
-		return nil
-	})
-
 	t.Run("Displays logs", func(t *testing.T) {
 		loadFunc := func(_ context.Context, _ any) (*tui.LogResult, error) {
 			return &tui.LogResult{
@@ -40,10 +35,11 @@ func TestNewLogModel(t *testing.T) {
 			}, nil
 		}
 
-		m := tui.NewLogModel(filter, command.LoadCmd(context.Background(), loadFunc, nil))
-		tm := teatest.NewTestModel(t, testhelper.Stackify(m))
+		m := tui.NewLogModel(command.LoadCmd(context.Background(), loadFunc, nil))
+		m.SetWidth(80)
+		m.SetHeight(24)
 
-		tm.Send(tea.WindowSizeMsg{Width: 80, Height: 24})
+		tm := teatest.NewTestModel(t, testhelper.Stackify(m))
 
 		teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
 			return bytes.Contains(bts, []byte("Hello, world!")) && bytes.Contains(bts, []byte("Goodbye, world!"))
@@ -73,10 +69,11 @@ func TestNewLogModel(t *testing.T) {
 			}, nil
 		}
 
-		m := tui.NewLogModel(filter, command.LoadCmd(context.Background(), loadFunc, nil))
-		tm := teatest.NewTestModel(t, testhelper.Stackify(m))
+		m := tui.NewLogModel(command.LoadCmd(context.Background(), loadFunc, nil))
+		m.SetWidth(80)
+		m.SetHeight(24)
 
-		tm.Send(tea.WindowSizeMsg{Width: 80, Height: 24})
+		tm := teatest.NewTestModel(t, testhelper.Stackify(m))
 
 		teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
 			return bytes.Contains(bts, []byte("Hello, world!")) && bytes.Contains(bts, []byte("Goodbye, world!"))
@@ -111,10 +108,11 @@ func TestNewLogModel(t *testing.T) {
 			}, nil
 		}
 
-		m := tui.NewLogModel(filter, command.LoadCmd(context.Background(), loadFunc, nil))
-		tm := teatest.NewTestModel(t, testhelper.Stackify(m))
+		m := tui.NewLogModel(command.LoadCmd(context.Background(), loadFunc, nil))
+		m.SetWidth(100)
+		m.SetHeight(24)
 
-		tm.Send(tea.WindowSizeMsg{Width: 100, Height: 24})
+		tm := teatest.NewTestModel(t, testhelper.Stackify(m))
 
 		teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
 			return bytes.Contains(bts, []byte("Hello, world!")) && bytes.Contains(bts, []byte("Websocket connection closed, no more logs will be displayed. Press 'r' to reload."))
@@ -140,10 +138,11 @@ func TestNewLogModel(t *testing.T) {
 				}, nil
 			}
 
-			m := tui.NewLogModel(filter, command.LoadCmd(context.Background(), loadFunc, nil))
-			tm := teatest.NewTestModel(t, testhelper.Stackify(m))
+			m := tui.NewLogModel(command.LoadCmd(context.Background(), loadFunc, nil))
+			m.SetWidth(80)
+			m.SetHeight(24)
 
-			tm.Send(tea.WindowSizeMsg{Width: 80, Height: 24})
+			tm := teatest.NewTestModel(t, testhelper.Stackify(m))
 
 			teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
 				return bytes.Contains(bts, []byte("No logs to show."))
@@ -161,10 +160,11 @@ func TestNewLogModel(t *testing.T) {
 				}, nil
 			}
 
-			m := tui.NewLogModel(filter, command.LoadCmd(context.Background(), loadFunc, nil))
-			tm := teatest.NewTestModel(t, testhelper.Stackify(m))
+			m := tui.NewLogModel(command.LoadCmd(context.Background(), loadFunc, nil))
+			m.SetWidth(80)
+			m.SetHeight(24)
 
-			tm.Send(tea.WindowSizeMsg{Width: 100, Height: 24})
+			tm := teatest.NewTestModel(t, testhelper.Stackify(m))
 
 			teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
 				return bytes.Contains(bts, []byte("No logs to show. New log entries that match your search parameters will appear here."))

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 
 	"github.com/renderinc/cli/pkg/client"
@@ -47,7 +48,7 @@ func NewJobCreateView(
 	createJob func(ctx context.Context, input JobCreateInput) (*clientjob.Job, error),
 	action func(j *clientjob.Job) tea.Cmd,
 ) *JobCreateView {
-	form, values := command.HuhForm(cobraCmd, input)
+	fields, values := command.HuhFormFields(cobraCmd, input)
 
 	return &JobCreateView{
 		formAction: tui.NewFormWithAction(
@@ -62,7 +63,7 @@ func NewJobCreateView(
 					return command.LoadCmd(ctx, createJob, createJobInput)()
 				},
 			),
-			form,
+			huh.NewForm(huh.NewGroup(fields...)),
 		),
 	}
 }

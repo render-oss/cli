@@ -3,6 +3,7 @@ package command_test
 import (
 	"testing"
 
+	"github.com/charmbracelet/huh"
 	"github.com/renderinc/cli/pkg/command"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
@@ -84,7 +85,8 @@ func TestHuhForm(t *testing.T) {
 		cmd.Flags().String("foo", "", "")
 		cmd.Flags().Int("bar", 0, "")
 
-		form, _ := command.HuhForm(&cmd, &v)
+		fields, _ := command.HuhFormFields(&cmd, &v)
+		form := huh.NewForm(huh.NewGroup(fields...))
 		form.Init()()
 
 		require.Contains(t, form.View(), "foo")
@@ -107,7 +109,8 @@ func TestHuhForm(t *testing.T) {
 		barInput := command.NewEnumInput([]string{"single choice 1", "single choice 2", "single choice 3"}, false)
 		cmd.Flags().Var(barInput, "bar", "")
 
-		form, _ := command.HuhForm(&cmd, &v)
+		fields, _ := command.HuhFormFields(&cmd, &v)
+		form := huh.NewForm(huh.NewGroup(fields...))
 		form.Init()
 
 		require.Contains(t, form.View(), "multi choice 3")

@@ -14,14 +14,6 @@ import (
 	lclient "github.com/renderinc/cli/pkg/client/logs"
 )
 
-const (
-	searchWidth = 60
-)
-
-var viewportSylte = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, false, true, false)
-var logStyle = lipgloss.NewStyle().Padding(1, 2, 2, 0)
-var filterStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, true, false, false)
-
 type LogResult struct {
 	Logs       *client.Logs200Response
 	LogChannel <-chan *lclient.Log
@@ -29,15 +21,13 @@ type LogResult struct {
 
 type LoadFunc func() (*client.Logs200Response, <-chan *lclient.Log, error)
 
-func NewLogModel(filter *FilterModel, loadFunc TypedCmd[*LogResult]) *LogModel {
+func NewLogModel(loadFunc TypedCmd[*LogResult]) *LogModel {
 	return &LogModel{
-		help:        help.New(),
-		loadFunc:    loadFunc,
-		searching:   false,
-		filterModel: filter,
-		scrollBar:   NewScrollBarModel(1, 0),
-		viewport:    viewport.New(0, 0),
-		state:       logStateLoading,
+		help:      help.New(),
+		loadFunc:  loadFunc,
+		scrollBar: NewScrollBarModel(1, 0),
+		viewport:  viewport.New(0, 0),
+		state:     logStateLoading,
 	}
 }
 
@@ -49,18 +39,16 @@ const (
 )
 
 type LogModel struct {
-	loadFunc    TypedCmd[*LogResult]
-	content     []string
-	state       logState
-	viewport    viewport.Model
-	scrollBar   *ScrollBarModel
-	filterModel *FilterModel
-	help        help.Model
+	loadFunc  TypedCmd[*LogResult]
+	content   []string
+	state     logState
+	viewport  viewport.Model
+	scrollBar *ScrollBarModel
+	help      help.Model
 
 	windowWidth  int
 	windowHeight int
 	top          int
-	searching    bool
 
 	logChan <-chan *lclient.Log
 }
@@ -100,7 +88,7 @@ func (m *LogModel) readFromChannel(ch <-chan *lclient.Log) tea.Cmd {
 }
 
 func (m *LogModel) Init() tea.Cmd {
-	return tea.Batch(m.loadFunc.Unwrap(), m.filterModel.Init(), m.scrollBar.Init(), tea.WindowSize())
+	return tea.Batch(m.loadFunc.Unwrap(), m.scrollBar.Init(), tea.WindowSize())
 }
 
 func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -110,13 +98,8 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	// Handle keyboard and mouse events in the viewport
-	if m.searching {
-		m.filterModel, cmd = m.filterModel.Update(msg)
-		cmds = append(cmds, cmd)
-	} else {
-		m.viewport, cmd = m.viewport.Update(msg)
-		cmds = append(cmds, cmd)
-	}
+	m.viewport, cmd = m.viewport.Update(msg)
+	cmds = append(cmds, cmd)
 
 	switch msg := msg.(type) {
 	case LoadDataMsg[*LogResult]:
@@ -149,18 +132,10 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		default:
-			if k := msg.String(); k == "/" {
-				m.searching = !m.searching
-				m.setViewPortSize()
-			} else if k == "r" && m.logChan == nil {
+			if k := msg.String(); k == "r" && m.logChan == nil {
 				cmds = append(cmds, tea.Batch(m.loadFunc.Unwrap()))
 			}
 		}
-	case StackSizeMsg:
-		m.windowWidth = msg.Width
-		m.windowHeight = msg.Height
-		m.top = msg.Top
-		m.setViewPortSize()
 	}
 
 	m.scrollBar.ScrollPercent(m.viewport.ScrollPercent())
@@ -171,30 +146,35 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+func (m *LogModel) SetWidth(width int) {
+	m.windowWidth = width
+	m.setViewPortSize()
+}
+
+func (m *LogModel) SetHeight(height int) {
+	m.windowHeight = height
+	m.setViewPortSize()
+}
+
 func (m *LogModel) setViewPortSize() {
-	stylingHeight := logStyle.GetPaddingTop() + logStyle.GetPaddingBottom() + logStyle.GetBorderTopSize() + logStyle.GetBorderBottomSize()
-	stylingWidth := logStyle.GetPaddingRight() + logStyle.GetPaddingLeft() + logStyle.GetBorderLeftSize() + logStyle.GetBorderRightSize()
-	searchWindowWidth := min(searchWidth, m.windowWidth)
 	scrollBarWidth := 1
 
-	m.viewport.Height = m.windowHeight - stylingHeight - m.top
-	m.viewport.YPosition = stylingHeight + m.top
-	if m.searching {
-		m.viewport.Width = m.windowWidth - searchWindowWidth - stylingWidth - scrollBarWidth
-		m.filterModel.SetWidth(searchWindowWidth)
-		m.filterModel.SetHeight(m.top, m.viewport.Height)
-	} else {
-		m.viewport.Width = m.windowWidth - stylingWidth - scrollBarWidth
-	}
+	m.viewport.Height = m.windowHeight
+	m.viewport.YPosition = 0
+	m.viewport.Width = m.windowWidth - scrollBarWidth
 
 	m.scrollBar.SetHeight(m.viewport.Height - 1)
+}
+
+func (m *LogModel) KeyBinds() []key.Binding {
+	return (&keyMapWrapper{m.viewport.KeyMap}).ShortHelp()
 }
 
 func (m *LogModel) View() string {
 	if m.state != logStateLoaded {
 		return "\n  Loading Logs..."
 	}
-	logContent := viewportSylte.Render(m.viewport.View())
+	logContent := m.viewport.View()
 
 	if m.content == nil || len(m.content) == 0 {
 		emptyStateMessage := "No logs to show."
@@ -204,17 +184,11 @@ func (m *LogModel) View() string {
 		logContent = lipgloss.Place(m.viewport.Width, m.viewport.Height, lipgloss.Center, lipgloss.Center, emptyStateMessage)
 	}
 
-	logView := logStyle.Render(
-		lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			lipgloss.JoinVertical(lipgloss.Left, logContent, m.help.View(&keyMapWrapper{m.viewport.KeyMap})),
-			m.scrollBar.View(),
-		),
+	logView := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		logContent,
+		m.scrollBar.View(),
 	)
-
-	if m.searching {
-		return lipgloss.JoinHorizontal(lipgloss.Center, filterStyle.Render(m.filterModel.View()), logView)
-	}
 
 	return logView
 }

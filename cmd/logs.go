@@ -20,7 +20,7 @@ import (
 	"github.com/renderinc/cli/pkg/tui/views"
 )
 
-var logsCmd = &cobra.Command{
+var LogsCmd = &cobra.Command{
 	Use:   "logs",
 	Short: "View logs for services and datastores",
 	Long: `View logs for services and datastores.
@@ -33,7 +33,7 @@ In interactive mode you can update the filters and view logs in real time.`,
 }
 
 func filterLogs(ctx context.Context, in views.LogInput, breadcrumb string) tea.Cmd {
-	return command.AddToStackFunc(ctx, logsCmd, breadcrumb, &in, views.NewLogsView(ctx, logsCmd, filterLogs, in))
+	return command.AddToStackFunc(ctx, LogsCmd, breadcrumb, &in, views.NewLogsView(ctx, LogsCmd, filterLogs, in, views.LoadLogData))
 }
 
 func writeLog(format command.Output, out io.Writer, log *lclient.Log) error {
@@ -97,10 +97,10 @@ func TailResourceLogs(ctx context.Context, resourceID string) tea.Cmd {
 func InteractiveLogs(ctx context.Context, input views.LogInput, breadcrumb string) tea.Cmd {
 	return command.AddToStackFunc(
 		ctx,
-		logsCmd,
+		LogsCmd,
 		breadcrumb,
 		&input,
-		views.NewLogsView(ctx, logsCmd, filterLogs, input, tui.WithCustomOptions[resource.Resource](getLogsOptions(ctx, breadcrumb))),
+		views.NewLogsView(ctx, LogsCmd, filterLogs, input, views.LoadLogData, tui.WithCustomOptions[resource.Resource](getLogsOptions(ctx, breadcrumb))),
 	)
 }
 
@@ -128,7 +128,7 @@ func init() {
 		"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "CONNECT", "TRACE",
 	}, true)
 
-	logsCmd.RunE = func(cmd *cobra.Command, args []string) error {
+	LogsCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input views.LogInput
 		err := command.ParseCommand(cmd, args, &input)
 		if err != nil {
@@ -144,29 +144,29 @@ func init() {
 		return nil
 	}
 
-	logsCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+	LogsCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		// Resources flag is required in non-interactive mode
 		format := command.GetFormatFromContext(cmd.Context())
 		if format != nil && *format != command.Interactive {
-			return logsCmd.MarkFlagRequired("resources")
+			return LogsCmd.MarkFlagRequired("resources")
 		}
 		return nil
 	}
 
-	rootCmd.AddCommand(logsCmd)
+	rootCmd.AddCommand(LogsCmd)
 
-	logsCmd.Flags().StringSliceP("resources", "r", []string{}, "A list of comma separated resource IDs to query. Required in non-interactive mode.")
-	logsCmd.Flags().String("start", "", "The start time of the logs to query")
-	logsCmd.Flags().String("end", "", "The end time of the logs to query")
-	logsCmd.Flags().StringSlice("text", []string{}, "A list of comma separated strings to search for in the logs")
-	logsCmd.Flags().Var(levelFlag, "level", "A list of comma separated log levels to query")
-	logsCmd.Flags().Var(logTypeFlag, "type", "A list of comma separated log types to query")
-	logsCmd.Flags().StringSlice("instance", []string{}, "A list of comma separated instance IDs to query")
-	logsCmd.Flags().StringSlice("host", []string{}, "A list of comma separated hosts to query")
-	logsCmd.Flags().StringSlice("status-code", []string{}, "A list of comma separated status codes to query")
-	logsCmd.Flags().Var(methodTypeFlag, "method", "A list of comma separated HTTP methods to query")
-	logsCmd.Flags().StringSlice("path", []string{}, "A list of comma separated paths to query")
-	logsCmd.Flags().Int("limit", 100, "The maximum number of logs to return")
-	logsCmd.Flags().Var(directionFlag, "direction", "The direction to query the logs. Can be 'forward' or 'backward'")
-	logsCmd.Flags().Bool("tail", false, "Stream new logs")
+	LogsCmd.Flags().StringSliceP("resources", "r", []string{}, "A list of comma separated resource IDs to query. Required in non-interactive mode.")
+	LogsCmd.Flags().String("start", "", "The start time of the logs to query")
+	LogsCmd.Flags().String("end", "", "The end time of the logs to query")
+	LogsCmd.Flags().StringSlice("text", []string{}, "A list of comma separated strings to search for in the logs")
+	LogsCmd.Flags().Var(levelFlag, "level", "A list of comma separated log levels to query")
+	LogsCmd.Flags().Var(logTypeFlag, "type", "A list of comma separated log types to query")
+	LogsCmd.Flags().StringSlice("instance", []string{}, "A list of comma separated instance IDs to query")
+	LogsCmd.Flags().StringSlice("host", []string{}, "A list of comma separated hosts to query")
+	LogsCmd.Flags().StringSlice("status-code", []string{}, "A list of comma separated status codes to query")
+	LogsCmd.Flags().Var(methodTypeFlag, "method", "A list of comma separated HTTP methods to query")
+	LogsCmd.Flags().StringSlice("path", []string{}, "A list of comma separated paths to query")
+	LogsCmd.Flags().Int("limit", 100, "The maximum number of logs to return")
+	LogsCmd.Flags().Var(directionFlag, "direction", "The direction to query the logs. Can be 'forward' or 'backward'")
+	LogsCmd.Flags().Bool("tail", false, "Stream new logs")
 }

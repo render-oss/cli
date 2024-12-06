@@ -2,7 +2,6 @@ package tui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
 )
 
 type FormAction[T any] struct {
@@ -42,10 +41,10 @@ func (fa *FormAction[T]) View() string {
 type FormWithAction[T any] struct {
 	done       bool
 	formAction FormAction[T]
-	huhForm    *huh.Form
+	huhForm    tea.Model
 }
 
-func NewFormWithAction[T any](action FormAction[T], form *huh.Form) *FormWithAction[T] {
+func NewFormWithAction[T any](action FormAction[T], form tea.Model) *FormWithAction[T] {
 	return &FormWithAction[T]{
 		formAction: action,
 		huhForm:    form,
