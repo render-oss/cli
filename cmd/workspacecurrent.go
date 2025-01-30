@@ -5,10 +5,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/command"
-	"github.com/renderinc/cli/pkg/config"
-	"github.com/renderinc/cli/pkg/owner"
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/owner"
 )
 
 var workspaceCurrentCmd = &cobra.Command{

@@ -3,7 +3,7 @@ package helpers
 import (
 	"io"
 
-	"github.com/renderinc/cli/cmd"
+	"github.com/render-oss/cli/cmd"
 )
 
 func RunCommand(args []string) io.Reader {

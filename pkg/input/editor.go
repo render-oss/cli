@@ -3,7 +3,7 @@ package input
 import (
 	"os"
 
-	"github.com/renderinc/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/command"
 )
 
 func OpenEditorForInput(tmpFileName string, content string) (string, error) {

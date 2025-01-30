@@ -9,7 +9,7 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/renderinc/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )

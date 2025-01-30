@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/environment"
-	"github.com/renderinc/cli/pkg/input"
-	"github.com/renderinc/cli/pkg/project"
-	"github.com/renderinc/cli/pkg/service"
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/environment"
+	"github.com/render-oss/cli/pkg/input"
+	"github.com/render-oss/cli/pkg/project"
+	"github.com/render-oss/cli/pkg/service"
 	"github.com/spf13/cobra"
 )
 

@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/renderinc/cli/pkg/tui/layouts"
-	"github.com/renderinc/cli/pkg/tui/testhelper"
+	"github.com/render-oss/cli/pkg/tui/layouts"
+	"github.com/render-oss/cli/pkg/tui/testhelper"
 	"github.com/stretchr/testify/require"
 )
 

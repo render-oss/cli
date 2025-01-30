@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/renderinc/cli/pkg/user"
+	"github.com/render-oss/cli/pkg/user"
 	"github.com/spf13/cobra"
 
-	"github.com/renderinc/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/client"
 )
 
 var whoamiCmd = &cobra.Command{

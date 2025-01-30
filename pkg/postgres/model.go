@@ -1,7 +1,7 @@
 package postgres
 
 import (
-	"github.com/renderinc/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/client"
 )
 
 const PostgresType = "Postgres"

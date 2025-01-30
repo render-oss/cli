@@ -8,12 +8,12 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 
-	"github.com/renderinc/cli/pkg/client"
-	clientjob "github.com/renderinc/cli/pkg/client/jobs"
-	"github.com/renderinc/cli/pkg/command"
-	"github.com/renderinc/cli/pkg/job"
-	"github.com/renderinc/cli/pkg/pointers"
-	"github.com/renderinc/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/client"
+	clientjob "github.com/render-oss/cli/pkg/client/jobs"
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/job"
+	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/tui"
 )
 
 type JobCreateInput struct {

@@ -6,10 +6,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/renderinc/cli/pkg/command"
-	"github.com/renderinc/cli/pkg/resource"
-	"github.com/renderinc/cli/pkg/text"
-	"github.com/renderinc/cli/pkg/tui/views"
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/resource"
+	"github.com/render-oss/cli/pkg/text"
+	"github.com/render-oss/cli/pkg/tui/views"
 )
 
 var restartCmd = &cobra.Command{

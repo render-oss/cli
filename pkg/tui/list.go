@@ -5,7 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 
-	renderstyle "github.com/renderinc/cli/pkg/style"
+	renderstyle "github.com/render-oss/cli/pkg/style"
 )
 
 type ListItem interface {

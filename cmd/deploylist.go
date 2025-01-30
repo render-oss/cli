@@ -7,13 +7,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/command"
-	"github.com/renderinc/cli/pkg/dashboard"
-	"github.com/renderinc/cli/pkg/deploy"
-	"github.com/renderinc/cli/pkg/resource"
-	"github.com/renderinc/cli/pkg/text"
-	"github.com/renderinc/cli/pkg/tui/views"
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dashboard"
+	"github.com/render-oss/cli/pkg/deploy"
+	"github.com/render-oss/cli/pkg/resource"
+	"github.com/render-oss/cli/pkg/text"
+	"github.com/render-oss/cli/pkg/tui/views"
 )
 
 var deployListCmd = &cobra.Command{

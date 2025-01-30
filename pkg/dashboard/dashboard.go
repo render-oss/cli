@@ -5,10 +5,10 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/renderinc/cli/pkg/config"
-	"github.com/renderinc/cli/pkg/postgres"
-	"github.com/renderinc/cli/pkg/redis"
-	"github.com/renderinc/cli/pkg/service"
+	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/postgres"
+	"github.com/render-oss/cli/pkg/redis"
+	"github.com/render-oss/cli/pkg/service"
 )
 
 func Open(url string) error {

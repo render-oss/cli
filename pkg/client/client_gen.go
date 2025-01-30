@@ -17,15 +17,15 @@ import (
 	"strings"
 
 	"github.com/oapi-codegen/runtime"
-	externalRef0 "github.com/renderinc/cli/pkg/client/autoscaling"
-	externalRef1 "github.com/renderinc/cli/pkg/client/blueprints"
-	externalRef2 "github.com/renderinc/cli/pkg/client/disks"
-	externalRef4 "github.com/renderinc/cli/pkg/client/jobs"
-	externalRef5 "github.com/renderinc/cli/pkg/client/logs"
-	externalRef6 "github.com/renderinc/cli/pkg/client/maintenance"
-	externalRef7 "github.com/renderinc/cli/pkg/client/metrics"
-	externalRef8 "github.com/renderinc/cli/pkg/client/notifications"
-	externalRef9 "github.com/renderinc/cli/pkg/client/postgres"
+	externalRef0 "github.com/render-oss/cli/pkg/client/autoscaling"
+	externalRef1 "github.com/render-oss/cli/pkg/client/blueprints"
+	externalRef2 "github.com/render-oss/cli/pkg/client/disks"
+	externalRef4 "github.com/render-oss/cli/pkg/client/jobs"
+	externalRef5 "github.com/render-oss/cli/pkg/client/logs"
+	externalRef6 "github.com/render-oss/cli/pkg/client/maintenance"
+	externalRef7 "github.com/render-oss/cli/pkg/client/metrics"
+	externalRef8 "github.com/render-oss/cli/pkg/client/notifications"
+	externalRef9 "github.com/render-oss/cli/pkg/client/postgres"
 )
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
