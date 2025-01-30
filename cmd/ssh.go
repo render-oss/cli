@@ -3,15 +3,15 @@ package cmd
 import (
 	"context"
 
-	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/service"
-	"github.com/renderinc/cli/pkg/tui"
-	"github.com/renderinc/cli/pkg/tui/views"
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/service"
+	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/tui/views"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/renderinc/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/command"
 )
 
 // sshCmd represents the ssh command

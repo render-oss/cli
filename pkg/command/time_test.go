@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/renderinc/cli/pkg/command"
-	"github.com/renderinc/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/pointers"
 )
 
 func TestParseTime(t *testing.T) {

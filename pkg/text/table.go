@@ -3,10 +3,10 @@ package text
 import (
 	"github.com/jedib0t/go-pretty/table"
 
-	"github.com/renderinc/cli/pkg/client"
-	clientjob "github.com/renderinc/cli/pkg/client/jobs"
-	"github.com/renderinc/cli/pkg/deploy"
-	"github.com/renderinc/cli/pkg/resource"
+	"github.com/render-oss/cli/pkg/client"
+	clientjob "github.com/render-oss/cli/pkg/client/jobs"
+	"github.com/render-oss/cli/pkg/deploy"
+	"github.com/render-oss/cli/pkg/resource"
 )
 
 func ResourceTable(v []resource.Resource) string {

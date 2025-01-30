@@ -9,9 +9,9 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/renderinc/cli/pkg/client"
-	lclient "github.com/renderinc/cli/pkg/client/logs"
-	"github.com/renderinc/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/client"
+	lclient "github.com/render-oss/cli/pkg/client/logs"
+	"github.com/render-oss/cli/pkg/config"
 )
 
 func NewLogRepo(c *client.ClientWithResponses) *LogRepo {

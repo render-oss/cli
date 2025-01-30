@@ -8,15 +8,15 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/renderinc/cli/pkg/resource/util"
+	"github.com/render-oss/cli/pkg/resource/util"
 
-	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/environment"
-	"github.com/renderinc/cli/pkg/pointers"
-	"github.com/renderinc/cli/pkg/postgres"
-	"github.com/renderinc/cli/pkg/project"
-	"github.com/renderinc/cli/pkg/redis"
-	"github.com/renderinc/cli/pkg/service"
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/environment"
+	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/postgres"
+	"github.com/render-oss/cli/pkg/project"
+	"github.com/render-oss/cli/pkg/redis"
+	"github.com/render-oss/cli/pkg/service"
 )
 
 const redisResourceIDPrefix = "red-"

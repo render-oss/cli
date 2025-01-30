@@ -10,10 +10,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/command"
-	"github.com/renderinc/cli/pkg/postgres"
-	"github.com/renderinc/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/postgres"
+	"github.com/render-oss/cli/pkg/tui"
 )
 
 type PSQLTool string

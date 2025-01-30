@@ -9,8 +9,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/renderinc/cli/pkg/config"
-	renderstyle "github.com/renderinc/cli/pkg/style"
+	"github.com/render-oss/cli/pkg/config"
+	renderstyle "github.com/render-oss/cli/pkg/style"
 )
 
 type UserFacingError struct {

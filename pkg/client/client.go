@@ -9,9 +9,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/renderinc/cli/pkg/cfg"
-	"github.com/renderinc/cli/pkg/client/oauth"
-	"github.com/renderinc/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/cfg"
+	"github.com/render-oss/cli/pkg/client/oauth"
+	"github.com/render-oss/cli/pkg/config"
 )
 
 var ErrUnauthorized = errors.New("unauthorized")
@@ -27,7 +27,7 @@ func NewDefaultClient() (*ClientWithResponses, error) {
 }
 
 func maybeRefreshAPIToken(apiCfg config.APIConfig) config.APIConfig {
-	expiresSoonThreshold := time.Now().Add(24*time.Hour).Unix()
+	expiresSoonThreshold := time.Now().Add(24 * time.Hour).Unix()
 
 	if apiCfg.ExpiresAt > 0 && apiCfg.ExpiresAt < expiresSoonThreshold && apiCfg.RefreshToken != "" {
 		updatedConfig, err := refreshAPIKey(apiCfg)

@@ -1,6 +1,6 @@
 package job
 
-import client "github.com/renderinc/cli/pkg/client/jobs"
+import client "github.com/render-oss/cli/pkg/client/jobs"
 
 // IsCancellable returns true if the job is cancellable. JobStatus only contains terminal values, so
 // a nil value indicates that the job is cancellable.

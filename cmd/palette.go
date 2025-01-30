@@ -4,8 +4,8 @@ import (
 	"context"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/renderinc/cli/pkg/command"
-	"github.com/renderinc/cli/pkg/tui/views"
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/tui/views"
 )
 
 func InteractivePalette(ctx context.Context, commands []views.PaletteCommand, breadcrumb string) tea.Cmd {

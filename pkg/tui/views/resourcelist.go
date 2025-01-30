@@ -7,13 +7,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
 
-	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/command"
-	"github.com/renderinc/cli/pkg/config"
-	"github.com/renderinc/cli/pkg/project"
-	"github.com/renderinc/cli/pkg/resource"
-	resourcetui "github.com/renderinc/cli/pkg/resource/tui"
-	"github.com/renderinc/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/project"
+	"github.com/render-oss/cli/pkg/resource"
+	resourcetui "github.com/render-oss/cli/pkg/resource/tui"
+	"github.com/render-oss/cli/pkg/tui"
 )
 
 type ListResourceInput struct {

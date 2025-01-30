@@ -3,9 +3,9 @@ package layouts_test
 import (
 	"testing"
 
-	"github.com/renderinc/cli/pkg/tui"
-	"github.com/renderinc/cli/pkg/tui/layouts"
-	"github.com/renderinc/cli/pkg/tui/testhelper"
+	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/tui/layouts"
+	"github.com/render-oss/cli/pkg/tui/testhelper"
 	"github.com/stretchr/testify/require"
 )
 

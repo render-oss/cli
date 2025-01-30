@@ -8,11 +8,11 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/exp/teatest"
-	"github.com/renderinc/cli/pkg/client"
-	lclient "github.com/renderinc/cli/pkg/client/logs"
-	"github.com/renderinc/cli/pkg/command"
-	"github.com/renderinc/cli/pkg/tui"
-	"github.com/renderinc/cli/pkg/tui/testhelper"
+	"github.com/render-oss/cli/pkg/client"
+	lclient "github.com/render-oss/cli/pkg/client/logs"
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/tui/testhelper"
 	"github.com/stretchr/testify/require"
 )
 

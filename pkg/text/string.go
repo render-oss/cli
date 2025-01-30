@@ -3,8 +3,8 @@ package text
 import (
 	"fmt"
 
-	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/deploy"
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/deploy"
 )
 
 func FormatString(s string) string {

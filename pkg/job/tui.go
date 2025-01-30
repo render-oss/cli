@@ -2,10 +2,10 @@ package job
 
 import (
 	"github.com/charmbracelet/lipgloss"
-	clientjob "github.com/renderinc/cli/pkg/client/jobs"
-	"github.com/renderinc/cli/pkg/pointers"
-	rstrings "github.com/renderinc/cli/pkg/strings"
-	"github.com/renderinc/cli/pkg/style"
+	clientjob "github.com/render-oss/cli/pkg/client/jobs"
+	"github.com/render-oss/cli/pkg/pointers"
+	rstrings "github.com/render-oss/cli/pkg/strings"
+	"github.com/render-oss/cli/pkg/style"
 )
 
 type ListItem struct {

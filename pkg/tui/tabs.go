@@ -3,7 +3,7 @@ package tui
 import (
 	"strings"
 
-	renderstyle "github.com/renderinc/cli/pkg/style"
+	renderstyle "github.com/render-oss/cli/pkg/style"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"

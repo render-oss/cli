@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/deploy"
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/deploy"
 )
 
 func TestIsComplete(t *testing.T) {

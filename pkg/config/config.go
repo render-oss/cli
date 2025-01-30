@@ -8,7 +8,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/renderinc/cli/pkg/cfg"
+	"github.com/render-oss/cli/pkg/cfg"
 )
 
 const currentVersion = 1
@@ -34,9 +34,9 @@ type Config struct {
 }
 
 type APIConfig struct {
-	Key  string `yaml:"key,omitempty"`
-	ExpiresAt int64 `yaml:"expires_at,omitempty"`
-	Host string `json:"host,omitempty"`
+	Key          string `yaml:"key,omitempty"`
+	ExpiresAt    int64  `yaml:"expires_at,omitempty"`
+	Host         string `json:"host,omitempty"`
 	RefreshToken string `json:"refresh_token,omitempty"`
 }
 

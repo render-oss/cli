@@ -6,13 +6,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
 
-	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/command"
-	"github.com/renderinc/cli/pkg/environment"
-	"github.com/renderinc/cli/pkg/project"
-	"github.com/renderinc/cli/pkg/redis"
-	redistui "github.com/renderinc/cli/pkg/redis/tui"
-	"github.com/renderinc/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/environment"
+	"github.com/render-oss/cli/pkg/project"
+	"github.com/render-oss/cli/pkg/redis"
+	redistui "github.com/render-oss/cli/pkg/redis/tui"
+	"github.com/render-oss/cli/pkg/tui"
 )
 
 type RedisList struct {

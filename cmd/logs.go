@@ -11,13 +11,13 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/renderinc/cli/pkg/client"
-	lclient "github.com/renderinc/cli/pkg/client/logs"
-	"github.com/renderinc/cli/pkg/command"
-	"github.com/renderinc/cli/pkg/pointers"
-	"github.com/renderinc/cli/pkg/resource"
-	"github.com/renderinc/cli/pkg/tui"
-	"github.com/renderinc/cli/pkg/tui/views"
+	"github.com/render-oss/cli/pkg/client"
+	lclient "github.com/render-oss/cli/pkg/client/logs"
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/resource"
+	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/tui/views"
 )
 
 var LogsCmd = &cobra.Command{

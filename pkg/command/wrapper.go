@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/tui"
 )
 
 const ConfirmFlag = "confirm"

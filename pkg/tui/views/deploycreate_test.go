@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/renderinc/cli/pkg/client"
-	"github.com/renderinc/cli/pkg/tui/views"
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/tui/views"
 )
 
 func TestWaitForDeploy(t *testing.T) {

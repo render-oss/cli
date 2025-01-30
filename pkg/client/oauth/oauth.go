@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/renderinc/cli/pkg/cfg"
+	"github.com/render-oss/cli/pkg/cfg"
 )
 
 const cliOauthClientID = "429024F5E608930E2A65EF92591A25CC"
@@ -32,10 +32,10 @@ type GrantRequestBody struct {
 }
 
 type DeviceToken struct {
-	AccessToken           string `json:"access_token"`
-	TokenType             string `json:"token_type"`
-	ExpiresIn             int    `json:"expires_in"`
-	RefreshToken          string `json:"refresh_token"`
+	AccessToken  string `json:"access_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int    `json:"expires_in"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 type TokenRequestBody struct {
@@ -103,7 +103,7 @@ type RefreshTokenRequestBody struct {
 
 func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (*DeviceToken, error) {
 	body := &RefreshTokenRequestBody{
-		GrantType: "refresh_token",
+		GrantType:    "refresh_token",
 		RefreshToken: refreshToken,
 	}
 

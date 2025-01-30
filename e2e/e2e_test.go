@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/renderinc/cli/e2e/helpers"
+	"github.com/render-oss/cli/e2e/helpers"
 	"github.com/stretchr/testify/require"
 )
 
