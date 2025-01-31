@@ -6,6 +6,5 @@ package main
 import "github.com/render-oss/cli/cmd"
 
 func main() {
-	println("Hello world!")
 	cmd.Execute()
 }
