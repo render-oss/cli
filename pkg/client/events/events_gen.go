@@ -11,9 +11,10 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
-	externalRef0 "github.com/render-oss/cli/pkg/client/autoscaling"
-	externalRef2 "github.com/render-oss/cli/pkg/client/disks"
-	externalRef4 "github.com/render-oss/cli/pkg/client/jobs"
+	externalRef1 "github.com/render-oss/cli/pkg/client/autoscaling"
+	externalRef3 "github.com/render-oss/cli/pkg/client/disks"
+	externalRef5 "github.com/render-oss/cli/pkg/client/eventtypes"
+	externalRef6 "github.com/render-oss/cli/pkg/client/jobs"
 )
 
 // Defines values for CronJobRunStatus.
@@ -24,52 +25,10 @@ const (
 	Unsuccessful CronJobRunStatus = "unsuccessful"
 )
 
-// Defines values for EventType.
-const (
-	AutoscalingConfigChanged    EventType = "autoscaling_config_changed"
-	AutoscalingEnded            EventType = "autoscaling_ended"
-	AutoscalingStarted          EventType = "autoscaling_started"
-	BranchDeleted               EventType = "branch_deleted"
-	BuildEnded                  EventType = "build_ended"
-	BuildPlanChanged            EventType = "build_plan_changed"
-	BuildStarted                EventType = "build_started"
-	CommitIgnored               EventType = "commit_ignored"
-	CronJobRunEnded             EventType = "cron_job_run_ended"
-	CronJobRunStarted           EventType = "cron_job_run_started"
-	DeployEnded                 EventType = "deploy_ended"
-	DeployStarted               EventType = "deploy_started"
-	DiskCreated                 EventType = "disk_created"
-	DiskDeleted                 EventType = "disk_deleted"
-	DiskUpdated                 EventType = "disk_updated"
-	ImagePullFailed             EventType = "image_pull_failed"
-	InitialDeployHookEnded      EventType = "initial_deploy_hook_ended"
-	InitialDeployHookStarted    EventType = "initial_deploy_hook_started"
-	InstanceCountChanged        EventType = "instance_count_changed"
-	JobRunEnded                 EventType = "job_run_ended"
-	MaintenanceEnded            EventType = "maintenance_ended"
-	MaintenanceModeEnabled      EventType = "maintenance_mode_enabled"
-	MaintenanceModeUriUpdated   EventType = "maintenance_mode_uri_updated"
-	MaintenanceStarted          EventType = "maintenance_started"
-	PlanChanged                 EventType = "plan_changed"
-	PreDeployEnded              EventType = "pre_deploy_ended"
-	PreDeployStarted            EventType = "pre_deploy_started"
-	ServerAvailable             EventType = "server_available"
-	ServerFailed                EventType = "server_failed"
-	ServerHardwareFailure       EventType = "server_hardware_failure"
-	ServerRestarted             EventType = "server_restarted"
-	ServerUnhealthy             EventType = "server_unhealthy"
-	ServiceResumed              EventType = "service_resumed"
-	ServiceSuspended            EventType = "service_suspended"
-	SuspenderAdded              EventType = "suspender_added"
-	SuspenderRemoved            EventType = "suspender_removed"
-	ZeroDowntimeRedeployEnded   EventType = "zero_downtime_redeploy_ended"
-	ZeroDowntimeRedeployStarted EventType = "zero_downtime_redeploy_started"
-)
-
 // AutoscalingConfigChangedEvent defines model for autoscalingConfigChangedEvent.
 type AutoscalingConfigChangedEvent struct {
-	FromConfig *externalRef0.AutoscalingConfig `json:"fromConfig,omitempty"`
-	ToConfig   externalRef0.AutoscalingConfig  `json:"toConfig"`
+	FromConfig *externalRef1.AutoscalingConfig `json:"fromConfig,omitempty"`
+	ToConfig   externalRef1.AutoscalingConfig  `json:"toConfig"`
 }
 
 // AutoscalingEndedEvent defines model for autoscalingEndedEvent.
@@ -201,18 +160,18 @@ type DeployStartedEvent struct {
 
 // DiskCreatedEvent defines model for diskCreatedEvent.
 type DiskCreatedEvent struct {
-	DiskId externalRef2.DiskId `json:"diskId"`
+	DiskId externalRef3.DiskId `json:"diskId"`
 	SizeGB int                 `json:"sizeGB"`
 }
 
 // DiskDeletedEvent defines model for diskDeletedEvent.
 type DiskDeletedEvent struct {
-	DiskId externalRef2.DiskId `json:"diskId"`
+	DiskId externalRef3.DiskId `json:"diskId"`
 }
 
 // DiskUpdatedEvent defines model for diskUpdatedEvent.
 type DiskUpdatedEvent struct {
-	DiskId     externalRef2.DiskId `json:"diskId"`
+	DiskId     externalRef3.DiskId `json:"diskId"`
 	FromSizeGB int                 `json:"fromSizeGB"`
 	ToSizeGB   int                 `json:"toSizeGB"`
 }
@@ -221,9 +180,6 @@ type DiskUpdatedEvent struct {
 type EventDetails struct {
 	union json.RawMessage
 }
-
-// EventType defines model for eventType.
-type EventType string
 
 // FailureReason defines model for failureReason.
 type FailureReason struct {
@@ -259,9 +215,9 @@ type InstanceCountChangedEvent struct {
 
 // JobRunEndedEvent defines model for jobRunEndedEvent.
 type JobRunEndedEvent struct {
-	JobId  externalRef4.JobId     `json:"jobId"`
+	JobId  externalRef6.JobId     `json:"jobId"`
 	Reason *FailureReason         `json:"reason,omitempty"`
-	Status externalRef4.JobStatus `json:"status"`
+	Status externalRef6.JobStatus `json:"status"`
 }
 
 // MaintenanceEndedEvent defines model for maintenanceEndedEvent.
@@ -341,11 +297,11 @@ type ServerUnhealthyEvent = map[string]interface{}
 
 // ServiceEvent defines model for serviceEvent.
 type ServiceEvent struct {
-	Details   EventDetails `json:"details"`
-	Id        string       `json:"id"`
-	ServiceId string       `json:"serviceId"`
-	Timestamp time.Time    `json:"timestamp"`
-	Type      EventType    `json:"type"`
+	Details   EventDetails           `json:"details"`
+	Id        string                 `json:"id"`
+	ServiceId string                 `json:"serviceId"`
+	Timestamp time.Time              `json:"timestamp"`
+	Type      externalRef5.EventType `json:"type"`
 }
 
 // ServiceResumedEvent defines model for serviceResumedEvent.

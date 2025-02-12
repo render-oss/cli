@@ -6,8 +6,8 @@ import (
 	"runtime"
 
 	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/postgres"
-	"github.com/render-oss/cli/pkg/redis"
 	"github.com/render-oss/cli/pkg/service"
 )
 
@@ -57,7 +57,7 @@ func pathSegmentFromResourceType(resourceType string) string {
 		return "static"
 	case service.CronJobResourceType:
 		return "cron"
-	case redis.RedisType:
+	case keyvalue.KeyValueType:
 		return "r"
 	case postgres.PostgresType:
 		return "d"

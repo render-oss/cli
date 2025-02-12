@@ -9,9 +9,9 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/environment"
+	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/postgres"
 	"github.com/render-oss/cli/pkg/project"
-	"github.com/render-oss/cli/pkg/redis"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/tui"
@@ -31,16 +31,16 @@ func RestartResource(ctx context.Context, input RestartInput) (string, error) {
 	environmentRepo := environment.NewRepo(c)
 	projectRepo := project.NewRepo(c)
 	postgresRepo := postgres.NewRepo(c)
-	redisRepo := redis.NewRepo(c)
+	keyValueRepo := keyvalue.NewRepo(c)
 
 	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
 	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo)
-	redisService := redis.NewService(redisRepo, environmentRepo, projectRepo)
+	keyValueService := keyvalue.NewService(keyValueRepo, environmentRepo, projectRepo)
 
 	resourceService := resource.NewResourceService(
 		serviceService,
 		postgresService,
-		redisService,
+		keyValueService,
 		environmentRepo,
 		projectRepo,
 	)

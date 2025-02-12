@@ -8,14 +8,13 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/render-oss/cli/pkg/resource/util"
-
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/environment"
+	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/postgres"
 	"github.com/render-oss/cli/pkg/project"
-	"github.com/render-oss/cli/pkg/redis"
+	"github.com/render-oss/cli/pkg/resource/util"
 	"github.com/render-oss/cli/pkg/service"
 )
 
@@ -35,7 +34,7 @@ type Resource interface {
 type Service struct {
 	serviceService  *service.Service
 	postgresService *postgres.Service
-	redisService    *redis.Service
+	keyValueService *keyvalue.Service
 	environmentRepo *environment.Repo
 	projectRepo     *project.Repo
 }
@@ -50,26 +49,26 @@ func NewDefaultResourceService() (*Service, error) {
 	environmentRepo := environment.NewRepo(c)
 	projectRepo := project.NewRepo(c)
 	postgresRepo := postgres.NewRepo(c)
-	redisRepo := redis.NewRepo(c)
+	keyValueRepo := keyvalue.NewRepo(c)
 
 	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
 	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo)
-	redisService := redis.NewService(redisRepo, environmentRepo, projectRepo)
+	keyValueService := keyvalue.NewService(keyValueRepo, environmentRepo, projectRepo)
 
 	return NewResourceService(
 		serviceService,
 		postgresService,
-		redisService,
+		keyValueService,
 		environmentRepo,
 		projectRepo,
 	), nil
 }
 
-func NewResourceService(serviceService *service.Service, postgresService *postgres.Service, redisService *redis.Service, environmentRepo *environment.Repo, projectRepo *project.Repo) *Service {
+func NewResourceService(serviceService *service.Service, postgresService *postgres.Service, keyValueService *keyvalue.Service, environmentRepo *environment.Repo, projectRepo *project.Repo) *Service {
 	return &Service{
 		serviceService:  serviceService,
 		postgresService: postgresService,
-		redisService:    redisService,
+		keyValueService: keyValueService,
 		environmentRepo: environmentRepo,
 		projectRepo:     projectRepo,
 	}
@@ -102,6 +101,16 @@ func (r ResourceParams) ToPostgresParams() *client.ListPostgresParams {
 	}
 }
 
+func (r ResourceParams) ToKeyValueParams() *client.ListKeyValueParams {
+	if len(r.EnvironmentIDs) == 0 {
+		return &client.ListKeyValueParams{}
+	}
+
+	return &client.ListKeyValueParams{
+		EnvironmentId: pointers.From(r.EnvironmentIDs),
+	}
+}
+
 func (r ResourceParams) ToRedisParams() *client.ListRedisParams {
 	if len(r.EnvironmentIDs) == 0 {
 		return &client.ListRedisParams{}
@@ -115,7 +124,7 @@ func (r ResourceParams) ToRedisParams() *client.ListRedisParams {
 func (rs *Service) ListResources(ctx context.Context, params ResourceParams) ([]Resource, error) {
 	var services []*service.Model
 	var postgresDBs []*postgres.Model
-	var redisDBs []*redis.Model
+	var kvDBs []*keyvalue.Model
 	wg, _ := errgroup.WithContext(ctx)
 	wg.Go(func() error {
 		var err error
@@ -131,7 +140,7 @@ func (rs *Service) ListResources(ctx context.Context, params ResourceParams) ([]
 
 	wg.Go(func() error {
 		var err error
-		redisDBs, err = rs.redisService.ListRedis(ctx, params.ToRedisParams())
+		kvDBs, err = rs.keyValueService.ListKeyValue(ctx, params.ToKeyValueParams())
 		return err
 	})
 
@@ -150,7 +159,7 @@ func (rs *Service) ListResources(ctx context.Context, params ResourceParams) ([]
 		resources = append(resources, db)
 	}
 
-	for _, db := range redisDBs {
+	for _, db := range kvDBs {
 		resources = append(resources, db)
 	}
 
@@ -166,6 +175,10 @@ func (rs *Service) GetResource(ctx context.Context, id string) (Resource, error)
 
 	if strings.HasPrefix(id, postgresResourceIDPrefix) {
 		return rs.postgresService.GetPostgres(ctx, id)
+	}
+
+	if strings.HasPrefix(id, redisResourceIDPrefix) {
+		return rs.keyValueService.GetKeyValue(ctx, id)
 	}
 
 	return nil, errors.New("unknown resource type")
@@ -185,7 +198,7 @@ func (rs *Service) RestartResource(ctx context.Context, id string) error {
 	}
 
 	if strings.HasPrefix(id, redisResourceIDPrefix) {
-		return errors.New("redises cannot be restarted")
+		return errors.New("key / value stores cannot be restarted")
 	}
 
 	return errors.New("unknown resource type")

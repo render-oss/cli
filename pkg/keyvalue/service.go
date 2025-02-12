@@ -1,4 +1,4 @@
-package redis
+package keyvalue
 
 import (
 	"context"
@@ -23,8 +23,8 @@ func NewService(repo *Repo, environmentRepo *environment.Repo, projectRepo *proj
 	}
 }
 
-func (s *Service) ListRedis(ctx context.Context, params *client.ListRedisParams) ([]*Model, error) {
-	redis, err := s.repo.ListRedis(ctx, params)
+func (s *Service) ListKeyValue(ctx context.Context, params *client.ListKeyValueParams) ([]*Model, error) {
+	kvs, err := s.repo.ListKeyValue(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -34,22 +34,22 @@ func (s *Service) ListRedis(ctx context.Context, params *client.ListRedisParams)
 		return nil, err
 	}
 
-	var redisModels []*Model
+	var keyValueModels []*Model
 
-	for _, pg := range redis {
-		model, err := s.hydrateRedisModel(ctx, pg, projects)
+	for _, kv := range kvs {
+		model, err := s.hydrateKeyValueModel(ctx, kv, projects)
 		if err != nil {
 			return nil, err
 		}
-		redisModels = append(redisModels, model)
+		keyValueModels = append(keyValueModels, model)
 	}
 
-	util.SortResources(redisModels)
-	return redisModels, nil
+	util.SortResources(keyValueModels)
+	return keyValueModels, nil
 }
 
-func (s *Service) GetRedis(ctx context.Context, id string) (*Model, error) {
-	redis, err := s.repo.GetRedis(ctx, id)
+func (s *Service) GetKeyValue(ctx context.Context, id string) (*Model, error) {
+	kv, err := s.repo.GetKeyValue(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -59,35 +59,35 @@ func (s *Service) GetRedis(ctx context.Context, id string) (*Model, error) {
 		return nil, err
 	}
 
-	return s.hydrateRedisModel(ctx, redisFromRedisDetail(redis), projects)
+	return s.hydrateKeyValueModel(ctx, keyValueFromKeyValueDetail(kv), projects)
 }
 
-func (s *Service) hydrateRedisModel(ctx context.Context, redis *client.Redis, projects []*client.Project) (*Model, error) {
-	model := &Model{Redis: redis}
+func (s *Service) hydrateKeyValueModel(ctx context.Context, kv *client.KeyValue, projects []*client.Project) (*Model, error) {
+	model := &Model{KeyValue: kv}
 
 	var envs = make([]*client.Environment, 0)
-	env, err := s.environmentForRedis(ctx, redis, envs)
+	env, err := s.environmentForKeyValue(ctx, kv, envs)
 	if err != nil {
 		return nil, err
 	}
 	model.Environment = env
 
-	model.Project = s.projectForRedis(redis, projects)
+	model.Project = s.projectForKeyValue(kv, projects)
 	return model, nil
 }
 
-func (s *Service) environmentForRedis(ctx context.Context, pg *client.Redis, envs []*client.Environment) (*client.Environment, error) {
-	if pg.EnvironmentId == nil {
+func (s *Service) environmentForKeyValue(ctx context.Context, kv *client.KeyValue, envs []*client.Environment) (*client.Environment, error) {
+	if kv.EnvironmentId == nil {
 		return nil, nil
 	}
 
 	for _, env := range envs {
-		if *pg.EnvironmentId == env.Id {
+		if *kv.EnvironmentId == env.Id {
 			return env, nil
 		}
 	}
 
-	env, err := s.environmentRepo.GetEnvironment(ctx, *pg.EnvironmentId)
+	env, err := s.environmentRepo.GetEnvironment(ctx, *kv.EnvironmentId)
 	if err != nil {
 		return nil, err
 	}
@@ -96,14 +96,14 @@ func (s *Service) environmentForRedis(ctx context.Context, pg *client.Redis, env
 	return env, nil
 }
 
-func (s *Service) projectForRedis(redis *client.Redis, projects []*client.Project) *client.Project {
-	if redis.EnvironmentId == nil {
+func (s *Service) projectForKeyValue(kv *client.KeyValue, projects []*client.Project) *client.Project {
+	if kv.EnvironmentId == nil {
 		return nil
 	}
 
 	for _, proj := range projects {
 		for _, envID := range proj.EnvironmentIds {
-			if *redis.EnvironmentId == envID {
+			if *kv.EnvironmentId == envID {
 				return proj
 			}
 		}
@@ -112,9 +112,9 @@ func (s *Service) projectForRedis(redis *client.Redis, projects []*client.Projec
 	return nil
 }
 
-func redisFromRedisDetail(detail *client.RedisDetail) *client.Redis {
+func keyValueFromKeyValueDetail(detail *client.KeyValueDetail) *client.KeyValue {
 	// Just set the fields that are necessary for the model interface
-	return &client.Redis{
+	return &client.KeyValue{
 		Id:            detail.Id,
 		EnvironmentId: detail.EnvironmentId,
 		Name:          detail.Name,

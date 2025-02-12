@@ -10,9 +10,9 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dashboard"
+	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/postgres"
-	"github.com/render-oss/cli/pkg/redis"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/text"
@@ -63,7 +63,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 						}, "Logs")
 					},
 				},
-				allowedTypes: append([]string{postgres.PostgresType, redis.RedisType}, service.NonStaticTypes...),
+				allowedTypes: append([]string{postgres.PostgresType, keyvalue.KeyValueType}, service.NonStaticTypes...),
 			},
 			{
 				command: views.PaletteCommand{
@@ -74,6 +74,16 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					},
 				},
 				allowedTypes: append([]string{postgres.PostgresType}, service.NonStaticServerTypes...),
+			},
+			{
+				command: views.PaletteCommand{
+					Name:        "kv-cli",
+					Description: "Connect to the Key Value using either redis-cli or valkey-cli",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return InteractiveKeyValueCLIView(ctx, &views.RedisCLIInput{RedisID: r.ID()})
+					},
+				},
+				allowedTypes: []string{keyvalue.KeyValueType},
 			},
 			{
 				command: views.PaletteCommand{

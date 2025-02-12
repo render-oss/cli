@@ -1,4 +1,4 @@
-package redis
+package keyvalue
 
 import (
 	"context"
@@ -17,7 +17,7 @@ func NewRepo(c *client.ClientWithResponses) *Repo {
 	}
 }
 
-func (r *Repo) ListRedis(ctx context.Context, params *client.ListRedisParams) ([]*client.Redis, error) {
+func (r *Repo) ListKeyValue(ctx context.Context, params *client.ListKeyValueParams) ([]*client.KeyValue, error) {
 	workspace, err := config.WorkspaceID()
 	if err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func (r *Repo) ListRedis(ctx context.Context, params *client.ListRedisParams) ([
 
 	params.OwnerId = &client.OwnerIdParam{workspace}
 
-	resp, err := r.client.ListRedisWithResponse(ctx, params)
+	resp, err := r.client.ListKeyValueWithResponse(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -34,16 +34,16 @@ func (r *Repo) ListRedis(ctx context.Context, params *client.ListRedisParams) ([
 		return nil, err
 	}
 
-	redises := make([]*client.Redis, 0, len(*resp.JSON200))
-	for _, redis := range *resp.JSON200 {
-		redises = append(redises, &redis.Redis)
+	kvs := make([]*client.KeyValue, 0, len(*resp.JSON200))
+	for _, kv := range *resp.JSON200 {
+		kvs = append(kvs, &kv.KeyValue)
 	}
 
-	return redises, nil
+	return kvs, nil
 }
 
-func (r *Repo) GetRedis(ctx context.Context, id string) (*client.RedisDetail, error) {
-	resp, err := r.client.RetrieveRedisWithResponse(ctx, id)
+func (r *Repo) GetKeyValue(ctx context.Context, id string) (*client.KeyValueDetail, error) {
+	resp, err := r.client.RetrieveKeyValueWithResponse(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +55,8 @@ func (r *Repo) GetRedis(ctx context.Context, id string) (*client.RedisDetail, er
 	return resp.JSON200, nil
 }
 
-func (r *Repo) GetRedisConnectionInfo(ctx context.Context, id string) (*client.RedisConnectionInfo, error) {
-	resp, err := r.client.RetrieveRedisConnectionInfoWithResponse(ctx, id)
+func (r *Repo) GetKeyValueConnectionInfo(ctx context.Context, id string) (*client.KeyValueConnectionInfo, error) {
+	resp, err := r.client.RetrieveKeyValueConnectionInfoWithResponse(ctx, id)
 	if err != nil {
 		return nil, err
 	}

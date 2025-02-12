@@ -10,9 +10,14 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/redis"
+	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/tui"
 )
+
+type KeyValCLITool string
+
+const REDISCLI KeyValCLITool = "redis-cli"
+const VALKEYCLI KeyValCLITool = "valkey-cli"
 
 type RedisCLIInput struct {
 	RedisID        string `cli:"arg:0"`
@@ -23,11 +28,11 @@ type RedisCLIInput struct {
 }
 
 type RedisCLIView struct {
-	redisTable *RedisList
+	redisTable *KeyValueList
 	execModel  *tui.ExecModel
 }
 
-func NewRedisCLIView(ctx context.Context, input *RedisCLIInput, opts ...tui.TableOption[*redis.Model]) *RedisCLIView {
+func NewRedisCLIView(ctx context.Context, input *RedisCLIInput, opts ...tui.TableOption[*keyvalue.Model]) *RedisCLIView {
 	psqlView := &RedisCLIView{
 		execModel: tui.NewExecModel(command.LoadCmd(ctx, loadDataRedisCLI, input)),
 	}
@@ -50,19 +55,19 @@ func NewRedisCLIView(ctx context.Context, input *RedisCLIInput, opts ...tui.Tabl
 		}
 
 		if input.Project != nil {
-			opts = append(opts, tui.WithHeader[*redis.Model](
+			opts = append(opts, tui.WithHeader[*keyvalue.Model](
 				fmt.Sprintf("Project: %s", input.Project.Name),
 			))
 		}
 
-		psqlView.redisTable = NewRedisList(ctx, func(ctx context.Context, p *redis.Model) tea.Cmd {
+		psqlView.redisTable = NewKeyValueList(ctx, func(ctx context.Context, p *keyvalue.Model) tea.Cmd {
 			return tea.Sequence(
 				func() tea.Msg {
 					input.RedisID = p.ID()
 					psqlView.redisTable = nil
 					return nil
 				}, psqlView.execModel.Init())
-		}, RedisInput{EnvironmentIDs: input.EnvironmentIDs}, opts...)
+		}, KeyValueInput{EnvironmentIDs: input.EnvironmentIDs}, opts...)
 	}
 	return psqlView
 }
@@ -73,19 +78,21 @@ func loadDataRedisCLI(ctx context.Context, in *RedisCLIInput) (*exec.Cmd, error)
 		return nil, err
 	}
 
-	connectionInfo, err := redis.NewRepo(c).GetRedisConnectionInfo(ctx, in.RedisID)
+	connectionInfo, err := keyvalue.NewRepo(c).GetKeyValueConnectionInfo(ctx, in.RedisID)
 	if err != nil {
 		return nil, err
 	}
 
-	rawCmd := connectionInfo.RedisCLICommand
+	rawCmd := connectionInfo.CliCommand
 	cmdParts := strings.Split(rawCmd, " ")
 	var env []string
 	var cmdArgs []string
 	var pastRedisCLI bool
+	var cliCmd string
 	for _, part := range cmdParts {
-		if part == "redis-cli" {
+		if part == "redis-cli" || part == "valkey-cli" {
 			pastRedisCLI = true
+			cliCmd = part
 			continue
 		}
 
@@ -100,7 +107,16 @@ func loadDataRedisCLI(ctx context.Context, in *RedisCLIInput) (*exec.Cmd, error)
 		cmdArgs = append(cmdArgs, arg)
 	}
 
-	cmd := exec.Command("redis-cli", cmdArgs...)
+	// Attempt to use valkey-cli if the command is returned by
+	// the api and the binary exists in the path. Otherwise
+	// default to redis-cli
+	if cliCmd == "valkey-cli" {
+		if _, err := exec.LookPath(cliCmd); err != nil {
+			cliCmd = "redis-cli"
+		}
+	}
+
+	cmd := exec.Command(cliCmd, cmdArgs...)
 	cmd.Env = env
 	return cmd, nil
 }

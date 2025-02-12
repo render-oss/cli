@@ -8,40 +8,39 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/redis"
+	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/tui"
 	"github.com/render-oss/cli/pkg/tui/views"
 )
 
 // redisCLICmd represents the redisCLI command
 var redisCLICmd = &cobra.Command{
-	Use:   "redis-cli [redisID]",
-	Short: "Open a redis-cli session to a Redis instance",
-	Long: `Open a redis-cli session to a Redis instance. Optionally pass the redis id as an argument.
-To pass arguments to redis-cli, use the following syntax: render redis-cli [redisID] -- [redis-cli args]`,
+	Use:   "kv-cli [keyValueID]",
+	Short: "Open a redis-cli or valkey-cli session to a Key Value instance",
+	Long: `Open a redis-cli or valkey-cli session to a Key Value instance. Optionally pass the key value id as an argument.
+To pass arguments to redis-cli or valkey-cli, use the following syntax: render kv-cli [keyValuID] -- [redis-cli args]`,
 	GroupID: GroupSession.ID,
 }
 
-func InteractiveRedisView(ctx context.Context, input *views.RedisCLIInput) tea.Cmd {
+func InteractiveKeyValueCLIView(ctx context.Context, input *views.RedisCLIInput) tea.Cmd {
 	return command.AddToStackFunc(
 		ctx,
 		redisCLICmd,
-		"redis-cli",
+		"kv-cli",
 		input,
-		views.NewRedisCLIView(ctx, input, tui.WithCustomOptions[*redis.Model](getRedisTableOptions(ctx))),
+		views.NewRedisCLIView(ctx, input, tui.WithCustomOptions[*keyvalue.Model](getRedisTableOptions(ctx, input))),
 	)
 }
 
-func getRedisTableOptions(ctx context.Context) []tui.CustomOption {
+func getRedisTableOptions(ctx context.Context, input *views.RedisCLIInput) []tui.CustomOption {
 	return []tui.CustomOption{
 		WithCopyID(ctx, servicesCmd),
 		WithWorkspaceSelection(ctx),
-		WithProjectFilter(ctx, redisCLICmd, "redisCLI", &views.RedisCLIInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
-			input := &views.RedisCLIInput{}
+		WithProjectFilter(ctx, redisCLICmd, "redisCLI", input, func(ctx context.Context, project *client.Project) tea.Cmd {
 			if project != nil {
 				input.EnvironmentIDs = project.EnvironmentIds
 			}
-			return InteractiveRedisView(ctx, input)
+			return InteractiveKeyValueCLIView(ctx, input)
 		}),
 	}
 }
@@ -65,7 +64,7 @@ func init() {
 			input.Args = args[cmd.ArgsLenAtDash():]
 		}
 
-		InteractiveRedisView(ctx, &input)
+		InteractiveKeyValueCLIView(ctx, &input)
 		return nil
 	}
 }

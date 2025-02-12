@@ -1,23 +1,23 @@
-package redis
+package keyvalue
 
 import (
 	"github.com/render-oss/cli/pkg/client"
 )
 
-const RedisType = "Redis"
+const KeyValueType = "Key Value"
 
 type Model struct {
-	Redis       *client.Redis       `json:"redis,omitempty"`
+	KeyValue    *client.KeyValue    `json:"keyValue,omitempty"`
 	Project     *client.Project     `json:"project,omitempty"`
 	Environment *client.Environment `json:"environment,omitempty"`
 }
 
 func (m Model) ID() string {
-	return m.Redis.Id
+	return m.KeyValue.Id
 }
 
 func (m Model) Name() string {
-	return m.Redis.Name
+	return m.KeyValue.Name
 }
 
 func (m Model) EnvironmentName() string {
@@ -35,5 +35,5 @@ func (m Model) ProjectName() string {
 }
 
 func (m Model) Type() string {
-	return RedisType
+	return KeyValueType
 }
