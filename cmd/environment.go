@@ -15,7 +15,7 @@ import (
 )
 
 var environmentCmd = &cobra.Command{
-	Use:   "environments [projectID]",
+	Use:   "environments <projectID>",
 	Args:  cobra.ExactArgs(1),
 	Short: "List environments",
 	Long: `List environments for a specified project in the active workspace.

@@ -2,6 +2,7 @@ package views
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -15,6 +16,13 @@ import (
 
 type JobListInput struct {
 	ServiceID string `cli:"arg:0"`
+}
+
+func (j JobListInput) Validate(interactive bool) error {
+	if !interactive {
+		return errors.New("service id must be specified when output is not interactive")
+	}
+	return nil
 }
 
 func LoadJobListData(ctx context.Context, input JobListInput, cur client.Cursor) (client.Cursor, []*clientjob.Job, error) {

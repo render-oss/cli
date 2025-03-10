@@ -170,6 +170,10 @@ func ParseCommandInteractiveOnly(cmd *cobra.Command, args []string, v any) error
 	return ParseCommand(cmd, args, v)
 }
 
+type Validator interface {
+	Validate(interactive bool) error
+}
+
 func ParseCommand(cmd *cobra.Command, args []string, v any) error {
 	flags := cmd.Flags()
 
@@ -290,6 +294,12 @@ func ParseCommand(cmd *cobra.Command, args []string, v any) error {
 			}
 		default:
 			return fmt.Errorf("unsupported type: %s", field.Type.Kind())
+		}
+	}
+
+	if val, ok := v.(Validator); ok {
+		if err := val.Validate(IsInteractive(cmd.Context())); err != nil {
+			return err
 		}
 	}
 

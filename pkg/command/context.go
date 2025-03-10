@@ -12,11 +12,19 @@ type CTXOutputValue struct {
 }
 
 func GetFormatFromContext(ctx context.Context) *Output {
+	if ctx == nil {
+		return nil
+	}
 	v := ctx.Value(CTXOutputKey{})
 	if v == nil {
 		return nil
 	}
 	return v.(*CTXOutputValue).Output
+}
+
+func IsInteractive(ctx context.Context) bool {
+	output := GetFormatFromContext(ctx)
+	return output == nil || *output == Interactive
 }
 
 func SetFormatInContext(ctx context.Context, output *Output) context.Context {

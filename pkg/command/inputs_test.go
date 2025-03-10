@@ -1,13 +1,15 @@
 package command_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
+
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/pointers"
 )
 
 func TestParseCommand(t *testing.T) {
@@ -135,6 +137,24 @@ func TestParseCommand(t *testing.T) {
 			require.Equal(t, "bar", *v.Foo)
 		})
 	})
+
+	t.Run("input validation", func(t *testing.T) {
+		t.Run("valid input", func(t *testing.T) {
+			v := testValidator{valid: true}
+			cmd := &cobra.Command{}
+
+			err := command.ParseCommand(cmd, []string{"bar"}, &v)
+			require.NoError(t, err)
+		})
+
+		t.Run("invalid input", func(t *testing.T) {
+			v := testValidator{valid: false}
+			cmd := &cobra.Command{}
+
+			err := command.ParseCommand(cmd, []string{"bar"}, &v)
+			require.Error(t, err)
+		})
+	})
 }
 
 func TestInputToString(t *testing.T) {
@@ -213,4 +233,15 @@ func TestInputToString(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "", str)
 	})
+}
+
+type testValidator struct {
+	valid bool
+}
+
+func (v *testValidator) Validate(bool) error {
+	if v.valid {
+		return nil
+	}
+	return errors.New("invalid")
 }

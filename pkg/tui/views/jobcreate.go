@@ -2,6 +2,7 @@ package views
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -20,6 +21,13 @@ type JobCreateInput struct {
 	ServiceID    string  `cli:"arg:0"`
 	StartCommand *string `cli:"start-command"`
 	PlanID       *string `cli:"plan-id"`
+}
+
+func (j JobCreateInput) Validate(interactive bool) error {
+	if !interactive {
+		return errors.New("service id must be specified when output is not interactive")
+	}
+	return nil
 }
 
 func CreateJob(ctx context.Context, input JobCreateInput) (*clientjob.Job, error) {

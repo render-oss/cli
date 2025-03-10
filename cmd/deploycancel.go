@@ -12,7 +12,7 @@ import (
 )
 
 var deployCancelCmd = &cobra.Command{
-	Use:   "cancel [serviceID] [deployID]",
+	Use:   "cancel <serviceID> <deployID>",
 	Short: "Cancel a running deploy",
 	Args:  cobra.ExactArgs(2),
 }

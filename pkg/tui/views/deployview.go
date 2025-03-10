@@ -2,6 +2,7 @@ package views
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -14,6 +15,13 @@ import (
 
 type DeployListInput struct {
 	ServiceID string `cli:"arg:0"`
+}
+
+func (in DeployListInput) Validate(interactive bool) error {
+	if !interactive {
+		return errors.New("service id must be specified when output is not interactive")
+	}
+	return nil
 }
 
 func LoadDeployList(ctx context.Context, input DeployListInput, cur client.Cursor) (client.Cursor, []*client.Deploy, error) {

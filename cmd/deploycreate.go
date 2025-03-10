@@ -68,7 +68,7 @@ func init() {
 		var input types.DeployInput
 		err := command.ParseCommand(cmd, args, &input)
 		if err != nil {
-			return fmt.Errorf("failed to parse command: %w", err)
+			return fmt.Errorf("failed to parse input: %w", err)
 		}
 
 		// if wait flag is used, default to non-interactive output

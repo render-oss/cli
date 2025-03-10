@@ -12,7 +12,7 @@ import (
 )
 
 var jobCancelCmd = &cobra.Command{
-	Use:   "cancel [serviceID] [jobID]",
+	Use:   "cancel <serviceID> <jobID>",
 	Short: "Cancel a running job",
 	Args:  cobra.ExactArgs(2),
 }
