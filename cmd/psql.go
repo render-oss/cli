@@ -15,10 +15,10 @@ import (
 
 // psqlCmd represents the psql command
 var psqlCmd = &cobra.Command{
-	Use:   "psql [postgresID]",
+	Use:   "psql [postgresID|postgresName]",
 	Short: "Open a psql session to a PostgreSQL database",
-	Long: `Open a psql session to a PostgreSQL database. Optionally pass the database id as an argument.
-To pass arguments to psql, use the following syntax: render psql [postgresID] -- [psql args]`,
+	Long: `Open a psql session to a PostgreSQL database. Optionally pass the database id or name as an argument.
+To pass arguments to psql, use the following syntax: render psql [postgresID|postgresName] -- [psql args]`,
 	GroupID: GroupSession.ID,
 }
 
@@ -59,7 +59,7 @@ func init() {
 		}
 
 		if cmd.ArgsLenAtDash() == 0 {
-			input.PostgresID = ""
+			input.PostgresIDOrName = ""
 		}
 
 		if cmd.ArgsLenAtDash() >= 0 {

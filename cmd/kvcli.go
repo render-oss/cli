@@ -15,10 +15,10 @@ import (
 
 // redisCLICmd represents the redisCLI command
 var redisCLICmd = &cobra.Command{
-	Use:   "kv-cli [keyValueID]",
+	Use:   "kv-cli [keyValueID|keyValueName]",
 	Short: "Open a redis-cli or valkey-cli session to a Key Value instance",
-	Long: `Open a redis-cli or valkey-cli session to a Key Value instance. Optionally pass the key value id as an argument.
-To pass arguments to redis-cli or valkey-cli, use the following syntax: render kv-cli [keyValuID] -- [redis-cli args]`,
+	Long: `Open a redis-cli or valkey-cli session to a Key Value instance. Optionally pass the key value id or name as an argument.
+To pass arguments to redis-cli or valkey-cli, use the following syntax: render kv-cli [keyValueID|keyValueName] -- [redis-cli args]`,
 	GroupID: GroupSession.ID,
 }
 
@@ -57,7 +57,7 @@ func init() {
 		}
 
 		if cmd.ArgsLenAtDash() == 0 {
-			input.RedisID = ""
+			input.RedisIDOrName = ""
 		}
 
 		if cmd.ArgsLenAtDash() >= 0 {

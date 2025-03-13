@@ -16,9 +16,9 @@ import (
 )
 
 type SSHInput struct {
-	ServiceID      string `cli:"arg:0"`
-	Project        *client.Project
-	EnvironmentIDs []string
+	ServiceIDOrName string `cli:"arg:0"`
+	Project         *client.Project
+	EnvironmentIDs  []string
 
 	Args []string
 }
@@ -39,7 +39,7 @@ func NewSSHView(ctx context.Context, input *SSHInput, opts ...tui.TableOption[*s
 		Types:          []client.ServiceType{client.WebService, client.PrivateService, client.BackgroundWorker},
 	}
 
-	if input.ServiceID == "" {
+	if input.ServiceIDOrName == "" {
 		// If a flag or temporary input is provided, that should take precedence. Only get the persistent filter
 		// if no input is provided.
 		if len(input.EnvironmentIDs) == 0 {
@@ -65,7 +65,7 @@ func NewSSHView(ctx context.Context, input *SSHInput, opts ...tui.TableOption[*s
 		sshView.serviceTable = NewServiceList(ctx, serviceListInput, func(ctx context.Context, r resource.Resource) tea.Cmd {
 			return tea.Sequence(
 				func() tea.Msg {
-					input.ServiceID = r.ID()
+					input.ServiceIDOrName = r.ID()
 					sshView.serviceTable = nil
 					return nil
 				}, sshView.execModel.Init())
@@ -74,13 +74,46 @@ func NewSSHView(ctx context.Context, input *SSHInput, opts ...tui.TableOption[*s
 	return sshView
 }
 
+func getServiceFromIDOrName(ctx context.Context, c *client.ClientWithResponses, idOrName string) (*client.Service, error) {
+	serviceRepo := service.NewRepo(c)
+
+	if matchesServiceId(idOrName) || matchesCronJobId(idOrName) {
+		// We can't easily disambiguate between an ID and a name (since technically a name could be
+		// a valid ID), so we'll prefer the ID if it's valid.
+		service, err := serviceRepo.GetService(ctx, idOrName)
+		if err == nil {
+			return service, nil
+		}
+	}
+
+	services, err := serviceRepo.ListServices(ctx, &client.ListServicesParams{
+		Name: &client.NameParam{idOrName},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(services) == 0 {
+		return nil, tui.UserFacingError{
+			Title: "Failed to SSH", Message: fmt.Sprintf("No service found with name or ID '%s'", idOrName),
+		}
+	}
+	if len(services) > 1 {
+		return nil, tui.UserFacingError{
+			Title: "Failed to SSH", Message: fmt.Sprintf("Multiple services found with name '%s'. Please specify the service ID instead.", idOrName),
+		}
+	}
+	return services[0], nil
+}
+
 func loadDataSSH(ctx context.Context, in *SSHInput) (*exec.Cmd, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
 		return nil, err
 	}
 
-	serviceInfo, err := service.NewRepo(c).GetService(ctx, in.ServiceID)
+	serviceInfo, err := getServiceFromIDOrName(ctx, c, in.ServiceIDOrName)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +135,7 @@ func loadDataSSH(ctx context.Context, in *SSHInput) (*exec.Cmd, error) {
 		return nil, tui.UserFacingError{Title: "Failed to SSH", Message: "Cannot SSH into a suspended service."}
 	}
 
-	deploys, err := deploy.NewRepo(c).ListDeploysForService(ctx, in.ServiceID, &client.ListDeploysParams{})
+	deploys, err := deploy.NewRepo(c).ListDeploysForService(ctx, serviceInfo.Id, &client.ListDeploysParams{})
 	if err != nil {
 		return nil, err
 	}

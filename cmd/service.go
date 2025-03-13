@@ -80,7 +80,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "kv-cli",
 					Description: "Connect to the Key Value using either redis-cli or valkey-cli",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveKeyValueCLIView(ctx, &views.RedisCLIInput{RedisID: r.ID()})
+						return InteractiveKeyValueCLIView(ctx, &views.RedisCLIInput{RedisIDOrName: r.ID()})
 					},
 				},
 				allowedTypes: []string{keyvalue.KeyValueType},
@@ -90,7 +90,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "psql",
 					Description: "Connect to the PostgreSQL database using psql",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractivePSQLView(ctx, &views.PSQLInput{PostgresID: r.ID()})
+						return InteractivePSQLView(ctx, &views.PSQLInput{PostgresIDOrName: r.ID()})
 					},
 				},
 				allowedTypes: []string{postgres.PostgresType},
@@ -100,7 +100,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "pgcli",
 					Description: "Connect to the PostgreSQL database using pgcli",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractivePGCLIView(ctx, &views.PSQLInput{PostgresID: r.ID()})
+						return InteractivePGCLIView(ctx, &views.PSQLInput{PostgresIDOrName: r.ID()})
 					},
 				},
 				allowedTypes: []string{postgres.PostgresType},
@@ -130,7 +130,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "ssh",
 					Description: "SSH into the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveSSHView(ctx, &views.SSHInput{ServiceID: r.ID()}, "SSH")
+						return InteractiveSSHView(ctx, &views.SSHInput{ServiceIDOrName: r.ID()}, "SSH")
 					},
 				},
 				allowedTypes: service.NonStaticServerTypes,

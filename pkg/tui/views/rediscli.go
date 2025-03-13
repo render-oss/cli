@@ -20,7 +20,7 @@ const REDISCLI KeyValCLITool = "redis-cli"
 const VALKEYCLI KeyValCLITool = "valkey-cli"
 
 type RedisCLIInput struct {
-	RedisID        string `cli:"arg:0"`
+	RedisIDOrName  string `cli:"arg:0"`
 	Project        *client.Project
 	EnvironmentIDs []string
 
@@ -37,7 +37,7 @@ func NewRedisCLIView(ctx context.Context, input *RedisCLIInput, opts ...tui.Tabl
 		execModel: tui.NewExecModel(command.LoadCmd(ctx, loadDataRedisCLI, input)),
 	}
 
-	if input.RedisID == "" {
+	if input.RedisIDOrName == "" {
 		// If a flag or temporary input is provided, that should take precedence. Only get the persistent filter
 		// if no input is provided.
 		if input.EnvironmentIDs == nil {
@@ -63,7 +63,7 @@ func NewRedisCLIView(ctx context.Context, input *RedisCLIInput, opts ...tui.Tabl
 		psqlView.redisTable = NewKeyValueList(ctx, func(ctx context.Context, p *keyvalue.Model) tea.Cmd {
 			return tea.Sequence(
 				func() tea.Msg {
-					input.RedisID = p.ID()
+					input.RedisIDOrName = p.ID()
 					psqlView.redisTable = nil
 					return nil
 				}, psqlView.execModel.Init())
@@ -72,13 +72,46 @@ func NewRedisCLIView(ctx context.Context, input *RedisCLIInput, opts ...tui.Tabl
 	return psqlView
 }
 
+func getConnectionInfoFromIDOrName(ctx context.Context, c *client.ClientWithResponses, idOrName string) (*client.KeyValueConnectionInfo, error) {
+	kvRepo := keyvalue.NewRepo(c)
+
+	if matchesKeyValueId(idOrName) {
+		// We can't easily disambiguate between an ID and a name (since technically a name could be
+		// a valid ID), so we'll prefer the ID if it's valid.
+		connectionInfo, err := kvRepo.GetKeyValueConnectionInfo(ctx, idOrName)
+		if err == nil {
+			return connectionInfo, nil
+		}
+	}
+
+	keyValues, err := kvRepo.ListKeyValue(ctx, &client.ListKeyValueParams{
+		Name: &client.NameParam{idOrName},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(keyValues) == 0 {
+		return nil, tui.UserFacingError{Message: fmt.Sprintf("No Key Value instance found with name or ID '%s'", idOrName)}
+	}
+	if len(keyValues) > 1 {
+		return nil, tui.UserFacingError{Message: fmt.Sprintf("Multiple Key Value instances found with name '%s'. Please specify the Key Value ID instead.", idOrName)}
+	}
+	connectionInfo, err := kvRepo.GetKeyValueConnectionInfo(ctx, keyValues[0].Id)
+	if err != nil {
+		return nil, err
+	}
+	return connectionInfo, nil
+}
+
 func loadDataRedisCLI(ctx context.Context, in *RedisCLIInput) (*exec.Cmd, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
 		return nil, err
 	}
 
-	connectionInfo, err := keyvalue.NewRepo(c).GetKeyValueConnectionInfo(ctx, in.RedisID)
+	connectionInfo, err := getConnectionInfoFromIDOrName(ctx, c, in.RedisIDOrName)
 	if err != nil {
 		return nil, err
 	}

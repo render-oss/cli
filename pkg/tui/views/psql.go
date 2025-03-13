@@ -22,10 +22,10 @@ const PSQL PSQLTool = "psql"
 const PGCLI PSQLTool = "pgcli"
 
 type PSQLInput struct {
-	PostgresID     string `cli:"arg:0"`
-	Project        *client.Project
-	EnvironmentIDs []string
-	Tool           PSQLTool
+	PostgresIDOrName string `cli:"arg:0"`
+	Project          *client.Project
+	EnvironmentIDs   []string
+	Tool             PSQLTool
 
 	Args []string
 }
@@ -40,7 +40,7 @@ func NewPSQLView(ctx context.Context, input *PSQLInput, opts ...tui.TableOption[
 		execModel: tui.NewExecModel(command.LoadCmd(ctx, loadDataPSQL, input)),
 	}
 
-	if input.PostgresID == "" {
+	if input.PostgresIDOrName == "" {
 		// If a flag or temporary input is provided, that should take precedence. Only get the persistent filter
 		// if no input is provided.
 		if input.EnvironmentIDs == nil {
@@ -66,13 +66,48 @@ func NewPSQLView(ctx context.Context, input *PSQLInput, opts ...tui.TableOption[
 		psqlView.postgresTable = NewPostgresList(ctx, func(ctx context.Context, p *postgres.Model) tea.Cmd {
 			return tea.Sequence(
 				func() tea.Msg {
-					input.PostgresID = p.ID()
+					input.PostgresIDOrName = p.ID()
 					psqlView.postgresTable = nil
 					return nil
 				}, psqlView.execModel.Init())
 		}, PostgresInput{EnvironmentIDs: input.EnvironmentIDs}, opts...)
 	}
 	return psqlView
+}
+
+func getPostgresFromIDOrName(ctx context.Context, c *client.ClientWithResponses, idOrName string) (*client.PostgresDetail, error) {
+	pgc := postgres.NewRepo(c)
+
+	if matchesPostgresId(idOrName) {
+		// We can't easily disambiguate between an ID and a name (since technically a name could be
+		// a valid ID), so we'll prefer the ID if it's valid.
+		postgres, err := pgc.GetPostgres(ctx, idOrName)
+		if err == nil {
+			return postgres, nil
+		}
+	}
+
+	postgreses, err := pgc.ListPostgres(ctx, &client.ListPostgresParams{
+		Name: &client.NameParam{idOrName},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(postgreses) == 0 {
+		return nil, tui.UserFacingError{Message: fmt.Sprintf("No Postgres instance found with name or ID '%s'", idOrName)}
+	}
+
+	if len(postgreses) > 1 {
+		return nil, tui.UserFacingError{Message: fmt.Sprintf("Multiple Postgres instances found with name '%s'. Please specify the Postgres ID instead.", idOrName)}
+	}
+
+	return &client.PostgresDetail{
+		Name:        postgreses[0].Name,
+		Id:          postgreses[0].Id,
+		IpAllowList: postgreses[0].IpAllowList,
+	}, nil
 }
 
 func loadDataPSQL(ctx context.Context, in *PSQLInput) (*exec.Cmd, error) {
@@ -83,7 +118,7 @@ func loadDataPSQL(ctx context.Context, in *PSQLInput) (*exec.Cmd, error) {
 
 	pgc := postgres.NewRepo(c)
 
-	pg, err := pgc.GetPostgres(ctx, in.PostgresID)
+	pg, err := getPostgresFromIDOrName(ctx, c, in.PostgresIDOrName)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +136,7 @@ func loadDataPSQL(ctx context.Context, in *PSQLInput) (*exec.Cmd, error) {
 		}
 	}
 
-	connectionInfo, err := pgc.GetPostgresConnectionInfo(ctx, in.PostgresID)
+	connectionInfo, err := pgc.GetPostgresConnectionInfo(ctx, pg.Id)
 	if err != nil {
 		return nil, err
 	}
