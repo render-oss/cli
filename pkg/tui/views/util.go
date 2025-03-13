@@ -17,3 +17,7 @@ func matchesKeyValueId(id string) bool {
 func matchesCronJobId(id string) bool {
 	return strings.HasPrefix(id, "crn-") && len(id) == 24
 }
+
+func matchesResourceId(id string) bool {
+	return matchesServiceId(id) || matchesPostgresId(id) || matchesKeyValueId(id) || matchesCronJobId(id)
+}

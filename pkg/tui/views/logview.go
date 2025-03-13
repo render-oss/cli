@@ -13,6 +13,9 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/render-oss/cli/pkg/keyvalue"
+	"github.com/render-oss/cli/pkg/postgres"
+	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/style"
 	"github.com/render-oss/cli/pkg/tui/layouts"
 	"github.com/spf13/cobra"
@@ -62,7 +65,68 @@ type LogInput struct {
 	ListResourceInput ListResourceInput
 }
 
-func (l LogInput) ToParam() (*client.ListLogsParams, error) {
+func getResourceIDsFromIDOrNames(ctx context.Context, c *client.ClientWithResponses, idOrNames []string) ([]string, error) {
+	serviceRepo := service.NewRepo(c)
+	kvRepo := keyvalue.NewRepo(c)
+	postgresRepo := postgres.NewRepo(c)
+
+	resourceIds := make([]string, len(idOrNames))
+
+	for i, idOrName := range idOrNames {
+		if matchesResourceId(idOrName) {
+			// This will error out if we have a name that looks like a resource ID but isn't one.
+			// Ideally we'd like to catch that case and allow looking up by name for such resources.
+			// However, checking if the resource ID is valid would be a performance hit, and doesn't
+			// seem worth it considering how unlikely such a name is.
+			resourceIds[i] = idOrName
+			continue
+		}
+
+		// We have a name, not an ID. See if we can find a match
+
+		services, err := serviceRepo.ListServices(ctx, &client.ListServicesParams{
+			Name: &client.NameParam{idOrName},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if len(services) == 1 {
+			resourceIds[i] = services[0].Id
+			continue
+		}
+
+		kvs, err := kvRepo.ListKeyValue(ctx, &client.ListKeyValueParams{
+			Name: &client.NameParam{idOrName},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if len(kvs) == 1 {
+			resourceIds[i] = kvs[0].Id
+			continue
+		}
+
+		postgreses, err := postgresRepo.ListPostgres(ctx, &client.ListPostgresParams{
+			Name: &client.NameParam{idOrName},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if len(postgreses) == 1 {
+			resourceIds[i] = postgreses[0].Id
+			continue
+		}
+
+		return nil, fmt.Errorf("no resource found with ID or name '%s'", idOrName)
+	}
+
+	return resourceIds, nil
+}
+
+func (l LogInput) ToParam(ctx context.Context, c *client.ClientWithResponses) (*client.ListLogsParams, error) {
 	ownerID, err := config.WorkspaceID()
 	if err != nil {
 		return nil, fmt.Errorf("error getting workspace ID: %v", err)
@@ -82,8 +146,13 @@ func (l LogInput) ToParam() (*client.ListLogsParams, error) {
 		endTime = l.EndTime.T
 	}
 
+	resourceIDs, err := getResourceIDsFromIDOrNames(ctx, c, l.ResourceIDs)
+	if err != nil {
+		return nil, err
+	}
+
 	return &client.ListLogsParams{
-		Resource:   l.ResourceIDs,
+		Resource:   resourceIDs,
 		OwnerId:    ownerID,
 		Instance:   pointers.FromArray(l.Instance),
 		Limit:      pointers.From(l.Limit),
@@ -164,9 +233,9 @@ func LoadLogData(ctx context.Context, in LogInput) (*tui.LogResult, error) {
 	}
 
 	logRepo := logs.NewLogRepo(c)
-	params, err := in.ToParam()
+	params, err := in.ToParam(ctx, c)
 	if err != nil {
-		return nil, fmt.Errorf("error converting input to params: %v", err)
+		return nil, fmt.Errorf("error processing arguments: %v", err)
 	}
 
 	if in.Tail {
