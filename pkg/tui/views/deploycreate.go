@@ -169,9 +169,16 @@ func (v *DeployCreateView) Init() tea.Cmd {
 }
 
 func (v *DeployCreateView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if v.formAction == nil {
+		return nil, nil
+	}
+
 	return v.formAction.Update(msg)
 }
 
 func (v *DeployCreateView) View() string {
+	if v.formAction == nil {
+		return ""
+	}
 	return v.formAction.View()
 }
