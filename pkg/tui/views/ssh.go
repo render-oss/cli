@@ -30,7 +30,7 @@ type SSHView struct {
 
 func NewSSHView(ctx context.Context, input *SSHInput, opts ...tui.TableOption[*service.Model]) *SSHView {
 	sshView := &SSHView{
-		execModel: tui.NewExecModel(command.LoadCmd(ctx, loadDataSSH, input)),
+		execModel: tui.NewExecModel("ssh", handleSSHError, command.LoadCmd(ctx, loadDataSSH, input)),
 	}
 
 	serviceListInput := ServiceInput{
@@ -46,7 +46,7 @@ func NewSSHView(ctx context.Context, input *SSHInput, opts ...tui.TableOption[*s
 			defaultInput, err := DefaultListResourceInput(ctx)
 			if err != nil {
 				return &SSHView{
-					execModel: tui.NewExecModel(command.LoadCmd(ctx, func(_ context.Context, _ any) (*exec.Cmd, error) {
+					execModel: tui.NewExecModel("ssh", handleSSHError, command.LoadCmd(ctx, func(_ context.Context, _ any) (*exec.Cmd, error) {
 						return nil, fmt.Errorf("failed to load default project filter: %w", err)
 					}, nil)),
 				}
@@ -72,6 +72,13 @@ func NewSSHView(ctx context.Context, input *SSHInput, opts ...tui.TableOption[*s
 		}, opts...)
 	}
 	return sshView
+}
+
+func handleSSHError(err error) error {
+	return tui.UserFacingError{
+		Title:   "Failed to SSH",
+		Message: fmt.Sprintf("Check the docs (https://render.com/docs/ssh) to ensure SSH is properly configured: %s", err),
+	}
 }
 
 func getServiceFromIDOrName(ctx context.Context, c *client.ClientWithResponses, idOrName string) (*client.Service, error) {

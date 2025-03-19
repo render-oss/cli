@@ -37,7 +37,7 @@ type PSQLView struct {
 
 func NewPSQLView(ctx context.Context, input *PSQLInput, opts ...tui.TableOption[*postgres.Model]) *PSQLView {
 	psqlView := &PSQLView{
-		execModel: tui.NewExecModel(command.LoadCmd(ctx, loadDataPSQL, input)),
+		execModel: tui.NewExecModel(string(input.Tool), handlePSQLError(input.Tool), command.LoadCmd(ctx, loadDataPSQL, input)),
 	}
 
 	if input.PostgresIDOrName == "" {
@@ -47,7 +47,7 @@ func NewPSQLView(ctx context.Context, input *PSQLInput, opts ...tui.TableOption[
 			defaultInput, err := DefaultListResourceInput(ctx)
 			if err != nil {
 				return &PSQLView{
-					execModel: tui.NewExecModel(command.LoadCmd(ctx, func(_ context.Context, _ any) (*exec.Cmd, error) {
+					execModel: tui.NewExecModel(string(input.Tool), handlePSQLError(input.Tool), command.LoadCmd(ctx, func(_ context.Context, _ any) (*exec.Cmd, error) {
 						return nil, fmt.Errorf("failed to load default project filter: %w", err)
 					}, nil)),
 				}
@@ -73,6 +73,15 @@ func NewPSQLView(ctx context.Context, input *PSQLInput, opts ...tui.TableOption[
 		}, PostgresInput{EnvironmentIDs: input.EnvironmentIDs}, opts...)
 	}
 	return psqlView
+}
+
+func handlePSQLError(tool PSQLTool) func(err error) error {
+	return func(err error) error {
+		return tui.UserFacingError{
+			Title: fmt.Sprintf("An error occurred while running %s", tool),
+			Err:   err,
+		}
+	}
 }
 
 func getPostgresFromIDOrName(ctx context.Context, c *client.ClientWithResponses, idOrName string) (*client.PostgresDetail, error) {

@@ -8,14 +8,18 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func NewExecModel(loadCmd TypedCmd[*exec.Cmd]) *ExecModel {
+func NewExecModel(executableName string, handleError func(err error) error, loadCmd TypedCmd[*exec.Cmd]) *ExecModel {
 	return &ExecModel{
-		loadCmd: loadCmd,
+		executableName: executableName,
+		handleError:    handleError,
+		loadCmd:        loadCmd,
 	}
 }
 
 type ExecModel struct {
-	loadCmd TypedCmd[*exec.Cmd]
+	executableName string
+	handleError    func(err error) error
+	loadCmd        TypedCmd[*exec.Cmd]
 }
 
 type ExecDone struct {
@@ -38,13 +42,19 @@ func (m *ExecModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-			// This error occurred when running the SSH command. Wrap it in a user-facing error with a helpful message.
-			if err != nil {
+			if errors.Is(err, exec.ErrNotFound) {
 				return ExecDone{
 					Error: UserFacingError{
-						Title:   "Failed to SSH",
-						Message: fmt.Sprintf("Check the docs (https://render.com/docs/ssh) to ensure SSH is properly configured: %s", err),
+						Title:   fmt.Sprintf("%s not found on path", m.executableName),
+						Message: fmt.Sprintf("Please ensure %s is installed and try again", m.executableName),
 					},
+				}
+			}
+
+			// This error occurred when running the command. Wrap it in a user-facing error with a helpful message.
+			if err != nil {
+				return ExecDone{
+					Error: m.handleError(err),
 				}
 			}
 

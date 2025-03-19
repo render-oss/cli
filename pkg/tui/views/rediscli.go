@@ -19,6 +19,8 @@ type KeyValCLITool string
 const REDISCLI KeyValCLITool = "redis-cli"
 const VALKEYCLI KeyValCLITool = "valkey-cli"
 
+var executableName = fmt.Sprintf("%s or %s", VALKEYCLI, REDISCLI)
+
 type RedisCLIInput struct {
 	RedisIDOrName  string `cli:"arg:0"`
 	Project        *client.Project
@@ -34,7 +36,7 @@ type RedisCLIView struct {
 
 func NewRedisCLIView(ctx context.Context, input *RedisCLIInput, opts ...tui.TableOption[*keyvalue.Model]) *RedisCLIView {
 	psqlView := &RedisCLIView{
-		execModel: tui.NewExecModel(command.LoadCmd(ctx, loadDataRedisCLI, input)),
+		execModel: tui.NewExecModel(executableName, handleRedisCLIError, command.LoadCmd(ctx, loadDataRedisCLI, input)),
 	}
 
 	if input.RedisIDOrName == "" {
@@ -44,7 +46,7 @@ func NewRedisCLIView(ctx context.Context, input *RedisCLIInput, opts ...tui.Tabl
 			defaultInput, err := DefaultListResourceInput(ctx)
 			if err != nil {
 				return &RedisCLIView{
-					execModel: tui.NewExecModel(command.LoadCmd(ctx, func(_ context.Context, _ any) (*exec.Cmd, error) {
+					execModel: tui.NewExecModel(executableName, handleRedisCLIError, command.LoadCmd(ctx, func(_ context.Context, _ any) (*exec.Cmd, error) {
 						return nil, fmt.Errorf("failed to load default project filter: %w", err)
 					}, nil)),
 				}
@@ -70,6 +72,13 @@ func NewRedisCLIView(ctx context.Context, input *RedisCLIInput, opts ...tui.Tabl
 		}, KeyValueInput{EnvironmentIDs: input.EnvironmentIDs}, opts...)
 	}
 	return psqlView
+}
+
+func handleRedisCLIError(err error) error {
+	return tui.UserFacingError{
+		Title: fmt.Sprintf("An error occurred while running kv-cli"),
+		Err:   err,
+	}
 }
 
 func getConnectionInfoFromIDOrName(ctx context.Context, c *client.ClientWithResponses, idOrName string) (*client.KeyValueConnectionInfo, error) {
