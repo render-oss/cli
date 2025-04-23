@@ -24,7 +24,7 @@ type JobCreateInput struct {
 }
 
 func (j JobCreateInput) Validate(interactive bool) error {
-	if !interactive {
+	if !interactive && j.ServiceID == "" {
 		return errors.New("service id must be specified when output is not interactive")
 	}
 	return nil
