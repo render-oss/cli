@@ -18,6 +18,10 @@ func matchesCronJobId(id string) bool {
 	return strings.HasPrefix(id, "crn-") && len(id) == 24
 }
 
+func matchesJobId(id string) bool {
+	return strings.HasPrefix(id, "job-") && len(id) == 24
+}
+
 func matchesResourceId(id string) bool {
-	return matchesServiceId(id) || matchesPostgresId(id) || matchesKeyValueId(id) || matchesCronJobId(id)
+	return matchesServiceId(id) || matchesPostgresId(id) || matchesKeyValueId(id) || matchesCronJobId(id) || matchesJobId(id)
 }
