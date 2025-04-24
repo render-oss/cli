@@ -17,15 +17,17 @@ import (
 	"strings"
 
 	"github.com/oapi-codegen/runtime"
-	externalRef1 "github.com/render-oss/cli/pkg/client/autoscaling"
-	externalRef2 "github.com/render-oss/cli/pkg/client/blueprints"
-	externalRef3 "github.com/render-oss/cli/pkg/client/disks"
-	externalRef6 "github.com/render-oss/cli/pkg/client/jobs"
-	externalRef7 "github.com/render-oss/cli/pkg/client/logs"
-	externalRef8 "github.com/render-oss/cli/pkg/client/maintenance"
-	externalRef9 "github.com/render-oss/cli/pkg/client/metrics"
-	externalRef10 "github.com/render-oss/cli/pkg/client/notifications"
-	externalRef11 "github.com/render-oss/cli/pkg/client/postgres"
+	externalRef0 "github.com/render-oss/cli/pkg/client/autoscaling"
+	externalRef1 "github.com/render-oss/cli/pkg/client/blueprints"
+	externalRef2 "github.com/render-oss/cli/pkg/client/disks"
+	externalRef3 "github.com/render-oss/cli/pkg/client/events"
+	externalRef5 "github.com/render-oss/cli/pkg/client/jobs"
+	externalRef6 "github.com/render-oss/cli/pkg/client/logs"
+	externalRef7 "github.com/render-oss/cli/pkg/client/maintenance"
+	externalRef8 "github.com/render-oss/cli/pkg/client/metrics"
+	externalRef9 "github.com/render-oss/cli/pkg/client/notifications"
+	externalRef10 "github.com/render-oss/cli/pkg/client/postgres"
+	externalRef11 "github.com/render-oss/cli/pkg/client/webhooks"
 )
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
@@ -105,18 +107,18 @@ type ClientInterface interface {
 	ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DisconnectBlueprint request
-	DisconnectBlueprint(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DisconnectBlueprint(ctx context.Context, blueprintId externalRef1.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveBlueprint request
-	RetrieveBlueprint(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RetrieveBlueprint(ctx context.Context, blueprintId externalRef1.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateBlueprintWithBody request with any body
-	UpdateBlueprintWithBody(ctx context.Context, blueprintId externalRef2.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateBlueprintWithBody(ctx context.Context, blueprintId externalRef1.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	UpdateBlueprint(ctx context.Context, blueprintId externalRef2.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateBlueprint(ctx context.Context, blueprintId externalRef1.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListBlueprintSyncs request
-	ListBlueprintSyncs(ctx context.Context, blueprintId externalRef2.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListBlueprintSyncs(ctx context.Context, blueprintId externalRef1.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CancelCronJobRun request
 	CancelCronJobRun(ctx context.Context, cronJobId CronJobIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -133,15 +135,15 @@ type ClientInterface interface {
 	AddDisk(ctx context.Context, body AddDiskJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteDisk request
-	DeleteDisk(ctx context.Context, diskId externalRef3.DiskId, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteDisk(ctx context.Context, diskId externalRef2.DiskId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveDisk request
-	RetrieveDisk(ctx context.Context, diskId externalRef3.DiskId, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RetrieveDisk(ctx context.Context, diskId externalRef2.DiskId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateDiskWithBody request with any body
-	UpdateDiskWithBody(ctx context.Context, diskId externalRef3.DiskId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateDiskWithBody(ctx context.Context, diskId externalRef2.DiskId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	UpdateDisk(ctx context.Context, diskId externalRef3.DiskId, body UpdateDiskJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateDisk(ctx context.Context, diskId externalRef2.DiskId, body UpdateDiskJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListSnapshots request
 	ListSnapshots(ctx context.Context, diskId string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -225,6 +227,9 @@ type ClientInterface interface {
 
 	AddResourcesToEnvironment(ctx context.Context, environmentId string, body AddResourcesToEnvironmentJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// RetrieveEvent request
+	RetrieveEvent(ctx context.Context, eventId externalRef3.EventId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListKeyValue request
 	ListKeyValue(ctx context.Context, params *ListKeyValueParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -285,15 +290,26 @@ type ClientInterface interface {
 	ListMaintenance(ctx context.Context, params *ListMaintenanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveMaintenance request
-	RetrieveMaintenance(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RetrieveMaintenance(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateMaintenanceWithBody request with any body
-	UpdateMaintenanceWithBody(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateMaintenanceWithBody(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	UpdateMaintenance(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateMaintenance(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TriggerMaintenance request
-	TriggerMaintenance(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+	TriggerMaintenance(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteOwnerMetricsStream request
+	DeleteOwnerMetricsStream(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetOwnerMetricsStream request
+	GetOwnerMetricsStream(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpsertOwnerMetricsStreamWithBody request with any body
+	UpsertOwnerMetricsStreamWithBody(ctx context.Context, ownerId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpsertOwnerMetricsStream(ctx context.Context, ownerId string, body UpsertOwnerMetricsStreamJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetActiveConnections request
 	GetActiveConnections(ctx context.Context, params *GetActiveConnectionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -371,6 +387,9 @@ type ClientInterface interface {
 	// RetrieveOwner request
 	RetrieveOwner(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// RetrieveOwnerMembers request
+	RetrieveOwnerMembers(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListPostgres request
 	ListPostgres(ctx context.Context, params *ListPostgresParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -390,14 +409,14 @@ type ClientInterface interface {
 
 	UpdatePostgres(ctx context.Context, postgresId string, body UpdatePostgresJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ListPostgresBackup request
-	ListPostgresBackup(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CreatePostgresBackup request
-	CreatePostgresBackup(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// RetrievePostgresConnectionInfo request
 	RetrievePostgresConnectionInfo(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListPostgresExport request
+	ListPostgresExport(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreatePostgresExport request
+	CreatePostgresExport(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FailoverPostgres request
 	FailoverPostgres(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -478,25 +497,6 @@ type ClientInterface interface {
 	UpdateRegistryCredentialWithBody(ctx context.Context, registryCredentialId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	UpdateRegistryCredential(ctx context.Context, registryCredentialId string, body UpdateRegistryCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ListServiceLinks request
-	ListServiceLinks(ctx context.Context, params *ListServiceLinksParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CreateServiceLinkWithBody request with any body
-	CreateServiceLinkWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	CreateServiceLink(ctx context.Context, body CreateServiceLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// DeleteServiceLink request
-	DeleteServiceLink(ctx context.Context, serviceLinkId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// RetrieveServiceLink request
-	RetrieveServiceLink(ctx context.Context, serviceLinkId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateServiceLinkWithBody request with any body
-	UpdateServiceLinkWithBody(ctx context.Context, serviceLinkId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	UpdateServiceLink(ctx context.Context, serviceLinkId string, body UpdateServiceLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListServices request
 	ListServices(ctx context.Context, params *ListServicesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -603,10 +603,10 @@ type ClientInterface interface {
 	PostJob(ctx context.Context, serviceId ServiceIdParam, body PostJobJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveJob request
-	RetrieveJob(ctx context.Context, serviceId ServiceIdParam, jobId externalRef6.JobId, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RetrieveJob(ctx context.Context, serviceId ServiceIdParam, jobId externalRef5.JobId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CancelJob request
-	CancelJob(ctx context.Context, serviceId ServiceIdParam, jobId externalRef6.JobId, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CancelJob(ctx context.Context, serviceId ServiceIdParam, jobId externalRef5.JobId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PreviewServiceWithBody request with any body
 	PreviewServiceWithBody(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -674,6 +674,28 @@ type ClientInterface interface {
 
 	// GetUser request
 	GetUser(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListWebhooks request
+	ListWebhooks(ctx context.Context, params *ListWebhooksParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateWebhookWithBody request with any body
+	CreateWebhookWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateWebhook(ctx context.Context, body CreateWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteWebhook request
+	DeleteWebhook(ctx context.Context, webhookId externalRef11.WebhookIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RetrieveWebhook request
+	RetrieveWebhook(ctx context.Context, webhookId externalRef11.WebhookIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateWebhookWithBody request with any body
+	UpdateWebhookWithBody(ctx context.Context, webhookId externalRef11.WebhookIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateWebhook(ctx context.Context, webhookId externalRef11.WebhookIdParam, body UpdateWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListWebhookEvents request
+	ListWebhookEvents(ctx context.Context, webhookId externalRef11.WebhookIdParam, params *ListWebhookEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -688,7 +710,7 @@ func (c *Client) ListBlueprints(ctx context.Context, params *ListBlueprintsParam
 	return c.Client.Do(req)
 }
 
-func (c *Client) DisconnectBlueprint(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) DisconnectBlueprint(ctx context.Context, blueprintId externalRef1.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDisconnectBlueprintRequest(c.Server, blueprintId)
 	if err != nil {
 		return nil, err
@@ -700,7 +722,7 @@ func (c *Client) DisconnectBlueprint(ctx context.Context, blueprintId externalRe
 	return c.Client.Do(req)
 }
 
-func (c *Client) RetrieveBlueprint(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) RetrieveBlueprint(ctx context.Context, blueprintId externalRef1.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRetrieveBlueprintRequest(c.Server, blueprintId)
 	if err != nil {
 		return nil, err
@@ -712,7 +734,7 @@ func (c *Client) RetrieveBlueprint(ctx context.Context, blueprintId externalRef2
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateBlueprintWithBody(ctx context.Context, blueprintId externalRef2.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) UpdateBlueprintWithBody(ctx context.Context, blueprintId externalRef1.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateBlueprintRequestWithBody(c.Server, blueprintId, contentType, body)
 	if err != nil {
 		return nil, err
@@ -724,7 +746,7 @@ func (c *Client) UpdateBlueprintWithBody(ctx context.Context, blueprintId extern
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateBlueprint(ctx context.Context, blueprintId externalRef2.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) UpdateBlueprint(ctx context.Context, blueprintId externalRef1.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateBlueprintRequest(c.Server, blueprintId, body)
 	if err != nil {
 		return nil, err
@@ -736,7 +758,7 @@ func (c *Client) UpdateBlueprint(ctx context.Context, blueprintId externalRef2.B
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListBlueprintSyncs(ctx context.Context, blueprintId externalRef2.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) ListBlueprintSyncs(ctx context.Context, blueprintId externalRef1.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBlueprintSyncsRequest(c.Server, blueprintId, params)
 	if err != nil {
 		return nil, err
@@ -808,7 +830,7 @@ func (c *Client) AddDisk(ctx context.Context, body AddDiskJSONRequestBody, reqEd
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteDisk(ctx context.Context, diskId externalRef3.DiskId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) DeleteDisk(ctx context.Context, diskId externalRef2.DiskId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteDiskRequest(c.Server, diskId)
 	if err != nil {
 		return nil, err
@@ -820,7 +842,7 @@ func (c *Client) DeleteDisk(ctx context.Context, diskId externalRef3.DiskId, req
 	return c.Client.Do(req)
 }
 
-func (c *Client) RetrieveDisk(ctx context.Context, diskId externalRef3.DiskId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) RetrieveDisk(ctx context.Context, diskId externalRef2.DiskId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRetrieveDiskRequest(c.Server, diskId)
 	if err != nil {
 		return nil, err
@@ -832,7 +854,7 @@ func (c *Client) RetrieveDisk(ctx context.Context, diskId externalRef3.DiskId, r
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateDiskWithBody(ctx context.Context, diskId externalRef3.DiskId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) UpdateDiskWithBody(ctx context.Context, diskId externalRef2.DiskId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateDiskRequestWithBody(c.Server, diskId, contentType, body)
 	if err != nil {
 		return nil, err
@@ -844,7 +866,7 @@ func (c *Client) UpdateDiskWithBody(ctx context.Context, diskId externalRef3.Dis
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateDisk(ctx context.Context, diskId externalRef3.DiskId, body UpdateDiskJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) UpdateDisk(ctx context.Context, diskId externalRef2.DiskId, body UpdateDiskJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateDiskRequest(c.Server, diskId, body)
 	if err != nil {
 		return nil, err
@@ -1216,6 +1238,18 @@ func (c *Client) AddResourcesToEnvironment(ctx context.Context, environmentId st
 	return c.Client.Do(req)
 }
 
+func (c *Client) RetrieveEvent(ctx context.Context, eventId externalRef3.EventId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveEventRequest(c.Server, eventId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListKeyValue(ctx context.Context, params *ListKeyValueParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListKeyValueRequest(c.Server, params)
 	if err != nil {
@@ -1468,7 +1502,7 @@ func (c *Client) ListMaintenance(ctx context.Context, params *ListMaintenancePar
 	return c.Client.Do(req)
 }
 
-func (c *Client) RetrieveMaintenance(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) RetrieveMaintenance(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRetrieveMaintenanceRequest(c.Server, maintenanceRunParam)
 	if err != nil {
 		return nil, err
@@ -1480,7 +1514,7 @@ func (c *Client) RetrieveMaintenance(ctx context.Context, maintenanceRunParam ex
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateMaintenanceWithBody(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) UpdateMaintenanceWithBody(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateMaintenanceRequestWithBody(c.Server, maintenanceRunParam, contentType, body)
 	if err != nil {
 		return nil, err
@@ -1492,7 +1526,7 @@ func (c *Client) UpdateMaintenanceWithBody(ctx context.Context, maintenanceRunPa
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateMaintenance(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) UpdateMaintenance(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateMaintenanceRequest(c.Server, maintenanceRunParam, body)
 	if err != nil {
 		return nil, err
@@ -1504,8 +1538,56 @@ func (c *Client) UpdateMaintenance(ctx context.Context, maintenanceRunParam exte
 	return c.Client.Do(req)
 }
 
-func (c *Client) TriggerMaintenance(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) TriggerMaintenance(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewTriggerMaintenanceRequest(c.Server, maintenanceRunParam)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteOwnerMetricsStream(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteOwnerMetricsStreamRequest(c.Server, ownerId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetOwnerMetricsStream(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetOwnerMetricsStreamRequest(c.Server, ownerId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpsertOwnerMetricsStreamWithBody(ctx context.Context, ownerId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpsertOwnerMetricsStreamRequestWithBody(c.Server, ownerId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpsertOwnerMetricsStream(ctx context.Context, ownerId string, body UpsertOwnerMetricsStreamJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpsertOwnerMetricsStreamRequest(c.Server, ownerId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1828,6 +1910,18 @@ func (c *Client) RetrieveOwner(ctx context.Context, ownerId string, reqEditors .
 	return c.Client.Do(req)
 }
 
+func (c *Client) RetrieveOwnerMembers(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveOwnerMembersRequest(c.Server, ownerId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListPostgres(ctx context.Context, params *ListPostgresParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListPostgresRequest(c.Server, params)
 	if err != nil {
@@ -1912,32 +2006,32 @@ func (c *Client) UpdatePostgres(ctx context.Context, postgresId string, body Upd
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListPostgresBackup(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListPostgresBackupRequest(c.Server, postgresId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreatePostgresBackup(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreatePostgresBackupRequest(c.Server, postgresId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 func (c *Client) RetrievePostgresConnectionInfo(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRetrievePostgresConnectionInfoRequest(c.Server, postgresId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListPostgresExport(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListPostgresExportRequest(c.Server, postgresId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreatePostgresExport(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreatePostgresExportRequest(c.Server, postgresId)
 	if err != nil {
 		return nil, err
 	}
@@ -2286,90 +2380,6 @@ func (c *Client) UpdateRegistryCredentialWithBody(ctx context.Context, registryC
 
 func (c *Client) UpdateRegistryCredential(ctx context.Context, registryCredentialId string, body UpdateRegistryCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateRegistryCredentialRequest(c.Server, registryCredentialId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ListServiceLinks(ctx context.Context, params *ListServiceLinksParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListServiceLinksRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateServiceLinkWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateServiceLinkRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateServiceLink(ctx context.Context, body CreateServiceLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateServiceLinkRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) DeleteServiceLink(ctx context.Context, serviceLinkId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteServiceLinkRequest(c.Server, serviceLinkId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) RetrieveServiceLink(ctx context.Context, serviceLinkId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRetrieveServiceLinkRequest(c.Server, serviceLinkId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) UpdateServiceLinkWithBody(ctx context.Context, serviceLinkId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateServiceLinkRequestWithBody(c.Server, serviceLinkId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) UpdateServiceLink(ctx context.Context, serviceLinkId string, body UpdateServiceLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateServiceLinkRequest(c.Server, serviceLinkId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2836,7 +2846,7 @@ func (c *Client) PostJob(ctx context.Context, serviceId ServiceIdParam, body Pos
 	return c.Client.Do(req)
 }
 
-func (c *Client) RetrieveJob(ctx context.Context, serviceId ServiceIdParam, jobId externalRef6.JobId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) RetrieveJob(ctx context.Context, serviceId ServiceIdParam, jobId externalRef5.JobId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRetrieveJobRequest(c.Server, serviceId, jobId)
 	if err != nil {
 		return nil, err
@@ -2848,7 +2858,7 @@ func (c *Client) RetrieveJob(ctx context.Context, serviceId ServiceIdParam, jobI
 	return c.Client.Do(req)
 }
 
-func (c *Client) CancelJob(ctx context.Context, serviceId ServiceIdParam, jobId externalRef6.JobId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) CancelJob(ctx context.Context, serviceId ServiceIdParam, jobId externalRef5.JobId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCancelJobRequest(c.Server, serviceId, jobId)
 	if err != nil {
 		return nil, err
@@ -3160,6 +3170,102 @@ func (c *Client) GetUser(ctx context.Context, reqEditors ...RequestEditorFn) (*h
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListWebhooks(ctx context.Context, params *ListWebhooksParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListWebhooksRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateWebhookWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateWebhookRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateWebhook(ctx context.Context, body CreateWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateWebhookRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteWebhook(ctx context.Context, webhookId externalRef11.WebhookIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteWebhookRequest(c.Server, webhookId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RetrieveWebhook(ctx context.Context, webhookId externalRef11.WebhookIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveWebhookRequest(c.Server, webhookId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateWebhookWithBody(ctx context.Context, webhookId externalRef11.WebhookIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateWebhookRequestWithBody(c.Server, webhookId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateWebhook(ctx context.Context, webhookId externalRef11.WebhookIdParam, body UpdateWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateWebhookRequest(c.Server, webhookId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListWebhookEvents(ctx context.Context, webhookId externalRef11.WebhookIdParam, params *ListWebhookEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListWebhookEventsRequest(c.Server, webhookId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // NewListBlueprintsRequest generates requests for ListBlueprints
 func NewListBlueprintsRequest(server string, params *ListBlueprintsParams) (*http.Request, error) {
 	var err error
@@ -3242,7 +3348,7 @@ func NewListBlueprintsRequest(server string, params *ListBlueprintsParams) (*htt
 }
 
 // NewDisconnectBlueprintRequest generates requests for DisconnectBlueprint
-func NewDisconnectBlueprintRequest(server string, blueprintId externalRef2.BlueprintId) (*http.Request, error) {
+func NewDisconnectBlueprintRequest(server string, blueprintId externalRef1.BlueprintId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -3276,7 +3382,7 @@ func NewDisconnectBlueprintRequest(server string, blueprintId externalRef2.Bluep
 }
 
 // NewRetrieveBlueprintRequest generates requests for RetrieveBlueprint
-func NewRetrieveBlueprintRequest(server string, blueprintId externalRef2.BlueprintId) (*http.Request, error) {
+func NewRetrieveBlueprintRequest(server string, blueprintId externalRef1.BlueprintId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -3310,7 +3416,7 @@ func NewRetrieveBlueprintRequest(server string, blueprintId externalRef2.Bluepri
 }
 
 // NewUpdateBlueprintRequest calls the generic UpdateBlueprint builder with application/json body
-func NewUpdateBlueprintRequest(server string, blueprintId externalRef2.BlueprintId, body UpdateBlueprintJSONRequestBody) (*http.Request, error) {
+func NewUpdateBlueprintRequest(server string, blueprintId externalRef1.BlueprintId, body UpdateBlueprintJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
@@ -3321,7 +3427,7 @@ func NewUpdateBlueprintRequest(server string, blueprintId externalRef2.Blueprint
 }
 
 // NewUpdateBlueprintRequestWithBody generates requests for UpdateBlueprint with any type of body
-func NewUpdateBlueprintRequestWithBody(server string, blueprintId externalRef2.BlueprintId, contentType string, body io.Reader) (*http.Request, error) {
+func NewUpdateBlueprintRequestWithBody(server string, blueprintId externalRef1.BlueprintId, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -3357,7 +3463,7 @@ func NewUpdateBlueprintRequestWithBody(server string, blueprintId externalRef2.B
 }
 
 // NewListBlueprintSyncsRequest generates requests for ListBlueprintSyncs
-func NewListBlueprintSyncsRequest(server string, blueprintId externalRef2.BlueprintId, params *ListBlueprintSyncsParams) (*http.Request, error) {
+func NewListBlueprintSyncsRequest(server string, blueprintId externalRef1.BlueprintId, params *ListBlueprintSyncsParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -3730,7 +3836,7 @@ func NewAddDiskRequestWithBody(server string, contentType string, body io.Reader
 }
 
 // NewDeleteDiskRequest generates requests for DeleteDisk
-func NewDeleteDiskRequest(server string, diskId externalRef3.DiskId) (*http.Request, error) {
+func NewDeleteDiskRequest(server string, diskId externalRef2.DiskId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -3764,7 +3870,7 @@ func NewDeleteDiskRequest(server string, diskId externalRef3.DiskId) (*http.Requ
 }
 
 // NewRetrieveDiskRequest generates requests for RetrieveDisk
-func NewRetrieveDiskRequest(server string, diskId externalRef3.DiskId) (*http.Request, error) {
+func NewRetrieveDiskRequest(server string, diskId externalRef2.DiskId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -3798,7 +3904,7 @@ func NewRetrieveDiskRequest(server string, diskId externalRef3.DiskId) (*http.Re
 }
 
 // NewUpdateDiskRequest calls the generic UpdateDisk builder with application/json body
-func NewUpdateDiskRequest(server string, diskId externalRef3.DiskId, body UpdateDiskJSONRequestBody) (*http.Request, error) {
+func NewUpdateDiskRequest(server string, diskId externalRef2.DiskId, body UpdateDiskJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
@@ -3809,7 +3915,7 @@ func NewUpdateDiskRequest(server string, diskId externalRef3.DiskId, body Update
 }
 
 // NewUpdateDiskRequestWithBody generates requests for UpdateDisk with any type of body
-func NewUpdateDiskRequestWithBody(server string, diskId externalRef3.DiskId, contentType string, body io.Reader) (*http.Request, error) {
+func NewUpdateDiskRequestWithBody(server string, diskId externalRef2.DiskId, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5050,6 +5156,40 @@ func NewAddResourcesToEnvironmentRequestWithBody(server string, environmentId st
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewRetrieveEventRequest generates requests for RetrieveEvent
+func NewRetrieveEventRequest(server string, eventId externalRef3.EventId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "eventId", runtime.ParamLocationPath, eventId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/events/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -6636,7 +6776,7 @@ func NewListMaintenanceRequest(server string, params *ListMaintenanceParams) (*h
 }
 
 // NewRetrieveMaintenanceRequest generates requests for RetrieveMaintenance
-func NewRetrieveMaintenanceRequest(server string, maintenanceRunParam externalRef8.MaintenanceRunParam) (*http.Request, error) {
+func NewRetrieveMaintenanceRequest(server string, maintenanceRunParam externalRef7.MaintenanceRunParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6670,7 +6810,7 @@ func NewRetrieveMaintenanceRequest(server string, maintenanceRunParam externalRe
 }
 
 // NewUpdateMaintenanceRequest calls the generic UpdateMaintenance builder with application/json body
-func NewUpdateMaintenanceRequest(server string, maintenanceRunParam externalRef8.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody) (*http.Request, error) {
+func NewUpdateMaintenanceRequest(server string, maintenanceRunParam externalRef7.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
@@ -6681,7 +6821,7 @@ func NewUpdateMaintenanceRequest(server string, maintenanceRunParam externalRef8
 }
 
 // NewUpdateMaintenanceRequestWithBody generates requests for UpdateMaintenance with any type of body
-func NewUpdateMaintenanceRequestWithBody(server string, maintenanceRunParam externalRef8.MaintenanceRunParam, contentType string, body io.Reader) (*http.Request, error) {
+func NewUpdateMaintenanceRequestWithBody(server string, maintenanceRunParam externalRef7.MaintenanceRunParam, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6717,7 +6857,7 @@ func NewUpdateMaintenanceRequestWithBody(server string, maintenanceRunParam exte
 }
 
 // NewTriggerMaintenanceRequest generates requests for TriggerMaintenance
-func NewTriggerMaintenanceRequest(server string, maintenanceRunParam externalRef8.MaintenanceRunParam) (*http.Request, error) {
+func NewTriggerMaintenanceRequest(server string, maintenanceRunParam externalRef7.MaintenanceRunParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6746,6 +6886,121 @@ func NewTriggerMaintenanceRequest(server string, maintenanceRunParam externalRef
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewDeleteOwnerMetricsStreamRequest generates requests for DeleteOwnerMetricsStream
+func NewDeleteOwnerMetricsStreamRequest(server string, ownerId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ownerId", runtime.ParamLocationPath, ownerId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metrics-stream/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetOwnerMetricsStreamRequest generates requests for GetOwnerMetricsStream
+func NewGetOwnerMetricsStreamRequest(server string, ownerId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ownerId", runtime.ParamLocationPath, ownerId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metrics-stream/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpsertOwnerMetricsStreamRequest calls the generic UpsertOwnerMetricsStream builder with application/json body
+func NewUpsertOwnerMetricsStreamRequest(server string, ownerId string, body UpsertOwnerMetricsStreamJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpsertOwnerMetricsStreamRequestWithBody(server, ownerId, "application/json", bodyReader)
+}
+
+// NewUpsertOwnerMetricsStreamRequestWithBody generates requests for UpsertOwnerMetricsStream with any type of body
+func NewUpsertOwnerMetricsStreamRequestWithBody(server string, ownerId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ownerId", runtime.ParamLocationPath, ownerId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metrics-stream/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -9301,6 +9556,40 @@ func NewRetrieveOwnerRequest(server string, ownerId string) (*http.Request, erro
 	return req, nil
 }
 
+// NewRetrieveOwnerMembersRequest generates requests for RetrieveOwnerMembers
+func NewRetrieveOwnerMembersRequest(server string, ownerId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ownerId", runtime.ParamLocationPath, ownerId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/owners/%s/members", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListPostgresRequest generates requests for ListPostgres
 func NewListPostgresRequest(server string, params *ListPostgresParams) (*http.Request, error) {
 	var err error
@@ -9681,74 +9970,6 @@ func NewUpdatePostgresRequestWithBody(server string, postgresId string, contentT
 	return req, nil
 }
 
-// NewListPostgresBackupRequest generates requests for ListPostgresBackup
-func NewListPostgresBackupRequest(server string, postgresId string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "postgresId", runtime.ParamLocationPath, postgresId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/postgres/%s/backup", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewCreatePostgresBackupRequest generates requests for CreatePostgresBackup
-func NewCreatePostgresBackupRequest(server string, postgresId string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "postgresId", runtime.ParamLocationPath, postgresId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/postgres/%s/backup", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 // NewRetrievePostgresConnectionInfoRequest generates requests for RetrievePostgresConnectionInfo
 func NewRetrievePostgresConnectionInfoRequest(server string, postgresId string) (*http.Request, error) {
 	var err error
@@ -9776,6 +9997,74 @@ func NewRetrievePostgresConnectionInfoRequest(server string, postgresId string) 
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListPostgresExportRequest generates requests for ListPostgresExport
+func NewListPostgresExportRequest(server string, postgresId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "postgresId", runtime.ParamLocationPath, postgresId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postgres/%s/export", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreatePostgresExportRequest generates requests for CreatePostgresExport
+func NewCreatePostgresExportRequest(server string, postgresId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "postgresId", runtime.ParamLocationPath, postgresId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postgres/%s/export", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11027,338 +11316,6 @@ func NewUpdateRegistryCredentialRequestWithBody(server string, registryCredentia
 	}
 
 	operationPath := fmt.Sprintf("/registrycredentials/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PATCH", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewListServiceLinksRequest generates requests for ListServiceLinks
-func NewListServiceLinksRequest(server string, params *ListServiceLinksParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/service-links")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.LinkSourceId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "linkSourceId", runtime.ParamLocationQuery, *params.LinkSourceId); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.LinkDestinationId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "linkDestinationId", runtime.ParamLocationQuery, *params.LinkDestinationId); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.CreatedBefore != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "createdBefore", runtime.ParamLocationQuery, *params.CreatedBefore); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.CreatedAfter != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "createdAfter", runtime.ParamLocationQuery, *params.CreatedAfter); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.UpdatedBefore != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "updatedBefore", runtime.ParamLocationQuery, *params.UpdatedBefore); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.UpdatedAfter != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "updatedAfter", runtime.ParamLocationQuery, *params.UpdatedAfter); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.OwnerId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "ownerId", runtime.ParamLocationQuery, *params.OwnerId); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Cursor != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "cursor", runtime.ParamLocationQuery, *params.Cursor); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Limit != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewCreateServiceLinkRequest calls the generic CreateServiceLink builder with application/json body
-func NewCreateServiceLinkRequest(server string, body CreateServiceLinkJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewCreateServiceLinkRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewCreateServiceLinkRequestWithBody generates requests for CreateServiceLink with any type of body
-func NewCreateServiceLinkRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/service-links")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewDeleteServiceLinkRequest generates requests for DeleteServiceLink
-func NewDeleteServiceLinkRequest(server string, serviceLinkId string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "serviceLinkId", runtime.ParamLocationPath, serviceLinkId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/service-links/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewRetrieveServiceLinkRequest generates requests for RetrieveServiceLink
-func NewRetrieveServiceLinkRequest(server string, serviceLinkId string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "serviceLinkId", runtime.ParamLocationPath, serviceLinkId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/service-links/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewUpdateServiceLinkRequest calls the generic UpdateServiceLink builder with application/json body
-func NewUpdateServiceLinkRequest(server string, serviceLinkId string, body UpdateServiceLinkJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewUpdateServiceLinkRequestWithBody(server, serviceLinkId, "application/json", bodyReader)
-}
-
-// NewUpdateServiceLinkRequestWithBody generates requests for UpdateServiceLink with any type of body
-func NewUpdateServiceLinkRequestWithBody(server string, serviceLinkId string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "serviceLinkId", runtime.ParamLocationPath, serviceLinkId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/service-links/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -13368,7 +13325,7 @@ func NewPostJobRequestWithBody(server string, serviceId ServiceIdParam, contentT
 }
 
 // NewRetrieveJobRequest generates requests for RetrieveJob
-func NewRetrieveJobRequest(server string, serviceId ServiceIdParam, jobId externalRef6.JobId) (*http.Request, error) {
+func NewRetrieveJobRequest(server string, serviceId ServiceIdParam, jobId externalRef5.JobId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -13409,7 +13366,7 @@ func NewRetrieveJobRequest(server string, serviceId ServiceIdParam, jobId extern
 }
 
 // NewCancelJobRequest generates requests for CancelJob
-func NewCancelJobRequest(server string, serviceId ServiceIdParam, jobId externalRef6.JobId) (*http.Request, error) {
+func NewCancelJobRequest(server string, serviceId ServiceIdParam, jobId externalRef5.JobId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -14276,6 +14233,346 @@ func NewGetUserRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewListWebhooksRequest generates requests for ListWebhooks
+func NewListWebhooksRequest(server string, params *ListWebhooksParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/webhooks")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "cursor", runtime.ParamLocationQuery, *params.Cursor); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "ownerId", runtime.ParamLocationQuery, *params.OwnerId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateWebhookRequest calls the generic CreateWebhook builder with application/json body
+func NewCreateWebhookRequest(server string, body CreateWebhookJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateWebhookRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateWebhookRequestWithBody generates requests for CreateWebhook with any type of body
+func NewCreateWebhookRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/webhooks")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteWebhookRequest generates requests for DeleteWebhook
+func NewDeleteWebhookRequest(server string, webhookId externalRef11.WebhookIdParam) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "webhookId", runtime.ParamLocationPath, webhookId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/webhooks/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRetrieveWebhookRequest generates requests for RetrieveWebhook
+func NewRetrieveWebhookRequest(server string, webhookId externalRef11.WebhookIdParam) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "webhookId", runtime.ParamLocationPath, webhookId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/webhooks/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateWebhookRequest calls the generic UpdateWebhook builder with application/json body
+func NewUpdateWebhookRequest(server string, webhookId externalRef11.WebhookIdParam, body UpdateWebhookJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateWebhookRequestWithBody(server, webhookId, "application/json", bodyReader)
+}
+
+// NewUpdateWebhookRequestWithBody generates requests for UpdateWebhook with any type of body
+func NewUpdateWebhookRequestWithBody(server string, webhookId externalRef11.WebhookIdParam, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "webhookId", runtime.ParamLocationPath, webhookId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/webhooks/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListWebhookEventsRequest generates requests for ListWebhookEvents
+func NewListWebhookEventsRequest(server string, webhookId externalRef11.WebhookIdParam, params *ListWebhookEventsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "webhookId", runtime.ParamLocationPath, webhookId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/webhooks/%s/events", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.SentBefore != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sentBefore", runtime.ParamLocationQuery, *params.SentBefore); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.SentAfter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sentAfter", runtime.ParamLocationQuery, *params.SentAfter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "cursor", runtime.ParamLocationQuery, *params.Cursor); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -14323,18 +14620,18 @@ type ClientWithResponsesInterface interface {
 	ListBlueprintsWithResponse(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*ListBlueprintsResponse, error)
 
 	// DisconnectBlueprintWithResponse request
-	DisconnectBlueprintWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*DisconnectBlueprintResponse, error)
+	DisconnectBlueprintWithResponse(ctx context.Context, blueprintId externalRef1.BlueprintId, reqEditors ...RequestEditorFn) (*DisconnectBlueprintResponse, error)
 
 	// RetrieveBlueprintWithResponse request
-	RetrieveBlueprintWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*RetrieveBlueprintResponse, error)
+	RetrieveBlueprintWithResponse(ctx context.Context, blueprintId externalRef1.BlueprintId, reqEditors ...RequestEditorFn) (*RetrieveBlueprintResponse, error)
 
 	// UpdateBlueprintWithBodyWithResponse request with any body
-	UpdateBlueprintWithBodyWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error)
+	UpdateBlueprintWithBodyWithResponse(ctx context.Context, blueprintId externalRef1.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error)
 
-	UpdateBlueprintWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error)
+	UpdateBlueprintWithResponse(ctx context.Context, blueprintId externalRef1.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error)
 
 	// ListBlueprintSyncsWithResponse request
-	ListBlueprintSyncsWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*ListBlueprintSyncsResponse, error)
+	ListBlueprintSyncsWithResponse(ctx context.Context, blueprintId externalRef1.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*ListBlueprintSyncsResponse, error)
 
 	// CancelCronJobRunWithResponse request
 	CancelCronJobRunWithResponse(ctx context.Context, cronJobId CronJobIdParam, reqEditors ...RequestEditorFn) (*CancelCronJobRunResponse, error)
@@ -14351,15 +14648,15 @@ type ClientWithResponsesInterface interface {
 	AddDiskWithResponse(ctx context.Context, body AddDiskJSONRequestBody, reqEditors ...RequestEditorFn) (*AddDiskResponse, error)
 
 	// DeleteDiskWithResponse request
-	DeleteDiskWithResponse(ctx context.Context, diskId externalRef3.DiskId, reqEditors ...RequestEditorFn) (*DeleteDiskResponse, error)
+	DeleteDiskWithResponse(ctx context.Context, diskId externalRef2.DiskId, reqEditors ...RequestEditorFn) (*DeleteDiskResponse, error)
 
 	// RetrieveDiskWithResponse request
-	RetrieveDiskWithResponse(ctx context.Context, diskId externalRef3.DiskId, reqEditors ...RequestEditorFn) (*RetrieveDiskResponse, error)
+	RetrieveDiskWithResponse(ctx context.Context, diskId externalRef2.DiskId, reqEditors ...RequestEditorFn) (*RetrieveDiskResponse, error)
 
 	// UpdateDiskWithBodyWithResponse request with any body
-	UpdateDiskWithBodyWithResponse(ctx context.Context, diskId externalRef3.DiskId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDiskResponse, error)
+	UpdateDiskWithBodyWithResponse(ctx context.Context, diskId externalRef2.DiskId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDiskResponse, error)
 
-	UpdateDiskWithResponse(ctx context.Context, diskId externalRef3.DiskId, body UpdateDiskJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDiskResponse, error)
+	UpdateDiskWithResponse(ctx context.Context, diskId externalRef2.DiskId, body UpdateDiskJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDiskResponse, error)
 
 	// ListSnapshotsWithResponse request
 	ListSnapshotsWithResponse(ctx context.Context, diskId string, reqEditors ...RequestEditorFn) (*ListSnapshotsResponse, error)
@@ -14443,6 +14740,9 @@ type ClientWithResponsesInterface interface {
 
 	AddResourcesToEnvironmentWithResponse(ctx context.Context, environmentId string, body AddResourcesToEnvironmentJSONRequestBody, reqEditors ...RequestEditorFn) (*AddResourcesToEnvironmentResponse, error)
 
+	// RetrieveEventWithResponse request
+	RetrieveEventWithResponse(ctx context.Context, eventId externalRef3.EventId, reqEditors ...RequestEditorFn) (*RetrieveEventResponse, error)
+
 	// ListKeyValueWithResponse request
 	ListKeyValueWithResponse(ctx context.Context, params *ListKeyValueParams, reqEditors ...RequestEditorFn) (*ListKeyValueResponse, error)
 
@@ -14503,15 +14803,26 @@ type ClientWithResponsesInterface interface {
 	ListMaintenanceWithResponse(ctx context.Context, params *ListMaintenanceParams, reqEditors ...RequestEditorFn) (*ListMaintenanceResponse, error)
 
 	// RetrieveMaintenanceWithResponse request
-	RetrieveMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*RetrieveMaintenanceResponse, error)
+	RetrieveMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*RetrieveMaintenanceResponse, error)
 
 	// UpdateMaintenanceWithBodyWithResponse request with any body
-	UpdateMaintenanceWithBodyWithResponse(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error)
+	UpdateMaintenanceWithBodyWithResponse(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error)
 
-	UpdateMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error)
+	UpdateMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error)
 
 	// TriggerMaintenanceWithResponse request
-	TriggerMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*TriggerMaintenanceResponse, error)
+	TriggerMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*TriggerMaintenanceResponse, error)
+
+	// DeleteOwnerMetricsStreamWithResponse request
+	DeleteOwnerMetricsStreamWithResponse(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*DeleteOwnerMetricsStreamResponse, error)
+
+	// GetOwnerMetricsStreamWithResponse request
+	GetOwnerMetricsStreamWithResponse(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*GetOwnerMetricsStreamResponse, error)
+
+	// UpsertOwnerMetricsStreamWithBodyWithResponse request with any body
+	UpsertOwnerMetricsStreamWithBodyWithResponse(ctx context.Context, ownerId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpsertOwnerMetricsStreamResponse, error)
+
+	UpsertOwnerMetricsStreamWithResponse(ctx context.Context, ownerId string, body UpsertOwnerMetricsStreamJSONRequestBody, reqEditors ...RequestEditorFn) (*UpsertOwnerMetricsStreamResponse, error)
 
 	// GetActiveConnectionsWithResponse request
 	GetActiveConnectionsWithResponse(ctx context.Context, params *GetActiveConnectionsParams, reqEditors ...RequestEditorFn) (*GetActiveConnectionsResponse, error)
@@ -14589,6 +14900,9 @@ type ClientWithResponsesInterface interface {
 	// RetrieveOwnerWithResponse request
 	RetrieveOwnerWithResponse(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*RetrieveOwnerResponse, error)
 
+	// RetrieveOwnerMembersWithResponse request
+	RetrieveOwnerMembersWithResponse(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*RetrieveOwnerMembersResponse, error)
+
 	// ListPostgresWithResponse request
 	ListPostgresWithResponse(ctx context.Context, params *ListPostgresParams, reqEditors ...RequestEditorFn) (*ListPostgresResponse, error)
 
@@ -14608,14 +14922,14 @@ type ClientWithResponsesInterface interface {
 
 	UpdatePostgresWithResponse(ctx context.Context, postgresId string, body UpdatePostgresJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdatePostgresResponse, error)
 
-	// ListPostgresBackupWithResponse request
-	ListPostgresBackupWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresBackupResponse, error)
-
-	// CreatePostgresBackupWithResponse request
-	CreatePostgresBackupWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*CreatePostgresBackupResponse, error)
-
 	// RetrievePostgresConnectionInfoWithResponse request
 	RetrievePostgresConnectionInfoWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*RetrievePostgresConnectionInfoResponse, error)
+
+	// ListPostgresExportWithResponse request
+	ListPostgresExportWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresExportResponse, error)
+
+	// CreatePostgresExportWithResponse request
+	CreatePostgresExportWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*CreatePostgresExportResponse, error)
 
 	// FailoverPostgresWithResponse request
 	FailoverPostgresWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*FailoverPostgresResponse, error)
@@ -14696,25 +15010,6 @@ type ClientWithResponsesInterface interface {
 	UpdateRegistryCredentialWithBodyWithResponse(ctx context.Context, registryCredentialId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateRegistryCredentialResponse, error)
 
 	UpdateRegistryCredentialWithResponse(ctx context.Context, registryCredentialId string, body UpdateRegistryCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateRegistryCredentialResponse, error)
-
-	// ListServiceLinksWithResponse request
-	ListServiceLinksWithResponse(ctx context.Context, params *ListServiceLinksParams, reqEditors ...RequestEditorFn) (*ListServiceLinksResponse, error)
-
-	// CreateServiceLinkWithBodyWithResponse request with any body
-	CreateServiceLinkWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateServiceLinkResponse, error)
-
-	CreateServiceLinkWithResponse(ctx context.Context, body CreateServiceLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateServiceLinkResponse, error)
-
-	// DeleteServiceLinkWithResponse request
-	DeleteServiceLinkWithResponse(ctx context.Context, serviceLinkId string, reqEditors ...RequestEditorFn) (*DeleteServiceLinkResponse, error)
-
-	// RetrieveServiceLinkWithResponse request
-	RetrieveServiceLinkWithResponse(ctx context.Context, serviceLinkId string, reqEditors ...RequestEditorFn) (*RetrieveServiceLinkResponse, error)
-
-	// UpdateServiceLinkWithBodyWithResponse request with any body
-	UpdateServiceLinkWithBodyWithResponse(ctx context.Context, serviceLinkId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateServiceLinkResponse, error)
-
-	UpdateServiceLinkWithResponse(ctx context.Context, serviceLinkId string, body UpdateServiceLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateServiceLinkResponse, error)
 
 	// ListServicesWithResponse request
 	ListServicesWithResponse(ctx context.Context, params *ListServicesParams, reqEditors ...RequestEditorFn) (*ListServicesResponse, error)
@@ -14821,10 +15116,10 @@ type ClientWithResponsesInterface interface {
 	PostJobWithResponse(ctx context.Context, serviceId ServiceIdParam, body PostJobJSONRequestBody, reqEditors ...RequestEditorFn) (*PostJobResponse, error)
 
 	// RetrieveJobWithResponse request
-	RetrieveJobWithResponse(ctx context.Context, serviceId ServiceIdParam, jobId externalRef6.JobId, reqEditors ...RequestEditorFn) (*RetrieveJobResponse, error)
+	RetrieveJobWithResponse(ctx context.Context, serviceId ServiceIdParam, jobId externalRef5.JobId, reqEditors ...RequestEditorFn) (*RetrieveJobResponse, error)
 
 	// CancelJobWithResponse request
-	CancelJobWithResponse(ctx context.Context, serviceId ServiceIdParam, jobId externalRef6.JobId, reqEditors ...RequestEditorFn) (*CancelJobResponse, error)
+	CancelJobWithResponse(ctx context.Context, serviceId ServiceIdParam, jobId externalRef5.JobId, reqEditors ...RequestEditorFn) (*CancelJobResponse, error)
 
 	// PreviewServiceWithBodyWithResponse request with any body
 	PreviewServiceWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PreviewServiceResponse, error)
@@ -14892,6 +15187,28 @@ type ClientWithResponsesInterface interface {
 
 	// GetUserWithResponse request
 	GetUserWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUserResponse, error)
+
+	// ListWebhooksWithResponse request
+	ListWebhooksWithResponse(ctx context.Context, params *ListWebhooksParams, reqEditors ...RequestEditorFn) (*ListWebhooksResponse, error)
+
+	// CreateWebhookWithBodyWithResponse request with any body
+	CreateWebhookWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateWebhookResponse, error)
+
+	CreateWebhookWithResponse(ctx context.Context, body CreateWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateWebhookResponse, error)
+
+	// DeleteWebhookWithResponse request
+	DeleteWebhookWithResponse(ctx context.Context, webhookId externalRef11.WebhookIdParam, reqEditors ...RequestEditorFn) (*DeleteWebhookResponse, error)
+
+	// RetrieveWebhookWithResponse request
+	RetrieveWebhookWithResponse(ctx context.Context, webhookId externalRef11.WebhookIdParam, reqEditors ...RequestEditorFn) (*RetrieveWebhookResponse, error)
+
+	// UpdateWebhookWithBodyWithResponse request with any body
+	UpdateWebhookWithBodyWithResponse(ctx context.Context, webhookId externalRef11.WebhookIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateWebhookResponse, error)
+
+	UpdateWebhookWithResponse(ctx context.Context, webhookId externalRef11.WebhookIdParam, body UpdateWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateWebhookResponse, error)
+
+	// ListWebhookEventsWithResponse request
+	ListWebhookEventsWithResponse(ctx context.Context, webhookId externalRef11.WebhookIdParam, params *ListWebhookEventsParams, reqEditors ...RequestEditorFn) (*ListWebhookEventsResponse, error)
 }
 
 type ListBlueprintsResponse struct {
@@ -14956,7 +15273,7 @@ func (r DisconnectBlueprintResponse) StatusCode() int {
 type RetrieveBlueprintResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef2.BlueprintDetail
+	JSON200      *externalRef1.BlueprintDetail
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
 	JSON404      *N404NotFound
@@ -14986,7 +15303,7 @@ func (r RetrieveBlueprintResponse) StatusCode() int {
 type UpdateBlueprintResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef2.Blueprint
+	JSON200      *externalRef1.Blueprint
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
 	JSON404      *N404NotFound
@@ -15129,7 +15446,7 @@ func (r ListDisksResponse) StatusCode() int {
 type AddDiskResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON201      *externalRef3.DiskDetails
+	JSON201      *externalRef2.DiskDetails
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
@@ -15189,7 +15506,7 @@ func (r DeleteDiskResponse) StatusCode() int {
 type RetrieveDiskResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef3.DiskDetails
+	JSON200      *externalRef2.DiskDetails
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
 	JSON404      *N404NotFound
@@ -15219,7 +15536,7 @@ func (r RetrieveDiskResponse) StatusCode() int {
 type UpdateDiskResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef3.DiskDetails
+	JSON200      *externalRef2.DiskDetails
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
@@ -15281,7 +15598,7 @@ func (r ListSnapshotsResponse) StatusCode() int {
 type RestoreSnapshotResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef3.DiskDetails
+	JSON200      *externalRef2.DiskDetails
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
@@ -15863,6 +16180,37 @@ func (r AddResourcesToEnvironmentResponse) StatusCode() int {
 	return 0
 }
 
+type RetrieveEventResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef3.Event
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON406      *N406NotAcceptable
+	JSON410      *N410Gone
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r RetrieveEventResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RetrieveEventResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListKeyValueResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -16093,7 +16441,7 @@ func (r DeleteOwnerLogStreamResponse) StatusCode() int {
 type GetOwnerLogStreamResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef7.GetOwnerLogsStreams200Response
+	JSON200      *externalRef6.GetOwnerLogsStreams200Response
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
@@ -16124,7 +16472,7 @@ func (r GetOwnerLogStreamResponse) StatusCode() int {
 type UpdateOwnerLogStreamResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef7.GetOwnerLogsStreams200Response
+	JSON200      *externalRef6.GetOwnerLogsStreams200Response
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
@@ -16155,7 +16503,7 @@ func (r UpdateOwnerLogStreamResponse) StatusCode() int {
 type ListResourceLogStreamsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef7.ResourceLogsStreams200Response
+	JSON200      *externalRef6.ResourceLogsStreams200Response
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
@@ -16213,7 +16561,7 @@ func (r DeleteResourceLogStreamResponse) StatusCode() int {
 type GetResourceLogStreamResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef7.GetResourceLogsStreams200Response
+	JSON200      *externalRef6.GetResourceLogsStreams200Response
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
@@ -16244,7 +16592,7 @@ func (r GetResourceLogStreamResponse) StatusCode() int {
 type UpdateResourceLogStreamResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef7.GetResourceLogsStreams200Response
+	JSON200      *externalRef6.GetResourceLogsStreams200Response
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
@@ -16275,7 +16623,7 @@ func (r UpdateResourceLogStreamResponse) StatusCode() int {
 type SubscribeLogsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON101      *externalRef7.Log
+	JSON101      *externalRef6.Log
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
@@ -16337,7 +16685,7 @@ func (r ListLogsValuesResponse) StatusCode() int {
 type ListMaintenanceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]externalRef8.MaintenanceRunWithResource
+	JSON200      *[]externalRef7.MaintenanceRunWithResource
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON404      *N404NotFound
@@ -16365,7 +16713,7 @@ func (r ListMaintenanceResponse) StatusCode() int {
 type RetrieveMaintenanceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef8.MaintenanceRunWithResource
+	JSON200      *externalRef7.MaintenanceRunWithResource
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON404      *N404NotFound
@@ -16444,10 +16792,81 @@ func (r TriggerMaintenanceResponse) StatusCode() int {
 	return 0
 }
 
+type DeleteOwnerMetricsStreamResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *N400BadRequest
+	JSON500      *N500InternalServerError
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteOwnerMetricsStreamResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteOwnerMetricsStreamResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetOwnerMetricsStreamResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef8.GetMetricsStream200Response
+	JSON400      *N400BadRequest
+	JSON500      *N500InternalServerError
+}
+
+// Status returns HTTPResponse.Status
+func (r GetOwnerMetricsStreamResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetOwnerMetricsStreamResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpsertOwnerMetricsStreamResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef8.MetricsStream
+	JSON400      *N400BadRequest
+	JSON500      *N500InternalServerError
+}
+
+// Status returns HTTPResponse.Status
+func (r UpsertOwnerMetricsStreamResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpsertOwnerMetricsStreamResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetActiveConnectionsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16471,7 +16890,7 @@ func (r GetActiveConnectionsResponse) StatusCode() int {
 type GetBandwidthResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16495,7 +16914,7 @@ func (r GetBandwidthResponse) StatusCode() int {
 type GetCpuResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16519,7 +16938,7 @@ func (r GetCpuResponse) StatusCode() int {
 type GetCpuLimitResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16543,7 +16962,7 @@ func (r GetCpuLimitResponse) StatusCode() int {
 type GetCpuTargetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16567,7 +16986,7 @@ func (r GetCpuTargetResponse) StatusCode() int {
 type GetDiskCapacityResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16591,7 +17010,7 @@ func (r GetDiskCapacityResponse) StatusCode() int {
 type GetDiskUsageResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16615,7 +17034,7 @@ func (r GetDiskUsageResponse) StatusCode() int {
 type ListApplicationFilterValuesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.MetricsFiltersApplication200Response
+	JSON200      *externalRef8.MetricsFiltersApplication200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16639,7 +17058,7 @@ func (r ListApplicationFilterValuesResponse) StatusCode() int {
 type ListHttpFilterValuesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.MetricsFiltersHTTP200Response
+	JSON200      *externalRef8.MetricsFiltersHTTP200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16663,7 +17082,7 @@ func (r ListHttpFilterValuesResponse) StatusCode() int {
 type ListPathFilterValuesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.MetricsFiltersPath200Response
+	JSON200      *externalRef8.MetricsFiltersPath200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16687,7 +17106,7 @@ func (r ListPathFilterValuesResponse) StatusCode() int {
 type GetHttpLatencyResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16711,7 +17130,7 @@ func (r GetHttpLatencyResponse) StatusCode() int {
 type GetHttpRequestsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16735,7 +17154,7 @@ func (r GetHttpRequestsResponse) StatusCode() int {
 type GetInstanceCountResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16759,7 +17178,7 @@ func (r GetInstanceCountResponse) StatusCode() int {
 type GetMemoryResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16783,7 +17202,7 @@ func (r GetMemoryResponse) StatusCode() int {
 type GetMemoryLimitResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16807,7 +17226,7 @@ func (r GetMemoryLimitResponse) StatusCode() int {
 type GetMemoryTargetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16831,7 +17250,7 @@ func (r GetMemoryTargetResponse) StatusCode() int {
 type GetReplicationLagResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef9.Metrics200Response
+	JSON200      *externalRef8.Metrics200Response
 	JSON400      *N400BadRequest
 	JSON500      *N500InternalServerError
 }
@@ -16882,7 +17301,7 @@ func (r ListNotificationOverridesResponse) StatusCode() int {
 type RetrieveServiceNotificationOverridesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef10.NotificationServiceOverride
+	JSON200      *externalRef9.NotificationServiceOverride
 	JSON401      *N401Unauthorized
 	JSON406      *N406NotAcceptable
 	JSON429      *N429RateLimit
@@ -16909,7 +17328,7 @@ func (r RetrieveServiceNotificationOverridesResponse) StatusCode() int {
 type PatchServiceNotificationOverridesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef10.NotificationServiceOverride
+	JSON200      *externalRef9.NotificationServiceOverride
 	JSON401      *N401Unauthorized
 	JSON406      *N406NotAcceptable
 	JSON429      *N429RateLimit
@@ -16936,7 +17355,7 @@ func (r PatchServiceNotificationOverridesResponse) StatusCode() int {
 type RetrieveOwnerNotificationSettingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef10.NotificationSetting
+	JSON200      *externalRef9.NotificationSetting
 	JSON401      *N401Unauthorized
 	JSON406      *N406NotAcceptable
 	JSON429      *N429RateLimit
@@ -16963,7 +17382,7 @@ func (r RetrieveOwnerNotificationSettingsResponse) StatusCode() int {
 type PatchOwnerNotificationSettingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef10.NotificationSetting
+	JSON200      *externalRef9.NotificationSetting
 	JSON401      *N401Unauthorized
 	JSON406      *N406NotAcceptable
 	JSON429      *N429RateLimit
@@ -17037,6 +17456,35 @@ func (r RetrieveOwnerResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r RetrieveOwnerResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RetrieveOwnerMembersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *TeamMembers
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON406      *N406NotAcceptable
+	JSON410      *N410Gone
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r RetrieveOwnerMembersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RetrieveOwnerMembersResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -17184,64 +17632,6 @@ func (r UpdatePostgresResponse) StatusCode() int {
 	return 0
 }
 
-type ListPostgresBackupResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]externalRef11.PostgresBackup
-	JSON400      *N400BadRequest
-	JSON401      *N401Unauthorized
-	JSON404      *N404NotFound
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r ListPostgresBackupResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListPostgresBackupResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type CreatePostgresBackupResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON400      *N400BadRequest
-	JSON401      *N401Unauthorized
-	JSON403      *N403Forbidden
-	JSON404      *N404NotFound
-	JSON406      *N406NotAcceptable
-	JSON410      *N410Gone
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r CreatePostgresBackupResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CreatePostgresBackupResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type RetrievePostgresConnectionInfoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -17264,6 +17654,64 @@ func (r RetrievePostgresConnectionInfoResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r RetrievePostgresConnectionInfoResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListPostgresExportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]externalRef10.PostgresExport
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListPostgresExportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListPostgresExportResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreatePostgresExportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON406      *N406NotAcceptable
+	JSON410      *N410Gone
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r CreatePostgresExportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreatePostgresExportResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -17303,7 +17751,7 @@ func (r FailoverPostgresResponse) StatusCode() int {
 type RetrievePostgresRecoveryInfoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef11.RecoveryInfo
+	JSON200      *externalRef10.RecoveryInfo
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON404      *N404NotFound
@@ -17906,145 +18354,6 @@ func (r UpdateRegistryCredentialResponse) StatusCode() int {
 	return 0
 }
 
-type ListServiceLinksResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]ServiceLinkWithCursor
-	JSON400      *N400BadRequest
-	JSON401      *N401Unauthorized
-	JSON404      *N404NotFound
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r ListServiceLinksResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListServiceLinksResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type CreateServiceLinkResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON201      *ServiceLink
-	JSON400      *N400BadRequest
-	JSON401      *N401Unauthorized
-	JSON404      *N404NotFound
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r CreateServiceLinkResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CreateServiceLinkResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type DeleteServiceLinkResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON400      *N400BadRequest
-	JSON401      *N401Unauthorized
-	JSON404      *N404NotFound
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteServiceLinkResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteServiceLinkResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type RetrieveServiceLinkResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *ServiceLink
-	JSON400      *N400BadRequest
-	JSON401      *N401Unauthorized
-	JSON404      *N404NotFound
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r RetrieveServiceLinkResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r RetrieveServiceLinkResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type UpdateServiceLinkResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *ServiceLink
-	JSON400      *N400BadRequest
-	JSON401      *N401Unauthorized
-	JSON404      *N404NotFound
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r UpdateServiceLinkResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UpdateServiceLinkResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type ListServicesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -18226,7 +18535,7 @@ func (r DeleteAutoscalingConfigResponse) StatusCode() int {
 type AutoscaleServiceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef1.AutoscalingConfig
+	JSON200      *externalRef0.AutoscalingConfig
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
@@ -18861,7 +19170,7 @@ func (r ListJobResponse) StatusCode() int {
 type PostJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON201      *externalRef6.Job
+	JSON201      *externalRef5.Job
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON404      *N404NotFound
@@ -18889,7 +19198,7 @@ func (r PostJobResponse) StatusCode() int {
 type RetrieveJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef6.Job
+	JSON200      *externalRef5.Job
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON404      *N404NotFound
@@ -18917,7 +19226,7 @@ func (r RetrieveJobResponse) StatusCode() int {
 type CancelJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *externalRef6.Job
+	JSON200      *externalRef5.Job
 	JSON400      *N400BadRequest
 	JSON401      *N401Unauthorized
 	JSON404      *N404NotFound
@@ -19451,6 +19760,171 @@ func (r GetUserResponse) StatusCode() int {
 	return 0
 }
 
+type ListWebhooksResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]WebhookWithCursor
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListWebhooksResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListWebhooksResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateWebhookResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *externalRef11.Webhook
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateWebhookResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateWebhookResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteWebhookResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteWebhookResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteWebhookResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RetrieveWebhookResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef11.Webhook
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r RetrieveWebhookResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RetrieveWebhookResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateWebhookResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef11.Webhook
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateWebhookResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateWebhookResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListWebhookEventsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]WebhookEventWithCursor
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListWebhookEventsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListWebhookEventsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 // ListBlueprintsWithResponse request returning *ListBlueprintsResponse
 func (c *ClientWithResponses) ListBlueprintsWithResponse(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*ListBlueprintsResponse, error) {
 	rsp, err := c.ListBlueprints(ctx, params, reqEditors...)
@@ -19461,7 +19935,7 @@ func (c *ClientWithResponses) ListBlueprintsWithResponse(ctx context.Context, pa
 }
 
 // DisconnectBlueprintWithResponse request returning *DisconnectBlueprintResponse
-func (c *ClientWithResponses) DisconnectBlueprintWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*DisconnectBlueprintResponse, error) {
+func (c *ClientWithResponses) DisconnectBlueprintWithResponse(ctx context.Context, blueprintId externalRef1.BlueprintId, reqEditors ...RequestEditorFn) (*DisconnectBlueprintResponse, error) {
 	rsp, err := c.DisconnectBlueprint(ctx, blueprintId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -19470,7 +19944,7 @@ func (c *ClientWithResponses) DisconnectBlueprintWithResponse(ctx context.Contex
 }
 
 // RetrieveBlueprintWithResponse request returning *RetrieveBlueprintResponse
-func (c *ClientWithResponses) RetrieveBlueprintWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*RetrieveBlueprintResponse, error) {
+func (c *ClientWithResponses) RetrieveBlueprintWithResponse(ctx context.Context, blueprintId externalRef1.BlueprintId, reqEditors ...RequestEditorFn) (*RetrieveBlueprintResponse, error) {
 	rsp, err := c.RetrieveBlueprint(ctx, blueprintId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -19479,7 +19953,7 @@ func (c *ClientWithResponses) RetrieveBlueprintWithResponse(ctx context.Context,
 }
 
 // UpdateBlueprintWithBodyWithResponse request with arbitrary body returning *UpdateBlueprintResponse
-func (c *ClientWithResponses) UpdateBlueprintWithBodyWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error) {
+func (c *ClientWithResponses) UpdateBlueprintWithBodyWithResponse(ctx context.Context, blueprintId externalRef1.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error) {
 	rsp, err := c.UpdateBlueprintWithBody(ctx, blueprintId, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -19487,7 +19961,7 @@ func (c *ClientWithResponses) UpdateBlueprintWithBodyWithResponse(ctx context.Co
 	return ParseUpdateBlueprintResponse(rsp)
 }
 
-func (c *ClientWithResponses) UpdateBlueprintWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error) {
+func (c *ClientWithResponses) UpdateBlueprintWithResponse(ctx context.Context, blueprintId externalRef1.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error) {
 	rsp, err := c.UpdateBlueprint(ctx, blueprintId, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -19496,7 +19970,7 @@ func (c *ClientWithResponses) UpdateBlueprintWithResponse(ctx context.Context, b
 }
 
 // ListBlueprintSyncsWithResponse request returning *ListBlueprintSyncsResponse
-func (c *ClientWithResponses) ListBlueprintSyncsWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*ListBlueprintSyncsResponse, error) {
+func (c *ClientWithResponses) ListBlueprintSyncsWithResponse(ctx context.Context, blueprintId externalRef1.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*ListBlueprintSyncsResponse, error) {
 	rsp, err := c.ListBlueprintSyncs(ctx, blueprintId, params, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -19549,7 +20023,7 @@ func (c *ClientWithResponses) AddDiskWithResponse(ctx context.Context, body AddD
 }
 
 // DeleteDiskWithResponse request returning *DeleteDiskResponse
-func (c *ClientWithResponses) DeleteDiskWithResponse(ctx context.Context, diskId externalRef3.DiskId, reqEditors ...RequestEditorFn) (*DeleteDiskResponse, error) {
+func (c *ClientWithResponses) DeleteDiskWithResponse(ctx context.Context, diskId externalRef2.DiskId, reqEditors ...RequestEditorFn) (*DeleteDiskResponse, error) {
 	rsp, err := c.DeleteDisk(ctx, diskId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -19558,7 +20032,7 @@ func (c *ClientWithResponses) DeleteDiskWithResponse(ctx context.Context, diskId
 }
 
 // RetrieveDiskWithResponse request returning *RetrieveDiskResponse
-func (c *ClientWithResponses) RetrieveDiskWithResponse(ctx context.Context, diskId externalRef3.DiskId, reqEditors ...RequestEditorFn) (*RetrieveDiskResponse, error) {
+func (c *ClientWithResponses) RetrieveDiskWithResponse(ctx context.Context, diskId externalRef2.DiskId, reqEditors ...RequestEditorFn) (*RetrieveDiskResponse, error) {
 	rsp, err := c.RetrieveDisk(ctx, diskId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -19567,7 +20041,7 @@ func (c *ClientWithResponses) RetrieveDiskWithResponse(ctx context.Context, disk
 }
 
 // UpdateDiskWithBodyWithResponse request with arbitrary body returning *UpdateDiskResponse
-func (c *ClientWithResponses) UpdateDiskWithBodyWithResponse(ctx context.Context, diskId externalRef3.DiskId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDiskResponse, error) {
+func (c *ClientWithResponses) UpdateDiskWithBodyWithResponse(ctx context.Context, diskId externalRef2.DiskId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDiskResponse, error) {
 	rsp, err := c.UpdateDiskWithBody(ctx, diskId, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -19575,7 +20049,7 @@ func (c *ClientWithResponses) UpdateDiskWithBodyWithResponse(ctx context.Context
 	return ParseUpdateDiskResponse(rsp)
 }
 
-func (c *ClientWithResponses) UpdateDiskWithResponse(ctx context.Context, diskId externalRef3.DiskId, body UpdateDiskJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDiskResponse, error) {
+func (c *ClientWithResponses) UpdateDiskWithResponse(ctx context.Context, diskId externalRef2.DiskId, body UpdateDiskJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDiskResponse, error) {
 	rsp, err := c.UpdateDisk(ctx, diskId, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -19845,6 +20319,15 @@ func (c *ClientWithResponses) AddResourcesToEnvironmentWithResponse(ctx context.
 	return ParseAddResourcesToEnvironmentResponse(rsp)
 }
 
+// RetrieveEventWithResponse request returning *RetrieveEventResponse
+func (c *ClientWithResponses) RetrieveEventWithResponse(ctx context.Context, eventId externalRef3.EventId, reqEditors ...RequestEditorFn) (*RetrieveEventResponse, error) {
+	rsp, err := c.RetrieveEvent(ctx, eventId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRetrieveEventResponse(rsp)
+}
+
 // ListKeyValueWithResponse request returning *ListKeyValueResponse
 func (c *ClientWithResponses) ListKeyValueWithResponse(ctx context.Context, params *ListKeyValueParams, reqEditors ...RequestEditorFn) (*ListKeyValueResponse, error) {
 	rsp, err := c.ListKeyValue(ctx, params, reqEditors...)
@@ -20031,7 +20514,7 @@ func (c *ClientWithResponses) ListMaintenanceWithResponse(ctx context.Context, p
 }
 
 // RetrieveMaintenanceWithResponse request returning *RetrieveMaintenanceResponse
-func (c *ClientWithResponses) RetrieveMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*RetrieveMaintenanceResponse, error) {
+func (c *ClientWithResponses) RetrieveMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*RetrieveMaintenanceResponse, error) {
 	rsp, err := c.RetrieveMaintenance(ctx, maintenanceRunParam, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -20040,7 +20523,7 @@ func (c *ClientWithResponses) RetrieveMaintenanceWithResponse(ctx context.Contex
 }
 
 // UpdateMaintenanceWithBodyWithResponse request with arbitrary body returning *UpdateMaintenanceResponse
-func (c *ClientWithResponses) UpdateMaintenanceWithBodyWithResponse(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error) {
+func (c *ClientWithResponses) UpdateMaintenanceWithBodyWithResponse(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error) {
 	rsp, err := c.UpdateMaintenanceWithBody(ctx, maintenanceRunParam, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -20048,7 +20531,7 @@ func (c *ClientWithResponses) UpdateMaintenanceWithBodyWithResponse(ctx context.
 	return ParseUpdateMaintenanceResponse(rsp)
 }
 
-func (c *ClientWithResponses) UpdateMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error) {
+func (c *ClientWithResponses) UpdateMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error) {
 	rsp, err := c.UpdateMaintenance(ctx, maintenanceRunParam, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -20057,12 +20540,47 @@ func (c *ClientWithResponses) UpdateMaintenanceWithResponse(ctx context.Context,
 }
 
 // TriggerMaintenanceWithResponse request returning *TriggerMaintenanceResponse
-func (c *ClientWithResponses) TriggerMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef8.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*TriggerMaintenanceResponse, error) {
+func (c *ClientWithResponses) TriggerMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef7.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*TriggerMaintenanceResponse, error) {
 	rsp, err := c.TriggerMaintenance(ctx, maintenanceRunParam, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseTriggerMaintenanceResponse(rsp)
+}
+
+// DeleteOwnerMetricsStreamWithResponse request returning *DeleteOwnerMetricsStreamResponse
+func (c *ClientWithResponses) DeleteOwnerMetricsStreamWithResponse(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*DeleteOwnerMetricsStreamResponse, error) {
+	rsp, err := c.DeleteOwnerMetricsStream(ctx, ownerId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteOwnerMetricsStreamResponse(rsp)
+}
+
+// GetOwnerMetricsStreamWithResponse request returning *GetOwnerMetricsStreamResponse
+func (c *ClientWithResponses) GetOwnerMetricsStreamWithResponse(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*GetOwnerMetricsStreamResponse, error) {
+	rsp, err := c.GetOwnerMetricsStream(ctx, ownerId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetOwnerMetricsStreamResponse(rsp)
+}
+
+// UpsertOwnerMetricsStreamWithBodyWithResponse request with arbitrary body returning *UpsertOwnerMetricsStreamResponse
+func (c *ClientWithResponses) UpsertOwnerMetricsStreamWithBodyWithResponse(ctx context.Context, ownerId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpsertOwnerMetricsStreamResponse, error) {
+	rsp, err := c.UpsertOwnerMetricsStreamWithBody(ctx, ownerId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpsertOwnerMetricsStreamResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpsertOwnerMetricsStreamWithResponse(ctx context.Context, ownerId string, body UpsertOwnerMetricsStreamJSONRequestBody, reqEditors ...RequestEditorFn) (*UpsertOwnerMetricsStreamResponse, error) {
+	rsp, err := c.UpsertOwnerMetricsStream(ctx, ownerId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpsertOwnerMetricsStreamResponse(rsp)
 }
 
 // GetActiveConnectionsWithResponse request returning *GetActiveConnectionsResponse
@@ -20297,6 +20815,15 @@ func (c *ClientWithResponses) RetrieveOwnerWithResponse(ctx context.Context, own
 	return ParseRetrieveOwnerResponse(rsp)
 }
 
+// RetrieveOwnerMembersWithResponse request returning *RetrieveOwnerMembersResponse
+func (c *ClientWithResponses) RetrieveOwnerMembersWithResponse(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*RetrieveOwnerMembersResponse, error) {
+	rsp, err := c.RetrieveOwnerMembers(ctx, ownerId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRetrieveOwnerMembersResponse(rsp)
+}
+
 // ListPostgresWithResponse request returning *ListPostgresResponse
 func (c *ClientWithResponses) ListPostgresWithResponse(ctx context.Context, params *ListPostgresParams, reqEditors ...RequestEditorFn) (*ListPostgresResponse, error) {
 	rsp, err := c.ListPostgres(ctx, params, reqEditors...)
@@ -20358,24 +20885,6 @@ func (c *ClientWithResponses) UpdatePostgresWithResponse(ctx context.Context, po
 	return ParseUpdatePostgresResponse(rsp)
 }
 
-// ListPostgresBackupWithResponse request returning *ListPostgresBackupResponse
-func (c *ClientWithResponses) ListPostgresBackupWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresBackupResponse, error) {
-	rsp, err := c.ListPostgresBackup(ctx, postgresId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListPostgresBackupResponse(rsp)
-}
-
-// CreatePostgresBackupWithResponse request returning *CreatePostgresBackupResponse
-func (c *ClientWithResponses) CreatePostgresBackupWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*CreatePostgresBackupResponse, error) {
-	rsp, err := c.CreatePostgresBackup(ctx, postgresId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreatePostgresBackupResponse(rsp)
-}
-
 // RetrievePostgresConnectionInfoWithResponse request returning *RetrievePostgresConnectionInfoResponse
 func (c *ClientWithResponses) RetrievePostgresConnectionInfoWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*RetrievePostgresConnectionInfoResponse, error) {
 	rsp, err := c.RetrievePostgresConnectionInfo(ctx, postgresId, reqEditors...)
@@ -20383,6 +20892,24 @@ func (c *ClientWithResponses) RetrievePostgresConnectionInfoWithResponse(ctx con
 		return nil, err
 	}
 	return ParseRetrievePostgresConnectionInfoResponse(rsp)
+}
+
+// ListPostgresExportWithResponse request returning *ListPostgresExportResponse
+func (c *ClientWithResponses) ListPostgresExportWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresExportResponse, error) {
+	rsp, err := c.ListPostgresExport(ctx, postgresId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListPostgresExportResponse(rsp)
+}
+
+// CreatePostgresExportWithResponse request returning *CreatePostgresExportResponse
+func (c *ClientWithResponses) CreatePostgresExportWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*CreatePostgresExportResponse, error) {
+	rsp, err := c.CreatePostgresExport(ctx, postgresId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreatePostgresExportResponse(rsp)
 }
 
 // FailoverPostgresWithResponse request returning *FailoverPostgresResponse
@@ -20637,67 +21164,6 @@ func (c *ClientWithResponses) UpdateRegistryCredentialWithResponse(ctx context.C
 		return nil, err
 	}
 	return ParseUpdateRegistryCredentialResponse(rsp)
-}
-
-// ListServiceLinksWithResponse request returning *ListServiceLinksResponse
-func (c *ClientWithResponses) ListServiceLinksWithResponse(ctx context.Context, params *ListServiceLinksParams, reqEditors ...RequestEditorFn) (*ListServiceLinksResponse, error) {
-	rsp, err := c.ListServiceLinks(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListServiceLinksResponse(rsp)
-}
-
-// CreateServiceLinkWithBodyWithResponse request with arbitrary body returning *CreateServiceLinkResponse
-func (c *ClientWithResponses) CreateServiceLinkWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateServiceLinkResponse, error) {
-	rsp, err := c.CreateServiceLinkWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateServiceLinkResponse(rsp)
-}
-
-func (c *ClientWithResponses) CreateServiceLinkWithResponse(ctx context.Context, body CreateServiceLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateServiceLinkResponse, error) {
-	rsp, err := c.CreateServiceLink(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateServiceLinkResponse(rsp)
-}
-
-// DeleteServiceLinkWithResponse request returning *DeleteServiceLinkResponse
-func (c *ClientWithResponses) DeleteServiceLinkWithResponse(ctx context.Context, serviceLinkId string, reqEditors ...RequestEditorFn) (*DeleteServiceLinkResponse, error) {
-	rsp, err := c.DeleteServiceLink(ctx, serviceLinkId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteServiceLinkResponse(rsp)
-}
-
-// RetrieveServiceLinkWithResponse request returning *RetrieveServiceLinkResponse
-func (c *ClientWithResponses) RetrieveServiceLinkWithResponse(ctx context.Context, serviceLinkId string, reqEditors ...RequestEditorFn) (*RetrieveServiceLinkResponse, error) {
-	rsp, err := c.RetrieveServiceLink(ctx, serviceLinkId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseRetrieveServiceLinkResponse(rsp)
-}
-
-// UpdateServiceLinkWithBodyWithResponse request with arbitrary body returning *UpdateServiceLinkResponse
-func (c *ClientWithResponses) UpdateServiceLinkWithBodyWithResponse(ctx context.Context, serviceLinkId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateServiceLinkResponse, error) {
-	rsp, err := c.UpdateServiceLinkWithBody(ctx, serviceLinkId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateServiceLinkResponse(rsp)
-}
-
-func (c *ClientWithResponses) UpdateServiceLinkWithResponse(ctx context.Context, serviceLinkId string, body UpdateServiceLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateServiceLinkResponse, error) {
-	rsp, err := c.UpdateServiceLink(ctx, serviceLinkId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateServiceLinkResponse(rsp)
 }
 
 // ListServicesWithResponse request returning *ListServicesResponse
@@ -21033,7 +21499,7 @@ func (c *ClientWithResponses) PostJobWithResponse(ctx context.Context, serviceId
 }
 
 // RetrieveJobWithResponse request returning *RetrieveJobResponse
-func (c *ClientWithResponses) RetrieveJobWithResponse(ctx context.Context, serviceId ServiceIdParam, jobId externalRef6.JobId, reqEditors ...RequestEditorFn) (*RetrieveJobResponse, error) {
+func (c *ClientWithResponses) RetrieveJobWithResponse(ctx context.Context, serviceId ServiceIdParam, jobId externalRef5.JobId, reqEditors ...RequestEditorFn) (*RetrieveJobResponse, error) {
 	rsp, err := c.RetrieveJob(ctx, serviceId, jobId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -21042,7 +21508,7 @@ func (c *ClientWithResponses) RetrieveJobWithResponse(ctx context.Context, servi
 }
 
 // CancelJobWithResponse request returning *CancelJobResponse
-func (c *ClientWithResponses) CancelJobWithResponse(ctx context.Context, serviceId ServiceIdParam, jobId externalRef6.JobId, reqEditors ...RequestEditorFn) (*CancelJobResponse, error) {
+func (c *ClientWithResponses) CancelJobWithResponse(ctx context.Context, serviceId ServiceIdParam, jobId externalRef5.JobId, reqEditors ...RequestEditorFn) (*CancelJobResponse, error) {
 	rsp, err := c.CancelJob(ctx, serviceId, jobId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -21267,6 +21733,76 @@ func (c *ClientWithResponses) GetUserWithResponse(ctx context.Context, reqEditor
 	return ParseGetUserResponse(rsp)
 }
 
+// ListWebhooksWithResponse request returning *ListWebhooksResponse
+func (c *ClientWithResponses) ListWebhooksWithResponse(ctx context.Context, params *ListWebhooksParams, reqEditors ...RequestEditorFn) (*ListWebhooksResponse, error) {
+	rsp, err := c.ListWebhooks(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListWebhooksResponse(rsp)
+}
+
+// CreateWebhookWithBodyWithResponse request with arbitrary body returning *CreateWebhookResponse
+func (c *ClientWithResponses) CreateWebhookWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateWebhookResponse, error) {
+	rsp, err := c.CreateWebhookWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateWebhookResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateWebhookWithResponse(ctx context.Context, body CreateWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateWebhookResponse, error) {
+	rsp, err := c.CreateWebhook(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateWebhookResponse(rsp)
+}
+
+// DeleteWebhookWithResponse request returning *DeleteWebhookResponse
+func (c *ClientWithResponses) DeleteWebhookWithResponse(ctx context.Context, webhookId externalRef11.WebhookIdParam, reqEditors ...RequestEditorFn) (*DeleteWebhookResponse, error) {
+	rsp, err := c.DeleteWebhook(ctx, webhookId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteWebhookResponse(rsp)
+}
+
+// RetrieveWebhookWithResponse request returning *RetrieveWebhookResponse
+func (c *ClientWithResponses) RetrieveWebhookWithResponse(ctx context.Context, webhookId externalRef11.WebhookIdParam, reqEditors ...RequestEditorFn) (*RetrieveWebhookResponse, error) {
+	rsp, err := c.RetrieveWebhook(ctx, webhookId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRetrieveWebhookResponse(rsp)
+}
+
+// UpdateWebhookWithBodyWithResponse request with arbitrary body returning *UpdateWebhookResponse
+func (c *ClientWithResponses) UpdateWebhookWithBodyWithResponse(ctx context.Context, webhookId externalRef11.WebhookIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateWebhookResponse, error) {
+	rsp, err := c.UpdateWebhookWithBody(ctx, webhookId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateWebhookResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateWebhookWithResponse(ctx context.Context, webhookId externalRef11.WebhookIdParam, body UpdateWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateWebhookResponse, error) {
+	rsp, err := c.UpdateWebhook(ctx, webhookId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateWebhookResponse(rsp)
+}
+
+// ListWebhookEventsWithResponse request returning *ListWebhookEventsResponse
+func (c *ClientWithResponses) ListWebhookEventsWithResponse(ctx context.Context, webhookId externalRef11.WebhookIdParam, params *ListWebhookEventsParams, reqEditors ...RequestEditorFn) (*ListWebhookEventsResponse, error) {
+	rsp, err := c.ListWebhookEvents(ctx, webhookId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListWebhookEventsResponse(rsp)
+}
+
 // ParseListBlueprintsResponse parses an HTTP response from a ListBlueprintsWithResponse call
 func ParseListBlueprintsResponse(rsp *http.Response) (*ListBlueprintsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -21439,7 +21975,7 @@ func ParseRetrieveBlueprintResponse(rsp *http.Response) (*RetrieveBlueprintRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef2.BlueprintDetail
+		var dest externalRef1.BlueprintDetail
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -21521,7 +22057,7 @@ func ParseUpdateBlueprintResponse(rsp *http.Response) (*UpdateBlueprintResponse,
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef2.Blueprint
+		var dest externalRef1.Blueprint
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -21882,7 +22418,7 @@ func ParseAddDiskResponse(rsp *http.Response) (*AddDiskResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest externalRef3.DiskDetails
+		var dest externalRef2.DiskDetails
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -22046,7 +22582,7 @@ func ParseRetrieveDiskResponse(rsp *http.Response) (*RetrieveDiskResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef3.DiskDetails
+		var dest externalRef2.DiskDetails
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -22128,7 +22664,7 @@ func ParseUpdateDiskResponse(rsp *http.Response) (*UpdateDiskResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef3.DiskDetails
+		var dest externalRef2.DiskDetails
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -22306,7 +22842,7 @@ func ParseRestoreSnapshotResponse(rsp *http.Response) (*RestoreSnapshotResponse,
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef3.DiskDetails
+		var dest externalRef2.DiskDetails
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -23698,6 +24234,95 @@ func ParseAddResourcesToEnvironmentResponse(rsp *http.Response) (*AddResourcesTo
 	return response, nil
 }
 
+// ParseRetrieveEventResponse parses an HTTP response from a RetrieveEventWithResponse call
+func ParseRetrieveEventResponse(rsp *http.Response) (*RetrieveEventResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RetrieveEventResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef3.Event
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListKeyValueResponse parses an HTTP response from a ListKeyValueWithResponse call
 func ParseListKeyValueResponse(rsp *http.Response) (*ListKeyValueResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -24278,7 +24903,7 @@ func ParseGetOwnerLogStreamResponse(rsp *http.Response) (*GetOwnerLogStreamRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef7.GetOwnerLogsStreams200Response
+		var dest externalRef6.GetOwnerLogsStreams200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -24367,7 +24992,7 @@ func ParseUpdateOwnerLogStreamResponse(rsp *http.Response) (*UpdateOwnerLogStrea
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef7.GetOwnerLogsStreams200Response
+		var dest externalRef6.GetOwnerLogsStreams200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -24456,7 +25081,7 @@ func ParseListResourceLogStreamsResponse(rsp *http.Response) (*ListResourceLogSt
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef7.ResourceLogsStreams200Response
+		var dest externalRef6.ResourceLogsStreams200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -24606,7 +25231,7 @@ func ParseGetResourceLogStreamResponse(rsp *http.Response) (*GetResourceLogStrea
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef7.GetResourceLogsStreams200Response
+		var dest externalRef6.GetResourceLogsStreams200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -24695,7 +25320,7 @@ func ParseUpdateResourceLogStreamResponse(rsp *http.Response) (*UpdateResourceLo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef7.GetResourceLogsStreams200Response
+		var dest externalRef6.GetResourceLogsStreams200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -24784,7 +25409,7 @@ func ParseSubscribeLogsResponse(rsp *http.Response) (*SubscribeLogsResponse, err
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 101:
-		var dest externalRef7.Log
+		var dest externalRef6.Log
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -24962,7 +25587,7 @@ func ParseListMaintenanceResponse(rsp *http.Response) (*ListMaintenanceResponse,
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []externalRef8.MaintenanceRunWithResource
+		var dest []externalRef7.MaintenanceRunWithResource
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25030,7 +25655,7 @@ func ParseRetrieveMaintenanceResponse(rsp *http.Response) (*RetrieveMaintenanceR
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef8.MaintenanceRunWithResource
+		var dest externalRef7.MaintenanceRunWithResource
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25205,6 +25830,119 @@ func ParseTriggerMaintenanceResponse(rsp *http.Response) (*TriggerMaintenanceRes
 	return response, nil
 }
 
+// ParseDeleteOwnerMetricsStreamResponse parses an HTTP response from a DeleteOwnerMetricsStreamWithResponse call
+func ParseDeleteOwnerMetricsStreamResponse(rsp *http.Response) (*DeleteOwnerMetricsStreamResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteOwnerMetricsStreamResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetOwnerMetricsStreamResponse parses an HTTP response from a GetOwnerMetricsStreamWithResponse call
+func ParseGetOwnerMetricsStreamResponse(rsp *http.Response) (*GetOwnerMetricsStreamResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetOwnerMetricsStreamResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef8.GetMetricsStream200Response
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpsertOwnerMetricsStreamResponse parses an HTTP response from a UpsertOwnerMetricsStreamWithResponse call
+func ParseUpsertOwnerMetricsStreamResponse(rsp *http.Response) (*UpsertOwnerMetricsStreamResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpsertOwnerMetricsStreamResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef8.MetricsStream
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetActiveConnectionsResponse parses an HTTP response from a GetActiveConnectionsWithResponse call
 func ParseGetActiveConnectionsResponse(rsp *http.Response) (*GetActiveConnectionsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -25220,7 +25958,7 @@ func ParseGetActiveConnectionsResponse(rsp *http.Response) (*GetActiveConnection
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25260,7 +25998,7 @@ func ParseGetBandwidthResponse(rsp *http.Response) (*GetBandwidthResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25300,7 +26038,7 @@ func ParseGetCpuResponse(rsp *http.Response) (*GetCpuResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25340,7 +26078,7 @@ func ParseGetCpuLimitResponse(rsp *http.Response) (*GetCpuLimitResponse, error) 
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25380,7 +26118,7 @@ func ParseGetCpuTargetResponse(rsp *http.Response) (*GetCpuTargetResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25420,7 +26158,7 @@ func ParseGetDiskCapacityResponse(rsp *http.Response) (*GetDiskCapacityResponse,
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25460,7 +26198,7 @@ func ParseGetDiskUsageResponse(rsp *http.Response) (*GetDiskUsageResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25500,7 +26238,7 @@ func ParseListApplicationFilterValuesResponse(rsp *http.Response) (*ListApplicat
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.MetricsFiltersApplication200Response
+		var dest externalRef8.MetricsFiltersApplication200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25540,7 +26278,7 @@ func ParseListHttpFilterValuesResponse(rsp *http.Response) (*ListHttpFilterValue
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.MetricsFiltersHTTP200Response
+		var dest externalRef8.MetricsFiltersHTTP200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25580,7 +26318,7 @@ func ParseListPathFilterValuesResponse(rsp *http.Response) (*ListPathFilterValue
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.MetricsFiltersPath200Response
+		var dest externalRef8.MetricsFiltersPath200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25620,7 +26358,7 @@ func ParseGetHttpLatencyResponse(rsp *http.Response) (*GetHttpLatencyResponse, e
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25660,7 +26398,7 @@ func ParseGetHttpRequestsResponse(rsp *http.Response) (*GetHttpRequestsResponse,
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25700,7 +26438,7 @@ func ParseGetInstanceCountResponse(rsp *http.Response) (*GetInstanceCountRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25740,7 +26478,7 @@ func ParseGetMemoryResponse(rsp *http.Response) (*GetMemoryResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25780,7 +26518,7 @@ func ParseGetMemoryLimitResponse(rsp *http.Response) (*GetMemoryLimitResponse, e
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25820,7 +26558,7 @@ func ParseGetMemoryTargetResponse(rsp *http.Response) (*GetMemoryTargetResponse,
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25860,7 +26598,7 @@ func ParseGetReplicationLagResponse(rsp *http.Response) (*GetReplicationLagRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef9.Metrics200Response
+		var dest externalRef8.Metrics200Response
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -25961,7 +26699,7 @@ func ParseRetrieveServiceNotificationOverridesResponse(rsp *http.Response) (*Ret
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef10.NotificationServiceOverride
+		var dest externalRef9.NotificationServiceOverride
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -26022,7 +26760,7 @@ func ParsePatchServiceNotificationOverridesResponse(rsp *http.Response) (*PatchS
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef10.NotificationServiceOverride
+		var dest externalRef9.NotificationServiceOverride
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -26083,7 +26821,7 @@ func ParseRetrieveOwnerNotificationSettingsResponse(rsp *http.Response) (*Retrie
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef10.NotificationSetting
+		var dest externalRef9.NotificationSetting
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -26144,7 +26882,7 @@ func ParsePatchOwnerNotificationSettingsResponse(rsp *http.Response) (*PatchOwne
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef10.NotificationSetting
+		var dest externalRef9.NotificationSetting
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -26267,6 +27005,81 @@ func ParseRetrieveOwnerResponse(rsp *http.Response) (*RetrieveOwnerResponse, err
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Owner
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRetrieveOwnerMembersResponse parses an HTTP response from a RetrieveOwnerMembersWithResponse call
+func ParseRetrieveOwnerMembersResponse(rsp *http.Response) (*RetrieveOwnerMembersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RetrieveOwnerMembersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeamMembers
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -26673,22 +27486,22 @@ func ParseUpdatePostgresResponse(rsp *http.Response) (*UpdatePostgresResponse, e
 	return response, nil
 }
 
-// ParseListPostgresBackupResponse parses an HTTP response from a ListPostgresBackupWithResponse call
-func ParseListPostgresBackupResponse(rsp *http.Response) (*ListPostgresBackupResponse, error) {
+// ParseRetrievePostgresConnectionInfoResponse parses an HTTP response from a RetrievePostgresConnectionInfoWithResponse call
+func ParseRetrievePostgresConnectionInfoResponse(rsp *http.Response) (*RetrievePostgresConnectionInfoResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &ListPostgresBackupResponse{
+	response := &RetrievePostgresConnectionInfoResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []externalRef11.PostgresBackup
+		var dest PostgresConnectionInfo
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -26741,15 +27554,83 @@ func ParseListPostgresBackupResponse(rsp *http.Response) (*ListPostgresBackupRes
 	return response, nil
 }
 
-// ParseCreatePostgresBackupResponse parses an HTTP response from a CreatePostgresBackupWithResponse call
-func ParseCreatePostgresBackupResponse(rsp *http.Response) (*CreatePostgresBackupResponse, error) {
+// ParseListPostgresExportResponse parses an HTTP response from a ListPostgresExportWithResponse call
+func ParseListPostgresExportResponse(rsp *http.Response) (*ListPostgresExportResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &CreatePostgresBackupResponse{
+	response := &ListPostgresExportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []externalRef10.PostgresExport
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreatePostgresExportResponse parses an HTTP response from a CreatePostgresExportWithResponse call
+func ParseCreatePostgresExportResponse(rsp *http.Response) (*CreatePostgresExportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreatePostgresExportResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -26796,74 +27677,6 @@ func ParseCreatePostgresBackupResponse(rsp *http.Response) (*CreatePostgresBacku
 			return nil, err
 		}
 		response.JSON410 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseRetrievePostgresConnectionInfoResponse parses an HTTP response from a RetrievePostgresConnectionInfoWithResponse call
-func ParseRetrievePostgresConnectionInfoResponse(rsp *http.Response) (*RetrievePostgresConnectionInfoResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &RetrievePostgresConnectionInfoResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest PostgresConnectionInfo
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest N429RateLimit
@@ -26988,7 +27801,7 @@ func ParseRetrievePostgresRecoveryInfoResponse(rsp *http.Response) (*RetrievePos
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef11.RecoveryInfo
+		var dest externalRef10.RecoveryInfo
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -28527,339 +29340,6 @@ func ParseUpdateRegistryCredentialResponse(rsp *http.Response) (*UpdateRegistryC
 	return response, nil
 }
 
-// ParseListServiceLinksResponse parses an HTTP response from a ListServiceLinksWithResponse call
-func ParseListServiceLinksResponse(rsp *http.Response) (*ListServiceLinksResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListServiceLinksResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []ServiceLinkWithCursor
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseCreateServiceLinkResponse parses an HTTP response from a CreateServiceLinkWithResponse call
-func ParseCreateServiceLinkResponse(rsp *http.Response) (*CreateServiceLinkResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CreateServiceLinkResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest ServiceLink
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseDeleteServiceLinkResponse parses an HTTP response from a DeleteServiceLinkWithResponse call
-func ParseDeleteServiceLinkResponse(rsp *http.Response) (*DeleteServiceLinkResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteServiceLinkResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseRetrieveServiceLinkResponse parses an HTTP response from a RetrieveServiceLinkWithResponse call
-func ParseRetrieveServiceLinkResponse(rsp *http.Response) (*RetrieveServiceLinkResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &RetrieveServiceLinkResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ServiceLink
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseUpdateServiceLinkResponse parses an HTTP response from a UpdateServiceLinkWithResponse call
-func ParseUpdateServiceLinkResponse(rsp *http.Response) (*UpdateServiceLinkResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UpdateServiceLinkResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ServiceLink
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
 // ParseListServicesResponse parses an HTTP response from a ListServicesWithResponse call
 func ParseListServicesResponse(rsp *http.Response) (*ListServicesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -29353,7 +29833,7 @@ func ParseAutoscaleServiceResponse(rsp *http.Response) (*AutoscaleServiceRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef1.AutoscalingConfig
+		var dest externalRef0.AutoscalingConfig
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -31098,7 +31578,7 @@ func ParsePostJobResponse(rsp *http.Response) (*PostJobResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest externalRef6.Job
+		var dest externalRef5.Job
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -31166,7 +31646,7 @@ func ParseRetrieveJobResponse(rsp *http.Response) (*RetrieveJobResponse, error) 
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef6.Job
+		var dest externalRef5.Job
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -31234,7 +31714,7 @@ func ParseCancelJobResponse(rsp *http.Response) (*CancelJobResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef6.Job
+		var dest externalRef5.Job
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -32635,6 +33115,393 @@ func ParseGetUserResponse(rsp *http.Response) (*GetUserResponse, error) {
 			return nil, err
 		}
 		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListWebhooksResponse parses an HTTP response from a ListWebhooksWithResponse call
+func ParseListWebhooksResponse(rsp *http.Response) (*ListWebhooksResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListWebhooksResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []WebhookWithCursor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateWebhookResponse parses an HTTP response from a CreateWebhookWithResponse call
+func ParseCreateWebhookResponse(rsp *http.Response) (*CreateWebhookResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateWebhookResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest externalRef11.Webhook
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteWebhookResponse parses an HTTP response from a DeleteWebhookWithResponse call
+func ParseDeleteWebhookResponse(rsp *http.Response) (*DeleteWebhookResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteWebhookResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRetrieveWebhookResponse parses an HTTP response from a RetrieveWebhookWithResponse call
+func ParseRetrieveWebhookResponse(rsp *http.Response) (*RetrieveWebhookResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RetrieveWebhookResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef11.Webhook
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateWebhookResponse parses an HTTP response from a UpdateWebhookWithResponse call
+func ParseUpdateWebhookResponse(rsp *http.Response) (*UpdateWebhookResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateWebhookResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef11.Webhook
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListWebhookEventsResponse parses an HTTP response from a ListWebhookEventsWithResponse call
+func ParseListWebhookEventsResponse(rsp *http.Response) (*ListWebhookEventsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListWebhookEventsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []WebhookEventWithCursor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest N429RateLimit

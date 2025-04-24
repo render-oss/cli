@@ -49,12 +49,12 @@ const (
 	NOTAVAILABLE   RecoveryInfoRecoveryStatus = "NOT_AVAILABLE"
 )
 
-// PostgresBackup defines model for postgresBackup.
-type PostgresBackup struct {
+// PostgresExport defines model for postgresExport.
+type PostgresExport struct {
 	CreatedAt time.Time `json:"createdAt"`
 	Id        string    `json:"id"`
 
-	// Url URL to download the Postgres backup
+	// Url URL to download the Postgres export
 	Url *string `json:"url,omitempty"`
 }
 

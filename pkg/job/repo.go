@@ -30,17 +30,17 @@ type ListJobsInput struct {
 }
 
 func (r *Repo) ListJobs(ctx context.Context, input ListJobsInput, cur client.Cursor) (client.Cursor, []*clientjob.Job, error) {
-	var statusFilters []client.ListJobParamsStatus
+	var statusFilters []clientjob.JobStatus
 	for _, status := range input.Status {
 		switch status {
 		case "failed":
-			statusFilters = append(statusFilters, client.Failed)
+			statusFilters = append(statusFilters, clientjob.Failed)
 		case "pending":
-			statusFilters = append(statusFilters, client.Pending)
+			statusFilters = append(statusFilters, clientjob.Pending)
 		case "running":
-			statusFilters = append(statusFilters, client.Running)
+			statusFilters = append(statusFilters, clientjob.Running)
 		case "succeeded":
-			statusFilters = append(statusFilters, client.Succeeded)
+			statusFilters = append(statusFilters, clientjob.Succeeded)
 		default:
 			return "", nil, fmt.Errorf("invalid status: %s", status)
 		}

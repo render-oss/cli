@@ -11,24 +11,31 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
-	externalRef1 "github.com/render-oss/cli/pkg/client/autoscaling"
-	externalRef3 "github.com/render-oss/cli/pkg/client/disks"
-	externalRef5 "github.com/render-oss/cli/pkg/client/eventtypes"
-	externalRef6 "github.com/render-oss/cli/pkg/client/jobs"
+	externalRef0 "github.com/render-oss/cli/pkg/client/autoscaling"
+	externalRef2 "github.com/render-oss/cli/pkg/client/disks"
+	externalRef4 "github.com/render-oss/cli/pkg/client/eventtypes"
+	externalRef5 "github.com/render-oss/cli/pkg/client/jobs"
 )
 
 // Defines values for CronJobRunStatus.
 const (
-	Canceled     CronJobRunStatus = "canceled"
-	Pending      CronJobRunStatus = "pending"
-	Successful   CronJobRunStatus = "successful"
-	Unsuccessful CronJobRunStatus = "unsuccessful"
+	CronJobRunStatusCanceled     CronJobRunStatus = "canceled"
+	CronJobRunStatusPending      CronJobRunStatus = "pending"
+	CronJobRunStatusSuccessful   CronJobRunStatus = "successful"
+	CronJobRunStatusUnsuccessful CronJobRunStatus = "unsuccessful"
+)
+
+// Defines values for EventStatus.
+const (
+	EventStatusCanceled  EventStatus = "canceled"
+	EventStatusFailed    EventStatus = "failed"
+	EventStatusSucceeded EventStatus = "succeeded"
 )
 
 // AutoscalingConfigChangedEvent defines model for autoscalingConfigChangedEvent.
 type AutoscalingConfigChangedEvent struct {
-	FromConfig *externalRef1.AutoscalingConfig `json:"fromConfig,omitempty"`
-	ToConfig   externalRef1.AutoscalingConfig  `json:"toConfig"`
+	FromConfig *externalRef0.AutoscalingConfig `json:"fromConfig,omitempty"`
+	ToConfig   externalRef0.AutoscalingConfig  `json:"toConfig"`
 }
 
 // AutoscalingEndedEvent defines model for autoscalingEndedEvent.
@@ -101,15 +108,11 @@ type BuildDeployTrigger struct {
 
 // BuildEndedEvent defines model for buildEndedEvent.
 type BuildEndedEvent struct {
-	BuildId string               `json:"buildId"`
-	Reason  BuildDeployEndReason `json:"reason"`
-	Status  int                  `json:"status"`
-}
-
-// BuildPlanChangedEvent defines model for buildPlanChangedEvent.
-type BuildPlanChangedEvent struct {
-	From string `json:"from"`
-	To   string `json:"to"`
+	BuildId     string               `json:"buildId"`
+	BuildStatus EventStatus          `json:"buildStatus"`
+	Reason      BuildDeployEndReason `json:"reason"`
+	// Deprecated:
+	Status int `json:"status"`
 }
 
 // BuildStartedEvent defines model for buildStartedEvent.
@@ -147,9 +150,11 @@ type CronJobRunStatus string
 
 // DeployEndedEvent defines model for deployEndedEvent.
 type DeployEndedEvent struct {
-	DeployId string               `json:"deployId"`
-	Reason   BuildDeployEndReason `json:"reason"`
-	Status   int                  `json:"status"`
+	DeployId     string               `json:"deployId"`
+	DeployStatus EventStatus          `json:"deployStatus"`
+	Reason       BuildDeployEndReason `json:"reason"`
+	// Deprecated:
+	Status int `json:"status"`
 }
 
 // DeployStartedEvent defines model for deployStartedEvent.
@@ -160,26 +165,41 @@ type DeployStartedEvent struct {
 
 // DiskCreatedEvent defines model for diskCreatedEvent.
 type DiskCreatedEvent struct {
-	DiskId externalRef3.DiskId `json:"diskId"`
+	DiskId externalRef2.DiskId `json:"diskId"`
 	SizeGB int                 `json:"sizeGB"`
 }
 
 // DiskDeletedEvent defines model for diskDeletedEvent.
 type DiskDeletedEvent struct {
-	DiskId externalRef3.DiskId `json:"diskId"`
+	DiskId externalRef2.DiskId `json:"diskId"`
 }
 
 // DiskUpdatedEvent defines model for diskUpdatedEvent.
 type DiskUpdatedEvent struct {
-	DiskId     externalRef3.DiskId `json:"diskId"`
+	DiskId     externalRef2.DiskId `json:"diskId"`
 	FromSizeGB int                 `json:"fromSizeGB"`
 	ToSizeGB   int                 `json:"toSizeGB"`
+}
+
+// Event defines model for event.
+type Event struct {
+	Details   EventDetails           `json:"details"`
+	Id        EventId                `json:"id"`
+	ServiceId string                 `json:"serviceId"`
+	Timestamp time.Time              `json:"timestamp"`
+	Type      externalRef4.EventType `json:"type"`
 }
 
 // EventDetails defines model for eventDetails.
 type EventDetails struct {
 	union json.RawMessage
 }
+
+// EventId defines model for eventId.
+type EventId = string
+
+// EventStatus defines model for eventStatus.
+type EventStatus string
 
 // FailureReason defines model for failureReason.
 type FailureReason struct {
@@ -215,10 +235,27 @@ type InstanceCountChangedEvent struct {
 
 // JobRunEndedEvent defines model for jobRunEndedEvent.
 type JobRunEndedEvent struct {
-	JobId  externalRef6.JobId     `json:"jobId"`
+	JobId  externalRef5.JobId     `json:"jobId"`
 	Reason *FailureReason         `json:"reason,omitempty"`
-	Status externalRef6.JobStatus `json:"status"`
+	Status externalRef5.JobStatus `json:"status"`
 }
+
+// KeyValueAvailableEvent defines model for keyValueAvailableEvent.
+type KeyValueAvailableEvent = map[string]interface{}
+
+// KeyValueConfigRestartEvent defines model for keyValueConfigRestartEvent.
+type KeyValueConfigRestartEvent struct {
+	Message string `json:"message"`
+	Reason  string `json:"reason"`
+}
+
+// KeyValueEventDetails defines model for keyValueEventDetails.
+type KeyValueEventDetails struct {
+	union json.RawMessage
+}
+
+// KeyValueUnhealthyEvent defines model for keyValueUnhealthyEvent.
+type KeyValueUnhealthyEvent = map[string]interface{}
 
 // MaintenanceEndedEvent defines model for maintenanceEndedEvent.
 type MaintenanceEndedEvent = map[string]interface{}
@@ -256,18 +293,102 @@ type OomKilled struct {
 	MemoryLimit string `json:"memoryLimit"`
 }
 
+// PipelineMinutesExhaustedEvent defines model for pipelineMinutesExhaustedEvent.
+type PipelineMinutesExhaustedEvent struct {
+	BuildId string             `json:"buildId"`
+	Trigger BuildDeployTrigger `json:"trigger"`
+}
+
 // PlanChangedEvent defines model for planChangedEvent.
 type PlanChangedEvent struct {
 	From string `json:"from"`
 	To   string `json:"to"`
 }
 
+// PostgresAvailableEvent defines model for postgresAvailableEvent.
+type PostgresAvailableEvent = map[string]interface{}
+
+// PostgresBackupCompletedEvent defines model for postgresBackupCompletedEvent.
+type PostgresBackupCompletedEvent = map[string]interface{}
+
+// PostgresBackupStartedEvent defines model for postgresBackupStartedEvent.
+type PostgresBackupStartedEvent = map[string]interface{}
+
+// PostgresClusterLeaderChangedEvent defines model for postgresClusterLeaderChangedEvent.
+type PostgresClusterLeaderChangedEvent struct {
+	LeaderId *string `json:"leaderId,omitempty"`
+}
+
+// PostgresCreatedEvent defines model for postgresCreatedEvent.
+type PostgresCreatedEvent struct {
+	// User User who triggered the action
+	User *User `json:"user,omitempty"`
+}
+
+// PostgresDiskSizeChangedEvent defines model for postgresDiskSizeChangedEvent.
+type PostgresDiskSizeChangedEvent struct {
+	FromDiskSize int `json:"fromDiskSize"`
+	ToDiskSize   int `json:"toDiskSize"`
+
+	// User User who triggered the action
+	User *User `json:"user,omitempty"`
+}
+
+// PostgresEventDetails defines model for postgresEventDetails.
+type PostgresEventDetails struct {
+	union json.RawMessage
+}
+
+// PostgresHaStatusChangedEvent defines model for postgresHaStatusChangedEvent.
+type PostgresHaStatusChangedEvent struct {
+	FromStatus string `json:"fromStatus"`
+	ToStatus   string `json:"toStatus"`
+}
+
+// PostgresReadReplicasChangedEvent defines model for postgresReadReplicasChangedEvent.
+type PostgresReadReplicasChangedEvent struct {
+	FromReplicas int `json:"fromReplicas"`
+	ToReplicas   int `json:"toReplicas"`
+}
+
+// PostgresRestartedEvent defines model for postgresRestartedEvent.
+type PostgresRestartedEvent struct {
+	// User User who triggered the action
+	User *User `json:"user,omitempty"`
+}
+
+// PostgresUnavailableEvent defines model for postgresUnavailableEvent.
+type PostgresUnavailableEvent = map[string]interface{}
+
+// PostgresUpgradeFailedEvent defines model for postgresUpgradeFailedEvent.
+type PostgresUpgradeFailedEvent struct {
+	FromVersion string `json:"fromVersion"`
+	ToVersion   string `json:"toVersion"`
+}
+
+// PostgresUpgradeStartedEvent defines model for postgresUpgradeStartedEvent.
+type PostgresUpgradeStartedEvent struct {
+	FromVersion string `json:"fromVersion"`
+	ToVersion   string `json:"toVersion"`
+
+	// User User who triggered the action
+	User *User `json:"user,omitempty"`
+}
+
+// PostgresUpgradeSucceededEvent defines model for postgresUpgradeSucceededEvent.
+type PostgresUpgradeSucceededEvent struct {
+	FromVersion string `json:"fromVersion"`
+	ToVersion   string `json:"toVersion"`
+}
+
 // PreDeployEndedEvent defines model for preDeployEndedEvent.
 type PreDeployEndedEvent struct {
 	DeployCommandExecutionId string               `json:"deployCommandExecutionId"`
 	DeployId                 string               `json:"deployId"`
+	PreDeployStatus          EventStatus          `json:"preDeployStatus"`
 	Reason                   BuildDeployEndReason `json:"reason"`
-	Status                   int                  `json:"status"`
+	// Deprecated:
+	Status int `json:"status"`
 }
 
 // PreDeployStartedEvent defines model for preDeployStartedEvent.
@@ -297,11 +418,16 @@ type ServerUnhealthyEvent = map[string]interface{}
 
 // ServiceEvent defines model for serviceEvent.
 type ServiceEvent struct {
-	Details   EventDetails           `json:"details"`
-	Id        string                 `json:"id"`
-	ServiceId string                 `json:"serviceId"`
-	Timestamp time.Time              `json:"timestamp"`
-	Type      externalRef5.EventType `json:"type"`
+	Details   ServiceEventDetails           `json:"details"`
+	Id        EventId                       `json:"id"`
+	ServiceId string                        `json:"serviceId"`
+	Timestamp time.Time                     `json:"timestamp"`
+	Type      externalRef4.ServiceEventType `json:"type"`
+}
+
+// ServiceEventDetails defines model for serviceEventDetails.
+type ServiceEventDetails struct {
+	union json.RawMessage
 }
 
 // ServiceResumedEvent defines model for serviceResumedEvent.
@@ -340,22 +466,22 @@ type ZeroDowntimeRedeployStartedEvent struct {
 	Trigger string `json:"trigger"`
 }
 
-// AsInitialDeployHookEndedEvent returns the union data inside the EventDetails as a InitialDeployHookEndedEvent
-func (t EventDetails) AsInitialDeployHookEndedEvent() (InitialDeployHookEndedEvent, error) {
-	var body InitialDeployHookEndedEvent
+// AsServiceEventDetails returns the union data inside the EventDetails as a ServiceEventDetails
+func (t EventDetails) AsServiceEventDetails() (ServiceEventDetails, error) {
+	var body ServiceEventDetails
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromInitialDeployHookEndedEvent overwrites any union data inside the EventDetails as the provided InitialDeployHookEndedEvent
-func (t *EventDetails) FromInitialDeployHookEndedEvent(v InitialDeployHookEndedEvent) error {
+// FromServiceEventDetails overwrites any union data inside the EventDetails as the provided ServiceEventDetails
+func (t *EventDetails) FromServiceEventDetails(v ServiceEventDetails) error {
 	b, err := json.Marshal(v)
 	t.union = b
 	return err
 }
 
-// MergeInitialDeployHookEndedEvent performs a merge with any union data inside the EventDetails, using the provided InitialDeployHookEndedEvent
-func (t *EventDetails) MergeInitialDeployHookEndedEvent(v InitialDeployHookEndedEvent) error {
+// MergeServiceEventDetails performs a merge with any union data inside the EventDetails, using the provided ServiceEventDetails
+func (t *EventDetails) MergeServiceEventDetails(v ServiceEventDetails) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -366,22 +492,22 @@ func (t *EventDetails) MergeInitialDeployHookEndedEvent(v InitialDeployHookEnded
 	return err
 }
 
-// AsAutoscalingConfigChangedEvent returns the union data inside the EventDetails as a AutoscalingConfigChangedEvent
-func (t EventDetails) AsAutoscalingConfigChangedEvent() (AutoscalingConfigChangedEvent, error) {
-	var body AutoscalingConfigChangedEvent
+// AsPostgresEventDetails returns the union data inside the EventDetails as a PostgresEventDetails
+func (t EventDetails) AsPostgresEventDetails() (PostgresEventDetails, error) {
+	var body PostgresEventDetails
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromAutoscalingConfigChangedEvent overwrites any union data inside the EventDetails as the provided AutoscalingConfigChangedEvent
-func (t *EventDetails) FromAutoscalingConfigChangedEvent(v AutoscalingConfigChangedEvent) error {
+// FromPostgresEventDetails overwrites any union data inside the EventDetails as the provided PostgresEventDetails
+func (t *EventDetails) FromPostgresEventDetails(v PostgresEventDetails) error {
 	b, err := json.Marshal(v)
 	t.union = b
 	return err
 }
 
-// MergeAutoscalingConfigChangedEvent performs a merge with any union data inside the EventDetails, using the provided AutoscalingConfigChangedEvent
-func (t *EventDetails) MergeAutoscalingConfigChangedEvent(v AutoscalingConfigChangedEvent) error {
+// MergePostgresEventDetails performs a merge with any union data inside the EventDetails, using the provided PostgresEventDetails
+func (t *EventDetails) MergePostgresEventDetails(v PostgresEventDetails) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -392,932 +518,22 @@ func (t *EventDetails) MergeAutoscalingConfigChangedEvent(v AutoscalingConfigCha
 	return err
 }
 
-// AsAutoscalingEndedEvent returns the union data inside the EventDetails as a AutoscalingEndedEvent
-func (t EventDetails) AsAutoscalingEndedEvent() (AutoscalingEndedEvent, error) {
-	var body AutoscalingEndedEvent
+// AsKeyValueEventDetails returns the union data inside the EventDetails as a KeyValueEventDetails
+func (t EventDetails) AsKeyValueEventDetails() (KeyValueEventDetails, error) {
+	var body KeyValueEventDetails
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromAutoscalingEndedEvent overwrites any union data inside the EventDetails as the provided AutoscalingEndedEvent
-func (t *EventDetails) FromAutoscalingEndedEvent(v AutoscalingEndedEvent) error {
+// FromKeyValueEventDetails overwrites any union data inside the EventDetails as the provided KeyValueEventDetails
+func (t *EventDetails) FromKeyValueEventDetails(v KeyValueEventDetails) error {
 	b, err := json.Marshal(v)
 	t.union = b
 	return err
 }
 
-// MergeAutoscalingEndedEvent performs a merge with any union data inside the EventDetails, using the provided AutoscalingEndedEvent
-func (t *EventDetails) MergeAutoscalingEndedEvent(v AutoscalingEndedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsAutoscalingStartedEvent returns the union data inside the EventDetails as a AutoscalingStartedEvent
-func (t EventDetails) AsAutoscalingStartedEvent() (AutoscalingStartedEvent, error) {
-	var body AutoscalingStartedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromAutoscalingStartedEvent overwrites any union data inside the EventDetails as the provided AutoscalingStartedEvent
-func (t *EventDetails) FromAutoscalingStartedEvent(v AutoscalingStartedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeAutoscalingStartedEvent performs a merge with any union data inside the EventDetails, using the provided AutoscalingStartedEvent
-func (t *EventDetails) MergeAutoscalingStartedEvent(v AutoscalingStartedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsBranchDeletedEvent returns the union data inside the EventDetails as a BranchDeletedEvent
-func (t EventDetails) AsBranchDeletedEvent() (BranchDeletedEvent, error) {
-	var body BranchDeletedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromBranchDeletedEvent overwrites any union data inside the EventDetails as the provided BranchDeletedEvent
-func (t *EventDetails) FromBranchDeletedEvent(v BranchDeletedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeBranchDeletedEvent performs a merge with any union data inside the EventDetails, using the provided BranchDeletedEvent
-func (t *EventDetails) MergeBranchDeletedEvent(v BranchDeletedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsBuildEndedEvent returns the union data inside the EventDetails as a BuildEndedEvent
-func (t EventDetails) AsBuildEndedEvent() (BuildEndedEvent, error) {
-	var body BuildEndedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromBuildEndedEvent overwrites any union data inside the EventDetails as the provided BuildEndedEvent
-func (t *EventDetails) FromBuildEndedEvent(v BuildEndedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeBuildEndedEvent performs a merge with any union data inside the EventDetails, using the provided BuildEndedEvent
-func (t *EventDetails) MergeBuildEndedEvent(v BuildEndedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsBuildPlanChangedEvent returns the union data inside the EventDetails as a BuildPlanChangedEvent
-func (t EventDetails) AsBuildPlanChangedEvent() (BuildPlanChangedEvent, error) {
-	var body BuildPlanChangedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromBuildPlanChangedEvent overwrites any union data inside the EventDetails as the provided BuildPlanChangedEvent
-func (t *EventDetails) FromBuildPlanChangedEvent(v BuildPlanChangedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeBuildPlanChangedEvent performs a merge with any union data inside the EventDetails, using the provided BuildPlanChangedEvent
-func (t *EventDetails) MergeBuildPlanChangedEvent(v BuildPlanChangedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsBuildStartedEvent returns the union data inside the EventDetails as a BuildStartedEvent
-func (t EventDetails) AsBuildStartedEvent() (BuildStartedEvent, error) {
-	var body BuildStartedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromBuildStartedEvent overwrites any union data inside the EventDetails as the provided BuildStartedEvent
-func (t *EventDetails) FromBuildStartedEvent(v BuildStartedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeBuildStartedEvent performs a merge with any union data inside the EventDetails, using the provided BuildStartedEvent
-func (t *EventDetails) MergeBuildStartedEvent(v BuildStartedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsCommitIgnoredEvent returns the union data inside the EventDetails as a CommitIgnoredEvent
-func (t EventDetails) AsCommitIgnoredEvent() (CommitIgnoredEvent, error) {
-	var body CommitIgnoredEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromCommitIgnoredEvent overwrites any union data inside the EventDetails as the provided CommitIgnoredEvent
-func (t *EventDetails) FromCommitIgnoredEvent(v CommitIgnoredEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeCommitIgnoredEvent performs a merge with any union data inside the EventDetails, using the provided CommitIgnoredEvent
-func (t *EventDetails) MergeCommitIgnoredEvent(v CommitIgnoredEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsCronJobRunEndedEvent returns the union data inside the EventDetails as a CronJobRunEndedEvent
-func (t EventDetails) AsCronJobRunEndedEvent() (CronJobRunEndedEvent, error) {
-	var body CronJobRunEndedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromCronJobRunEndedEvent overwrites any union data inside the EventDetails as the provided CronJobRunEndedEvent
-func (t *EventDetails) FromCronJobRunEndedEvent(v CronJobRunEndedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeCronJobRunEndedEvent performs a merge with any union data inside the EventDetails, using the provided CronJobRunEndedEvent
-func (t *EventDetails) MergeCronJobRunEndedEvent(v CronJobRunEndedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsCronJobRunStartedEvent returns the union data inside the EventDetails as a CronJobRunStartedEvent
-func (t EventDetails) AsCronJobRunStartedEvent() (CronJobRunStartedEvent, error) {
-	var body CronJobRunStartedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromCronJobRunStartedEvent overwrites any union data inside the EventDetails as the provided CronJobRunStartedEvent
-func (t *EventDetails) FromCronJobRunStartedEvent(v CronJobRunStartedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeCronJobRunStartedEvent performs a merge with any union data inside the EventDetails, using the provided CronJobRunStartedEvent
-func (t *EventDetails) MergeCronJobRunStartedEvent(v CronJobRunStartedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsDeployEndedEvent returns the union data inside the EventDetails as a DeployEndedEvent
-func (t EventDetails) AsDeployEndedEvent() (DeployEndedEvent, error) {
-	var body DeployEndedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromDeployEndedEvent overwrites any union data inside the EventDetails as the provided DeployEndedEvent
-func (t *EventDetails) FromDeployEndedEvent(v DeployEndedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeDeployEndedEvent performs a merge with any union data inside the EventDetails, using the provided DeployEndedEvent
-func (t *EventDetails) MergeDeployEndedEvent(v DeployEndedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsDeployStartedEvent returns the union data inside the EventDetails as a DeployStartedEvent
-func (t EventDetails) AsDeployStartedEvent() (DeployStartedEvent, error) {
-	var body DeployStartedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromDeployStartedEvent overwrites any union data inside the EventDetails as the provided DeployStartedEvent
-func (t *EventDetails) FromDeployStartedEvent(v DeployStartedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeDeployStartedEvent performs a merge with any union data inside the EventDetails, using the provided DeployStartedEvent
-func (t *EventDetails) MergeDeployStartedEvent(v DeployStartedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsDiskCreatedEvent returns the union data inside the EventDetails as a DiskCreatedEvent
-func (t EventDetails) AsDiskCreatedEvent() (DiskCreatedEvent, error) {
-	var body DiskCreatedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromDiskCreatedEvent overwrites any union data inside the EventDetails as the provided DiskCreatedEvent
-func (t *EventDetails) FromDiskCreatedEvent(v DiskCreatedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeDiskCreatedEvent performs a merge with any union data inside the EventDetails, using the provided DiskCreatedEvent
-func (t *EventDetails) MergeDiskCreatedEvent(v DiskCreatedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsDiskUpdatedEvent returns the union data inside the EventDetails as a DiskUpdatedEvent
-func (t EventDetails) AsDiskUpdatedEvent() (DiskUpdatedEvent, error) {
-	var body DiskUpdatedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromDiskUpdatedEvent overwrites any union data inside the EventDetails as the provided DiskUpdatedEvent
-func (t *EventDetails) FromDiskUpdatedEvent(v DiskUpdatedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeDiskUpdatedEvent performs a merge with any union data inside the EventDetails, using the provided DiskUpdatedEvent
-func (t *EventDetails) MergeDiskUpdatedEvent(v DiskUpdatedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsDiskDeletedEvent returns the union data inside the EventDetails as a DiskDeletedEvent
-func (t EventDetails) AsDiskDeletedEvent() (DiskDeletedEvent, error) {
-	var body DiskDeletedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromDiskDeletedEvent overwrites any union data inside the EventDetails as the provided DiskDeletedEvent
-func (t *EventDetails) FromDiskDeletedEvent(v DiskDeletedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeDiskDeletedEvent performs a merge with any union data inside the EventDetails, using the provided DiskDeletedEvent
-func (t *EventDetails) MergeDiskDeletedEvent(v DiskDeletedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsImagePullFailedEvent returns the union data inside the EventDetails as a ImagePullFailedEvent
-func (t EventDetails) AsImagePullFailedEvent() (ImagePullFailedEvent, error) {
-	var body ImagePullFailedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromImagePullFailedEvent overwrites any union data inside the EventDetails as the provided ImagePullFailedEvent
-func (t *EventDetails) FromImagePullFailedEvent(v ImagePullFailedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeImagePullFailedEvent performs a merge with any union data inside the EventDetails, using the provided ImagePullFailedEvent
-func (t *EventDetails) MergeImagePullFailedEvent(v ImagePullFailedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsInitialDeployHookStartedEvent returns the union data inside the EventDetails as a InitialDeployHookStartedEvent
-func (t EventDetails) AsInitialDeployHookStartedEvent() (InitialDeployHookStartedEvent, error) {
-	var body InitialDeployHookStartedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromInitialDeployHookStartedEvent overwrites any union data inside the EventDetails as the provided InitialDeployHookStartedEvent
-func (t *EventDetails) FromInitialDeployHookStartedEvent(v InitialDeployHookStartedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeInitialDeployHookStartedEvent performs a merge with any union data inside the EventDetails, using the provided InitialDeployHookStartedEvent
-func (t *EventDetails) MergeInitialDeployHookStartedEvent(v InitialDeployHookStartedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsInstanceCountChangedEvent returns the union data inside the EventDetails as a InstanceCountChangedEvent
-func (t EventDetails) AsInstanceCountChangedEvent() (InstanceCountChangedEvent, error) {
-	var body InstanceCountChangedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromInstanceCountChangedEvent overwrites any union data inside the EventDetails as the provided InstanceCountChangedEvent
-func (t *EventDetails) FromInstanceCountChangedEvent(v InstanceCountChangedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeInstanceCountChangedEvent performs a merge with any union data inside the EventDetails, using the provided InstanceCountChangedEvent
-func (t *EventDetails) MergeInstanceCountChangedEvent(v InstanceCountChangedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsJobRunEndedEvent returns the union data inside the EventDetails as a JobRunEndedEvent
-func (t EventDetails) AsJobRunEndedEvent() (JobRunEndedEvent, error) {
-	var body JobRunEndedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromJobRunEndedEvent overwrites any union data inside the EventDetails as the provided JobRunEndedEvent
-func (t *EventDetails) FromJobRunEndedEvent(v JobRunEndedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeJobRunEndedEvent performs a merge with any union data inside the EventDetails, using the provided JobRunEndedEvent
-func (t *EventDetails) MergeJobRunEndedEvent(v JobRunEndedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsMaintenanceModeEnabledEvent returns the union data inside the EventDetails as a MaintenanceModeEnabledEvent
-func (t EventDetails) AsMaintenanceModeEnabledEvent() (MaintenanceModeEnabledEvent, error) {
-	var body MaintenanceModeEnabledEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromMaintenanceModeEnabledEvent overwrites any union data inside the EventDetails as the provided MaintenanceModeEnabledEvent
-func (t *EventDetails) FromMaintenanceModeEnabledEvent(v MaintenanceModeEnabledEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeMaintenanceModeEnabledEvent performs a merge with any union data inside the EventDetails, using the provided MaintenanceModeEnabledEvent
-func (t *EventDetails) MergeMaintenanceModeEnabledEvent(v MaintenanceModeEnabledEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsMaintenanceModeURIUpdatedEvent returns the union data inside the EventDetails as a MaintenanceModeURIUpdatedEvent
-func (t EventDetails) AsMaintenanceModeURIUpdatedEvent() (MaintenanceModeURIUpdatedEvent, error) {
-	var body MaintenanceModeURIUpdatedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromMaintenanceModeURIUpdatedEvent overwrites any union data inside the EventDetails as the provided MaintenanceModeURIUpdatedEvent
-func (t *EventDetails) FromMaintenanceModeURIUpdatedEvent(v MaintenanceModeURIUpdatedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeMaintenanceModeURIUpdatedEvent performs a merge with any union data inside the EventDetails, using the provided MaintenanceModeURIUpdatedEvent
-func (t *EventDetails) MergeMaintenanceModeURIUpdatedEvent(v MaintenanceModeURIUpdatedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsMaintenanceEndedEvent returns the union data inside the EventDetails as a MaintenanceEndedEvent
-func (t EventDetails) AsMaintenanceEndedEvent() (MaintenanceEndedEvent, error) {
-	var body MaintenanceEndedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromMaintenanceEndedEvent overwrites any union data inside the EventDetails as the provided MaintenanceEndedEvent
-func (t *EventDetails) FromMaintenanceEndedEvent(v MaintenanceEndedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeMaintenanceEndedEvent performs a merge with any union data inside the EventDetails, using the provided MaintenanceEndedEvent
-func (t *EventDetails) MergeMaintenanceEndedEvent(v MaintenanceEndedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsMaintenanceStartedEvent returns the union data inside the EventDetails as a MaintenanceStartedEvent
-func (t EventDetails) AsMaintenanceStartedEvent() (MaintenanceStartedEvent, error) {
-	var body MaintenanceStartedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromMaintenanceStartedEvent overwrites any union data inside the EventDetails as the provided MaintenanceStartedEvent
-func (t *EventDetails) FromMaintenanceStartedEvent(v MaintenanceStartedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeMaintenanceStartedEvent performs a merge with any union data inside the EventDetails, using the provided MaintenanceStartedEvent
-func (t *EventDetails) MergeMaintenanceStartedEvent(v MaintenanceStartedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsPlanChangedEvent returns the union data inside the EventDetails as a PlanChangedEvent
-func (t EventDetails) AsPlanChangedEvent() (PlanChangedEvent, error) {
-	var body PlanChangedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromPlanChangedEvent overwrites any union data inside the EventDetails as the provided PlanChangedEvent
-func (t *EventDetails) FromPlanChangedEvent(v PlanChangedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergePlanChangedEvent performs a merge with any union data inside the EventDetails, using the provided PlanChangedEvent
-func (t *EventDetails) MergePlanChangedEvent(v PlanChangedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsPreDeployEndedEvent returns the union data inside the EventDetails as a PreDeployEndedEvent
-func (t EventDetails) AsPreDeployEndedEvent() (PreDeployEndedEvent, error) {
-	var body PreDeployEndedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromPreDeployEndedEvent overwrites any union data inside the EventDetails as the provided PreDeployEndedEvent
-func (t *EventDetails) FromPreDeployEndedEvent(v PreDeployEndedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergePreDeployEndedEvent performs a merge with any union data inside the EventDetails, using the provided PreDeployEndedEvent
-func (t *EventDetails) MergePreDeployEndedEvent(v PreDeployEndedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsPreDeployStartedEvent returns the union data inside the EventDetails as a PreDeployStartedEvent
-func (t EventDetails) AsPreDeployStartedEvent() (PreDeployStartedEvent, error) {
-	var body PreDeployStartedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromPreDeployStartedEvent overwrites any union data inside the EventDetails as the provided PreDeployStartedEvent
-func (t *EventDetails) FromPreDeployStartedEvent(v PreDeployStartedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergePreDeployStartedEvent performs a merge with any union data inside the EventDetails, using the provided PreDeployStartedEvent
-func (t *EventDetails) MergePreDeployStartedEvent(v PreDeployStartedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsServerAvailableEvent returns the union data inside the EventDetails as a ServerAvailableEvent
-func (t EventDetails) AsServerAvailableEvent() (ServerAvailableEvent, error) {
-	var body ServerAvailableEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromServerAvailableEvent overwrites any union data inside the EventDetails as the provided ServerAvailableEvent
-func (t *EventDetails) FromServerAvailableEvent(v ServerAvailableEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeServerAvailableEvent performs a merge with any union data inside the EventDetails, using the provided ServerAvailableEvent
-func (t *EventDetails) MergeServerAvailableEvent(v ServerAvailableEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsServerFailedEvent returns the union data inside the EventDetails as a ServerFailedEvent
-func (t EventDetails) AsServerFailedEvent() (ServerFailedEvent, error) {
-	var body ServerFailedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromServerFailedEvent overwrites any union data inside the EventDetails as the provided ServerFailedEvent
-func (t *EventDetails) FromServerFailedEvent(v ServerFailedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeServerFailedEvent performs a merge with any union data inside the EventDetails, using the provided ServerFailedEvent
-func (t *EventDetails) MergeServerFailedEvent(v ServerFailedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsServerHardwareFailureEvent returns the union data inside the EventDetails as a ServerHardwareFailureEvent
-func (t EventDetails) AsServerHardwareFailureEvent() (ServerHardwareFailureEvent, error) {
-	var body ServerHardwareFailureEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromServerHardwareFailureEvent overwrites any union data inside the EventDetails as the provided ServerHardwareFailureEvent
-func (t *EventDetails) FromServerHardwareFailureEvent(v ServerHardwareFailureEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeServerHardwareFailureEvent performs a merge with any union data inside the EventDetails, using the provided ServerHardwareFailureEvent
-func (t *EventDetails) MergeServerHardwareFailureEvent(v ServerHardwareFailureEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsServerRestartedEvent returns the union data inside the EventDetails as a ServerRestartedEvent
-func (t EventDetails) AsServerRestartedEvent() (ServerRestartedEvent, error) {
-	var body ServerRestartedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromServerRestartedEvent overwrites any union data inside the EventDetails as the provided ServerRestartedEvent
-func (t *EventDetails) FromServerRestartedEvent(v ServerRestartedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeServerRestartedEvent performs a merge with any union data inside the EventDetails, using the provided ServerRestartedEvent
-func (t *EventDetails) MergeServerRestartedEvent(v ServerRestartedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsServerUnhealthyEvent returns the union data inside the EventDetails as a ServerUnhealthyEvent
-func (t EventDetails) AsServerUnhealthyEvent() (ServerUnhealthyEvent, error) {
-	var body ServerUnhealthyEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromServerUnhealthyEvent overwrites any union data inside the EventDetails as the provided ServerUnhealthyEvent
-func (t *EventDetails) FromServerUnhealthyEvent(v ServerUnhealthyEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeServerUnhealthyEvent performs a merge with any union data inside the EventDetails, using the provided ServerUnhealthyEvent
-func (t *EventDetails) MergeServerUnhealthyEvent(v ServerUnhealthyEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsServiceResumedEvent returns the union data inside the EventDetails as a ServiceResumedEvent
-func (t EventDetails) AsServiceResumedEvent() (ServiceResumedEvent, error) {
-	var body ServiceResumedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromServiceResumedEvent overwrites any union data inside the EventDetails as the provided ServiceResumedEvent
-func (t *EventDetails) FromServiceResumedEvent(v ServiceResumedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeServiceResumedEvent performs a merge with any union data inside the EventDetails, using the provided ServiceResumedEvent
-func (t *EventDetails) MergeServiceResumedEvent(v ServiceResumedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsServiceSuspendedEvent returns the union data inside the EventDetails as a ServiceSuspendedEvent
-func (t EventDetails) AsServiceSuspendedEvent() (ServiceSuspendedEvent, error) {
-	var body ServiceSuspendedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromServiceSuspendedEvent overwrites any union data inside the EventDetails as the provided ServiceSuspendedEvent
-func (t *EventDetails) FromServiceSuspendedEvent(v ServiceSuspendedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeServiceSuspendedEvent performs a merge with any union data inside the EventDetails, using the provided ServiceSuspendedEvent
-func (t *EventDetails) MergeServiceSuspendedEvent(v ServiceSuspendedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsSuspenderAddedEvent returns the union data inside the EventDetails as a SuspenderAddedEvent
-func (t EventDetails) AsSuspenderAddedEvent() (SuspenderAddedEvent, error) {
-	var body SuspenderAddedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromSuspenderAddedEvent overwrites any union data inside the EventDetails as the provided SuspenderAddedEvent
-func (t *EventDetails) FromSuspenderAddedEvent(v SuspenderAddedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeSuspenderAddedEvent performs a merge with any union data inside the EventDetails, using the provided SuspenderAddedEvent
-func (t *EventDetails) MergeSuspenderAddedEvent(v SuspenderAddedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsSuspenderRemovedEvent returns the union data inside the EventDetails as a SuspenderRemovedEvent
-func (t EventDetails) AsSuspenderRemovedEvent() (SuspenderRemovedEvent, error) {
-	var body SuspenderRemovedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromSuspenderRemovedEvent overwrites any union data inside the EventDetails as the provided SuspenderRemovedEvent
-func (t *EventDetails) FromSuspenderRemovedEvent(v SuspenderRemovedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeSuspenderRemovedEvent performs a merge with any union data inside the EventDetails, using the provided SuspenderRemovedEvent
-func (t *EventDetails) MergeSuspenderRemovedEvent(v SuspenderRemovedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsZeroDowntimeRedeployEndedEvent returns the union data inside the EventDetails as a ZeroDowntimeRedeployEndedEvent
-func (t EventDetails) AsZeroDowntimeRedeployEndedEvent() (ZeroDowntimeRedeployEndedEvent, error) {
-	var body ZeroDowntimeRedeployEndedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromZeroDowntimeRedeployEndedEvent overwrites any union data inside the EventDetails as the provided ZeroDowntimeRedeployEndedEvent
-func (t *EventDetails) FromZeroDowntimeRedeployEndedEvent(v ZeroDowntimeRedeployEndedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeZeroDowntimeRedeployEndedEvent performs a merge with any union data inside the EventDetails, using the provided ZeroDowntimeRedeployEndedEvent
-func (t *EventDetails) MergeZeroDowntimeRedeployEndedEvent(v ZeroDowntimeRedeployEndedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsZeroDowntimeRedeployStartedEvent returns the union data inside the EventDetails as a ZeroDowntimeRedeployStartedEvent
-func (t EventDetails) AsZeroDowntimeRedeployStartedEvent() (ZeroDowntimeRedeployStartedEvent, error) {
-	var body ZeroDowntimeRedeployStartedEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromZeroDowntimeRedeployStartedEvent overwrites any union data inside the EventDetails as the provided ZeroDowntimeRedeployStartedEvent
-func (t *EventDetails) FromZeroDowntimeRedeployStartedEvent(v ZeroDowntimeRedeployStartedEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeZeroDowntimeRedeployStartedEvent performs a merge with any union data inside the EventDetails, using the provided ZeroDowntimeRedeployStartedEvent
-func (t *EventDetails) MergeZeroDowntimeRedeployStartedEvent(v ZeroDowntimeRedeployStartedEvent) error {
+// MergeKeyValueEventDetails performs a merge with any union data inside the EventDetails, using the provided KeyValueEventDetails
+func (t *EventDetails) MergeKeyValueEventDetails(v KeyValueEventDetails) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -1334,6 +550,1440 @@ func (t EventDetails) MarshalJSON() ([]byte, error) {
 }
 
 func (t *EventDetails) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsKeyValueAvailableEvent returns the union data inside the KeyValueEventDetails as a KeyValueAvailableEvent
+func (t KeyValueEventDetails) AsKeyValueAvailableEvent() (KeyValueAvailableEvent, error) {
+	var body KeyValueAvailableEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromKeyValueAvailableEvent overwrites any union data inside the KeyValueEventDetails as the provided KeyValueAvailableEvent
+func (t *KeyValueEventDetails) FromKeyValueAvailableEvent(v KeyValueAvailableEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeKeyValueAvailableEvent performs a merge with any union data inside the KeyValueEventDetails, using the provided KeyValueAvailableEvent
+func (t *KeyValueEventDetails) MergeKeyValueAvailableEvent(v KeyValueAvailableEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsKeyValueConfigRestartEvent returns the union data inside the KeyValueEventDetails as a KeyValueConfigRestartEvent
+func (t KeyValueEventDetails) AsKeyValueConfigRestartEvent() (KeyValueConfigRestartEvent, error) {
+	var body KeyValueConfigRestartEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromKeyValueConfigRestartEvent overwrites any union data inside the KeyValueEventDetails as the provided KeyValueConfigRestartEvent
+func (t *KeyValueEventDetails) FromKeyValueConfigRestartEvent(v KeyValueConfigRestartEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeKeyValueConfigRestartEvent performs a merge with any union data inside the KeyValueEventDetails, using the provided KeyValueConfigRestartEvent
+func (t *KeyValueEventDetails) MergeKeyValueConfigRestartEvent(v KeyValueConfigRestartEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsKeyValueUnhealthyEvent returns the union data inside the KeyValueEventDetails as a KeyValueUnhealthyEvent
+func (t KeyValueEventDetails) AsKeyValueUnhealthyEvent() (KeyValueUnhealthyEvent, error) {
+	var body KeyValueUnhealthyEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromKeyValueUnhealthyEvent overwrites any union data inside the KeyValueEventDetails as the provided KeyValueUnhealthyEvent
+func (t *KeyValueEventDetails) FromKeyValueUnhealthyEvent(v KeyValueUnhealthyEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeKeyValueUnhealthyEvent performs a merge with any union data inside the KeyValueEventDetails, using the provided KeyValueUnhealthyEvent
+func (t *KeyValueEventDetails) MergeKeyValueUnhealthyEvent(v KeyValueUnhealthyEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t KeyValueEventDetails) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *KeyValueEventDetails) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsPostgresAvailableEvent returns the union data inside the PostgresEventDetails as a PostgresAvailableEvent
+func (t PostgresEventDetails) AsPostgresAvailableEvent() (PostgresAvailableEvent, error) {
+	var body PostgresAvailableEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresAvailableEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresAvailableEvent
+func (t *PostgresEventDetails) FromPostgresAvailableEvent(v PostgresAvailableEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresAvailableEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresAvailableEvent
+func (t *PostgresEventDetails) MergePostgresAvailableEvent(v PostgresAvailableEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresBackupCompletedEvent returns the union data inside the PostgresEventDetails as a PostgresBackupCompletedEvent
+func (t PostgresEventDetails) AsPostgresBackupCompletedEvent() (PostgresBackupCompletedEvent, error) {
+	var body PostgresBackupCompletedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresBackupCompletedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresBackupCompletedEvent
+func (t *PostgresEventDetails) FromPostgresBackupCompletedEvent(v PostgresBackupCompletedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresBackupCompletedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresBackupCompletedEvent
+func (t *PostgresEventDetails) MergePostgresBackupCompletedEvent(v PostgresBackupCompletedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresBackupStartedEvent returns the union data inside the PostgresEventDetails as a PostgresBackupStartedEvent
+func (t PostgresEventDetails) AsPostgresBackupStartedEvent() (PostgresBackupStartedEvent, error) {
+	var body PostgresBackupStartedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresBackupStartedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresBackupStartedEvent
+func (t *PostgresEventDetails) FromPostgresBackupStartedEvent(v PostgresBackupStartedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresBackupStartedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresBackupStartedEvent
+func (t *PostgresEventDetails) MergePostgresBackupStartedEvent(v PostgresBackupStartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresClusterLeaderChangedEvent returns the union data inside the PostgresEventDetails as a PostgresClusterLeaderChangedEvent
+func (t PostgresEventDetails) AsPostgresClusterLeaderChangedEvent() (PostgresClusterLeaderChangedEvent, error) {
+	var body PostgresClusterLeaderChangedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresClusterLeaderChangedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresClusterLeaderChangedEvent
+func (t *PostgresEventDetails) FromPostgresClusterLeaderChangedEvent(v PostgresClusterLeaderChangedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresClusterLeaderChangedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresClusterLeaderChangedEvent
+func (t *PostgresEventDetails) MergePostgresClusterLeaderChangedEvent(v PostgresClusterLeaderChangedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresCreatedEvent returns the union data inside the PostgresEventDetails as a PostgresCreatedEvent
+func (t PostgresEventDetails) AsPostgresCreatedEvent() (PostgresCreatedEvent, error) {
+	var body PostgresCreatedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresCreatedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresCreatedEvent
+func (t *PostgresEventDetails) FromPostgresCreatedEvent(v PostgresCreatedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresCreatedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresCreatedEvent
+func (t *PostgresEventDetails) MergePostgresCreatedEvent(v PostgresCreatedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresDiskSizeChangedEvent returns the union data inside the PostgresEventDetails as a PostgresDiskSizeChangedEvent
+func (t PostgresEventDetails) AsPostgresDiskSizeChangedEvent() (PostgresDiskSizeChangedEvent, error) {
+	var body PostgresDiskSizeChangedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresDiskSizeChangedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresDiskSizeChangedEvent
+func (t *PostgresEventDetails) FromPostgresDiskSizeChangedEvent(v PostgresDiskSizeChangedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresDiskSizeChangedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresDiskSizeChangedEvent
+func (t *PostgresEventDetails) MergePostgresDiskSizeChangedEvent(v PostgresDiskSizeChangedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresHaStatusChangedEvent returns the union data inside the PostgresEventDetails as a PostgresHaStatusChangedEvent
+func (t PostgresEventDetails) AsPostgresHaStatusChangedEvent() (PostgresHaStatusChangedEvent, error) {
+	var body PostgresHaStatusChangedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresHaStatusChangedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresHaStatusChangedEvent
+func (t *PostgresEventDetails) FromPostgresHaStatusChangedEvent(v PostgresHaStatusChangedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresHaStatusChangedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresHaStatusChangedEvent
+func (t *PostgresEventDetails) MergePostgresHaStatusChangedEvent(v PostgresHaStatusChangedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresReadReplicasChangedEvent returns the union data inside the PostgresEventDetails as a PostgresReadReplicasChangedEvent
+func (t PostgresEventDetails) AsPostgresReadReplicasChangedEvent() (PostgresReadReplicasChangedEvent, error) {
+	var body PostgresReadReplicasChangedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresReadReplicasChangedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresReadReplicasChangedEvent
+func (t *PostgresEventDetails) FromPostgresReadReplicasChangedEvent(v PostgresReadReplicasChangedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresReadReplicasChangedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresReadReplicasChangedEvent
+func (t *PostgresEventDetails) MergePostgresReadReplicasChangedEvent(v PostgresReadReplicasChangedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresRestartedEvent returns the union data inside the PostgresEventDetails as a PostgresRestartedEvent
+func (t PostgresEventDetails) AsPostgresRestartedEvent() (PostgresRestartedEvent, error) {
+	var body PostgresRestartedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresRestartedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresRestartedEvent
+func (t *PostgresEventDetails) FromPostgresRestartedEvent(v PostgresRestartedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresRestartedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresRestartedEvent
+func (t *PostgresEventDetails) MergePostgresRestartedEvent(v PostgresRestartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresUnavailableEvent returns the union data inside the PostgresEventDetails as a PostgresUnavailableEvent
+func (t PostgresEventDetails) AsPostgresUnavailableEvent() (PostgresUnavailableEvent, error) {
+	var body PostgresUnavailableEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresUnavailableEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresUnavailableEvent
+func (t *PostgresEventDetails) FromPostgresUnavailableEvent(v PostgresUnavailableEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresUnavailableEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresUnavailableEvent
+func (t *PostgresEventDetails) MergePostgresUnavailableEvent(v PostgresUnavailableEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresUpgradeFailedEvent returns the union data inside the PostgresEventDetails as a PostgresUpgradeFailedEvent
+func (t PostgresEventDetails) AsPostgresUpgradeFailedEvent() (PostgresUpgradeFailedEvent, error) {
+	var body PostgresUpgradeFailedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresUpgradeFailedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresUpgradeFailedEvent
+func (t *PostgresEventDetails) FromPostgresUpgradeFailedEvent(v PostgresUpgradeFailedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresUpgradeFailedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresUpgradeFailedEvent
+func (t *PostgresEventDetails) MergePostgresUpgradeFailedEvent(v PostgresUpgradeFailedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresUpgradeStartedEvent returns the union data inside the PostgresEventDetails as a PostgresUpgradeStartedEvent
+func (t PostgresEventDetails) AsPostgresUpgradeStartedEvent() (PostgresUpgradeStartedEvent, error) {
+	var body PostgresUpgradeStartedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresUpgradeStartedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresUpgradeStartedEvent
+func (t *PostgresEventDetails) FromPostgresUpgradeStartedEvent(v PostgresUpgradeStartedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresUpgradeStartedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresUpgradeStartedEvent
+func (t *PostgresEventDetails) MergePostgresUpgradeStartedEvent(v PostgresUpgradeStartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresUpgradeSucceededEvent returns the union data inside the PostgresEventDetails as a PostgresUpgradeSucceededEvent
+func (t PostgresEventDetails) AsPostgresUpgradeSucceededEvent() (PostgresUpgradeSucceededEvent, error) {
+	var body PostgresUpgradeSucceededEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresUpgradeSucceededEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresUpgradeSucceededEvent
+func (t *PostgresEventDetails) FromPostgresUpgradeSucceededEvent(v PostgresUpgradeSucceededEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresUpgradeSucceededEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresUpgradeSucceededEvent
+func (t *PostgresEventDetails) MergePostgresUpgradeSucceededEvent(v PostgresUpgradeSucceededEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t PostgresEventDetails) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *PostgresEventDetails) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsAutoscalingConfigChangedEvent returns the union data inside the ServiceEventDetails as a AutoscalingConfigChangedEvent
+func (t ServiceEventDetails) AsAutoscalingConfigChangedEvent() (AutoscalingConfigChangedEvent, error) {
+	var body AutoscalingConfigChangedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromAutoscalingConfigChangedEvent overwrites any union data inside the ServiceEventDetails as the provided AutoscalingConfigChangedEvent
+func (t *ServiceEventDetails) FromAutoscalingConfigChangedEvent(v AutoscalingConfigChangedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeAutoscalingConfigChangedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided AutoscalingConfigChangedEvent
+func (t *ServiceEventDetails) MergeAutoscalingConfigChangedEvent(v AutoscalingConfigChangedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsAutoscalingEndedEvent returns the union data inside the ServiceEventDetails as a AutoscalingEndedEvent
+func (t ServiceEventDetails) AsAutoscalingEndedEvent() (AutoscalingEndedEvent, error) {
+	var body AutoscalingEndedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromAutoscalingEndedEvent overwrites any union data inside the ServiceEventDetails as the provided AutoscalingEndedEvent
+func (t *ServiceEventDetails) FromAutoscalingEndedEvent(v AutoscalingEndedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeAutoscalingEndedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided AutoscalingEndedEvent
+func (t *ServiceEventDetails) MergeAutoscalingEndedEvent(v AutoscalingEndedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsAutoscalingStartedEvent returns the union data inside the ServiceEventDetails as a AutoscalingStartedEvent
+func (t ServiceEventDetails) AsAutoscalingStartedEvent() (AutoscalingStartedEvent, error) {
+	var body AutoscalingStartedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromAutoscalingStartedEvent overwrites any union data inside the ServiceEventDetails as the provided AutoscalingStartedEvent
+func (t *ServiceEventDetails) FromAutoscalingStartedEvent(v AutoscalingStartedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeAutoscalingStartedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided AutoscalingStartedEvent
+func (t *ServiceEventDetails) MergeAutoscalingStartedEvent(v AutoscalingStartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBranchDeletedEvent returns the union data inside the ServiceEventDetails as a BranchDeletedEvent
+func (t ServiceEventDetails) AsBranchDeletedEvent() (BranchDeletedEvent, error) {
+	var body BranchDeletedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBranchDeletedEvent overwrites any union data inside the ServiceEventDetails as the provided BranchDeletedEvent
+func (t *ServiceEventDetails) FromBranchDeletedEvent(v BranchDeletedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBranchDeletedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided BranchDeletedEvent
+func (t *ServiceEventDetails) MergeBranchDeletedEvent(v BranchDeletedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBuildEndedEvent returns the union data inside the ServiceEventDetails as a BuildEndedEvent
+func (t ServiceEventDetails) AsBuildEndedEvent() (BuildEndedEvent, error) {
+	var body BuildEndedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBuildEndedEvent overwrites any union data inside the ServiceEventDetails as the provided BuildEndedEvent
+func (t *ServiceEventDetails) FromBuildEndedEvent(v BuildEndedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBuildEndedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided BuildEndedEvent
+func (t *ServiceEventDetails) MergeBuildEndedEvent(v BuildEndedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBuildStartedEvent returns the union data inside the ServiceEventDetails as a BuildStartedEvent
+func (t ServiceEventDetails) AsBuildStartedEvent() (BuildStartedEvent, error) {
+	var body BuildStartedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBuildStartedEvent overwrites any union data inside the ServiceEventDetails as the provided BuildStartedEvent
+func (t *ServiceEventDetails) FromBuildStartedEvent(v BuildStartedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBuildStartedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided BuildStartedEvent
+func (t *ServiceEventDetails) MergeBuildStartedEvent(v BuildStartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCommitIgnoredEvent returns the union data inside the ServiceEventDetails as a CommitIgnoredEvent
+func (t ServiceEventDetails) AsCommitIgnoredEvent() (CommitIgnoredEvent, error) {
+	var body CommitIgnoredEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCommitIgnoredEvent overwrites any union data inside the ServiceEventDetails as the provided CommitIgnoredEvent
+func (t *ServiceEventDetails) FromCommitIgnoredEvent(v CommitIgnoredEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCommitIgnoredEvent performs a merge with any union data inside the ServiceEventDetails, using the provided CommitIgnoredEvent
+func (t *ServiceEventDetails) MergeCommitIgnoredEvent(v CommitIgnoredEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCronJobRunEndedEvent returns the union data inside the ServiceEventDetails as a CronJobRunEndedEvent
+func (t ServiceEventDetails) AsCronJobRunEndedEvent() (CronJobRunEndedEvent, error) {
+	var body CronJobRunEndedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCronJobRunEndedEvent overwrites any union data inside the ServiceEventDetails as the provided CronJobRunEndedEvent
+func (t *ServiceEventDetails) FromCronJobRunEndedEvent(v CronJobRunEndedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCronJobRunEndedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided CronJobRunEndedEvent
+func (t *ServiceEventDetails) MergeCronJobRunEndedEvent(v CronJobRunEndedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCronJobRunStartedEvent returns the union data inside the ServiceEventDetails as a CronJobRunStartedEvent
+func (t ServiceEventDetails) AsCronJobRunStartedEvent() (CronJobRunStartedEvent, error) {
+	var body CronJobRunStartedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCronJobRunStartedEvent overwrites any union data inside the ServiceEventDetails as the provided CronJobRunStartedEvent
+func (t *ServiceEventDetails) FromCronJobRunStartedEvent(v CronJobRunStartedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCronJobRunStartedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided CronJobRunStartedEvent
+func (t *ServiceEventDetails) MergeCronJobRunStartedEvent(v CronJobRunStartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDeployEndedEvent returns the union data inside the ServiceEventDetails as a DeployEndedEvent
+func (t ServiceEventDetails) AsDeployEndedEvent() (DeployEndedEvent, error) {
+	var body DeployEndedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDeployEndedEvent overwrites any union data inside the ServiceEventDetails as the provided DeployEndedEvent
+func (t *ServiceEventDetails) FromDeployEndedEvent(v DeployEndedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDeployEndedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided DeployEndedEvent
+func (t *ServiceEventDetails) MergeDeployEndedEvent(v DeployEndedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDeployStartedEvent returns the union data inside the ServiceEventDetails as a DeployStartedEvent
+func (t ServiceEventDetails) AsDeployStartedEvent() (DeployStartedEvent, error) {
+	var body DeployStartedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDeployStartedEvent overwrites any union data inside the ServiceEventDetails as the provided DeployStartedEvent
+func (t *ServiceEventDetails) FromDeployStartedEvent(v DeployStartedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDeployStartedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided DeployStartedEvent
+func (t *ServiceEventDetails) MergeDeployStartedEvent(v DeployStartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDiskCreatedEvent returns the union data inside the ServiceEventDetails as a DiskCreatedEvent
+func (t ServiceEventDetails) AsDiskCreatedEvent() (DiskCreatedEvent, error) {
+	var body DiskCreatedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDiskCreatedEvent overwrites any union data inside the ServiceEventDetails as the provided DiskCreatedEvent
+func (t *ServiceEventDetails) FromDiskCreatedEvent(v DiskCreatedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDiskCreatedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided DiskCreatedEvent
+func (t *ServiceEventDetails) MergeDiskCreatedEvent(v DiskCreatedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDiskUpdatedEvent returns the union data inside the ServiceEventDetails as a DiskUpdatedEvent
+func (t ServiceEventDetails) AsDiskUpdatedEvent() (DiskUpdatedEvent, error) {
+	var body DiskUpdatedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDiskUpdatedEvent overwrites any union data inside the ServiceEventDetails as the provided DiskUpdatedEvent
+func (t *ServiceEventDetails) FromDiskUpdatedEvent(v DiskUpdatedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDiskUpdatedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided DiskUpdatedEvent
+func (t *ServiceEventDetails) MergeDiskUpdatedEvent(v DiskUpdatedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDiskDeletedEvent returns the union data inside the ServiceEventDetails as a DiskDeletedEvent
+func (t ServiceEventDetails) AsDiskDeletedEvent() (DiskDeletedEvent, error) {
+	var body DiskDeletedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDiskDeletedEvent overwrites any union data inside the ServiceEventDetails as the provided DiskDeletedEvent
+func (t *ServiceEventDetails) FromDiskDeletedEvent(v DiskDeletedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDiskDeletedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided DiskDeletedEvent
+func (t *ServiceEventDetails) MergeDiskDeletedEvent(v DiskDeletedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsImagePullFailedEvent returns the union data inside the ServiceEventDetails as a ImagePullFailedEvent
+func (t ServiceEventDetails) AsImagePullFailedEvent() (ImagePullFailedEvent, error) {
+	var body ImagePullFailedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromImagePullFailedEvent overwrites any union data inside the ServiceEventDetails as the provided ImagePullFailedEvent
+func (t *ServiceEventDetails) FromImagePullFailedEvent(v ImagePullFailedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeImagePullFailedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ImagePullFailedEvent
+func (t *ServiceEventDetails) MergeImagePullFailedEvent(v ImagePullFailedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsInitialDeployHookStartedEvent returns the union data inside the ServiceEventDetails as a InitialDeployHookStartedEvent
+func (t ServiceEventDetails) AsInitialDeployHookStartedEvent() (InitialDeployHookStartedEvent, error) {
+	var body InitialDeployHookStartedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInitialDeployHookStartedEvent overwrites any union data inside the ServiceEventDetails as the provided InitialDeployHookStartedEvent
+func (t *ServiceEventDetails) FromInitialDeployHookStartedEvent(v InitialDeployHookStartedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInitialDeployHookStartedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided InitialDeployHookStartedEvent
+func (t *ServiceEventDetails) MergeInitialDeployHookStartedEvent(v InitialDeployHookStartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsInitialDeployHookEndedEvent returns the union data inside the ServiceEventDetails as a InitialDeployHookEndedEvent
+func (t ServiceEventDetails) AsInitialDeployHookEndedEvent() (InitialDeployHookEndedEvent, error) {
+	var body InitialDeployHookEndedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInitialDeployHookEndedEvent overwrites any union data inside the ServiceEventDetails as the provided InitialDeployHookEndedEvent
+func (t *ServiceEventDetails) FromInitialDeployHookEndedEvent(v InitialDeployHookEndedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInitialDeployHookEndedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided InitialDeployHookEndedEvent
+func (t *ServiceEventDetails) MergeInitialDeployHookEndedEvent(v InitialDeployHookEndedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsInstanceCountChangedEvent returns the union data inside the ServiceEventDetails as a InstanceCountChangedEvent
+func (t ServiceEventDetails) AsInstanceCountChangedEvent() (InstanceCountChangedEvent, error) {
+	var body InstanceCountChangedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromInstanceCountChangedEvent overwrites any union data inside the ServiceEventDetails as the provided InstanceCountChangedEvent
+func (t *ServiceEventDetails) FromInstanceCountChangedEvent(v InstanceCountChangedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeInstanceCountChangedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided InstanceCountChangedEvent
+func (t *ServiceEventDetails) MergeInstanceCountChangedEvent(v InstanceCountChangedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsJobRunEndedEvent returns the union data inside the ServiceEventDetails as a JobRunEndedEvent
+func (t ServiceEventDetails) AsJobRunEndedEvent() (JobRunEndedEvent, error) {
+	var body JobRunEndedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromJobRunEndedEvent overwrites any union data inside the ServiceEventDetails as the provided JobRunEndedEvent
+func (t *ServiceEventDetails) FromJobRunEndedEvent(v JobRunEndedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeJobRunEndedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided JobRunEndedEvent
+func (t *ServiceEventDetails) MergeJobRunEndedEvent(v JobRunEndedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMaintenanceModeEnabledEvent returns the union data inside the ServiceEventDetails as a MaintenanceModeEnabledEvent
+func (t ServiceEventDetails) AsMaintenanceModeEnabledEvent() (MaintenanceModeEnabledEvent, error) {
+	var body MaintenanceModeEnabledEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMaintenanceModeEnabledEvent overwrites any union data inside the ServiceEventDetails as the provided MaintenanceModeEnabledEvent
+func (t *ServiceEventDetails) FromMaintenanceModeEnabledEvent(v MaintenanceModeEnabledEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMaintenanceModeEnabledEvent performs a merge with any union data inside the ServiceEventDetails, using the provided MaintenanceModeEnabledEvent
+func (t *ServiceEventDetails) MergeMaintenanceModeEnabledEvent(v MaintenanceModeEnabledEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMaintenanceModeURIUpdatedEvent returns the union data inside the ServiceEventDetails as a MaintenanceModeURIUpdatedEvent
+func (t ServiceEventDetails) AsMaintenanceModeURIUpdatedEvent() (MaintenanceModeURIUpdatedEvent, error) {
+	var body MaintenanceModeURIUpdatedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMaintenanceModeURIUpdatedEvent overwrites any union data inside the ServiceEventDetails as the provided MaintenanceModeURIUpdatedEvent
+func (t *ServiceEventDetails) FromMaintenanceModeURIUpdatedEvent(v MaintenanceModeURIUpdatedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMaintenanceModeURIUpdatedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided MaintenanceModeURIUpdatedEvent
+func (t *ServiceEventDetails) MergeMaintenanceModeURIUpdatedEvent(v MaintenanceModeURIUpdatedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMaintenanceEndedEvent returns the union data inside the ServiceEventDetails as a MaintenanceEndedEvent
+func (t ServiceEventDetails) AsMaintenanceEndedEvent() (MaintenanceEndedEvent, error) {
+	var body MaintenanceEndedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMaintenanceEndedEvent overwrites any union data inside the ServiceEventDetails as the provided MaintenanceEndedEvent
+func (t *ServiceEventDetails) FromMaintenanceEndedEvent(v MaintenanceEndedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMaintenanceEndedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided MaintenanceEndedEvent
+func (t *ServiceEventDetails) MergeMaintenanceEndedEvent(v MaintenanceEndedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMaintenanceStartedEvent returns the union data inside the ServiceEventDetails as a MaintenanceStartedEvent
+func (t ServiceEventDetails) AsMaintenanceStartedEvent() (MaintenanceStartedEvent, error) {
+	var body MaintenanceStartedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMaintenanceStartedEvent overwrites any union data inside the ServiceEventDetails as the provided MaintenanceStartedEvent
+func (t *ServiceEventDetails) FromMaintenanceStartedEvent(v MaintenanceStartedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMaintenanceStartedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided MaintenanceStartedEvent
+func (t *ServiceEventDetails) MergeMaintenanceStartedEvent(v MaintenanceStartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPipelineMinutesExhaustedEvent returns the union data inside the ServiceEventDetails as a PipelineMinutesExhaustedEvent
+func (t ServiceEventDetails) AsPipelineMinutesExhaustedEvent() (PipelineMinutesExhaustedEvent, error) {
+	var body PipelineMinutesExhaustedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPipelineMinutesExhaustedEvent overwrites any union data inside the ServiceEventDetails as the provided PipelineMinutesExhaustedEvent
+func (t *ServiceEventDetails) FromPipelineMinutesExhaustedEvent(v PipelineMinutesExhaustedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePipelineMinutesExhaustedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided PipelineMinutesExhaustedEvent
+func (t *ServiceEventDetails) MergePipelineMinutesExhaustedEvent(v PipelineMinutesExhaustedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPlanChangedEvent returns the union data inside the ServiceEventDetails as a PlanChangedEvent
+func (t ServiceEventDetails) AsPlanChangedEvent() (PlanChangedEvent, error) {
+	var body PlanChangedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPlanChangedEvent overwrites any union data inside the ServiceEventDetails as the provided PlanChangedEvent
+func (t *ServiceEventDetails) FromPlanChangedEvent(v PlanChangedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePlanChangedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided PlanChangedEvent
+func (t *ServiceEventDetails) MergePlanChangedEvent(v PlanChangedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPreDeployEndedEvent returns the union data inside the ServiceEventDetails as a PreDeployEndedEvent
+func (t ServiceEventDetails) AsPreDeployEndedEvent() (PreDeployEndedEvent, error) {
+	var body PreDeployEndedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPreDeployEndedEvent overwrites any union data inside the ServiceEventDetails as the provided PreDeployEndedEvent
+func (t *ServiceEventDetails) FromPreDeployEndedEvent(v PreDeployEndedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePreDeployEndedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided PreDeployEndedEvent
+func (t *ServiceEventDetails) MergePreDeployEndedEvent(v PreDeployEndedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPreDeployStartedEvent returns the union data inside the ServiceEventDetails as a PreDeployStartedEvent
+func (t ServiceEventDetails) AsPreDeployStartedEvent() (PreDeployStartedEvent, error) {
+	var body PreDeployStartedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPreDeployStartedEvent overwrites any union data inside the ServiceEventDetails as the provided PreDeployStartedEvent
+func (t *ServiceEventDetails) FromPreDeployStartedEvent(v PreDeployStartedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePreDeployStartedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided PreDeployStartedEvent
+func (t *ServiceEventDetails) MergePreDeployStartedEvent(v PreDeployStartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsServerAvailableEvent returns the union data inside the ServiceEventDetails as a ServerAvailableEvent
+func (t ServiceEventDetails) AsServerAvailableEvent() (ServerAvailableEvent, error) {
+	var body ServerAvailableEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromServerAvailableEvent overwrites any union data inside the ServiceEventDetails as the provided ServerAvailableEvent
+func (t *ServiceEventDetails) FromServerAvailableEvent(v ServerAvailableEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeServerAvailableEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ServerAvailableEvent
+func (t *ServiceEventDetails) MergeServerAvailableEvent(v ServerAvailableEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsServerFailedEvent returns the union data inside the ServiceEventDetails as a ServerFailedEvent
+func (t ServiceEventDetails) AsServerFailedEvent() (ServerFailedEvent, error) {
+	var body ServerFailedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromServerFailedEvent overwrites any union data inside the ServiceEventDetails as the provided ServerFailedEvent
+func (t *ServiceEventDetails) FromServerFailedEvent(v ServerFailedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeServerFailedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ServerFailedEvent
+func (t *ServiceEventDetails) MergeServerFailedEvent(v ServerFailedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsServerHardwareFailureEvent returns the union data inside the ServiceEventDetails as a ServerHardwareFailureEvent
+func (t ServiceEventDetails) AsServerHardwareFailureEvent() (ServerHardwareFailureEvent, error) {
+	var body ServerHardwareFailureEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromServerHardwareFailureEvent overwrites any union data inside the ServiceEventDetails as the provided ServerHardwareFailureEvent
+func (t *ServiceEventDetails) FromServerHardwareFailureEvent(v ServerHardwareFailureEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeServerHardwareFailureEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ServerHardwareFailureEvent
+func (t *ServiceEventDetails) MergeServerHardwareFailureEvent(v ServerHardwareFailureEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsServerRestartedEvent returns the union data inside the ServiceEventDetails as a ServerRestartedEvent
+func (t ServiceEventDetails) AsServerRestartedEvent() (ServerRestartedEvent, error) {
+	var body ServerRestartedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromServerRestartedEvent overwrites any union data inside the ServiceEventDetails as the provided ServerRestartedEvent
+func (t *ServiceEventDetails) FromServerRestartedEvent(v ServerRestartedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeServerRestartedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ServerRestartedEvent
+func (t *ServiceEventDetails) MergeServerRestartedEvent(v ServerRestartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsServerUnhealthyEvent returns the union data inside the ServiceEventDetails as a ServerUnhealthyEvent
+func (t ServiceEventDetails) AsServerUnhealthyEvent() (ServerUnhealthyEvent, error) {
+	var body ServerUnhealthyEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromServerUnhealthyEvent overwrites any union data inside the ServiceEventDetails as the provided ServerUnhealthyEvent
+func (t *ServiceEventDetails) FromServerUnhealthyEvent(v ServerUnhealthyEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeServerUnhealthyEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ServerUnhealthyEvent
+func (t *ServiceEventDetails) MergeServerUnhealthyEvent(v ServerUnhealthyEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsServiceResumedEvent returns the union data inside the ServiceEventDetails as a ServiceResumedEvent
+func (t ServiceEventDetails) AsServiceResumedEvent() (ServiceResumedEvent, error) {
+	var body ServiceResumedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromServiceResumedEvent overwrites any union data inside the ServiceEventDetails as the provided ServiceResumedEvent
+func (t *ServiceEventDetails) FromServiceResumedEvent(v ServiceResumedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeServiceResumedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ServiceResumedEvent
+func (t *ServiceEventDetails) MergeServiceResumedEvent(v ServiceResumedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsServiceSuspendedEvent returns the union data inside the ServiceEventDetails as a ServiceSuspendedEvent
+func (t ServiceEventDetails) AsServiceSuspendedEvent() (ServiceSuspendedEvent, error) {
+	var body ServiceSuspendedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromServiceSuspendedEvent overwrites any union data inside the ServiceEventDetails as the provided ServiceSuspendedEvent
+func (t *ServiceEventDetails) FromServiceSuspendedEvent(v ServiceSuspendedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeServiceSuspendedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ServiceSuspendedEvent
+func (t *ServiceEventDetails) MergeServiceSuspendedEvent(v ServiceSuspendedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSuspenderAddedEvent returns the union data inside the ServiceEventDetails as a SuspenderAddedEvent
+func (t ServiceEventDetails) AsSuspenderAddedEvent() (SuspenderAddedEvent, error) {
+	var body SuspenderAddedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSuspenderAddedEvent overwrites any union data inside the ServiceEventDetails as the provided SuspenderAddedEvent
+func (t *ServiceEventDetails) FromSuspenderAddedEvent(v SuspenderAddedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSuspenderAddedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided SuspenderAddedEvent
+func (t *ServiceEventDetails) MergeSuspenderAddedEvent(v SuspenderAddedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSuspenderRemovedEvent returns the union data inside the ServiceEventDetails as a SuspenderRemovedEvent
+func (t ServiceEventDetails) AsSuspenderRemovedEvent() (SuspenderRemovedEvent, error) {
+	var body SuspenderRemovedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSuspenderRemovedEvent overwrites any union data inside the ServiceEventDetails as the provided SuspenderRemovedEvent
+func (t *ServiceEventDetails) FromSuspenderRemovedEvent(v SuspenderRemovedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSuspenderRemovedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided SuspenderRemovedEvent
+func (t *ServiceEventDetails) MergeSuspenderRemovedEvent(v SuspenderRemovedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsZeroDowntimeRedeployEndedEvent returns the union data inside the ServiceEventDetails as a ZeroDowntimeRedeployEndedEvent
+func (t ServiceEventDetails) AsZeroDowntimeRedeployEndedEvent() (ZeroDowntimeRedeployEndedEvent, error) {
+	var body ZeroDowntimeRedeployEndedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromZeroDowntimeRedeployEndedEvent overwrites any union data inside the ServiceEventDetails as the provided ZeroDowntimeRedeployEndedEvent
+func (t *ServiceEventDetails) FromZeroDowntimeRedeployEndedEvent(v ZeroDowntimeRedeployEndedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeZeroDowntimeRedeployEndedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ZeroDowntimeRedeployEndedEvent
+func (t *ServiceEventDetails) MergeZeroDowntimeRedeployEndedEvent(v ZeroDowntimeRedeployEndedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsZeroDowntimeRedeployStartedEvent returns the union data inside the ServiceEventDetails as a ZeroDowntimeRedeployStartedEvent
+func (t ServiceEventDetails) AsZeroDowntimeRedeployStartedEvent() (ZeroDowntimeRedeployStartedEvent, error) {
+	var body ZeroDowntimeRedeployStartedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromZeroDowntimeRedeployStartedEvent overwrites any union data inside the ServiceEventDetails as the provided ZeroDowntimeRedeployStartedEvent
+func (t *ServiceEventDetails) FromZeroDowntimeRedeployStartedEvent(v ZeroDowntimeRedeployStartedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeZeroDowntimeRedeployStartedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ZeroDowntimeRedeployStartedEvent
+func (t *ServiceEventDetails) MergeZeroDowntimeRedeployStartedEvent(v ZeroDowntimeRedeployStartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ServiceEventDetails) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ServiceEventDetails) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

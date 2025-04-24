@@ -15,6 +15,7 @@ const (
 	BackgroundWorker ResourceRefType = "background_worker"
 	CronJob          ResourceRefType = "cron_job"
 	EnvironmentGroup ResourceRefType = "environment_group"
+	KeyValue         ResourceRefType = "key_value"
 	Postgres         ResourceRefType = "postgres"
 	PrivateService   ResourceRefType = "private_service"
 	Redis            ResourceRefType = "redis"

@@ -2,6 +2,7 @@ package job
 
 import (
 	"github.com/charmbracelet/lipgloss"
+
 	clientjob "github.com/render-oss/cli/pkg/client/jobs"
 	"github.com/render-oss/cli/pkg/pointers"
 	rstrings "github.com/render-oss/cli/pkg/strings"
@@ -68,7 +69,5 @@ func jobStatusValue(status *clientjob.JobStatus) string {
 	if status == nil {
 		return ""
 	}
-
-	statusStr := string(*status)
-	return rstrings.TitleCaseValue(statusStr)
+	return rstrings.TitleCaseValue(string(*status))
 }

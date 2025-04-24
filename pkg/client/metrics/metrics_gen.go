@@ -21,6 +21,16 @@ const (
 	FilterHTTPValuesCollectionFilterStatusCode FilterHTTPValuesCollectionFilter = "statusCode"
 )
 
+// Defines values for OtelProviderType.
+const (
+	BETTERSTACK OtelProviderType = "BETTER_STACK"
+	CUSTOM      OtelProviderType = "CUSTOM"
+	DATADOG     OtelProviderType = "DATADOG"
+	GRAFANA     OtelProviderType = "GRAFANA"
+	HONEYCOMB   OtelProviderType = "HONEYCOMB"
+	NEWRELIC    OtelProviderType = "NEW_RELIC"
+)
+
 // Defines values for ApplicationMetricAggregationMethod.
 const (
 	AVG ApplicationMetricAggregationMethod = "AVG"
@@ -60,6 +70,33 @@ type Label struct {
 	Field string `json:"field"`
 	Value string `json:"value"`
 }
+
+// MetricsStream defines model for metricsStream.
+type MetricsStream struct {
+	// OwnerId The ID of the owner
+	OwnerId string `json:"ownerId"`
+
+	// Provider Provider to send metrics to
+	Provider OtelProviderType `json:"provider"`
+
+	// Url The endpoint URL to stream metrics to
+	Url string `json:"url"`
+}
+
+// MetricsStreamInput Input for creating or updating a metrics stream
+type MetricsStreamInput struct {
+	// Provider Provider to send metrics to
+	Provider *OtelProviderType `json:"provider,omitempty"`
+
+	// Token Authentication token for the metrics stream
+	Token *string `json:"token,omitempty"`
+
+	// Url The endpoint URL to stream metrics to
+	Url *string `json:"url,omitempty"`
+}
+
+// OtelProviderType Provider to send metrics to
+type OtelProviderType string
 
 // TimeSeries A time series data point
 type TimeSeries struct {
@@ -121,6 +158,9 @@ type ServiceQueryParam = string
 
 // ServiceResourceQueryParam defines model for serviceResourceQueryParam.
 type ServiceResourceQueryParam = string
+
+// GetMetricsStream200Response defines model for GetMetricsStream200Response.
+type GetMetricsStream200Response = MetricsStream
 
 // Metrics200Response A collection of time series
 type Metrics200Response = TimeSeriesCollection
