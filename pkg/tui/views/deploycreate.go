@@ -18,6 +18,7 @@ import (
 )
 
 const deployTimeout = time.Hour
+const deployCreateTimeout = time.Minute
 
 func CreateDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy, error) {
 	deployRepo, err := newDeployRepo()
@@ -40,6 +41,14 @@ func CreateDeploy(ctx context.Context, input types.DeployInput) (*client.Deploy,
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if d == nil {
+		dep, err := WaitForDeployCreate(ctx, input.ServiceID)
+		if err != nil {
+			return nil, err
+		}
+		d = dep
 	}
 
 	return d, nil
@@ -83,6 +92,36 @@ func WaitForDeploy(ctx context.Context, serviceID, deployID string) (*client.Dep
 				// if the deploy has started, poll more frequently
 				time.Sleep(5 * time.Second)
 			}
+		}
+	}
+}
+
+func WaitForDeployCreate(ctx context.Context, serviceID string) (*client.Deploy, error) {
+	deployRepo, err := newDeployRepo()
+	if err != nil {
+		return nil, err
+	}
+
+	timeoutTimer := time.NewTimer(deployCreateTimeout)
+
+	for {
+		select {
+		case <-timeoutTimer.C:
+			return nil, fmt.Errorf("timed out waiting for deploy to be created")
+		default:
+			ds, err := deployRepo.ListDeploysForService(ctx, serviceID, &client.ListDeploysParams{
+				Status: pointers.From([]client.DeployStatus{client.DeployStatusQueued}),
+				Limit:  pointers.From(1),
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			if len(ds) > 0 {
+				return ds[0], nil
+			}
+
+			time.Sleep(time.Second)
 		}
 	}
 }

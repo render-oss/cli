@@ -102,6 +102,19 @@ func nonInteractiveDeployCreate(cmd *cobra.Command, input types.DeployInput) boo
 			return nil, err
 		}
 
+		if d == nil {
+			_, err = fmt.Fprintf(cmd.OutOrStderr(), "Waiting for deploy to be created...\n\n")
+			if err != nil {
+				return nil, err
+			}
+			dep, err = views.WaitForDeployCreate(cmd.Context(), input.ServiceID)
+			if err != nil {
+				return nil, err
+			}
+
+			d = dep
+		}
+
 		if input.Wait {
 			_, err = fmt.Fprintf(cmd.OutOrStderr(), "Waiting for deploy %s to complete...\n\n", d.Id)
 			if err != nil {

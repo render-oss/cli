@@ -106,6 +106,7 @@ const (
 	DeployStatusLive                DeployStatus = "live"
 	DeployStatusPreDeployFailed     DeployStatus = "pre_deploy_failed"
 	DeployStatusPreDeployInProgress DeployStatus = "pre_deploy_in_progress"
+	DeployStatusQueued              DeployStatus = "queued"
 	DeployStatusUpdateFailed        DeployStatus = "update_failed"
 	DeployStatusUpdateInProgress    DeployStatus = "update_in_progress"
 )
@@ -605,6 +606,7 @@ type Deploy struct {
 		// Sha SHA that the image reference was resolved to when creating the deploy
 		Sha *string `json:"sha,omitempty"`
 	} `json:"image,omitempty"`
+	StartedAt *time.Time     `json:"startedAt,omitempty"`
 	Status    *DeployStatus  `json:"status,omitempty"`
 	Trigger   *DeployTrigger `json:"trigger,omitempty"`
 	UpdatedAt *time.Time     `json:"updatedAt,omitempty"`

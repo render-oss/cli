@@ -33,6 +33,25 @@ func TestWaitForDeploy(t *testing.T) {
 	assert.Equal(t, "some-deploy-id", dep.Id)
 }
 
+func TestWaitForDeployCreate(t *testing.T) {
+	listDeployCallCount := 0
+	setupTestServer(t, func() (int, string) {
+		listDeployCallCount++
+		if listDeployCallCount == 1 {
+			return http.StatusOK, `[]`
+		}
+
+		deploy := fmt.Sprintf(deployRespTmpl, client.DeployStatusQueued)
+		return http.StatusOK, fmt.Sprintf(`[{"deploy": %s, "cursor": "some-cursor"}]`, deploy)
+	})
+
+	dep, err := views.WaitForDeployCreate(context.Background(), "some-service-id")
+	require.NoError(t, err)
+
+	assert.Equal(t, client.DeployStatusQueued, *dep.Status)
+	assert.Equal(t, "some-deploy-id", dep.Id)
+}
+
 func setupTestServer(t *testing.T, handler func() (int, string)) *httptest.Server {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
