@@ -91,14 +91,8 @@ func nonInteractiveServiceCreate(cmd *cobra.Command, input types.ServiceCreateIn
 		
 		// Remove the message about creating GitHub repo
 		
-		// Check if we need to generate a Dockerfile
-		generateDockerfile := false
-		if input.Runtime != nil && *input.Runtime == "docker" {
-			generateDockerfile = true
-		}
-		
 		// Always create private repos
-		repoURL, err := github.CreateRepoFromPath(ctx, *input.Path, repoName, true, generateDockerfile, org)
+		repoURL, err := github.CreateRepoFromPath(ctx, *input.Path, repoName, true, org)
 		if err != nil {
 			command.Fatal(cmd, fmt.Errorf("failed to create GitHub repository: %w", err))
 			return true

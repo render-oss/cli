@@ -20,7 +20,7 @@ import (
 
 // CreateRepoFromPath creates a GitHub repository from a local path (file or directory)
 // and returns the repository URL
-func CreateRepoFromPath(ctx context.Context, localPath string, repoName string, isPrivate bool, generateDockerfile bool, org string) (string, error) {
+func CreateRepoFromPath(ctx context.Context, localPath string, repoName string, isPrivate bool, org string) (string, error) {
 	// Read GitHub token
 	token, err := readGitHubToken()
 	if err != nil {
@@ -104,14 +104,25 @@ func CreateRepoFromPath(ctx context.Context, localPath string, repoName string, 
 		}
 	}
 
-	// Generate Dockerfile if requested
-	if generateDockerfile {
-		err = generateDockerfileInRepo(fs, worktree, localPath)
-		if err != nil {
-			return "", fmt.Errorf("failed to generate Dockerfile: %w", err)
+	// Check worktree status before commit
+	status, err := worktree.Status()
+	if err != nil {
+		return "", fmt.Errorf("failed to get worktree status: %w", err)
+	}
+	
+	// Check if there are any files to commit
+	hasFiles := false
+	for _, s := range status {
+		if s.Staging != git.Unmodified {
+			hasFiles = true
+			break
 		}
 	}
-
+	
+	if !hasFiles {
+		return "", fmt.Errorf("no files were added to the repository")
+	}
+	
 	// Create initial commit
 	_, err = worktree.Commit("Initial commit", &git.CommitOptions{
 		Author: &object.Signature{
@@ -184,7 +195,11 @@ func addFileToRepo(fs billy.Filesystem, worktree *git.Worktree, sourcePath, dest
 
 	// Add file to git
 	_, err = worktree.Add(destPath)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to add file to git: %w", err)
+	}
+	
+	return nil
 }
 
 func addDirectoryToRepo(fs billy.Filesystem, worktree *git.Worktree, sourceDir, destDir string) error {
@@ -223,188 +238,4 @@ func addDirectoryToRepo(fs billy.Filesystem, worktree *git.Worktree, sourceDir, 
 	}
 
 	return nil
-}
-
-func generateDockerfileInRepo(fs billy.Filesystem, worktree *git.Worktree, localPath string) error {
-	// Check if Dockerfile already exists
-	if _, err := fs.Stat("Dockerfile"); err == nil {
-		// Dockerfile already exists, don't overwrite
-		return nil
-	}
-
-	// Detect the language/framework and generate appropriate Dockerfile
-	dockerfile := detectAndGenerateDockerfile(localPath)
-	
-	// Create Dockerfile in memory filesystem
-	file, err := fs.Create("Dockerfile")
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = file.Write([]byte(dockerfile))
-	if err != nil {
-		return err
-	}
-
-	// Add Dockerfile to git
-	_, err = worktree.Add("Dockerfile")
-	return err
-}
-
-func detectAndGenerateDockerfile(localPath string) string {
-	// Check if it's a directory
-	info, err := os.Stat(localPath)
-	if err != nil || !info.IsDir() {
-		// For single files or if we can't detect, use a generic Dockerfile
-		return generateGenericDockerfile()
-	}
-
-	// Check for package.json (Node.js)
-	if _, err := os.Stat(filepath.Join(localPath, "package.json")); err == nil {
-		return generateNodeDockerfile()
-	}
-
-	// Check for requirements.txt (Python)
-	if _, err := os.Stat(filepath.Join(localPath, "requirements.txt")); err == nil {
-		return generatePythonDockerfile()
-	}
-
-	// Check for Gemfile (Ruby)
-	if _, err := os.Stat(filepath.Join(localPath, "Gemfile")); err == nil {
-		return generateRubyDockerfile()
-	}
-
-	// Check for go.mod (Go)
-	if _, err := os.Stat(filepath.Join(localPath, "go.mod")); err == nil {
-		return generateGoDockerfile()
-	}
-
-	// Default generic Dockerfile
-	return generateGenericDockerfile()
-}
-
-func generateNodeDockerfile() string {
-	return `FROM node:18-alpine
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy application files
-COPY . .
-
-# Expose port (change if needed)
-EXPOSE 3000
-
-# Start the application
-CMD ["npm", "start"]
-`
-}
-
-func generatePythonDockerfile() string {
-	return `FROM python:3.11-slim
-
-WORKDIR /app
-
-# Copy requirements
-COPY requirements.txt .
-
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application files
-COPY . .
-
-# Expose port (change if needed)
-EXPOSE 8000
-
-# Start the application (adjust command as needed)
-CMD ["python", "app.py"]
-`
-}
-
-func generateRubyDockerfile() string {
-	return `FROM ruby:3.2-slim
-
-WORKDIR /app
-
-# Install dependencies
-RUN apt-get update -qq && apt-get install -y build-essential
-
-# Copy Gemfile
-COPY Gemfile Gemfile.lock ./
-
-# Install gems
-RUN bundle install --without development test
-
-# Copy application files
-COPY . .
-
-# Expose port (change if needed)
-EXPOSE 3000
-
-# Start the application (adjust command as needed)
-CMD ["bundle", "exec", "ruby", "app.rb"]
-`
-}
-
-func generateGoDockerfile() string {
-	return `FROM golang:1.21-alpine AS builder
-
-WORKDIR /app
-
-# Copy go mod files
-COPY go.mod go.sum ./
-
-# Download dependencies
-RUN go mod download
-
-# Copy source code
-COPY . .
-
-# Build the application
-RUN go build -o main .
-
-# Final stage
-FROM alpine:latest
-
-RUN apk --no-cache add ca-certificates
-
-WORKDIR /root/
-
-# Copy the binary from builder
-COPY --from=builder /app/main .
-
-# Expose port (change if needed)
-EXPOSE 8080
-
-# Run the binary
-CMD ["./main"]
-`
-}
-
-func generateGenericDockerfile() string {
-	return `FROM ubuntu:22.04
-
-WORKDIR /app
-
-# Copy application files
-COPY . .
-
-# Install basic dependencies (customize as needed)
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Expose port (change if needed)
-EXPOSE 8080
-
-# Add your start command here
-CMD ["/bin/bash"]
-`
 }
