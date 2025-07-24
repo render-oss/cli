@@ -165,7 +165,7 @@ func updateServiceRepo(ctx context.Context, srv *client.Service, localPath strin
 		return fmt.Errorf("failed to update GitHub repository: %w", err)
 	}
 
-	fmt.Printf("Successfully updated repository %s/%s\n", owner, repoName)
+	fmt.Printf("Service %s updated successfully\n", srv.Id)
 	return nil
 }
 
