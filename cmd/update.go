@@ -1,11 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/environment"
+	"github.com/render-oss/cli/pkg/github"
 	"github.com/render-oss/cli/pkg/input"
 	"github.com/render-oss/cli/pkg/project"
 	"github.com/render-oss/cli/pkg/service"
@@ -31,6 +35,13 @@ var updateCmd = &cobra.Command{
 			return err
 		}
 
+		// Handle --path flag
+		path, _ := cmd.Flags().GetString("path")
+		if path != "" {
+			return updateServiceRepo(cmd.Context(), srv.Service, path)
+		}
+
+		// Original JSON editor flow
 		svc, err := stripReadOnlyFields(srv.Service)
 		if err != nil {
 			return err
@@ -135,6 +146,57 @@ func newRepositories() (*service.Repo, *service.Service, error) {
 	return serviceRepo, serviceService, nil
 }
 
+func updateServiceRepo(ctx context.Context, srv *client.Service, localPath string) error {
+	// Check if service has a repo
+	if srv.Repo == nil || *srv.Repo == "" {
+		return fmt.Errorf("service does not have a connected GitHub repository")
+	}
+
+	// Parse the repo URL to get owner and repo name
+	repoURL := *srv.Repo
+	owner, repoName, err := parseGitHubURL(repoURL)
+	if err != nil {
+		return fmt.Errorf("failed to parse repository URL: %w", err)
+	}
+
+	// Update the GitHub repository with new files
+	err = github.UpdateRepoFromPath(ctx, localPath, owner, repoName)
+	if err != nil {
+		return fmt.Errorf("failed to update GitHub repository: %w", err)
+	}
+
+	fmt.Printf("Successfully updated repository %s/%s\n", owner, repoName)
+	return nil
+}
+
+func parseGitHubURL(repoURL string) (owner, repo string, err error) {
+	// Handle both HTTPS and SSH URLs
+	repoURL = strings.TrimSuffix(repoURL, ".git")
+	
+	if strings.HasPrefix(repoURL, "git@github.com:") {
+		// SSH URL: git@github.com:owner/repo
+		parts := strings.SplitN(strings.TrimPrefix(repoURL, "git@github.com:"), "/", 2)
+		if len(parts) != 2 {
+			return "", "", fmt.Errorf("invalid GitHub SSH URL format")
+		}
+		return parts[0], parts[1], nil
+	}
+	
+	// HTTPS URL
+	u, err := url.Parse(repoURL)
+	if err != nil {
+		return "", "", err
+	}
+	
+	parts := strings.Split(strings.TrimPrefix(u.Path, "/"), "/")
+	if len(parts) < 2 {
+		return "", "", fmt.Errorf("invalid GitHub URL format")
+	}
+	
+	return parts[0], parts[1], nil
+}
+
 func init() {
+	updateCmd.Flags().String("path", "", "Local path (file or directory) to update GitHub repo with")
 	servicesCmd.AddCommand(updateCmd)
 }
