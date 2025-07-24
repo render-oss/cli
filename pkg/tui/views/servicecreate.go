@@ -9,7 +9,6 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/config"
-	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/tui"
 	"github.com/render-oss/cli/pkg/types"
@@ -44,14 +43,14 @@ func CreateService(ctx context.Context, input types.ServiceCreateInput) (string,
 	}
 
 	// Set common fields
-	if input.Repo != "" {
-		req.Repo = pointers.From(input.Repo)
+	if input.Repo != nil {
+		req.Repo = input.Repo
 	}
-	if input.Branch != "" {
-		req.Branch = pointers.From(input.Branch)
+	if input.Branch != nil {
+		req.Branch = input.Branch
 	}
-	if input.RootDir != "" {
-		req.RootDir = pointers.From(input.RootDir)
+	if input.RootDir != nil {
+		req.RootDir = input.RootDir
 	}
 
 	// Create the service

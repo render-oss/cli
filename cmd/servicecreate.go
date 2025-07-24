@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -10,6 +11,7 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/github"
 	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/tui/views"
@@ -69,6 +71,49 @@ func nonInteractiveServiceCreate(cmd *cobra.Command, input types.ServiceCreateIn
 		command.Fatal(cmd, fmt.Errorf("service name is required in non-interactive mode"))
 		return true
 	}
+	
+	// Handle path flag - create GitHub repo if path is provided
+	if input.Path != nil && *input.Path != "" {
+		if input.Repo != nil && *input.Repo != "" {
+			command.Fatal(cmd, fmt.Errorf("cannot specify both --path and --repo"))
+			return true
+		}
+		
+		// Generate repo name from service name
+		repoName := strings.ReplaceAll(input.Name, " ", "-")
+		repoName = strings.ToLower(repoName)
+		
+		// Get organization if specified, default to maker-week-2025
+		org := "maker-week-2025"
+		if input.Org != nil && *input.Org != "" {
+			org = *input.Org
+		}
+		
+		if org != "" {
+			command.Println(cmd, fmt.Sprintf("Creating GitHub repository '%s' in organization '%s' from %s...", repoName, org, *input.Path))
+		} else {
+			command.Println(cmd, fmt.Sprintf("Creating GitHub repository '%s' from %s...", repoName, *input.Path))
+		}
+		
+		// Check if we need to generate a Dockerfile
+		generateDockerfile := false
+		if input.Runtime != nil && *input.Runtime == "docker" {
+			generateDockerfile = true
+		}
+		
+		// Always create private repos
+		repoURL, err := github.CreateRepoFromPath(ctx, *input.Path, repoName, true, generateDockerfile, org)
+		if err != nil {
+			command.Fatal(cmd, fmt.Errorf("failed to create GitHub repository: %w", err))
+			return true
+		}
+		
+		input.Repo = pointers.From(repoURL)
+		command.Println(cmd, fmt.Sprintf("GitHub repository created: %s", repoURL))
+	}
+	
+	// Note: Some service types may require additional fields like repo,
+	// but we'll let the API return appropriate error messages
 
 	// Get workspace ID
 	workspace, err := config.WorkspaceID()
@@ -89,19 +134,165 @@ func nonInteractiveServiceCreate(cmd *cobra.Command, input types.ServiceCreateIn
 	}
 
 	// Set common fields
-	if input.Repo != "" {
-		req.Repo = pointers.From(input.Repo)
+	if input.Repo != nil {
+		req.Repo = input.Repo
 	}
-	if input.Branch != "" {
-		req.Branch = pointers.From(input.Branch)
+	if input.Branch != nil {
+		req.Branch = input.Branch
 	}
-	if input.RootDir != "" {
-		req.RootDir = pointers.From(input.RootDir)
+	if input.RootDir != nil {
+		req.RootDir = input.RootDir
 	}
 
-	// For now, we'll create services with minimal configuration
-	// The API will use sensible defaults which can be updated later
-	// This simplifies the initial implementation and avoids complex type marshaling
+	// Set service details - required for all service types
+	if input.Type != client.StaticSite || input.BuildCommand != nil || input.PublishPath != nil {
+		req.ServiceDetails = &client.ServicePOST_ServiceDetails{}
+		
+		switch input.Type {
+		case client.WebService:
+			details := client.WebServiceDetailsPOST{}
+			// Set optional fields if provided
+			if input.Plan != nil {
+				plan := client.PaidPlan(*input.Plan)
+				details.Plan = &plan
+			}
+			if input.NumInstances != nil {
+				details.NumInstances = input.NumInstances
+			}
+			
+			// Set runtime - use Runtime field, not deprecated Env field
+			runtime := client.ServiceRuntime("docker")
+			if input.Runtime != nil {
+				runtime = client.ServiceRuntime(*input.Runtime)
+			}
+			details.Runtime = runtime
+			
+			// Set env specific details based on runtime
+			if runtime == "docker" || runtime == "image" {
+				// For Docker runtime, use DockerDetailsPOST
+				details.EnvSpecificDetails = &client.EnvSpecificDetailsPOST{}
+				dockerDetails := client.DockerDetailsPOST{}
+				details.EnvSpecificDetails.FromDockerDetailsPOST(dockerDetails)
+			} else {
+				// For native runtimes (node, python, ruby, go, elixir, rust)
+				details.EnvSpecificDetails = &client.EnvSpecificDetailsPOST{}
+				nativeDetails := client.NativeEnvironmentDetailsPOST{}
+				// Set build and start commands if provided
+				if input.BuildCommand != nil {
+					nativeDetails.BuildCommand = *input.BuildCommand
+				} else {
+					nativeDetails.BuildCommand = ""
+				}
+				if input.StartCommand != nil {
+					nativeDetails.StartCommand = *input.StartCommand  
+				} else {
+					nativeDetails.StartCommand = ""
+				}
+				details.EnvSpecificDetails.FromNativeEnvironmentDetailsPOST(nativeDetails)
+			}
+			
+			req.ServiceDetails.FromWebServiceDetailsPOST(details)
+			
+		case client.PrivateService:
+			details := client.PrivateServiceDetailsPOST{}
+			// Set optional fields if provided
+			if input.Plan != nil {
+				plan := client.PaidPlan(*input.Plan)
+				details.Plan = &plan
+			}
+			if input.NumInstances != nil {
+				details.NumInstances = input.NumInstances
+			}
+			
+			// Set runtime - use Runtime field, not deprecated Env field
+			runtime := client.ServiceRuntime("docker")
+			if input.Runtime != nil {
+				runtime = client.ServiceRuntime(*input.Runtime)
+			}
+			details.Runtime = runtime
+			
+			// Set env specific details based on runtime
+			if runtime == "docker" || runtime == "image" {
+				// For Docker runtime, use DockerDetailsPOST
+				details.EnvSpecificDetails = &client.EnvSpecificDetailsPOST{}
+				dockerDetails := client.DockerDetailsPOST{}
+				details.EnvSpecificDetails.FromDockerDetailsPOST(dockerDetails)
+			} else {
+				// For native runtimes (node, python, ruby, go, elixir, rust)
+				details.EnvSpecificDetails = &client.EnvSpecificDetailsPOST{}
+				nativeDetails := client.NativeEnvironmentDetailsPOST{}
+				// Set build and start commands if provided
+				if input.BuildCommand != nil {
+					nativeDetails.BuildCommand = *input.BuildCommand
+				} else {
+					nativeDetails.BuildCommand = ""
+				}
+				if input.StartCommand != nil {
+					nativeDetails.StartCommand = *input.StartCommand  
+				} else {
+					nativeDetails.StartCommand = ""
+				}
+				details.EnvSpecificDetails.FromNativeEnvironmentDetailsPOST(nativeDetails)
+			}
+			
+			req.ServiceDetails.FromPrivateServiceDetailsPOST(details)
+			
+		case client.BackgroundWorker:
+			details := client.BackgroundWorkerDetailsPOST{}
+			// Set optional fields if provided
+			if input.Plan != nil {
+				plan := client.PaidPlan(*input.Plan)
+				details.Plan = &plan
+			}
+			if input.NumInstances != nil {
+				details.NumInstances = input.NumInstances
+			}
+			
+			// Set runtime - use Runtime field, not deprecated Env field
+			runtime := client.ServiceRuntime("docker")
+			if input.Runtime != nil {
+				runtime = client.ServiceRuntime(*input.Runtime)
+			}
+			details.Runtime = runtime
+			
+			// Set env specific details based on runtime
+			if runtime == "docker" || runtime == "image" {
+				// For Docker runtime, use DockerDetailsPOST
+				details.EnvSpecificDetails = &client.EnvSpecificDetailsPOST{}
+				dockerDetails := client.DockerDetailsPOST{}
+				details.EnvSpecificDetails.FromDockerDetailsPOST(dockerDetails)
+			} else {
+				// For native runtimes (node, python, ruby, go, elixir, rust)
+				details.EnvSpecificDetails = &client.EnvSpecificDetailsPOST{}
+				nativeDetails := client.NativeEnvironmentDetailsPOST{}
+				// Set build and start commands if provided
+				if input.BuildCommand != nil {
+					nativeDetails.BuildCommand = *input.BuildCommand
+				} else {
+					nativeDetails.BuildCommand = ""
+				}
+				if input.StartCommand != nil {
+					nativeDetails.StartCommand = *input.StartCommand  
+				} else {
+					nativeDetails.StartCommand = ""
+				}
+				details.EnvSpecificDetails.FromNativeEnvironmentDetailsPOST(nativeDetails)
+			}
+			
+			req.ServiceDetails.FromBackgroundWorkerDetailsPOST(details)
+		
+		case client.StaticSite:
+			details := client.StaticSiteDetailsPOST{}
+			if input.BuildCommand != nil {
+				details.BuildCommand = input.BuildCommand
+			}
+			if input.PublishPath != nil {
+				details.PublishPath = input.PublishPath
+			}
+			
+			req.ServiceDetails.FromStaticSiteDetailsPOST(details)
+		}
+	}
 
 	// Create the service
 	c, err := client.NewDefaultClient()
@@ -116,10 +307,18 @@ func nonInteractiveServiceCreate(cmd *cobra.Command, input types.ServiceCreateIn
 		return true
 	}
 
+	// Check if service is nil
+	if svc == nil {
+		command.Fatal(cmd, fmt.Errorf("service creation returned nil service"))
+		return true
+	}
+
 	// Handle output format
 	format := command.GetFormatFromContext(ctx)
 	if format != nil {
-		if _, err := command.PrintData(cmd, svc, nil); err != nil {
+		if _, err := command.PrintData(cmd, svc, func(s *client.Service) string {
+			return fmt.Sprintf("Service created: %s (%s)", s.Name, s.Id)
+		}); err != nil {
 			command.Fatal(cmd, err)
 			return true
 		}
@@ -136,6 +335,8 @@ func setupServiceCreateCommand(cmd *cobra.Command, serviceType client.ServiceTyp
 	cmd.Flags().String("repo", "", "Git repository URL")
 	cmd.Flags().String("branch", "", "Git branch")
 	cmd.Flags().String("root-dir", "", "Root directory")
+	cmd.Flags().String("path", "", "Local path (file or directory) to create GitHub repo from")
+	cmd.Flags().String("org", "", "GitHub organization to create repo in (defaults to maker-week-2025)")
 	
 	// Service type specific flags
 	switch serviceType {
@@ -150,13 +351,29 @@ func setupServiceCreateCommand(cmd *cobra.Command, serviceType client.ServiceTyp
 			
 			// Parse common flags manually
 			input.Name, _ = cmd.Flags().GetString("name")
-			input.Repo, _ = cmd.Flags().GetString("repo")
-			input.Branch, _ = cmd.Flags().GetString("branch")
-			input.RootDir, _ = cmd.Flags().GetString("root-dir")
+			if repo, _ := cmd.Flags().GetString("repo"); repo != "" {
+				input.Repo = pointers.From(repo)
+			}
+			if branch, _ := cmd.Flags().GetString("branch"); branch != "" {
+				input.Branch = pointers.From(branch)
+			}
+			if rootDir, _ := cmd.Flags().GetString("root-dir"); rootDir != "" {
+				input.RootDir = pointers.From(rootDir)
+			}
+			if path, _ := cmd.Flags().GetString("path"); path != "" {
+				input.Path = pointers.From(path)
+			}
+			if org, _ := cmd.Flags().GetString("org"); org != "" {
+				input.Org = pointers.From(org)
+			}
 			
 			// Parse static site specific flags
-			input.BuildCommand, _ = cmd.Flags().GetString("build-command")
-			input.PublishPath, _ = cmd.Flags().GetString("publish-path")
+			if buildCmd, _ := cmd.Flags().GetString("build-command"); buildCmd != "" {
+				input.BuildCommand = pointers.From(buildCmd)
+			}
+			if publishPath, _ := cmd.Flags().GetString("publish-path"); publishPath != "" {
+				input.PublishPath = pointers.From(publishPath)
+			}
 
 			nonInteractive := nonInteractiveServiceCreate(cmd, input)
 			if nonInteractive {
@@ -170,10 +387,9 @@ func setupServiceCreateCommand(cmd *cobra.Command, serviceType client.ServiceTyp
 	case client.WebService, client.PrivateService, client.BackgroundWorker:
 		cmd.Flags().String("build-command", "", "Build command")
 		cmd.Flags().String("start-command", "", "Start command")
-		cmd.Flags().String("runtime", "", "Runtime (e.g., docker, node, python-3, ruby-3, go-1)")
-		cmd.Flags().String("env", "", "Environment (deprecated, use --runtime)")
-		cmd.Flags().String("plan", "starter", "Instance type")
-		cmd.Flags().Int("num-instances", 1, "Number of instances")
+		cmd.Flags().String("runtime", "", "Runtime (e.g., docker, node, python, ruby, go, elixir, rust)")
+		cmd.Flags().String("plan", "", "Instance type (default \"starter\")")
+		cmd.Flags().Int("num-instances", 0, "Number of instances (default 1)")
 		
 		cmd.RunE = func(cmd *cobra.Command, args []string) error {
 			input := types.ServiceCreateInput{
@@ -182,17 +398,38 @@ func setupServiceCreateCommand(cmd *cobra.Command, serviceType client.ServiceTyp
 			
 			// Parse common flags manually
 			input.Name, _ = cmd.Flags().GetString("name")
-			input.Repo, _ = cmd.Flags().GetString("repo")
-			input.Branch, _ = cmd.Flags().GetString("branch")
-			input.RootDir, _ = cmd.Flags().GetString("root-dir")
+			if repo, _ := cmd.Flags().GetString("repo"); repo != "" {
+				input.Repo = pointers.From(repo)
+			}
+			if branch, _ := cmd.Flags().GetString("branch"); branch != "" {
+				input.Branch = pointers.From(branch)
+			}
+			if rootDir, _ := cmd.Flags().GetString("root-dir"); rootDir != "" {
+				input.RootDir = pointers.From(rootDir)
+			}
+			if path, _ := cmd.Flags().GetString("path"); path != "" {
+				input.Path = pointers.From(path)
+			}
+			if org, _ := cmd.Flags().GetString("org"); org != "" {
+				input.Org = pointers.From(org)
+			}
 			
 			// Parse server specific flags
-			input.BuildCommand, _ = cmd.Flags().GetString("build-command")
-			input.StartCommand, _ = cmd.Flags().GetString("start-command")
-			input.Runtime, _ = cmd.Flags().GetString("runtime")
-			input.Env, _ = cmd.Flags().GetString("env")
-			input.Plan, _ = cmd.Flags().GetString("plan")
-			input.NumInstances, _ = cmd.Flags().GetInt("num-instances")
+			if buildCmd, _ := cmd.Flags().GetString("build-command"); buildCmd != "" {
+				input.BuildCommand = pointers.From(buildCmd)
+			}
+			if startCmd, _ := cmd.Flags().GetString("start-command"); startCmd != "" {
+				input.StartCommand = pointers.From(startCmd)
+			}
+			if runtime, _ := cmd.Flags().GetString("runtime"); runtime != "" {
+				input.Runtime = pointers.From(runtime)
+			}
+			if plan, _ := cmd.Flags().GetString("plan"); plan != "" {
+				input.Plan = pointers.From(plan)
+			}
+			if numInstances, _ := cmd.Flags().GetInt("num-instances"); numInstances != 0 {
+				input.NumInstances = pointers.From(numInstances)
+			}
 
 			nonInteractive := nonInteractiveServiceCreate(cmd, input)
 			if nonInteractive {
