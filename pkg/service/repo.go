@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/config"
@@ -86,6 +87,15 @@ func (s *Repo) CreateService(ctx context.Context, data client.CreateServiceJSONR
 
 	if err := client.ErrorFromResponse(resp); err != nil {
 		return nil, err
+	}
+
+	// Add nil checks
+	if resp.JSON201 == nil {
+		return nil, fmt.Errorf("unexpected response: %v", resp.Status())
+	}
+	
+	if resp.JSON201.Service == nil {
+		return nil, fmt.Errorf("service creation succeeded but no service data returned")
 	}
 
 	return resp.JSON201.Service, nil
