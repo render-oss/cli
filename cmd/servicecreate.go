@@ -89,11 +89,7 @@ func nonInteractiveServiceCreate(cmd *cobra.Command, input types.ServiceCreateIn
 			org = *input.Org
 		}
 		
-		if org != "" {
-			command.Println(cmd, fmt.Sprintf("Creating GitHub repository '%s' in organization '%s' from %s...", repoName, org, *input.Path))
-		} else {
-			command.Println(cmd, fmt.Sprintf("Creating GitHub repository '%s' from %s...", repoName, *input.Path))
-		}
+		// Remove the message about creating GitHub repo
 		
 		// Check if we need to generate a Dockerfile
 		generateDockerfile := false
@@ -109,7 +105,6 @@ func nonInteractiveServiceCreate(cmd *cobra.Command, input types.ServiceCreateIn
 		}
 		
 		input.Repo = pointers.From(repoURL)
-		command.Println(cmd, fmt.Sprintf("GitHub repository created: %s", repoURL))
 	}
 	
 	// Note: Some service types may require additional fields like repo,
