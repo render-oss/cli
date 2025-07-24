@@ -12,6 +12,7 @@ import (
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
@@ -235,6 +236,151 @@ func addDirectoryToRepo(fs billy.Filesystem, worktree *git.Worktree, sourceDir, 
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+// UpdateRepoFromPath updates an existing GitHub repository with files from a local path
+func UpdateRepoFromPath(ctx context.Context, localPath string, owner string, repoName string) error {
+	// Read GitHub token
+	token, err := readGitHubToken()
+	if err != nil {
+		return fmt.Errorf("failed to read GitHub token: %w", err)
+	}
+
+	// Create GitHub client
+	client := github.NewClient(nil).WithAuthToken(token)
+
+	// Get the default branch
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		return fmt.Errorf("failed to get repository: %w", err)
+	}
+	defaultBranch := repo.GetDefaultBranch()
+
+	// Get the latest commit SHA on the default branch
+	ref, _, err := client.Git.GetRef(ctx, owner, repoName, "refs/heads/"+defaultBranch)
+	if err != nil {
+		return fmt.Errorf("failed to get branch reference: %w", err)
+	}
+	_ = ref.Object.GetSHA() // We might need this later for more sophisticated updates
+
+	// Create in-memory git repository
+	fs := memfs.New()
+	gitRepo, err := git.Init(memory.NewStorage(), fs)
+	if err != nil {
+		return fmt.Errorf("failed to init git repository: %w", err)
+	}
+
+	// Add remote
+	_, err = gitRepo.CreateRemote(&config.RemoteConfig{
+		Name: "origin",
+		URLs: []string{fmt.Sprintf("https://github.com/%s/%s.git", owner, repoName)},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to add remote: %w", err)
+	}
+
+	// Fetch the latest commit
+	err = gitRepo.Fetch(&git.FetchOptions{
+		RemoteName: "origin",
+		Auth: &http.BasicAuth{
+			Username: "github-token",
+			Password: token,
+		},
+		RefSpecs: []config.RefSpec{
+			config.RefSpec(fmt.Sprintf("+refs/heads/%s:refs/remotes/origin/%s", defaultBranch, defaultBranch)),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to fetch: %w", err)
+	}
+
+	// Get worktree
+	worktree, err := gitRepo.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Checkout the default branch
+	err = worktree.Checkout(&git.CheckoutOptions{
+		Branch: plumbing.ReferenceName(fmt.Sprintf("refs/remotes/origin/%s", defaultBranch)),
+		Force:  true,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to checkout branch: %w", err)
+	}
+
+	// Check if path is a file or directory
+	info, err := os.Stat(localPath)
+	if err != nil {
+		return fmt.Errorf("failed to stat path: %w", err)
+	}
+
+	if info.IsDir() {
+		// Add all files in directory
+		err = addDirectoryToRepo(fs, worktree, localPath, "")
+		if err != nil {
+			return fmt.Errorf("failed to add directory to repo: %w", err)
+		}
+	} else {
+		// Add single file
+		err = addFileToRepo(fs, worktree, localPath, filepath.Base(localPath))
+		if err != nil {
+			return fmt.Errorf("failed to add file to repo: %w", err)
+		}
+	}
+
+	// Check if there are any changes
+	status, err := worktree.Status()
+	if err != nil {
+		return fmt.Errorf("failed to get status: %w", err)
+	}
+
+	hasChanges := false
+	for _, s := range status {
+		if s.Worktree != git.Unmodified || s.Staging != git.Unmodified {
+			hasChanges = true
+			break
+		}
+	}
+
+	if !hasChanges {
+		return fmt.Errorf("no changes to commit")
+	}
+
+	// Get current user for commit
+	user, _, err := client.Users.Get(ctx, "")
+	if err != nil {
+		return fmt.Errorf("failed to get GitHub user: %w", err)
+	}
+
+	// Create commit
+	_, err = worktree.Commit("Update from Render CLI", &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  user.GetName(),
+			Email: user.GetEmail(),
+			When:  time.Now(),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create commit: %w", err)
+	}
+
+	// Push changes
+	err = gitRepo.Push(&git.PushOptions{
+		RemoteName: "origin",
+		Auth: &http.BasicAuth{
+			Username: "github-token",
+			Password: token,
+		},
+		RefSpecs: []config.RefSpec{
+			config.RefSpec(fmt.Sprintf("HEAD:refs/heads/%s", defaultBranch)),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to push: %w", err)
 	}
 
 	return nil
