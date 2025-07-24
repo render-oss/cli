@@ -36,9 +36,32 @@ func CreateRepoFromPath(ctx context.Context, localPath string, repoName string, 
 		return "", fmt.Errorf("failed to get GitHub user: %w", err)
 	}
 
+	// Check if repo exists and find a unique name
+	uniqueRepoName := repoName
+	for i := 0; i < 100; i++ { // Try up to 100 times
+		if i > 0 {
+			uniqueRepoName = fmt.Sprintf("%s-%d", repoName, i)
+		}
+		
+		// Check if repo exists
+		if org != "" {
+			_, resp, err := client.Repositories.Get(ctx, org, uniqueRepoName)
+			if err != nil && resp.StatusCode == 404 {
+				// Repo doesn't exist, we can use this name
+				break
+			}
+		} else {
+			_, resp, err := client.Repositories.Get(ctx, user.GetLogin(), uniqueRepoName)
+			if err != nil && resp.StatusCode == 404 {
+				// Repo doesn't exist, we can use this name
+				break
+			}
+		}
+	}
+
 	// Create GitHub repository
 	repo := &github.Repository{
-		Name:    github.String(repoName),
+		Name:    github.String(uniqueRepoName),
 		Private: github.Bool(isPrivate),
 	}
 
