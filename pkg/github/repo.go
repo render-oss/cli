@@ -213,8 +213,8 @@ func addDirectoryToRepo(fs billy.Filesystem, worktree *git.Worktree, sourceDir, 
 		sourcePath := filepath.Join(sourceDir, entry.Name())
 		destPath := filepath.Join(destDir, entry.Name())
 
-		// Skip .git directory
-		if entry.Name() == ".git" {
+		// Skip ignored files and directories
+		if shouldIgnore(entry.Name()) {
 			continue
 		}
 
@@ -239,6 +239,84 @@ func addDirectoryToRepo(fs billy.Filesystem, worktree *git.Worktree, sourceDir, 
 	}
 
 	return nil
+}
+
+// shouldIgnore returns true if the file or directory should be ignored
+func shouldIgnore(name string) bool {
+	// Common directories to ignore
+	ignoreDirs := []string{
+		".git",
+		".idea",
+		".vscode",
+		".DS_Store",
+		"node_modules",
+		"__pycache__",
+		".pytest_cache",
+		".mypy_cache",
+		".tox",
+		".env",
+		".venv",
+		"venv",
+		"vendor",
+		"dist",
+		"build",
+		"target",
+		".next",
+		".nuxt",
+		".cache",
+		".parcel-cache",
+		".turbo",
+		".vercel",
+		".netlify",
+		".terraform",
+		"coverage",
+		".nyc_output",
+		".eggs",
+		"*.egg-info",
+		".bundle",
+		"Pods",
+		".gradle",
+		".m2",
+		".ivy2",
+		".sbt",
+		".metals",
+		".bloop",
+	}
+
+	// Common files to ignore
+	ignoreFiles := []string{
+		".DS_Store",
+		"Thumbs.db",
+		"*.swp",
+		"*.swo",
+		"*~",
+		".#*",
+		"#*#",
+		"*.log",
+		"*.tmp",
+		"*.temp",
+		"*.bak",
+		"*.old",
+		"*.orig",
+		".env.local",
+		".env.*.local",
+	}
+
+	// Check directories
+	for _, dir := range ignoreDirs {
+		if name == dir {
+			return true
+		}
+	}
+
+	// Check files
+	for _, pattern := range ignoreFiles {
+		if matched, _ := filepath.Match(pattern, name); matched {
+			return true
+		}
+	}
+
+	return false
 }
 
 // UpdateRepoFromPath updates an existing GitHub repository with files from a local path
