@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -99,6 +100,9 @@ func nonInteractiveServiceCreate(cmd *cobra.Command, input types.ServiceCreateIn
 		}
 		
 		input.Repo = pointers.From(repoURL)
+		
+		// Wait a moment to ensure GitHub repo is fully available
+		time.Sleep(2 * time.Second)
 	}
 	
 	// Note: Some service types may require additional fields like repo,
