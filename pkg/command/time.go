@@ -77,7 +77,7 @@ func ParseTime(now time.Time, str *string) (*TimeOrRelative, error) {
 
 	absoluteTime, err := time.Parse(time.RFC3339, trimmedString)
 	if err != nil {
-		return nil, fmt.Errorf("invalid timestamp, time must either be relative (1m, 5h, etc) or in RFC3339 format: %s", time.RFC3339)
+		return nil, fmt.Errorf("invalid timestamp, time must either be relative (1m, 5h, etc) or in RFC3339 format: %s", time.Now().Format(time.RFC3339))
 	}
 
 	return &TimeOrRelative{T: &absoluteTime}, nil
