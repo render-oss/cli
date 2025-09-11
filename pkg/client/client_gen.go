@@ -28,6 +28,7 @@ import (
 	externalRef9 "github.com/render-oss/cli/pkg/client/notifications"
 	externalRef10 "github.com/render-oss/cli/pkg/client/postgres"
 	externalRef11 "github.com/render-oss/cli/pkg/client/webhooks"
+	externalRef12 "github.com/render-oss/cli/pkg/client/workflows"
 )
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
@@ -525,6 +526,9 @@ type ClientInterface interface {
 
 	AutoscaleService(ctx context.Context, serviceId ServiceIdParam, body AutoscaleServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PurgeCacheWithBody request with any body
+	PurgeCacheWithBody(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListCustomDomains request
 	ListCustomDomains(ctx context.Context, serviceId ServiceIdParam, params *ListCustomDomainsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -593,6 +597,9 @@ type ClientInterface interface {
 
 	// DeleteHeader request
 	DeleteHeader(ctx context.Context, serviceId ServiceIdParam, headerId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListInstances request
+	ListInstances(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListJob request
 	ListJob(ctx context.Context, serviceId ServiceIdParam, params *ListJobParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -696,6 +703,34 @@ type ClientInterface interface {
 
 	// ListWebhookEvents request
 	ListWebhookEvents(ctx context.Context, webhookId externalRef11.WebhookIdParam, params *ListWebhookEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListWorkflows request
+	ListWorkflows(ctx context.Context, params *ListWorkflowsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateWorkflowWithBody request with any body
+	CreateWorkflowWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateWorkflow(ctx context.Context, body CreateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteWorkflow request
+	DeleteWorkflow(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetWorkflow request
+	GetWorkflow(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateWorkflowWithBody request with any body
+	UpdateWorkflowWithBody(ctx context.Context, workflowId externalRef12.WorkflowIDParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateWorkflow(ctx context.Context, workflowId externalRef12.WorkflowIDParam, body UpdateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeployWorkflow request
+	DeployWorkflow(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListWorkflowVersions request
+	ListWorkflowVersions(ctx context.Context, workflowId externalRef12.WorkflowIDParam, params *ListWorkflowVersionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetWorkflowVersion request
+	GetWorkflowVersion(ctx context.Context, workflowId externalRef12.WorkflowIDParam, workflowVersionId externalRef12.WorkflowVersionIDParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -2510,6 +2545,18 @@ func (c *Client) AutoscaleService(ctx context.Context, serviceId ServiceIdParam,
 	return c.Client.Do(req)
 }
 
+func (c *Client) PurgeCacheWithBody(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPurgeCacheRequestWithBody(c.Server, serviceId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListCustomDomains(ctx context.Context, serviceId ServiceIdParam, params *ListCustomDomainsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListCustomDomainsRequest(c.Server, serviceId, params)
 	if err != nil {
@@ -2800,6 +2847,18 @@ func (c *Client) UpdateHeaders(ctx context.Context, serviceId ServiceIdParam, bo
 
 func (c *Client) DeleteHeader(ctx context.Context, serviceId ServiceIdParam, headerId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteHeaderRequest(c.Server, serviceId, headerId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListInstances(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListInstancesRequest(c.Server, serviceId)
 	if err != nil {
 		return nil, err
 	}
@@ -3256,6 +3315,126 @@ func (c *Client) UpdateWebhook(ctx context.Context, webhookId externalRef11.Webh
 
 func (c *Client) ListWebhookEvents(ctx context.Context, webhookId externalRef11.WebhookIdParam, params *ListWebhookEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListWebhookEventsRequest(c.Server, webhookId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListWorkflows(ctx context.Context, params *ListWorkflowsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListWorkflowsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateWorkflowWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateWorkflowRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateWorkflow(ctx context.Context, body CreateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateWorkflowRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteWorkflow(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteWorkflowRequest(c.Server, workflowId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetWorkflow(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetWorkflowRequest(c.Server, workflowId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateWorkflowWithBody(ctx context.Context, workflowId externalRef12.WorkflowIDParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateWorkflowRequestWithBody(c.Server, workflowId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateWorkflow(ctx context.Context, workflowId externalRef12.WorkflowIDParam, body UpdateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateWorkflowRequest(c.Server, workflowId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeployWorkflow(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeployWorkflowRequest(c.Server, workflowId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListWorkflowVersions(ctx context.Context, workflowId externalRef12.WorkflowIDParam, params *ListWorkflowVersionsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListWorkflowVersionsRequest(c.Server, workflowId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetWorkflowVersion(ctx context.Context, workflowId externalRef12.WorkflowIDParam, workflowVersionId externalRef12.WorkflowVersionIDParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetWorkflowVersionRequest(c.Server, workflowId, workflowVersionId)
 	if err != nil {
 		return nil, err
 	}
@@ -5734,6 +5913,70 @@ func NewListLogsRequest(server string, params *ListLogsParams) (*http.Request, e
 
 		}
 
+		if params.WorkflowService != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "workflowService", runtime.ParamLocationQuery, *params.WorkflowService); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.WorkflowVersion != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "workflowVersion", runtime.ParamLocationQuery, *params.WorkflowVersion); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Task != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "task", runtime.ParamLocationQuery, *params.Task); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.TaskRun != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "taskRun", runtime.ParamLocationQuery, *params.TaskRun); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.Level != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "level", runtime.ParamLocationQuery, *params.Level); err != nil {
@@ -6342,6 +6585,70 @@ func NewSubscribeLogsRequest(server string, params *SubscribeLogsParams) (*http.
 
 		}
 
+		if params.WorkflowService != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "workflowService", runtime.ParamLocationQuery, *params.WorkflowService); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.WorkflowVersion != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "workflowVersion", runtime.ParamLocationQuery, *params.WorkflowVersion); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Task != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "task", runtime.ParamLocationQuery, *params.Task); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.TaskRun != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "taskRun", runtime.ParamLocationQuery, *params.TaskRun); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.Level != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "level", runtime.ParamLocationQuery, *params.Level); err != nil {
@@ -6590,6 +6897,70 @@ func NewListLogsValuesRequest(server string, params *ListLogsValuesParams) (*htt
 		if params.Method != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "method", runtime.ParamLocationQuery, *params.Method); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.WorkflowService != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "workflowService", runtime.ParamLocationQuery, *params.WorkflowService); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.WorkflowVersion != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "workflowVersion", runtime.ParamLocationQuery, *params.WorkflowVersion); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Task != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "task", runtime.ParamLocationQuery, *params.Task); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.TaskRun != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "taskRun", runtime.ParamLocationQuery, *params.TaskRun); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -11828,6 +12199,42 @@ func NewAutoscaleServiceRequestWithBody(server string, serviceId ServiceIdParam,
 	return req, nil
 }
 
+// NewPurgeCacheRequestWithBody generates requests for PurgeCache with any type of body
+func NewPurgeCacheRequestWithBody(server string, serviceId ServiceIdParam, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "serviceId", runtime.ParamLocationPath, serviceId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/services/%s/cache/purge", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListCustomDomainsRequest generates requests for ListCustomDomains
 func NewListCustomDomainsRequest(server string, serviceId ServiceIdParam, params *ListCustomDomainsParams) (*http.Request, error) {
 	var err error
@@ -12747,9 +13154,9 @@ func NewListEventsRequest(server string, serviceId ServiceIdParam, params *ListE
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.EventType != nil {
+		if params.Type != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "eventType", runtime.ParamLocationQuery, *params.EventType); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "type", runtime.ParamLocationQuery, *params.Type); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -13086,6 +13493,40 @@ func NewDeleteHeaderRequest(server string, serviceId ServiceIdParam, headerId st
 	}
 
 	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListInstancesRequest generates requests for ListInstances
+func NewListInstancesRequest(server string, serviceId ServiceIdParam) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "serviceId", runtime.ParamLocationPath, serviceId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/services/%s/instances", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14573,6 +15014,405 @@ func NewListWebhookEventsRequest(server string, webhookId externalRef11.WebhookI
 	return req, nil
 }
 
+// NewListWorkflowsRequest generates requests for ListWorkflows
+func NewListWorkflowsRequest(server string, params *ListWorkflowsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workflows")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "ownerId", runtime.ParamLocationQuery, *params.OwnerId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.WorkflowID != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "workflowID", runtime.ParamLocationQuery, *params.WorkflowID); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "cursor", runtime.ParamLocationQuery, *params.Cursor); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateWorkflowRequest calls the generic CreateWorkflow builder with application/json body
+func NewCreateWorkflowRequest(server string, body CreateWorkflowJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateWorkflowRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateWorkflowRequestWithBody generates requests for CreateWorkflow with any type of body
+func NewCreateWorkflowRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workflows")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteWorkflowRequest generates requests for DeleteWorkflow
+func NewDeleteWorkflowRequest(server string, workflowId externalRef12.WorkflowIDParam) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "workflowId", runtime.ParamLocationPath, workflowId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workflows/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetWorkflowRequest generates requests for GetWorkflow
+func NewGetWorkflowRequest(server string, workflowId externalRef12.WorkflowIDParam) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "workflowId", runtime.ParamLocationPath, workflowId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workflows/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateWorkflowRequest calls the generic UpdateWorkflow builder with application/json body
+func NewUpdateWorkflowRequest(server string, workflowId externalRef12.WorkflowIDParam, body UpdateWorkflowJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateWorkflowRequestWithBody(server, workflowId, "application/json", bodyReader)
+}
+
+// NewUpdateWorkflowRequestWithBody generates requests for UpdateWorkflow with any type of body
+func NewUpdateWorkflowRequestWithBody(server string, workflowId externalRef12.WorkflowIDParam, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "workflowId", runtime.ParamLocationPath, workflowId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workflows/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeployWorkflowRequest generates requests for DeployWorkflow
+func NewDeployWorkflowRequest(server string, workflowId externalRef12.WorkflowIDParam) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "workflowId", runtime.ParamLocationPath, workflowId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workflows/%s/deploy", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListWorkflowVersionsRequest generates requests for ListWorkflowVersions
+func NewListWorkflowVersionsRequest(server string, workflowId externalRef12.WorkflowIDParam, params *ListWorkflowVersionsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "workflowId", runtime.ParamLocationPath, workflowId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workflows/%s/versions", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "cursor", runtime.ParamLocationQuery, *params.Cursor); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetWorkflowVersionRequest generates requests for GetWorkflowVersion
+func NewGetWorkflowVersionRequest(server string, workflowId externalRef12.WorkflowIDParam, workflowVersionId externalRef12.WorkflowVersionIDParam) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "workflowId", runtime.ParamLocationPath, workflowId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "workflowVersionId", runtime.ParamLocationPath, workflowVersionId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workflows/%s/versions/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -15038,6 +15878,9 @@ type ClientWithResponsesInterface interface {
 
 	AutoscaleServiceWithResponse(ctx context.Context, serviceId ServiceIdParam, body AutoscaleServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*AutoscaleServiceResponse, error)
 
+	// PurgeCacheWithBodyWithResponse request with any body
+	PurgeCacheWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PurgeCacheResponse, error)
+
 	// ListCustomDomainsWithResponse request
 	ListCustomDomainsWithResponse(ctx context.Context, serviceId ServiceIdParam, params *ListCustomDomainsParams, reqEditors ...RequestEditorFn) (*ListCustomDomainsResponse, error)
 
@@ -15106,6 +15949,9 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteHeaderWithResponse request
 	DeleteHeaderWithResponse(ctx context.Context, serviceId ServiceIdParam, headerId string, reqEditors ...RequestEditorFn) (*DeleteHeaderResponse, error)
+
+	// ListInstancesWithResponse request
+	ListInstancesWithResponse(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*ListInstancesResponse, error)
 
 	// ListJobWithResponse request
 	ListJobWithResponse(ctx context.Context, serviceId ServiceIdParam, params *ListJobParams, reqEditors ...RequestEditorFn) (*ListJobResponse, error)
@@ -15209,6 +16055,34 @@ type ClientWithResponsesInterface interface {
 
 	// ListWebhookEventsWithResponse request
 	ListWebhookEventsWithResponse(ctx context.Context, webhookId externalRef11.WebhookIdParam, params *ListWebhookEventsParams, reqEditors ...RequestEditorFn) (*ListWebhookEventsResponse, error)
+
+	// ListWorkflowsWithResponse request
+	ListWorkflowsWithResponse(ctx context.Context, params *ListWorkflowsParams, reqEditors ...RequestEditorFn) (*ListWorkflowsResponse, error)
+
+	// CreateWorkflowWithBodyWithResponse request with any body
+	CreateWorkflowWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateWorkflowResponse, error)
+
+	CreateWorkflowWithResponse(ctx context.Context, body CreateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateWorkflowResponse, error)
+
+	// DeleteWorkflowWithResponse request
+	DeleteWorkflowWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*DeleteWorkflowResponse, error)
+
+	// GetWorkflowWithResponse request
+	GetWorkflowWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*GetWorkflowResponse, error)
+
+	// UpdateWorkflowWithBodyWithResponse request with any body
+	UpdateWorkflowWithBodyWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateWorkflowResponse, error)
+
+	UpdateWorkflowWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, body UpdateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateWorkflowResponse, error)
+
+	// DeployWorkflowWithResponse request
+	DeployWorkflowWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*DeployWorkflowResponse, error)
+
+	// ListWorkflowVersionsWithResponse request
+	ListWorkflowVersionsWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, params *ListWorkflowVersionsParams, reqEditors ...RequestEditorFn) (*ListWorkflowVersionsResponse, error)
+
+	// GetWorkflowVersionWithResponse request
+	GetWorkflowVersionWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, workflowVersionId externalRef12.WorkflowVersionIDParam, reqEditors ...RequestEditorFn) (*GetWorkflowVersionResponse, error)
 }
 
 type ListBlueprintsResponse struct {
@@ -18563,6 +19437,36 @@ func (r AutoscaleServiceResponse) StatusCode() int {
 	return 0
 }
 
+type PurgeCacheResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON406      *N406NotAcceptable
+	JSON409      *N409Conflict
+	JSON410      *N410Gone
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r PurgeCacheResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PurgeCacheResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListCustomDomainsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -19133,6 +20037,33 @@ func (r DeleteHeaderResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r DeleteHeaderResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListInstancesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]ServiceInstance
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListInstancesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListInstancesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -19919,6 +20850,228 @@ func (r ListWebhookEventsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListWebhookEventsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListWorkflowsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]externalRef12.Workflow
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListWorkflowsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListWorkflowsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateWorkflowResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *externalRef12.Workflow
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateWorkflowResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateWorkflowResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteWorkflowResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteWorkflowResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteWorkflowResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetWorkflowResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef12.Workflow
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r GetWorkflowResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetWorkflowResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateWorkflowResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef12.Workflow
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateWorkflowResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateWorkflowResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeployWorkflowResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r DeployWorkflowResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeployWorkflowResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListWorkflowVersionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]externalRef12.WorkflowVersion
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListWorkflowVersionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListWorkflowVersionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetWorkflowVersionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef12.WorkflowVersion
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r GetWorkflowVersionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetWorkflowVersionResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -21253,6 +22406,15 @@ func (c *ClientWithResponses) AutoscaleServiceWithResponse(ctx context.Context, 
 	return ParseAutoscaleServiceResponse(rsp)
 }
 
+// PurgeCacheWithBodyWithResponse request with arbitrary body returning *PurgeCacheResponse
+func (c *ClientWithResponses) PurgeCacheWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PurgeCacheResponse, error) {
+	rsp, err := c.PurgeCacheWithBody(ctx, serviceId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePurgeCacheResponse(rsp)
+}
+
 // ListCustomDomainsWithResponse request returning *ListCustomDomainsResponse
 func (c *ClientWithResponses) ListCustomDomainsWithResponse(ctx context.Context, serviceId ServiceIdParam, params *ListCustomDomainsParams, reqEditors ...RequestEditorFn) (*ListCustomDomainsResponse, error) {
 	rsp, err := c.ListCustomDomains(ctx, serviceId, params, reqEditors...)
@@ -21470,6 +22632,15 @@ func (c *ClientWithResponses) DeleteHeaderWithResponse(ctx context.Context, serv
 		return nil, err
 	}
 	return ParseDeleteHeaderResponse(rsp)
+}
+
+// ListInstancesWithResponse request returning *ListInstancesResponse
+func (c *ClientWithResponses) ListInstancesWithResponse(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*ListInstancesResponse, error) {
+	rsp, err := c.ListInstances(ctx, serviceId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListInstancesResponse(rsp)
 }
 
 // ListJobWithResponse request returning *ListJobResponse
@@ -21801,6 +22972,94 @@ func (c *ClientWithResponses) ListWebhookEventsWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseListWebhookEventsResponse(rsp)
+}
+
+// ListWorkflowsWithResponse request returning *ListWorkflowsResponse
+func (c *ClientWithResponses) ListWorkflowsWithResponse(ctx context.Context, params *ListWorkflowsParams, reqEditors ...RequestEditorFn) (*ListWorkflowsResponse, error) {
+	rsp, err := c.ListWorkflows(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListWorkflowsResponse(rsp)
+}
+
+// CreateWorkflowWithBodyWithResponse request with arbitrary body returning *CreateWorkflowResponse
+func (c *ClientWithResponses) CreateWorkflowWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateWorkflowResponse, error) {
+	rsp, err := c.CreateWorkflowWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateWorkflowResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateWorkflowWithResponse(ctx context.Context, body CreateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateWorkflowResponse, error) {
+	rsp, err := c.CreateWorkflow(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateWorkflowResponse(rsp)
+}
+
+// DeleteWorkflowWithResponse request returning *DeleteWorkflowResponse
+func (c *ClientWithResponses) DeleteWorkflowWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*DeleteWorkflowResponse, error) {
+	rsp, err := c.DeleteWorkflow(ctx, workflowId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteWorkflowResponse(rsp)
+}
+
+// GetWorkflowWithResponse request returning *GetWorkflowResponse
+func (c *ClientWithResponses) GetWorkflowWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*GetWorkflowResponse, error) {
+	rsp, err := c.GetWorkflow(ctx, workflowId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetWorkflowResponse(rsp)
+}
+
+// UpdateWorkflowWithBodyWithResponse request with arbitrary body returning *UpdateWorkflowResponse
+func (c *ClientWithResponses) UpdateWorkflowWithBodyWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateWorkflowResponse, error) {
+	rsp, err := c.UpdateWorkflowWithBody(ctx, workflowId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateWorkflowResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateWorkflowWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, body UpdateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateWorkflowResponse, error) {
+	rsp, err := c.UpdateWorkflow(ctx, workflowId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateWorkflowResponse(rsp)
+}
+
+// DeployWorkflowWithResponse request returning *DeployWorkflowResponse
+func (c *ClientWithResponses) DeployWorkflowWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*DeployWorkflowResponse, error) {
+	rsp, err := c.DeployWorkflow(ctx, workflowId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeployWorkflowResponse(rsp)
+}
+
+// ListWorkflowVersionsWithResponse request returning *ListWorkflowVersionsResponse
+func (c *ClientWithResponses) ListWorkflowVersionsWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, params *ListWorkflowVersionsParams, reqEditors ...RequestEditorFn) (*ListWorkflowVersionsResponse, error) {
+	rsp, err := c.ListWorkflowVersions(ctx, workflowId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListWorkflowVersionsResponse(rsp)
+}
+
+// GetWorkflowVersionWithResponse request returning *GetWorkflowVersionResponse
+func (c *ClientWithResponses) GetWorkflowVersionWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, workflowVersionId externalRef12.WorkflowVersionIDParam, reqEditors ...RequestEditorFn) (*GetWorkflowVersionResponse, error) {
+	rsp, err := c.GetWorkflowVersion(ctx, workflowId, workflowVersionId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetWorkflowVersionResponse(rsp)
 }
 
 // ParseListBlueprintsResponse parses an HTTP response from a ListBlueprintsWithResponse call
@@ -29907,6 +31166,88 @@ func ParseAutoscaleServiceResponse(rsp *http.Response) (*AutoscaleServiceRespons
 	return response, nil
 }
 
+// ParsePurgeCacheResponse parses an HTTP response from a PurgeCacheWithResponse call
+func ParsePurgeCacheResponse(rsp *http.Response) (*PurgeCacheResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PurgeCacheResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest N409Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListCustomDomainsResponse parses an HTTP response from a ListCustomDomainsWithResponse call
 func ParseListCustomDomainsResponse(rsp *http.Response) (*ListCustomDomainsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -31468,6 +32809,67 @@ func ParseDeleteHeaderResponse(rsp *http.Response) (*DeleteHeaderResponse, error
 			return nil, err
 		}
 		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListInstancesResponse parses an HTTP response from a ListInstancesWithResponse call
+func ParseListInstancesResponse(rsp *http.Response) (*ListInstancesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListInstancesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []ServiceInstance
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest N429RateLimit
@@ -33495,6 +34897,536 @@ func ParseListWebhookEventsResponse(rsp *http.Response) (*ListWebhookEventsRespo
 			return nil, err
 		}
 		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListWorkflowsResponse parses an HTTP response from a ListWorkflowsWithResponse call
+func ParseListWorkflowsResponse(rsp *http.Response) (*ListWorkflowsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListWorkflowsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []externalRef12.Workflow
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateWorkflowResponse parses an HTTP response from a CreateWorkflowWithResponse call
+func ParseCreateWorkflowResponse(rsp *http.Response) (*CreateWorkflowResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateWorkflowResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest externalRef12.Workflow
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteWorkflowResponse parses an HTTP response from a DeleteWorkflowWithResponse call
+func ParseDeleteWorkflowResponse(rsp *http.Response) (*DeleteWorkflowResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteWorkflowResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetWorkflowResponse parses an HTTP response from a GetWorkflowWithResponse call
+func ParseGetWorkflowResponse(rsp *http.Response) (*GetWorkflowResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetWorkflowResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef12.Workflow
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateWorkflowResponse parses an HTTP response from a UpdateWorkflowWithResponse call
+func ParseUpdateWorkflowResponse(rsp *http.Response) (*UpdateWorkflowResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateWorkflowResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef12.Workflow
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeployWorkflowResponse parses an HTTP response from a DeployWorkflowWithResponse call
+func ParseDeployWorkflowResponse(rsp *http.Response) (*DeployWorkflowResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeployWorkflowResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListWorkflowVersionsResponse parses an HTTP response from a ListWorkflowVersionsWithResponse call
+func ParseListWorkflowVersionsResponse(rsp *http.Response) (*ListWorkflowVersionsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListWorkflowVersionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []externalRef12.WorkflowVersion
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetWorkflowVersionResponse parses an HTTP response from a GetWorkflowVersionWithResponse call
+func ParseGetWorkflowVersionResponse(rsp *http.Response) (*GetWorkflowVersionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetWorkflowVersionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef12.WorkflowVersion
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest N404NotFound

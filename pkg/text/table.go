@@ -7,6 +7,7 @@ import (
 	clientjob "github.com/render-oss/cli/pkg/client/jobs"
 	"github.com/render-oss/cli/pkg/deploy"
 	"github.com/render-oss/cli/pkg/resource"
+	"github.com/render-oss/cli/pkg/utils"
 )
 
 func ResourceTable(v []resource.Resource) string {
@@ -51,6 +52,16 @@ func EnvironmentTable(v []*client.Environment) string {
 	t.AppendHeader(table.Row{"Name", "Protected", "ID"})
 	for _, r := range v {
 		t.AppendRow(table.Row{r.Name, r.ProtectedStatus, r.Id})
+	}
+	return FormatString(t.Render())
+}
+
+func InstanceTable(v []*client.ServiceInstance) string {
+	t := newTable()
+	t.AppendHeader(table.Row{"ID", "Age"})
+	for _, r := range v {
+		age := utils.FormatDuration(r.CreatedAt)
+		t.AppendRow(table.Row{r.Id, age})
 	}
 	return FormatString(t.Render())
 }

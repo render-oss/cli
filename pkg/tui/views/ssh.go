@@ -4,74 +4,27 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
-
-	tea "github.com/charmbracelet/bubbletea"
+	"strings"
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/deploy"
-	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/tui"
 )
 
 type SSHInput struct {
 	ServiceIDOrName string `cli:"arg:0"`
+	InstanceID      string // Set when a specific instance is selected or provided
 	Project         *client.Project
 	EnvironmentIDs  []string
 
 	Args []string
 }
 
-type SSHView struct {
-	serviceTable *ServiceList
-	execModel    *tui.ExecModel
-}
-
-func NewSSHView(ctx context.Context, input *SSHInput, opts ...tui.TableOption[*service.Model]) *SSHView {
-	sshView := &SSHView{
-		execModel: tui.NewExecModel("ssh", handleSSHError, command.LoadCmd(ctx, loadDataSSH, input)),
-	}
-
-	serviceListInput := ServiceInput{
-		Project:        input.Project,
-		EnvironmentIDs: input.EnvironmentIDs,
-		Types:          []client.ServiceType{client.WebService, client.PrivateService, client.BackgroundWorker},
-	}
-
-	if input.ServiceIDOrName == "" {
-		// If a flag or temporary input is provided, that should take precedence. Only get the persistent filter
-		// if no input is provided.
-		if len(input.EnvironmentIDs) == 0 {
-			defaultInput, err := DefaultListResourceInput(ctx)
-			if err != nil {
-				return &SSHView{
-					execModel: tui.NewExecModel("ssh", handleSSHError, command.LoadCmd(ctx, func(_ context.Context, _ any) (*exec.Cmd, error) {
-						return nil, fmt.Errorf("failed to load default project filter: %w", err)
-					}, nil)),
-				}
-			}
-
-			serviceListInput.Project = defaultInput.Project
-			serviceListInput.EnvironmentIDs = defaultInput.EnvironmentIDs
-		}
-
-		if serviceListInput.Project != nil {
-			opts = append(opts, tui.WithHeader[*service.Model](
-				fmt.Sprintf("Project: %s", serviceListInput.Project.Name),
-			))
-		}
-
-		sshView.serviceTable = NewServiceList(ctx, serviceListInput, func(ctx context.Context, r resource.Resource) tea.Cmd {
-			return tea.Sequence(
-				func() tea.Msg {
-					input.ServiceIDOrName = r.ID()
-					sshView.serviceTable = nil
-					return nil
-				}, sshView.execModel.Init())
-		}, opts...)
-	}
-	return sshView
+// NewSSHView creates an SSH execution view - always returns ExecModel
+func NewSSHView(ctx context.Context, input *SSHInput) *tui.ExecModel {
+	return tui.NewExecModel("ssh", handleSSHError, command.LoadCmd(ctx, loadDataSSH, input))
 }
 
 func handleSSHError(err error) error {
@@ -165,37 +118,19 @@ func loadDataSSH(ctx context.Context, in *SSHInput) (*exec.Cmd, error) {
 		return nil, fmt.Errorf("service does not support ssh")
 	}
 
-	args := []string{*sshAddress}
-	for _, arg := range in.Args {
-		args = append(args, arg)
+	// Modify SSH address to use specific instance if selected
+	finalSSHAddress := *sshAddress
+	if in.InstanceID != "" {
+		// Replace the user part of the SSH address with the instance ID
+		// From: srv-123@hostname -> srv-123-asdf@hostname
+		parts := strings.SplitN(finalSSHAddress, "@", 2)
+		if len(parts) == 2 {
+			finalSSHAddress = in.InstanceID + "@" + parts[1]
+		}
 	}
+
+	args := []string{finalSSHAddress}
+	args = append(args, in.Args...)
 
 	return exec.Command("ssh", args...), nil
-}
-
-func (v *SSHView) Init() tea.Cmd {
-	if v.serviceTable != nil {
-		return v.serviceTable.Init()
-	}
-
-	return v.execModel.Init()
-}
-
-func (v *SSHView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-	if v.serviceTable != nil {
-		_, cmd = v.serviceTable.Update(msg)
-	} else {
-		_, cmd = v.execModel.Update(msg)
-	}
-
-	return v, cmd
-}
-
-func (v *SSHView) View() string {
-	if v.serviceTable != nil {
-		return v.serviceTable.View()
-	}
-
-	return v.execModel.View()
 }

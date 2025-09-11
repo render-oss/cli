@@ -23,6 +23,7 @@ import (
 	externalRef9 "github.com/render-oss/cli/pkg/client/notifications"
 	externalRef10 "github.com/render-oss/cli/pkg/client/postgres"
 	externalRef11 "github.com/render-oss/cli/pkg/client/webhooks"
+	externalRef12 "github.com/render-oss/cli/pkg/client/workflows"
 )
 
 const (
@@ -33,6 +34,13 @@ const (
 const (
 	AutoDeployNo  AutoDeploy = "no"
 	AutoDeployYes AutoDeploy = "yes"
+)
+
+// Defines values for AutoDeployTrigger.
+const (
+	AutoDeployTriggerChecksPass AutoDeployTrigger = "checksPass"
+	AutoDeployTriggerCommit     AutoDeployTrigger = "commit"
+	AutoDeployTriggerOff        AutoDeployTrigger = "off"
 )
 
 // Defines values for BuildPlan.
@@ -84,16 +92,16 @@ const (
 
 // Defines values for DeployTrigger.
 const (
-	DeployTriggerApi              DeployTrigger = "api"
-	DeployTriggerBlueprintSync    DeployTrigger = "blueprint_sync"
-	DeployTriggerDeployHook       DeployTrigger = "deploy_hook"
-	DeployTriggerDeployedByRender DeployTrigger = "deployed_by_render"
-	DeployTriggerManual           DeployTrigger = "manual"
-	DeployTriggerNewCommit        DeployTrigger = "new_commit"
-	DeployTriggerOther            DeployTrigger = "other"
-	DeployTriggerRollback         DeployTrigger = "rollback"
-	DeployTriggerServiceResumed   DeployTrigger = "service_resumed"
-	DeployTriggerServiceUpdated   DeployTrigger = "service_updated"
+	Api              DeployTrigger = "api"
+	BlueprintSync    DeployTrigger = "blueprint_sync"
+	DeployHook       DeployTrigger = "deploy_hook"
+	DeployedByRender DeployTrigger = "deployed_by_render"
+	Manual           DeployTrigger = "manual"
+	NewCommit        DeployTrigger = "new_commit"
+	Other            DeployTrigger = "other"
+	Rollback         DeployTrigger = "rollback"
+	ServiceResumed   DeployTrigger = "service_resumed"
+	ServiceUpdated   DeployTrigger = "service_updated"
 )
 
 // Defines values for DeployStatus.
@@ -190,6 +198,7 @@ const (
 	N14 PostgresVersion = "14"
 	N15 PostgresVersion = "15"
 	N16 PostgresVersion = "16"
+	N17 PostgresVersion = "17"
 )
 
 // Defines values for PreviewsGeneration.
@@ -237,6 +246,12 @@ const (
 	GITHUB         RegistryCredentialRegistry = "GITHUB"
 	GITLAB         RegistryCredentialRegistry = "GITLAB"
 	GOOGLEARTIFACT RegistryCredentialRegistry = "GOOGLE_ARTIFACT"
+)
+
+// Defines values for RenderSubdomainPolicy.
+const (
+	Disabled RenderSubdomainPolicy = "disabled"
+	Enabled  RenderSubdomainPolicy = "enabled"
 )
 
 // Defines values for RouteType.
@@ -301,11 +316,13 @@ const (
 
 // Defines values for SuspenderType.
 const (
-	SuspenderTypeAdmin         SuspenderType = "admin"
-	SuspenderTypeBilling       SuspenderType = "billing"
-	SuspenderTypeParentService SuspenderType = "parent_service"
-	SuspenderTypeUnknown       SuspenderType = "unknown"
-	SuspenderTypeUser          SuspenderType = "user"
+	SuspenderTypeAdmin             SuspenderType = "admin"
+	SuspenderTypeBilling           SuspenderType = "billing"
+	SuspenderTypeHipaaEnablement   SuspenderType = "hipaa_enablement"
+	SuspenderTypeParentService     SuspenderType = "parent_service"
+	SuspenderTypeStuckCrashlooping SuspenderType = "stuck_crashlooping"
+	SuspenderTypeUnknown           SuspenderType = "unknown"
+	SuspenderTypeUser              SuspenderType = "user"
 )
 
 // Defines values for TeamMemberStatus.
@@ -367,6 +384,9 @@ type AddUpdateEnvVarInput struct {
 
 // AutoDeploy defines model for autoDeploy.
 type AutoDeploy string
+
+// AutoDeployTrigger Controls autodeploy behavior. commit deploys when a commit is pushed to a branch. checksPass waits for the branch to be green.
+type AutoDeployTrigger string
 
 // BackgroundWorkerDetails defines model for backgroundWorkerDetails.
 type BackgroundWorkerDetails struct {
@@ -456,7 +476,7 @@ type BackgroundWorkerDetailsPOST struct {
 	Runtime ServiceRuntime `json:"runtime"`
 }
 
-// BlueprintWithCursor A blueprint with a cursor
+// BlueprintWithCursor A Blueprint with a cursor
 type BlueprintWithCursor struct {
 	Blueprint externalRef1.Blueprint `json:"blueprint"`
 	Cursor    Cursor                 `json:"cursor"`
@@ -470,6 +490,11 @@ type BuildFilter struct {
 
 // BuildPlan defines model for buildPlan.
 type BuildPlan string
+
+// Cache defines model for cache.
+type Cache struct {
+	Profile string `json:"profile"`
+}
 
 // CidrBlockAndDescription defines model for cidrBlockAndDescription.
 type CidrBlockAndDescription struct {
@@ -778,10 +803,11 @@ type EnvVarWithCursor struct {
 
 // Environment defines model for environment.
 type Environment struct {
-	DatabasesIds []string `json:"databasesIds"`
-	EnvGroupIds  []string `json:"envGroupIds"`
-	Id           string   `json:"id"`
-	Name         string   `json:"name"`
+	DatabasesIds []string                   `json:"databasesIds"`
+	EnvGroupIds  []string                   `json:"envGroupIds"`
+	Id           string                     `json:"id"`
+	IpAllowList  *[]CidrBlockAndDescription `json:"ipAllowList,omitempty"`
+	Name         string                     `json:"name"`
 
 	// NetworkIsolationEnabled Indicates whether network connections across environments are allowed.
 	NetworkIsolationEnabled NetworkIsolationEnabled `json:"networkIsolationEnabled"`
@@ -795,7 +821,8 @@ type Environment struct {
 
 // EnvironmentPATCHInput defines model for environmentPATCHInput.
 type EnvironmentPATCHInput struct {
-	Name *string `json:"name,omitempty"`
+	IpAllowList *[]CidrBlockAndDescription `json:"ipAllowList,omitempty"`
+	Name        *string                    `json:"name,omitempty"`
 
 	// NetworkIsolationEnabled Indicates whether network connections across environments are allowed.
 	NetworkIsolationEnabled *NetworkIsolationEnabled `json:"networkIsolationEnabled,omitempty"`
@@ -806,7 +833,8 @@ type EnvironmentPATCHInput struct {
 
 // EnvironmentPOSTInput defines model for environmentPOSTInput.
 type EnvironmentPOSTInput struct {
-	Name string `json:"name"`
+	IpAllowList *[]CidrBlockAndDescription `json:"ipAllowList,omitempty"`
+	Name        string                     `json:"name"`
 
 	// NetworkIsolationEnabled Indicates whether network connections across environments are allowed.
 	NetworkIsolationEnabled *NetworkIsolationEnabled `json:"networkIsolationEnabled,omitempty"`
@@ -1013,7 +1041,7 @@ type KeyValueWithCursor struct {
 type MaintenanceMode struct {
 	Enabled bool `json:"enabled"`
 
-	// Uri The page to be served when [maintenance mode](https://docs.render.com/maintenance-mode) is enabled. When empty, the default maintenance mode page is served.
+	// Uri The page to be served when [maintenance mode](https://render.com/docs/maintenance-mode) is enabled. When empty, the default maintenance mode page is served.
 	Uri string `json:"uri"`
 }
 
@@ -1056,11 +1084,12 @@ type NotifySetting string
 
 // Owner defines model for owner.
 type Owner struct {
-	Email string `json:"email"`
-	Id    string `json:"id"`
-	Name  string `json:"name"`
+	Email       string                     `json:"email"`
+	Id          string                     `json:"id"`
+	IpAllowList *[]CidrBlockAndDescription `json:"ipAllowList,omitempty"`
+	Name        string                     `json:"name"`
 
-	// TwoFactorAuthEnabled Whether two-factor authentication is enabled for the owner. Only present for user owners.
+	// TwoFactorAuthEnabled Whether two-factor authentication is enabled for the owner. Only present if `type` is `user`.
 	TwoFactorAuthEnabled *bool     `json:"twoFactorAuthEnabled,omitempty"`
 	Type                 OwnerType `json:"type"`
 }
@@ -1165,7 +1194,11 @@ type PostgresDetailSuspended string
 
 // PostgresPATCHInput defines model for postgresPATCHInput.
 type PostgresPATCHInput struct {
+	// DatadogAPIKey The Datadog API key for the Datadog agent to monitor the database. Pass empty string to remove. Restarts Postgres on change.
 	DatadogAPIKey *string `json:"datadogAPIKey,omitempty"`
+
+	// DatadogSite Datadog region to use for monitoring the new database. Defaults to 'US1'.
+	DatadogSite *string `json:"datadogSite,omitempty"`
 
 	// DiskSizeGB The number of gigabytes of disk space to allocate for the database
 	DiskSizeGB             *int                         `json:"diskSizeGB,omitempty"`
@@ -1178,9 +1211,14 @@ type PostgresPATCHInput struct {
 
 // PostgresPOSTInput Input for creating a database
 type PostgresPOSTInput struct {
-	DatabaseName  *string `json:"databaseName,omitempty"`
-	DatabaseUser  *string `json:"databaseUser,omitempty"`
+	DatabaseName *string `json:"databaseName,omitempty"`
+	DatabaseUser *string `json:"databaseUser,omitempty"`
+
+	// DatadogAPIKey The Datadog API key for the Datadog agent to monitor the new database.
 	DatadogAPIKey *string `json:"datadogAPIKey,omitempty"`
+
+	// DatadogSite Datadog region to use for monitoring the new database. Defaults to 'US1'.
+	DatadogSite *string `json:"datadogSite,omitempty"`
 
 	// DiskSizeGB The number of gigabytes of disk space to allocate for the database
 	DiskSizeGB             *int                       `json:"diskSizeGB,omitempty"`
@@ -1191,7 +1229,7 @@ type PostgresPOSTInput struct {
 	// Name The name of the database as it will appear in the Render Dashboard
 	Name string `json:"name"`
 
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspace to create the database for
 	OwnerId      string                      `json:"ownerId"`
 	Plan         externalRef10.PostgresPlans `json:"plan"`
 	ReadReplicas *ReadReplicasInput          `json:"readReplicas,omitempty"`
@@ -1559,6 +1597,9 @@ type RegistryCredentialSummary struct {
 	Name string `json:"name"`
 }
 
+// RenderSubdomainPolicy Controls whether render.com subdomains are available for the service
+type RenderSubdomainPolicy string
+
 // Resource defines model for resource.
 type Resource struct {
 	Id   string `json:"id"`
@@ -1637,10 +1678,13 @@ type ServerPortProtocol string
 
 // Service defines model for service.
 type Service struct {
-	AutoDeploy  AutoDeploy   `json:"autoDeploy"`
-	Branch      *string      `json:"branch,omitempty"`
-	BuildFilter *BuildFilter `json:"buildFilter,omitempty"`
-	CreatedAt   time.Time    `json:"createdAt"`
+	AutoDeploy AutoDeploy `json:"autoDeploy"`
+
+	// AutoDeployTrigger Controls autodeploy behavior. commit deploys when a commit is pushed to a branch. checksPass waits for the branch to be green.
+	AutoDeployTrigger *AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
+	Branch            *string            `json:"branch,omitempty"`
+	BuildFilter       *BuildFilter       `json:"buildFilter,omitempty"`
+	CreatedAt         time.Time          `json:"createdAt"`
 
 	// DashboardUrl The URL to view the service in the Render Dashboard
 	DashboardUrl       string                     `json:"dashboardUrl"`
@@ -1692,19 +1736,28 @@ type ServiceEventWithCursor struct {
 	Event externalRef3.ServiceEvent `json:"event"`
 }
 
+// ServiceInstance defines model for serviceInstance.
+type ServiceInstance struct {
+	CreatedAt time.Time `json:"createdAt"`
+	Id        string    `json:"id"`
+}
+
 // ServiceList defines model for serviceList.
 type ServiceList = []ServiceWithCursor
 
 // ServicePATCH defines model for servicePATCH.
 type ServicePATCH struct {
-	AutoDeploy     *AutoDeploy                  `json:"autoDeploy,omitempty"`
-	Branch         *string                      `json:"branch,omitempty"`
-	BuildFilter    *BuildFilter                 `json:"buildFilter,omitempty"`
-	Image          *Image                       `json:"image,omitempty"`
-	Name           *string                      `json:"name,omitempty"`
-	Repo           *string                      `json:"repo,omitempty"`
-	RootDir        *string                      `json:"rootDir,omitempty"`
-	ServiceDetails *ServicePATCH_ServiceDetails `json:"serviceDetails,omitempty"`
+	AutoDeploy *AutoDeploy `json:"autoDeploy,omitempty"`
+
+	// AutoDeployTrigger Controls autodeploy behavior. commit deploys when a commit is pushed to a branch. checksPass waits for the branch to be green.
+	AutoDeployTrigger *AutoDeployTrigger           `json:"autoDeployTrigger,omitempty"`
+	Branch            *string                      `json:"branch,omitempty"`
+	BuildFilter       *BuildFilter                 `json:"buildFilter,omitempty"`
+	Image             *Image                       `json:"image,omitempty"`
+	Name              *string                      `json:"name,omitempty"`
+	Repo              *string                      `json:"repo,omitempty"`
+	RootDir           *string                      `json:"rootDir,omitempty"`
+	ServiceDetails    *ServicePATCH_ServiceDetails `json:"serviceDetails,omitempty"`
 }
 
 // ServicePATCH_ServiceDetails defines model for ServicePATCH.ServiceDetails.
@@ -1716,13 +1769,19 @@ type ServicePATCH_ServiceDetails struct {
 type ServicePOST struct {
 	AutoDeploy *AutoDeploy `json:"autoDeploy,omitempty"`
 
+	// AutoDeployTrigger Controls autodeploy behavior. commit deploys when a commit is pushed to a branch. checksPass waits for the branch to be green.
+	AutoDeployTrigger *AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
+
 	// Branch If left empty, this will fall back to the default branch of the repository
 	Branch      *string           `json:"branch,omitempty"`
 	BuildFilter *BuildFilter      `json:"buildFilter,omitempty"`
 	EnvVars     *EnvVarInputArray `json:"envVars,omitempty"`
-	Image       *Image            `json:"image,omitempty"`
-	Name        string            `json:"name"`
-	OwnerId     string            `json:"ownerId"`
+
+	// EnvironmentId The ID of the environment the service is associated with
+	EnvironmentId *string `json:"environmentId,omitempty"`
+	Image         *Image  `json:"image,omitempty"`
+	Name          string  `json:"name"`
+	OwnerId       string  `json:"ownerId"`
 
 	// Repo Do not include the branch in the repo string. You can instead supply a 'branch' parameter.
 	Repo           *string                     `json:"repo,omitempty"`
@@ -1764,34 +1823,43 @@ type SshAddress = string
 
 // StaticSiteDetails defines model for staticSiteDetails.
 type StaticSiteDetails struct {
-	BuildCommand string    `json:"buildCommand"`
-	BuildPlan    BuildPlan `json:"buildPlan"`
-	ParentServer *Resource `json:"parentServer,omitempty"`
-	Previews     *Previews `json:"previews,omitempty"`
-	PublishPath  string    `json:"publishPath"`
+	BuildCommand string                     `json:"buildCommand"`
+	BuildPlan    BuildPlan                  `json:"buildPlan"`
+	IpAllowList  *[]CidrBlockAndDescription `json:"ipAllowList,omitempty"`
+	ParentServer *Resource                  `json:"parentServer,omitempty"`
+	Previews     *Previews                  `json:"previews,omitempty"`
+	PublishPath  string                     `json:"publishPath"`
 
 	// PullRequestPreviewsEnabled This field has been deprecated. previews.generation should be used in its place.
 	// Deprecated:
 	PullRequestPreviewsEnabled *PullRequestPreviewsEnabled `json:"pullRequestPreviewsEnabled,omitempty"`
-	Url                        string                      `json:"url"`
+
+	// RenderSubdomainPolicy Controls whether render.com subdomains are available for the service
+	RenderSubdomainPolicy *RenderSubdomainPolicy `json:"renderSubdomainPolicy,omitempty"`
+	Url                   string                 `json:"url"`
 }
 
 // StaticSiteDetailsPATCH defines model for staticSiteDetailsPATCH.
 type StaticSiteDetailsPATCH struct {
-	BuildCommand *string   `json:"buildCommand,omitempty"`
-	Previews     *Previews `json:"previews,omitempty"`
-	PublishPath  *string   `json:"publishPath,omitempty"`
+	BuildCommand *string                    `json:"buildCommand,omitempty"`
+	IpAllowList  *[]CidrBlockAndDescription `json:"ipAllowList,omitempty"`
+	Previews     *Previews                  `json:"previews,omitempty"`
+	PublishPath  *string                    `json:"publishPath,omitempty"`
 
 	// PullRequestPreviewsEnabled This field has been deprecated. previews.generation should be used in its place.
 	// Deprecated:
 	PullRequestPreviewsEnabled *PullRequestPreviewsEnabled `json:"pullRequestPreviewsEnabled,omitempty"`
+
+	// RenderSubdomainPolicy Controls whether render.com subdomains are available for the service
+	RenderSubdomainPolicy *RenderSubdomainPolicy `json:"renderSubdomainPolicy,omitempty"`
 }
 
 // StaticSiteDetailsPOST defines model for staticSiteDetailsPOST.
 type StaticSiteDetailsPOST struct {
-	BuildCommand *string        `json:"buildCommand,omitempty"`
-	Headers      *[]HeaderInput `json:"headers,omitempty"`
-	Previews     *Previews      `json:"previews,omitempty"`
+	BuildCommand *string                    `json:"buildCommand,omitempty"`
+	Headers      *[]HeaderInput             `json:"headers,omitempty"`
+	IpAllowList  *[]CidrBlockAndDescription `json:"ipAllowList,omitempty"`
+	Previews     *Previews                  `json:"previews,omitempty"`
 
 	// PublishPath Defaults to "public"
 	PublishPath *string `json:"publishPath,omitempty"`
@@ -1799,13 +1867,16 @@ type StaticSiteDetailsPOST struct {
 	// PullRequestPreviewsEnabled This field has been deprecated. previews.generation should be used in its place.
 	// Deprecated:
 	PullRequestPreviewsEnabled *PullRequestPreviewsEnabled `json:"pullRequestPreviewsEnabled,omitempty"`
-	Routes                     *[]RoutePost                `json:"routes,omitempty"`
+
+	// RenderSubdomainPolicy Controls whether render.com subdomains are available for the service
+	RenderSubdomainPolicy *RenderSubdomainPolicy `json:"renderSubdomainPolicy,omitempty"`
+	Routes                *[]RoutePost           `json:"routes,omitempty"`
 }
 
 // SuspenderType defines model for suspenderType.
 type SuspenderType string
 
-// SyncWithCursor A blueprint sync with a cursor
+// SyncWithCursor A Blueprint sync with a cursor
 type SyncWithCursor struct {
 	Cursor Cursor            `json:"cursor"`
 	Sync   externalRef1.Sync `json:"sync"`
@@ -1837,14 +1908,16 @@ type User struct {
 type WebServiceDetails struct {
 	Autoscaling *externalRef0.AutoscalingConfig `json:"autoscaling,omitempty"`
 	BuildPlan   BuildPlan                       `json:"buildPlan"`
+	Cache       *Cache                          `json:"cache,omitempty"`
 	Disk        *externalRef2.Disk              `json:"disk,omitempty"`
 
 	// Env This field has been deprecated, runtime should be used in its place.
 	// Deprecated:
-	Env                ServiceEnv         `json:"env"`
-	EnvSpecificDetails EnvSpecificDetails `json:"envSpecificDetails"`
-	HealthCheckPath    string             `json:"healthCheckPath"`
-	MaintenanceMode    *MaintenanceMode   `json:"maintenanceMode,omitempty"`
+	Env                ServiceEnv                 `json:"env"`
+	EnvSpecificDetails EnvSpecificDetails         `json:"envSpecificDetails"`
+	HealthCheckPath    string                     `json:"healthCheckPath"`
+	IpAllowList        *[]CidrBlockAndDescription `json:"ipAllowList,omitempty"`
+	MaintenanceMode    *MaintenanceMode           `json:"maintenanceMode,omitempty"`
 
 	// MaxShutdownDelaySeconds The maximum amount of time (in seconds) that Render waits for your application process to exit gracefully after sending it a SIGTERM signal.
 	MaxShutdownDelaySeconds *MaxShutdownDelaySeconds `json:"maxShutdownDelaySeconds,omitempty"`
@@ -1865,6 +1938,9 @@ type WebServiceDetails struct {
 	// Region Defaults to "oregon"
 	Region Region `json:"region"`
 
+	// RenderSubdomainPolicy Controls whether render.com subdomains are available for the service
+	RenderSubdomainPolicy *RenderSubdomainPolicy `json:"renderSubdomainPolicy,omitempty"`
+
 	// Runtime Runtime
 	Runtime ServiceRuntime `json:"runtime"`
 
@@ -1875,9 +1951,11 @@ type WebServiceDetails struct {
 
 // WebServiceDetailsPATCH defines model for webServiceDetailsPATCH.
 type WebServiceDetailsPATCH struct {
-	EnvSpecificDetails *EnvSpecificDetailsPATCH `json:"envSpecificDetails,omitempty"`
-	HealthCheckPath    *string                  `json:"healthCheckPath,omitempty"`
-	MaintenanceMode    *MaintenanceMode         `json:"maintenanceMode,omitempty"`
+	Cache              *Cache                     `json:"cache,omitempty"`
+	EnvSpecificDetails *EnvSpecificDetailsPATCH   `json:"envSpecificDetails,omitempty"`
+	HealthCheckPath    *string                    `json:"healthCheckPath,omitempty"`
+	IpAllowList        *[]CidrBlockAndDescription `json:"ipAllowList,omitempty"`
+	MaintenanceMode    *MaintenanceMode           `json:"maintenanceMode,omitempty"`
 
 	// MaxShutdownDelaySeconds The maximum amount of time (in seconds) that Render waits for your application process to exit gracefully after sending it a SIGTERM signal.
 	MaxShutdownDelaySeconds *MaxShutdownDelaySeconds `json:"maxShutdownDelaySeconds,omitempty"`
@@ -1891,6 +1969,9 @@ type WebServiceDetailsPATCH struct {
 	// Deprecated:
 	PullRequestPreviewsEnabled *PullRequestPreviewsEnabled `json:"pullRequestPreviewsEnabled,omitempty"`
 
+	// RenderSubdomainPolicy Controls whether render.com subdomains are available for the service
+	RenderSubdomainPolicy *RenderSubdomainPolicy `json:"renderSubdomainPolicy,omitempty"`
+
 	// Runtime Runtime
 	Runtime *ServiceRuntime `json:"runtime,omitempty"`
 }
@@ -1902,10 +1983,11 @@ type WebServiceDetailsPOST struct {
 
 	// Env This field has been deprecated, runtime should be used in its place.
 	// Deprecated:
-	Env                *ServiceEnv             `json:"env,omitempty"`
-	EnvSpecificDetails *EnvSpecificDetailsPOST `json:"envSpecificDetails,omitempty"`
-	HealthCheckPath    *string                 `json:"healthCheckPath,omitempty"`
-	MaintenanceMode    *MaintenanceMode        `json:"maintenanceMode,omitempty"`
+	Env                *ServiceEnv                `json:"env,omitempty"`
+	EnvSpecificDetails *EnvSpecificDetailsPOST    `json:"envSpecificDetails,omitempty"`
+	HealthCheckPath    *string                    `json:"healthCheckPath,omitempty"`
+	IpAllowList        *[]CidrBlockAndDescription `json:"ipAllowList,omitempty"`
+	MaintenanceMode    *MaintenanceMode           `json:"maintenanceMode,omitempty"`
 
 	// MaxShutdownDelaySeconds The maximum amount of time (in seconds) that Render waits for your application process to exit gracefully after sending it a SIGTERM signal.
 	MaxShutdownDelaySeconds *MaxShutdownDelaySeconds `json:"maxShutdownDelaySeconds,omitempty"`
@@ -1924,6 +2006,9 @@ type WebServiceDetailsPOST struct {
 
 	// Region Defaults to "oregon"
 	Region *Region `json:"region,omitempty"`
+
+	// RenderSubdomainPolicy Controls whether render.com subdomains are available for the service
+	RenderSubdomainPolicy *RenderSubdomainPolicy `json:"renderSubdomainPolicy,omitempty"`
 
 	// Runtime Runtime
 	Runtime ServiceRuntime `json:"runtime"`
@@ -2030,6 +2115,9 @@ type UpdatedAfterParam = time.Time
 // UpdatedBeforeParam defines model for updatedBeforeParam.
 type UpdatedBeforeParam = time.Time
 
+// WorkflowIdParam defines model for workflowIdParam.
+type WorkflowIdParam = []string
+
 // N400BadRequest defines model for 400BadRequest.
 type N400BadRequest = Error
 
@@ -2081,7 +2169,7 @@ type LogsValues200Response = []string
 
 // ListBlueprintsParams defines parameters for ListBlueprints.
 type ListBlueprintsParams struct {
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
@@ -2102,7 +2190,7 @@ type ListBlueprintSyncsParams struct {
 
 // ListDisksParams defines parameters for ListDisks.
 type ListDisksParams struct {
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// DiskId Filter by disk IDs
@@ -2150,7 +2238,7 @@ type ListEnvGroupsParams struct {
 	// UpdatedAfter Filter for resources updated after a certain time (specified as an ISO 8601 timestamp)
 	UpdatedAfter *UpdatedAfterParam `form:"updatedAfter,omitempty" json:"updatedAfter,omitempty"`
 
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// EnvironmentId Filter for resources that belong to an environment
@@ -2188,7 +2276,7 @@ type ListEnvironmentsParams struct {
 	// UpdatedAfter Filter for resources updated after a certain time (specified as an ISO 8601 timestamp)
 	UpdatedAfter *UpdatedAfterParam `form:"updatedAfter,omitempty" json:"updatedAfter,omitempty"`
 
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// EnvironmentId Filter for resources that belong to an environment
@@ -2226,7 +2314,7 @@ type ListKeyValueParams struct {
 	// UpdatedAfter Filter for resources updated after a certain time (specified as an ISO 8601 timestamp)
 	UpdatedAfter *UpdatedAfterParam `form:"updatedAfter,omitempty" json:"updatedAfter,omitempty"`
 
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// EnvironmentId Filter for resources that belong to an environment
@@ -2241,7 +2329,7 @@ type ListKeyValueParams struct {
 
 // ListLogsParams defines parameters for ListLogs.
 type ListLogsParams struct {
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspace to return logs for
 	OwnerId string `form:"ownerId" json:"ownerId"`
 
 	// StartTime Epoch/Unix timestamp of start of time range to return. Defaults to `now() - 1 hour`.
@@ -2260,25 +2348,37 @@ type ListLogsParams struct {
 	// Instance Filter logs by the instance they were emitted from. An instance is the id of a specific running server.
 	Instance *externalRef6.LogFilterInstance `form:"instance,omitempty" json:"instance,omitempty"`
 
-	// Host Filter request logs by their host. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Host Filter request logs by their host. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Host *externalRef6.LogFilterHost `form:"host,omitempty" json:"host,omitempty"`
 
-	// StatusCode Filter request logs by their status code. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// StatusCode Filter request logs by their status code. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	StatusCode *externalRef6.LogFilterStatusCode `form:"statusCode,omitempty" json:"statusCode,omitempty"`
 
-	// Method Filter request logs by their requests method. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Method Filter request logs by their requests method. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Method *externalRef6.LogFilterMethod `form:"method,omitempty" json:"method,omitempty"`
 
-	// Level Filter logs by their severity level. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// WorkflowService Filter logs by their workflow service(s)
+	WorkflowService *externalRef6.LogFilterWorkflowService `form:"workflowService,omitempty" json:"workflowService,omitempty"`
+
+	// WorkflowVersion Filter logs by their workflow version(s)
+	WorkflowVersion *externalRef6.LogFilterWorkflowVersion `form:"workflowVersion,omitempty" json:"workflowVersion,omitempty"`
+
+	// Task Filter logs by their task(s)
+	Task *externalRef6.LogFilterTask `form:"task,omitempty" json:"task,omitempty"`
+
+	// TaskRun Filter logs by their task run id(s)
+	TaskRun *externalRef6.LogFilterTaskRun `form:"taskRun,omitempty" json:"taskRun,omitempty"`
+
+	// Level Filter logs by their severity level. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Level *externalRef6.LogFilterLevel `form:"level,omitempty" json:"level,omitempty"`
 
 	// Type Filter logs by their type. Types include `app` for application logs, `request` for request logs, and `build` for build logs. You can find the full set of types available for a query by using the `GET /logs/values` endpoint.
 	Type *externalRef6.LogFilterType `form:"type,omitempty" json:"type,omitempty"`
 
-	// Text Filter by the text of the logs. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Text Filter by the text of the logs. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Text *externalRef6.LogFilterText `form:"text,omitempty" json:"text,omitempty"`
 
-	// Path Filter request logs by their path. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Path Filter request logs by their path. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Path *externalRef6.LogFilterPath `form:"path,omitempty" json:"path,omitempty"`
 
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
@@ -2287,7 +2387,7 @@ type ListLogsParams struct {
 
 // ListResourceLogStreamsParams defines parameters for ListResourceLogStreams.
 type ListResourceLogStreamsParams struct {
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// LogStreamId Filter log streams by their id.
@@ -2308,7 +2408,7 @@ type ListResourceLogStreamsParams struct {
 
 // SubscribeLogsParams defines parameters for SubscribeLogs.
 type SubscribeLogsParams struct {
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspace to return logs for
 	OwnerId string `form:"ownerId" json:"ownerId"`
 
 	// StartTime Epoch/Unix timestamp of start of time range to return. Defaults to `now() - 1 hour`.
@@ -2327,25 +2427,37 @@ type SubscribeLogsParams struct {
 	// Instance Filter logs by the instance they were emitted from. An instance is the id of a specific running server.
 	Instance *externalRef6.LogFilterInstance `form:"instance,omitempty" json:"instance,omitempty"`
 
-	// Host Filter request logs by their host. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Host Filter request logs by their host. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Host *externalRef6.LogFilterHost `form:"host,omitempty" json:"host,omitempty"`
 
-	// StatusCode Filter request logs by their status code. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// StatusCode Filter request logs by their status code. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	StatusCode *externalRef6.LogFilterStatusCode `form:"statusCode,omitempty" json:"statusCode,omitempty"`
 
-	// Method Filter request logs by their requests method. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Method Filter request logs by their requests method. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Method *externalRef6.LogFilterMethod `form:"method,omitempty" json:"method,omitempty"`
 
-	// Level Filter logs by their severity level. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// WorkflowService Filter logs by their workflow service(s)
+	WorkflowService *externalRef6.LogFilterWorkflowService `form:"workflowService,omitempty" json:"workflowService,omitempty"`
+
+	// WorkflowVersion Filter logs by their workflow version(s)
+	WorkflowVersion *externalRef6.LogFilterWorkflowVersion `form:"workflowVersion,omitempty" json:"workflowVersion,omitempty"`
+
+	// Task Filter logs by their task(s)
+	Task *externalRef6.LogFilterTask `form:"task,omitempty" json:"task,omitempty"`
+
+	// TaskRun Filter logs by their task run id(s)
+	TaskRun *externalRef6.LogFilterTaskRun `form:"taskRun,omitempty" json:"taskRun,omitempty"`
+
+	// Level Filter logs by their severity level. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Level *externalRef6.LogFilterLevel `form:"level,omitempty" json:"level,omitempty"`
 
 	// Type Filter logs by their type. Types include `app` for application logs, `request` for request logs, and `build` for build logs. You can find the full set of types available for a query by using the `GET /logs/values` endpoint.
 	Type *externalRef6.LogFilterType `form:"type,omitempty" json:"type,omitempty"`
 
-	// Text Filter by the text of the logs. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Text Filter by the text of the logs. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Text *externalRef6.LogFilterText `form:"text,omitempty" json:"text,omitempty"`
 
-	// Path Filter request logs by their path. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Path Filter request logs by their path. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Path *externalRef6.LogFilterPath `form:"path,omitempty" json:"path,omitempty"`
 
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
@@ -2354,7 +2466,7 @@ type SubscribeLogsParams struct {
 
 // ListLogsValuesParams defines parameters for ListLogsValues.
 type ListLogsValuesParams struct {
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspace to return log label values for
 	OwnerId string `form:"ownerId" json:"ownerId"`
 
 	// Label The label to query logs for
@@ -2376,25 +2488,37 @@ type ListLogsValuesParams struct {
 	// Instance Filter logs by the instance they were emitted from. An instance is the id of a specific running server.
 	Instance *externalRef6.LogFilterInstance `form:"instance,omitempty" json:"instance,omitempty"`
 
-	// Host Filter request logs by their host. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Host Filter request logs by their host. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Host *externalRef6.LogFilterHost `form:"host,omitempty" json:"host,omitempty"`
 
-	// StatusCode Filter request logs by their status code. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// StatusCode Filter request logs by their status code. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	StatusCode *externalRef6.LogFilterStatusCode `form:"statusCode,omitempty" json:"statusCode,omitempty"`
 
-	// Method Filter request logs by their requests method. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Method Filter request logs by their requests method. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Method *externalRef6.LogFilterMethod `form:"method,omitempty" json:"method,omitempty"`
 
-	// Level Filter logs by their severity level. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// WorkflowService Filter logs by their workflow service(s)
+	WorkflowService *externalRef6.LogFilterWorkflowService `form:"workflowService,omitempty" json:"workflowService,omitempty"`
+
+	// WorkflowVersion Filter logs by their workflow version(s)
+	WorkflowVersion *externalRef6.LogFilterWorkflowVersion `form:"workflowVersion,omitempty" json:"workflowVersion,omitempty"`
+
+	// Task Filter logs by their task(s)
+	Task *externalRef6.LogFilterTask `form:"task,omitempty" json:"task,omitempty"`
+
+	// TaskRun Filter logs by their task run id(s)
+	TaskRun *externalRef6.LogFilterTaskRun `form:"taskRun,omitempty" json:"taskRun,omitempty"`
+
+	// Level Filter logs by their severity level. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Level *externalRef6.LogFilterLevel `form:"level,omitempty" json:"level,omitempty"`
 
 	// Type Filter logs by their type. Types include `app` for application logs, `request` for request logs, and `build` for build logs. You can find the full set of types available for a query by using the `GET /logs/values` endpoint.
 	Type *externalRef6.LogFilterType `form:"type,omitempty" json:"type,omitempty"`
 
-	// Text Filter by the text of the logs. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Text Filter by the text of the logs. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Text *externalRef6.LogFilterText `form:"text,omitempty" json:"text,omitempty"`
 
-	// Path Filter request logs by their path. [Wildcards and regex](https://docs.render.com/logging#wildcards-and-regular-expressions) are supported.
+	// Path Filter request logs by their path. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Path *externalRef6.LogFilterPath `form:"path,omitempty" json:"path,omitempty"`
 
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
@@ -2408,7 +2532,7 @@ type ListLogsValuesParamsLabel string
 type ListMaintenanceParams struct {
 	ResourceId *externalRef7.MaintenanceResourcesParam `form:"resourceId,omitempty" json:"resourceId,omitempty"`
 
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam                       `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 	State   *externalRef7.MaintenanceStateParam `form:"state,omitempty" json:"state,omitempty"`
 }
@@ -2766,7 +2890,7 @@ type GetReplicationLagParams struct {
 
 // ListNotificationOverridesParams defines parameters for ListNotificationOverrides.
 type ListNotificationOverridesParams struct {
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// ServiceId Filter for resources by service ID
@@ -2781,7 +2905,10 @@ type ListNotificationOverridesParams struct {
 
 // ListOwnersParams defines parameters for ListOwners.
 type ListOwnersParams struct {
-	Name  *[]string `form:"name,omitempty" json:"name,omitempty"`
+	// Name Only return workspaces with one of the provided names. Only exact matches are returned.
+	Name *[]string `form:"name,omitempty" json:"name,omitempty"`
+
+	// Email Only return workspaces owned by one of the provided email addresses.
 	Email *[]string `form:"email,omitempty" json:"email,omitempty"`
 
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
@@ -2814,7 +2941,7 @@ type ListPostgresParams struct {
 	// UpdatedAfter Filter for resources updated after a certain time (specified as an ISO 8601 timestamp)
 	UpdatedAfter *UpdatedAfterParam `form:"updatedAfter,omitempty" json:"updatedAfter,omitempty"`
 
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// EnvironmentId Filter for resources that belong to an environment
@@ -2850,7 +2977,7 @@ type ListProjectsParams struct {
 	// UpdatedAfter Filter for resources updated after a certain time (specified as an ISO 8601 timestamp)
 	UpdatedAfter *UpdatedAfterParam `form:"updatedAfter,omitempty" json:"updatedAfter,omitempty"`
 
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
@@ -2880,7 +3007,7 @@ type ListRedisParams struct {
 	// UpdatedAfter Filter for resources updated after a certain time (specified as an ISO 8601 timestamp)
 	UpdatedAfter *UpdatedAfterParam `form:"updatedAfter,omitempty" json:"updatedAfter,omitempty"`
 
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// EnvironmentId Filter for resources that belong to an environment
@@ -2916,7 +3043,7 @@ type ListRegistryCredentialsParams struct {
 	// UpdatedAfter Filter for services updated after a certain time (specified as an ISO 8601 timestamp)
 	UpdatedAfter *time.Time `form:"updatedAfter,omitempty" json:"updatedAfter,omitempty"`
 
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
@@ -2979,7 +3106,7 @@ type ListServicesParams struct {
 	// UpdatedAfter Filter for resources updated after a certain time (specified as an ISO 8601 timestamp)
 	UpdatedAfter *UpdatedAfterParam `form:"updatedAfter,omitempty" json:"updatedAfter,omitempty"`
 
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// IncludePreviews Include previews in the response
@@ -3094,8 +3221,8 @@ type GetEnvVarsForServiceParams struct {
 
 // ListEventsParams defines parameters for ListEvents.
 type ListEventsParams struct {
-	// EventType The type of event to filter to
-	EventType *EventTypeParam `form:"eventType,omitempty" json:"eventType,omitempty"`
+	// Type The type of event to filter to
+	Type *EventTypeParam `form:"type,omitempty" json:"type,omitempty"`
 
 	// StartTime Epoch/Unix timestamp of start of time range to return. Defaults to `now() - 1 hour`.
 	StartTime *StartTimeParam `form:"startTime,omitempty" json:"startTime,omitempty"`
@@ -3227,7 +3354,7 @@ type ListWebhooksParams struct {
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// OwnerId The ID of the owner (team or personal user) whose resources should be returned
+	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 }
 
@@ -3244,6 +3371,30 @@ type ListWebhookEventsParams struct {
 
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
+// ListWorkflowsParams defines parameters for ListWorkflows.
+type ListWorkflowsParams struct {
+	// OwnerId The ID of the workspaces to return resources for
+	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
+
+	// WorkflowID The IDs of the workflows to return resources for
+	WorkflowID *WorkflowIdParam `form:"workflowID,omitempty" json:"workflowID,omitempty"`
+
+	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListWorkflowVersionsParams defines parameters for ListWorkflowVersions.
+type ListWorkflowVersionsParams struct {
+	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // UpdateBlueprintJSONRequestBody defines body for UpdateBlueprint for application/json ContentType.
@@ -3389,6 +3540,12 @@ type CreateWebhookJSONRequestBody = externalRef11.WebhookPOSTInput
 
 // UpdateWebhookJSONRequestBody defines body for UpdateWebhook for application/json ContentType.
 type UpdateWebhookJSONRequestBody = externalRef11.WebhookPATCHInput
+
+// CreateWorkflowJSONRequestBody defines body for CreateWorkflow for application/json ContentType.
+type CreateWorkflowJSONRequestBody = externalRef12.WorkflowCreate
+
+// UpdateWorkflowJSONRequestBody defines body for UpdateWorkflow for application/json ContentType.
+type UpdateWorkflowJSONRequestBody = externalRef12.WorkflowUpdate
 
 // AsEnvVarValue returns the union data inside the AddUpdateEnvVarInput as a EnvVarValue
 func (t AddUpdateEnvVarInput) AsEnvVarValue() (EnvVarValue, error) {

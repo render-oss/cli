@@ -18,15 +18,20 @@ const (
 
 // Defines values for LogLabelName.
 const (
-	LogLabelNameHost       LogLabelName = "host"
-	LogLabelNameInstance   LogLabelName = "instance"
-	LogLabelNameLevel      LogLabelName = "level"
-	LogLabelNameMethod     LogLabelName = "method"
-	LogLabelNamePath       LogLabelName = "path"
-	LogLabelNameResource   LogLabelName = "resource"
-	LogLabelNameStatusCode LogLabelName = "statusCode"
-	LogLabelNameText       LogLabelName = "text"
-	LogLabelNameType       LogLabelName = "type"
+	LogLabelNameBlocked          LogLabelName = "blocked"
+	LogLabelNameHost             LogLabelName = "host"
+	LogLabelNameInstance         LogLabelName = "instance"
+	LogLabelNameLevel            LogLabelName = "level"
+	LogLabelNameMethod           LogLabelName = "method"
+	LogLabelNamePath             LogLabelName = "path"
+	LogLabelNameResource         LogLabelName = "resource"
+	LogLabelNameStatusCode       LogLabelName = "statusCode"
+	LogLabelNameTask             LogLabelName = "task"
+	LogLabelNameTaskRun          LogLabelName = "taskRun"
+	LogLabelNameText             LogLabelName = "text"
+	LogLabelNameType             LogLabelName = "type"
+	LogLabelNameWorkflowService  LogLabelName = "workflowService"
+	LogLabelNameWorkflowVeresion LogLabelName = "workflowVeresion"
 )
 
 // Defines values for LogStreamPreviewSetting.
@@ -162,11 +167,23 @@ type LogFilterResource = []string
 // LogFilterStatusCode defines model for logFilterStatusCode.
 type LogFilterStatusCode = []string
 
+// LogFilterTask defines model for logFilterTask.
+type LogFilterTask = []string
+
+// LogFilterTaskRun defines model for logFilterTaskRun.
+type LogFilterTaskRun = []string
+
 // LogFilterText defines model for logFilterText.
 type LogFilterText = []string
 
 // LogFilterType defines model for logFilterType.
 type LogFilterType = []string
+
+// LogFilterWorkflowService defines model for logFilterWorkflowService.
+type LogFilterWorkflowService = []string
+
+// LogFilterWorkflowVersion defines model for logFilterWorkflowVersion.
+type LogFilterWorkflowVersion = []string
 
 // LogLabelParam defines model for logLabelParam.
 type LogLabelParam string

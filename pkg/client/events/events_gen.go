@@ -181,6 +181,33 @@ type DiskUpdatedEvent struct {
 	ToSizeGB   int                 `json:"toSizeGB"`
 }
 
+// EdgeCacheDisabledEvent defines model for edgeCacheDisabledEvent.
+type EdgeCacheDisabledEvent struct {
+	Trigger EdgeCacheTrigger `json:"trigger"`
+}
+
+// EdgeCacheEnabledEvent defines model for edgeCacheEnabledEvent.
+type EdgeCacheEnabledEvent struct {
+	Trigger EdgeCacheTrigger `json:"trigger"`
+}
+
+// EdgeCachePurgedEvent defines model for edgeCachePurgedEvent.
+type EdgeCachePurgedEvent struct {
+	Trigger EdgeCacheTrigger `json:"trigger"`
+}
+
+// EdgeCacheTrigger defines model for edgeCacheTrigger.
+type EdgeCacheTrigger struct {
+	// Manual Edge Cache change was triggered manually from the dashboard
+	Manual bool `json:"manual"`
+
+	// System Edge Cache Change was triggered by Render
+	System bool `json:"system"`
+
+	// User User who triggered the action
+	User *User `json:"user,omitempty"`
+}
+
 // Event defines model for event.
 type Event struct {
 	Details   EventDetails           `json:"details"`
@@ -203,7 +230,11 @@ type EventStatus string
 
 // FailureReason defines model for failureReason.
 type FailureReason struct {
-	Evicted         bool       `json:"evicted"`
+	// EarlyExit If true, the application exited early. Services besides cron jobs should not exit unless receiving a `SIGTERM` signal from Render.
+	EarlyExit *bool `json:"earlyExit,omitempty"`
+	Evicted   bool  `json:"evicted"`
+
+	// NonZeroExit If present, the application exited with the specified non-zero status.
 	NonZeroExit     *int       `json:"nonZeroExit,omitempty"`
 	OomKilled       *OomKilled `json:"oomKilled,omitempty"`
 	TimedOutReason  *string    `json:"timedOutReason,omitempty"`
@@ -232,6 +263,9 @@ type InstanceCountChangedEvent struct {
 	FromInstances int `json:"fromInstances"`
 	ToInstances   int `json:"toInstances"`
 }
+
+// InstanceId defines model for instanceId.
+type InstanceId = string
 
 // JobRunEndedEvent defines model for jobRunEndedEvent.
 type JobRunEndedEvent struct {
@@ -311,6 +345,9 @@ type PostgresAvailableEvent = map[string]interface{}
 // PostgresBackupCompletedEvent defines model for postgresBackupCompletedEvent.
 type PostgresBackupCompletedEvent = map[string]interface{}
 
+// PostgresBackupFailedEvent defines model for postgresBackupFailedEvent.
+type PostgresBackupFailedEvent = map[string]interface{}
+
 // PostgresBackupStartedEvent defines model for postgresBackupStartedEvent.
 type PostgresBackupStartedEvent = map[string]interface{}
 
@@ -344,6 +381,18 @@ type PostgresHaStatusChangedEvent struct {
 	FromStatus string `json:"fromStatus"`
 	ToStatus   string `json:"toStatus"`
 }
+
+// PostgresPITRCheckpointCompletedEvent defines model for postgresPITRCheckpointCompletedEvent.
+type PostgresPITRCheckpointCompletedEvent = map[string]interface{}
+
+// PostgresPITRCheckpointFailedEvent defines model for postgresPITRCheckpointFailedEvent.
+type PostgresPITRCheckpointFailedEvent = map[string]interface{}
+
+// PostgresPITRCheckpointStartedEvent defines model for postgresPITRCheckpointStartedEvent.
+type PostgresPITRCheckpointStartedEvent = map[string]interface{}
+
+// PostgresReadReplicaStale defines model for postgresReadReplicaStale.
+type PostgresReadReplicaStale = map[string]interface{}
 
 // PostgresReadReplicasChangedEvent defines model for postgresReadReplicasChangedEvent.
 type PostgresReadReplicasChangedEvent struct {
@@ -402,7 +451,8 @@ type ServerAvailableEvent = map[string]interface{}
 
 // ServerFailedEvent defines model for serverFailedEvent.
 type ServerFailedEvent struct {
-	Reason *FailureReason `json:"reason,omitempty"`
+	InstanceID *InstanceId    `json:"instanceID,omitempty"`
+	Reason     *FailureReason `json:"reason,omitempty"`
 }
 
 // ServerHardwareFailureEvent defines model for serverHardwareFailureEvent.
@@ -414,7 +464,9 @@ type ServerRestartedEvent struct {
 }
 
 // ServerUnhealthyEvent defines model for serverUnhealthyEvent.
-type ServerUnhealthyEvent = map[string]interface{}
+type ServerUnhealthyEvent struct {
+	InstanceID *InstanceId `json:"instanceID,omitempty"`
+}
 
 // ServiceEvent defines model for serviceEvent.
 type ServiceEvent struct {
@@ -684,6 +736,32 @@ func (t *PostgresEventDetails) FromPostgresBackupCompletedEvent(v PostgresBackup
 
 // MergePostgresBackupCompletedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresBackupCompletedEvent
 func (t *PostgresEventDetails) MergePostgresBackupCompletedEvent(v PostgresBackupCompletedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresBackupFailedEvent returns the union data inside the PostgresEventDetails as a PostgresBackupFailedEvent
+func (t PostgresEventDetails) AsPostgresBackupFailedEvent() (PostgresBackupFailedEvent, error) {
+	var body PostgresBackupFailedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresBackupFailedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresBackupFailedEvent
+func (t *PostgresEventDetails) FromPostgresBackupFailedEvent(v PostgresBackupFailedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresBackupFailedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresBackupFailedEvent
+func (t *PostgresEventDetails) MergePostgresBackupFailedEvent(v PostgresBackupFailedEvent) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -970,6 +1048,110 @@ func (t *PostgresEventDetails) FromPostgresUpgradeSucceededEvent(v PostgresUpgra
 
 // MergePostgresUpgradeSucceededEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresUpgradeSucceededEvent
 func (t *PostgresEventDetails) MergePostgresUpgradeSucceededEvent(v PostgresUpgradeSucceededEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresPITRCheckpointStartedEvent returns the union data inside the PostgresEventDetails as a PostgresPITRCheckpointStartedEvent
+func (t PostgresEventDetails) AsPostgresPITRCheckpointStartedEvent() (PostgresPITRCheckpointStartedEvent, error) {
+	var body PostgresPITRCheckpointStartedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresPITRCheckpointStartedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresPITRCheckpointStartedEvent
+func (t *PostgresEventDetails) FromPostgresPITRCheckpointStartedEvent(v PostgresPITRCheckpointStartedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresPITRCheckpointStartedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresPITRCheckpointStartedEvent
+func (t *PostgresEventDetails) MergePostgresPITRCheckpointStartedEvent(v PostgresPITRCheckpointStartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresPITRCheckpointFailedEvent returns the union data inside the PostgresEventDetails as a PostgresPITRCheckpointFailedEvent
+func (t PostgresEventDetails) AsPostgresPITRCheckpointFailedEvent() (PostgresPITRCheckpointFailedEvent, error) {
+	var body PostgresPITRCheckpointFailedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresPITRCheckpointFailedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresPITRCheckpointFailedEvent
+func (t *PostgresEventDetails) FromPostgresPITRCheckpointFailedEvent(v PostgresPITRCheckpointFailedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresPITRCheckpointFailedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresPITRCheckpointFailedEvent
+func (t *PostgresEventDetails) MergePostgresPITRCheckpointFailedEvent(v PostgresPITRCheckpointFailedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresPITRCheckpointCompletedEvent returns the union data inside the PostgresEventDetails as a PostgresPITRCheckpointCompletedEvent
+func (t PostgresEventDetails) AsPostgresPITRCheckpointCompletedEvent() (PostgresPITRCheckpointCompletedEvent, error) {
+	var body PostgresPITRCheckpointCompletedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresPITRCheckpointCompletedEvent overwrites any union data inside the PostgresEventDetails as the provided PostgresPITRCheckpointCompletedEvent
+func (t *PostgresEventDetails) FromPostgresPITRCheckpointCompletedEvent(v PostgresPITRCheckpointCompletedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresPITRCheckpointCompletedEvent performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresPITRCheckpointCompletedEvent
+func (t *PostgresEventDetails) MergePostgresPITRCheckpointCompletedEvent(v PostgresPITRCheckpointCompletedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresReadReplicaStale returns the union data inside the PostgresEventDetails as a PostgresReadReplicaStale
+func (t PostgresEventDetails) AsPostgresReadReplicaStale() (PostgresReadReplicaStale, error) {
+	var body PostgresReadReplicaStale
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresReadReplicaStale overwrites any union data inside the PostgresEventDetails as the provided PostgresReadReplicaStale
+func (t *PostgresEventDetails) FromPostgresReadReplicaStale(v PostgresReadReplicaStale) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergePostgresReadReplicaStale performs a merge with any union data inside the PostgresEventDetails, using the provided PostgresReadReplicaStale
+func (t *PostgresEventDetails) MergePostgresReadReplicaStale(v PostgresReadReplicaStale) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -1968,6 +2150,84 @@ func (t *ServiceEventDetails) FromZeroDowntimeRedeployStartedEvent(v ZeroDowntim
 
 // MergeZeroDowntimeRedeployStartedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ZeroDowntimeRedeployStartedEvent
 func (t *ServiceEventDetails) MergeZeroDowntimeRedeployStartedEvent(v ZeroDowntimeRedeployStartedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEdgeCacheDisabledEvent returns the union data inside the ServiceEventDetails as a EdgeCacheDisabledEvent
+func (t ServiceEventDetails) AsEdgeCacheDisabledEvent() (EdgeCacheDisabledEvent, error) {
+	var body EdgeCacheDisabledEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEdgeCacheDisabledEvent overwrites any union data inside the ServiceEventDetails as the provided EdgeCacheDisabledEvent
+func (t *ServiceEventDetails) FromEdgeCacheDisabledEvent(v EdgeCacheDisabledEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEdgeCacheDisabledEvent performs a merge with any union data inside the ServiceEventDetails, using the provided EdgeCacheDisabledEvent
+func (t *ServiceEventDetails) MergeEdgeCacheDisabledEvent(v EdgeCacheDisabledEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEdgeCacheEnabledEvent returns the union data inside the ServiceEventDetails as a EdgeCacheEnabledEvent
+func (t ServiceEventDetails) AsEdgeCacheEnabledEvent() (EdgeCacheEnabledEvent, error) {
+	var body EdgeCacheEnabledEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEdgeCacheEnabledEvent overwrites any union data inside the ServiceEventDetails as the provided EdgeCacheEnabledEvent
+func (t *ServiceEventDetails) FromEdgeCacheEnabledEvent(v EdgeCacheEnabledEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEdgeCacheEnabledEvent performs a merge with any union data inside the ServiceEventDetails, using the provided EdgeCacheEnabledEvent
+func (t *ServiceEventDetails) MergeEdgeCacheEnabledEvent(v EdgeCacheEnabledEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEdgeCachePurgedEvent returns the union data inside the ServiceEventDetails as a EdgeCachePurgedEvent
+func (t ServiceEventDetails) AsEdgeCachePurgedEvent() (EdgeCachePurgedEvent, error) {
+	var body EdgeCachePurgedEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEdgeCachePurgedEvent overwrites any union data inside the ServiceEventDetails as the provided EdgeCachePurgedEvent
+func (t *ServiceEventDetails) FromEdgeCachePurgedEvent(v EdgeCachePurgedEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEdgeCachePurgedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided EdgeCachePurgedEvent
+func (t *ServiceEventDetails) MergeEdgeCachePurgedEvent(v EdgeCachePurgedEvent) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
