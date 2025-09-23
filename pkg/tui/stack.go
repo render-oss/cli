@@ -118,7 +118,7 @@ func (m *StackModel) back() tea.Cmd {
 	if len(m.stack) == 0 {
 		return tea.Quit
 	}
-	return m.Init()
+	return m.stack[len(m.stack)-1].Model.Init()
 }
 
 func (m *StackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

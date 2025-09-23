@@ -89,7 +89,7 @@ func (m *List[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.windowWidth = msg.Width
 		m.updateListSize()
 	case LoadDataMsg[[]T]:
-		m.items = append(m.items, msg.Data...)
+		m.items = msg.Data
 		listItems := make([]list.Item, len(m.items))
 		for i, item := range m.items {
 			listItems[i] = m.makeListItem(item)
