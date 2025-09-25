@@ -129,7 +129,7 @@ func nonInteractiveDeployCreate(cmd *cobra.Command, input types.DeployInput) boo
 
 	nonInteractive, err := command.NonInteractiveWithConfirm(cmd, createDeploy, text.Deploy(input.ServiceID), views.DeployCreateConfirm(cmd.Context(), input))
 	if err != nil {
-		_, err = fmt.Fprintf(cmd.OutOrStderr(), err.Error()+"\n")
+		fmt.Fprintf(cmd.OutOrStderr(), "%s\n", err.Error())
 		os.Exit(1)
 	}
 	if !nonInteractive {

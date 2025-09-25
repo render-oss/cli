@@ -1,6 +1,6 @@
 module github.com/render-oss/cli
 
-go 1.22
+go 1.25
 
 require (
 	github.com/atotto/clipboard v0.1.4

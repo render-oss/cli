@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -57,7 +58,7 @@ func Login() error {
 	}
 
 	for _, gqlError := range result.Errors {
-		return fmt.Errorf(gqlError.Message)
+		return errors.New(gqlError.Message)
 	}
 
 	token := result.Data.SignIn.IDToken

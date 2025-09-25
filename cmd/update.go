@@ -126,10 +126,7 @@ func newRepositories() (*service.Repo, *service.Service, error) {
 		return nil, nil, err
 	}
 
-	serviceRepo, err := service.NewRepo(c), nil
-	if err != nil {
-		return nil, nil, err
-	}
+	serviceRepo := service.NewRepo(c)
 
 	environmentRepo := environment.NewRepo(c)
 	projectRepo := project.NewRepo(c)
