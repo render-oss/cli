@@ -10,6 +10,7 @@ import (
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/text"
 	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/tui/flows"
 	"github.com/render-oss/cli/pkg/tui/views"
 )
 
@@ -34,8 +35,8 @@ var InteractiveProjectList = func(ctx context.Context) {
 				}, p.Name)
 			},
 			tui.WithCustomOptions[*client.Project]([]tui.CustomOption{
-				WithCopyID(ctx, servicesCmd),
-				WithWorkspaceSelection(ctx),
+				flows.WithCopyID(ctx, servicesCmd),
+				flows.WithWorkspaceSelection(ctx),
 			}),
 		))
 }

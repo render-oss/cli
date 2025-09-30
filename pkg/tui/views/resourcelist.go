@@ -16,33 +16,16 @@ import (
 	"github.com/render-oss/cli/pkg/tui"
 )
 
-type ListResourceInput struct {
-	Project         *client.Project
-	EnvironmentIDs  []string `cli:"environment-ids"`
-	IncludePreviews bool     `cli:"include-previews"`
-}
-
-func (l ListResourceInput) ToParams() resource.ResourceParams {
-	return resource.ResourceParams{
-		EnvironmentIDs:  l.EnvironmentIDs,
-		IncludePreviews: l.IncludePreviews,
-	}
-}
-
 type ResourceView struct {
 	table *tui.Table[resource.Resource]
 }
 
-func LoadResourceData(ctx context.Context, in ListResourceInput) ([]resource.Resource, error) {
-	resourceService, err := resource.NewDefaultResourceService()
-	if err != nil {
-		return nil, err
-	}
-
-	return resourceService.ListResources(ctx, in.ToParams())
-}
-
-func NewResourceView(ctx context.Context, input ListResourceInput, onSelect func(r resource.Resource) tea.Cmd, opts ...tui.TableOption[resource.Resource]) *ResourceView {
+func NewResourceView(ctx context.Context,
+	input ListResourceInput,
+	loadResourceData func(ctx context.Context, in ListResourceInput) ([]resource.Resource, error),
+	onSelect func(r resource.Resource) tea.Cmd,
+	opts ...tui.TableOption[resource.Resource],
+) *ResourceView {
 	resourceView := &ResourceView{}
 
 	onSelectWrapper := func(rows []btable.Row) tea.Cmd {
@@ -75,7 +58,7 @@ func NewResourceView(ctx context.Context, input ListResourceInput, onSelect func
 
 	resourceView.table = tui.NewTable(
 		resourcetui.ColumnsForResources(),
-		command.LoadCmd(ctx, LoadResourceData, input),
+		command.LoadCmd(ctx, loadResourceData, input),
 		resourcetui.RowForResource,
 		onSelectWrapper,
 		opts...,

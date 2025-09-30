@@ -10,9 +10,11 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dashboard"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/deploy"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/text"
+	"github.com/render-oss/cli/pkg/tui/flows"
 	"github.com/render-oss/cli/pkg/tui/views"
 )
 
@@ -23,11 +25,12 @@ var deployListCmd = &cobra.Command{
 }
 
 var InteractiveDeployList = func(ctx context.Context, input views.DeployListInput, r resource.Resource, breadcrumb string) tea.Cmd {
+	deps := dependencies.GetFromContext(ctx)
 	return command.AddToStackFunc(ctx, deployListCmd, breadcrumb, &input, views.NewDeployListView(
 		ctx,
 		input,
 		func(c *client.Deploy) tea.Cmd {
-			return InteractivePalette(ctx, commandsForDeploy(c, r.ID(), r.Type()), c.Id)
+			return InteractivePalette(ctx, commandsForDeploy(deps, c, r.ID(), r.Type()), c.Id)
 		},
 	))
 }
@@ -55,7 +58,7 @@ func interactiveDeployList(cmd *cobra.Command, input views.DeployListInput) tea.
 	return InteractiveDeployList(ctx, input, service, "Deploys for "+resource.BreadcrumbForResource(service))
 }
 
-func commandsForDeploy(dep *client.Deploy, serviceID, serviceType string) []views.PaletteCommand {
+func commandsForDeploy(deps *dependencies.Dependencies, dep *client.Deploy, serviceID, serviceType string) []views.PaletteCommand {
 	var startTime *command.TimeOrRelative
 	if dep.CreatedAt != nil {
 		startTime = &command.TimeOrRelative{T: dep.CreatedAt}
@@ -71,7 +74,7 @@ func commandsForDeploy(dep *client.Deploy, serviceID, serviceType string) []view
 			Name:        "logs",
 			Description: "View deploy logs",
 			Action: func(ctx context.Context, args []string) tea.Cmd {
-				return InteractiveLogs(
+				return flows.NewLogFlow(deps).LogsFlow(
 					ctx,
 					views.LogInput{
 						ResourceIDs: []string{serviceID},
@@ -79,7 +82,6 @@ func commandsForDeploy(dep *client.Deploy, serviceID, serviceType string) []view
 						EndTime:     endTime,
 						Direction:   "forward",
 					},
-					"Logs",
 				)
 			},
 		},

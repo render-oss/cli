@@ -10,9 +10,11 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	clientjob "github.com/render-oss/cli/pkg/client/jobs"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/job"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/text"
+	"github.com/render-oss/cli/pkg/tui/flows"
 	"github.com/render-oss/cli/pkg/tui/views"
 )
 
@@ -23,10 +25,11 @@ var jobListCmd = &cobra.Command{
 }
 
 var InteractiveJobList = func(ctx context.Context, input views.JobListInput, breadcrumb string) tea.Cmd {
+	deps := dependencies.GetFromContext(ctx)
 	return command.AddToStackFunc(ctx, jobListCmd, breadcrumb, &views.ProjectInput{}, views.NewJobListView(ctx,
 		&input,
 		func(j *clientjob.Job) tea.Cmd {
-			return InteractivePalette(ctx, commandsForJob(j), j.Id)
+			return InteractivePalette(ctx, commandsForJob(deps, j), j.Id)
 		},
 	))
 }
@@ -58,7 +61,7 @@ func interactiveJobList(cmd *cobra.Command, input views.JobListInput) tea.Cmd {
 	return InteractiveJobList(ctx, input, "Jobs for "+resource.BreadcrumbForResource(service))
 }
 
-func commandsForJob(j *clientjob.Job) []views.PaletteCommand {
+func commandsForJob(deps *dependencies.Dependencies, j *clientjob.Job) []views.PaletteCommand {
 	var startTime *command.TimeOrRelative
 	if j.StartedAt != nil {
 		startTime = &command.TimeOrRelative{T: j.StartedAt}
@@ -74,14 +77,13 @@ func commandsForJob(j *clientjob.Job) []views.PaletteCommand {
 			Name:        "logs",
 			Description: "View job logs",
 			Action: func(ctx context.Context, args []string) tea.Cmd {
-				return InteractiveLogs(
+				return flows.NewLogFlow(deps).LogsFlow(
 					ctx,
 					views.LogInput{
 						ResourceIDs: []string{j.Id},
 						StartTime:   startTime,
 						EndTime:     endTime,
 					},
-					"Logs",
 				)
 			},
 		},

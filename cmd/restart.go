@@ -7,8 +7,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/text"
+	"github.com/render-oss/cli/pkg/tui/flows"
 	"github.com/render-oss/cli/pkg/tui/views"
 )
 
@@ -20,8 +22,9 @@ var restartCmd = &cobra.Command{
 }
 
 var InteractiveRestart = func(ctx context.Context, input views.RestartInput, breadcrumb string) tea.Cmd {
+	deps := dependencies.GetFromContext(ctx)
 	return command.AddToStackFunc(ctx, restartCmd, breadcrumb, &input, views.NewRestartView(ctx, input, func() tea.Cmd {
-		return TailResourceLogs(ctx, input.ResourceID)
+		return flows.NewLogFlow(deps).TailLogsFlow(ctx, input.ResourceID)
 	}))
 }
 

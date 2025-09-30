@@ -15,6 +15,7 @@ import (
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/workflow"
 )
 
 type RestartInput struct {
@@ -32,10 +33,12 @@ func RestartResource(ctx context.Context, input RestartInput) (string, error) {
 	projectRepo := project.NewRepo(c)
 	postgresRepo := postgres.NewRepo(c)
 	keyValueRepo := keyvalue.NewRepo(c)
+	workflowRepo := workflow.NewRepo(c)
 
 	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
 	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo)
 	keyValueService := keyvalue.NewService(keyValueRepo, environmentRepo, projectRepo)
+	workflowService := workflow.NewService(workflowRepo, environmentRepo, projectRepo)
 
 	resourceService := resource.NewResourceService(
 		serviceService,
@@ -43,6 +46,7 @@ func RestartResource(ctx context.Context, input RestartInput) (string, error) {
 		keyValueService,
 		environmentRepo,
 		projectRepo,
+		workflowService,
 	)
 
 	if err != nil {

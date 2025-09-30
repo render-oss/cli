@@ -13,8 +13,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/render-oss/cli/pkg/cfg"
+	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/dependencies"
 	renderstyle "github.com/render-oss/cli/pkg/style"
 	"github.com/render-oss/cli/pkg/tui"
 	"github.com/render-oss/cli/pkg/tui/views"
@@ -41,49 +43,10 @@ var rootCmd = &cobra.Command{
 
 	Short: "Interact with resources on Render",
 	Long:  longHelp,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		ctx := cmd.Context()
-
-		if err := checkForDeprecatedFlagUsage(cmd); err != nil {
-			return err
-		}
-
-		confirmFlag, err := cmd.Flags().GetBool(command.ConfirmFlag)
-		if err != nil {
-			panic(err)
-		}
-
-		ctx = command.SetConfirmInContext(ctx, confirmFlag)
-
-		outputFlag, err := cmd.Flags().GetString("output")
-		if err != nil {
-			panic(err)
-		}
-
-		output, err := command.StringToOutput(outputFlag)
-		if err != nil {
-			println(err.Error())
-			os.Exit(1)
-		}
-		// Honor the output flag if it's set
-		if outputFlag == "" && output.Interactive() && (isPipe() || isCI()) {
-			output = command.TEXT
-		}
-		ctx = command.SetFormatInContext(ctx, &output)
-
-		if output.Interactive() {
-			stack := tui.NewStack()
-
-			ctx = tui.SetStackInContext(ctx, stack)
-		}
-
-		cmd.SetContext(ctx)
-
-		return nil
-	},
 
 	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
+		deps := dependencies.GetFromContext(ctx)
 
 		output := command.GetFormatFromContext(ctx)
 		if output.Interactive() {
@@ -94,7 +57,7 @@ var rootCmd = &cobra.Command{
 
 			var m tea.Model = stack
 
-			if cmd.Name() != workspaceSetCmd.Name() {
+			if cmd.Name() != deps.Commands.WorkspaceSetCmd().Name() {
 				if !config.IsWorkspaceSet() {
 					m = tui.NewConfigWrapper(m, "Set Workspace", views.NewWorkspaceView(ctx, views.ListWorkspaceInput{}))
 				}
@@ -131,11 +94,112 @@ func isCI() bool {
 	return ci == "true" || ci == "1"
 }
 
+func setupWorkflowCommands(deps *dependencies.Dependencies) {
+	deps.Commands.Workflow.TaskListCmd = NewTaskListCmd(deps)
+	deps.Commands.Workflow.TaskRunCmd = NewTaskRunCmd(deps)
+	deps.Commands.Workflow.TaskRunListCmd = NewTaskRunListCmd(deps)
+	deps.Commands.Workflow.TaskRunDetailsCmd = NewTaskRunDetailsCmd(deps)
+	deps.Commands.Workflow.VersionListCmd = NewVersionListCmd(deps)
+	deps.Commands.Workflow.VersionReleaseCmd = NewVersionReleaseCmd(deps)
+	deps.Commands.Workflow.WorkflowListCmd = workflowListCmd
+
+	taskCmd.AddCommand(deps.Commands.Workflow.TaskListCmd)
+	taskCmd.AddCommand(deps.Commands.Workflow.TaskRunCmd)
+	taskCmd.AddCommand(deps.Commands.Workflow.TaskRunListCmd)
+	versionCmd.AddCommand(deps.Commands.Workflow.VersionListCmd)
+	versionCmd.AddCommand(deps.Commands.Workflow.VersionReleaseCmd)
+	deps.Commands.Workflow.TaskRunCmd.AddCommand(deps.Commands.Workflow.TaskRunDetailsCmd)
+}
+
+func setupLogCommands(deps *dependencies.Dependencies) {
+	deps.Commands.Logs.LogsCmd = NewLogsCmd(deps)
+
+	rootCmd.AddCommand(deps.Commands.Logs.LogsCmd)
+}
+
+func setupWorkspaceCommands(deps *dependencies.Dependencies) {
+	deps.Commands.Workspace.WorkspaceSetCmd = WorkspaceSetCmd(deps)
+
+	workspaceCmd.AddCommand(deps.Commands.Workspace.WorkspaceSetCmd)
+}
+
+func SetupCommands() error {
+	c, err := client.NewDefaultClient()
+	if err != nil {
+		if errors.Is(err, config.ErrLogin) {
+			c, err = client.NotLoggedInClient()
+			if err != nil {
+				return fmt.Errorf("failed to create client: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to create client: %w", err)
+		}
+	}
+
+	deps := dependencies.New(c)
+
+	setupWorkflowCommands(deps)
+	setupLogCommands(deps)
+	setupWorkspaceCommands(deps)
+	setupRootCmdPersistentRun(deps)
+
+	return nil
+}
+
+func setupRootCmdPersistentRun(deps *dependencies.Dependencies) {
+	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
+
+		if err := checkForDeprecatedFlagUsage(cmd); err != nil {
+			return err
+		}
+
+		confirmFlag, err := cmd.Flags().GetBool(command.ConfirmFlag)
+		if err != nil {
+			panic(err)
+		}
+
+		ctx = command.SetConfirmInContext(ctx, confirmFlag)
+
+		outputFlag, err := cmd.Flags().GetString("output")
+		if err != nil {
+			panic(err)
+		}
+
+		output, err := command.StringToOutput(outputFlag)
+		if err != nil {
+			println(err.Error())
+			os.Exit(1)
+		}
+		// Honor the output flag if it's set
+		if outputFlag == "" && output.Interactive() && (isPipe() || isCI()) {
+			output = command.TEXT
+		}
+		ctx = command.SetFormatInContext(ctx, &output)
+
+		deps.SetStack(tui.NewStack())
+		// Setting the dependencies is necessary for now, but we should move to
+		// wrapping commands in functions that provide the necessary dependencies.
+		ctx = dependencies.SetInContext(ctx, deps)
+
+		if output.Interactive() {
+			ctx = tui.SetStackInContext(ctx, deps.Stack())
+		}
+
+		cmd.SetContext(ctx)
+
+		return nil
+	}
+}
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
+	if err := SetupCommands(); err != nil {
+		os.Exit(1)
+	}
+
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }

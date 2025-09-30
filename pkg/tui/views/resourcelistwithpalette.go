@@ -13,9 +13,9 @@ type ResourceWithPaletteView struct {
 	palette      *PaletteView
 }
 
-func NewResourceWithPaletteView(ctx context.Context, input ListResourceInput, commandsForResource func(r resource.Resource) tea.Cmd, opts ...tui.TableOption[resource.Resource]) *ResourceWithPaletteView {
+func NewResourceWithPaletteView(ctx context.Context, input ListResourceInput, loadResourceData func(ctx context.Context, in ListResourceInput) ([]resource.Resource, error), commandsForResource func(r resource.Resource) tea.Cmd, opts ...tui.TableOption[resource.Resource]) *ResourceWithPaletteView {
 	resourceView := &ResourceWithPaletteView{}
-	resourceView.resourceList = NewResourceView(ctx, input, commandsForResource, opts...)
+	resourceView.resourceList = NewResourceView(ctx, input, loadResourceData, commandsForResource, opts...)
 	return resourceView
 }
 

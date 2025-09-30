@@ -22,6 +22,14 @@ func matchesJobId(id string) bool {
 	return strings.HasPrefix(id, "job-") && len(id) == 24
 }
 
+func matchesWorkflowId(id string) bool {
+	// when running locally, we don't have a workflow id, so we just use a dummy one
+	if id == "wfl-local" {
+		return true
+	}
+	return strings.HasPrefix(id, "wfl-") && len(id) == 24
+}
+
 func matchesResourceId(id string) bool {
-	return matchesServiceId(id) || matchesPostgresId(id) || matchesKeyValueId(id) || matchesCronJobId(id) || matchesJobId(id)
+	return matchesServiceId(id) || matchesPostgresId(id) || matchesKeyValueId(id) || matchesCronJobId(id) || matchesJobId(id) || matchesWorkflowId(id)
 }

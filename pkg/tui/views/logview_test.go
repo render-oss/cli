@@ -47,7 +47,9 @@ func TestLogView(t *testing.T) {
 			return nil
 		}
 
-		m := views.NewLogsView(ctx, cmd.LogsCmd, interactiveLogsCommand, input, loadFunc)
+		logCmd := cmd.NewLogsCmd(nil)
+
+		m := views.NewLogsView(ctx, logCmd, interactiveLogsCommand, input, loadFunc)
 		tm := teatest.NewTestModel(t, testhelper.Stackify(m))
 
 		tm.Send(tea.WindowSizeMsg{Width: 80, Height: 80})
@@ -73,7 +75,9 @@ func TestLogView(t *testing.T) {
 			return nil
 		}
 
-		m := views.NewLogsView(ctx, cmd.LogsCmd, interactiveLogsCommand, input, loadFunc)
+		logCmd := cmd.NewLogsCmd(nil)
+
+		m := views.NewLogsView(ctx, logCmd, interactiveLogsCommand, input, loadFunc)
 		tm := teatest.NewTestModel(t, testhelper.Stackify(m))
 
 		tm.Send(tea.WindowSizeMsg{Width: 80, Height: 80})

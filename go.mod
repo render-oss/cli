@@ -12,6 +12,7 @@ require (
 	github.com/charmbracelet/x/ansi v0.3.2
 	github.com/charmbracelet/x/exp/teatest v0.0.0-20240919170804-a4978c8e603a
 	github.com/evertras/bubble-table v0.17.0
+	github.com/go-chi/chi/v5 v5.2.2
 	github.com/gorilla/websocket v1.5.3
 	github.com/jedib0t/go-pretty v4.3.0+incompatible
 	github.com/oapi-codegen/runtime v1.1.1

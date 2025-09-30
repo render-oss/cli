@@ -10,8 +10,10 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	clientjob "github.com/render-oss/cli/pkg/client/jobs"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/text"
+	"github.com/render-oss/cli/pkg/tui/flows"
 	"github.com/render-oss/cli/pkg/tui/views"
 )
 
@@ -22,16 +24,17 @@ var JobCreateCmd = &cobra.Command{
 }
 
 var InteractiveJobCreate = func(ctx context.Context, input *views.JobCreateInput, breadcrumb string) tea.Cmd {
+	deps := dependencies.GetFromContext(ctx)
 	return command.AddToStackFunc(
 		ctx,
 		JobCreateCmd,
 		breadcrumb,
 		input,
 		views.NewJobCreateView(ctx, input, JobCreateCmd, views.CreateJob, func(j *clientjob.Job) tea.Cmd {
-			return InteractiveLogs(ctx, views.LogInput{
+			return flows.NewLogFlow(deps).LogsFlow(ctx, views.LogInput{
 				ResourceIDs: []string{j.Id},
 				Tail:        true,
-			}, "Logs")
+			})
 		}),
 	)
 }

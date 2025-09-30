@@ -3,15 +3,17 @@ package cmd
 import (
 	"context"
 
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/service"
+	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/tui/flows"
+	"github.com/render-oss/cli/pkg/tui/views"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/resource"
-	"github.com/render-oss/cli/pkg/service"
-	"github.com/render-oss/cli/pkg/tui"
-	"github.com/render-oss/cli/pkg/tui/views"
 	"github.com/render-oss/cli/pkg/validate"
 )
 
@@ -96,9 +98,9 @@ func getServiceListInput(ctx context.Context, input *views.SSHInput) views.Servi
 
 func getSSHTableOptions(ctx context.Context, breadcrumb string) []tui.CustomOption {
 	return []tui.CustomOption{
-		WithCopyID(ctx, servicesCmd),
-		WithWorkspaceSelection(ctx),
-		WithProjectFilter(ctx, servicesCmd, "Project Filter", &views.SSHInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
+		flows.WithCopyID(ctx, servicesCmd),
+		flows.WithWorkspaceSelection(ctx),
+		flows.WithProjectFilter(ctx, servicesCmd, "Project Filter", &views.SSHInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
 			input := views.SSHInput{}
 			if project != nil {
 				input.Project = project

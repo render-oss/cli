@@ -11,6 +11,7 @@ import (
 	"github.com/render-oss/cli/pkg/project"
 	"github.com/render-oss/cli/pkg/text"
 	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/tui/flows"
 	"github.com/render-oss/cli/pkg/tui/views"
 )
 
@@ -31,8 +32,8 @@ var InteractiveEnvironment = func(ctx context.Context, input views.EnvironmentIn
 			}, e.Name)
 		},
 		tui.WithCustomOptions[*client.Environment]([]tui.CustomOption{
-			WithCopyID(ctx, servicesCmd),
-			WithWorkspaceSelection(ctx),
+			flows.WithCopyID(ctx, servicesCmd),
+			flows.WithWorkspaceSelection(ctx),
 		}),
 	))
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/postgres"
 	"github.com/render-oss/cli/pkg/service"
+	"github.com/render-oss/cli/pkg/workflow"
 )
 
 func Open(url string) error {
@@ -45,6 +46,12 @@ func OpenDeploy(resourceID, resourceType, deployID string) error {
 	return Open(dashURL)
 }
 
+func OpenVersion(workflowID, versionID string) error {
+	// TODO TBD on path naming/visibility down the line
+	dashURL := resourceURL(workflowID, workflow.WorkflowType)
+	return Open(fmt.Sprintf("%s/versions/%s", dashURL, versionID))
+}
+
 func pathSegmentFromResourceType(resourceType string) string {
 	switch resourceType {
 	case service.WebServiceResourceType:
@@ -61,6 +68,8 @@ func pathSegmentFromResourceType(resourceType string) string {
 		return "r"
 	case postgres.PostgresType:
 		return "d"
+	case workflow.WorkflowType:
+		return "wf"
 	default:
 		return "web"
 	}

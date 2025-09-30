@@ -5,9 +5,13 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	clientjob "github.com/render-oss/cli/pkg/client/jobs"
+	wfclient "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/deploy"
 	"github.com/render-oss/cli/pkg/resource"
+	"github.com/render-oss/cli/pkg/task"
+	"github.com/render-oss/cli/pkg/taskrun"
 	"github.com/render-oss/cli/pkg/utils"
+	"github.com/render-oss/cli/pkg/version"
 )
 
 func ResourceTable(v []resource.Resource) string {
@@ -62,6 +66,33 @@ func InstanceTable(v []*client.ServiceInstance) string {
 	for _, r := range v {
 		age := utils.FormatDuration(r.CreatedAt)
 		t.AppendRow(table.Row{r.Id, age})
+	}
+	return FormatString(t.Render())
+}
+
+func VersionTable(v []*wfclient.WorkflowVersion) string {
+	t := newTable()
+	t.AppendHeader(toRow(version.Header()))
+	for _, r := range v {
+		t.AppendRow(toRow(version.Row(r)))
+	}
+	return FormatString(t.Render())
+}
+
+func TaskTable(v []*wfclient.Task) string {
+	t := newTable()
+	t.AppendHeader(toRow(task.Header()))
+	for _, r := range v {
+		t.AppendRow(toRow(task.Row(r)))
+	}
+	return FormatString(t.Render())
+}
+
+func TaskRunTable(v []*wfclient.TaskRun) string {
+	t := newTable()
+	t.AppendHeader(toRow(taskrun.Header()))
+	for _, r := range v {
+		t.AppendRow(toRow(taskrun.Row(r)))
 	}
 	return FormatString(t.Render())
 }

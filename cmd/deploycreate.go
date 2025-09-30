@@ -10,9 +10,11 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/deploy"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/text"
+	"github.com/render-oss/cli/pkg/tui/flows"
 	"github.com/render-oss/cli/pkg/tui/views"
 	"github.com/render-oss/cli/pkg/types"
 )
@@ -30,13 +32,14 @@ var deployCreateCmd = &cobra.Command{
 }
 
 var InteractiveDeployCreate = func(ctx context.Context, input types.DeployInput, breadcrumb string) tea.Cmd {
+	deps := dependencies.GetFromContext(ctx)
 	return command.AddToStackFunc(
 		ctx,
 		deployCreateCmd,
 		breadcrumb,
 		&input,
 		views.NewDeployCreateView(ctx, input, func(d *client.Deploy) tea.Cmd {
-			return TailResourceLogs(ctx, input.ServiceID)
+			return flows.NewLogFlow(deps).TailLogsFlow(ctx, input.ServiceID)
 		}))
 }
 

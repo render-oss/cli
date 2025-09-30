@@ -1,4 +1,4 @@
-package cmd
+package flows
 
 import (
 	"context"
@@ -11,16 +11,18 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/tui"
 	"github.com/render-oss/cli/pkg/tui/views"
 )
 
 func WithWorkspaceSelection(ctx context.Context) tui.CustomOption {
+	deps := dependencies.GetFromContext(ctx)
 	return tui.CustomOption{
 		Key:   "w",
 		Title: "Change Workspace",
 		Function: func(row btable.Row) tea.Cmd {
-			return InteractiveWorkspaceSet(ctx, views.ListWorkspaceInput{})
+			return NewWorkspaceFlow(deps).WorkspaceSetFlow(ctx, views.ListWorkspaceInput{})
 		},
 	}
 }

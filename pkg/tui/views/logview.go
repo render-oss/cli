@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -13,20 +12,12 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/render-oss/cli/pkg/keyvalue"
-	"github.com/render-oss/cli/pkg/postgres"
-	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/style"
 	"github.com/render-oss/cli/pkg/tui/layouts"
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
 	lclient "github.com/render-oss/cli/pkg/client/logs"
 	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/config"
-	"github.com/render-oss/cli/pkg/logs"
-	"github.com/render-oss/cli/pkg/pointers"
-	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/tui"
 )
 
@@ -58,115 +49,14 @@ type LogInput struct {
 	Method     []string `cli:"method"`
 	Path       []string `cli:"path"`
 
+	TaskID    []string `cli:"task-id"`
+	TaskRunID []string `cli:"task-run-id"`
+
 	Limit     int    `cli:"limit"`
 	Direction string `cli:"direction"`
 	Tail      bool   `cli:"tail"`
 
 	ListResourceInput ListResourceInput
-}
-
-func getResourceIDsFromIDOrNames(ctx context.Context, c *client.ClientWithResponses, idOrNames []string) ([]string, error) {
-	serviceRepo := service.NewRepo(c)
-	kvRepo := keyvalue.NewRepo(c)
-	postgresRepo := postgres.NewRepo(c)
-
-	resourceIds := make([]string, len(idOrNames))
-
-	for i, idOrName := range idOrNames {
-		if matchesResourceId(idOrName) {
-			// This will error out if we have a name that looks like a resource ID but isn't one.
-			// Ideally we'd like to catch that case and allow looking up by name for such resources.
-			// However, checking if the resource ID is valid would be a performance hit, and doesn't
-			// seem worth it considering how unlikely such a name is.
-			resourceIds[i] = idOrName
-			continue
-		}
-
-		// We have a name, not an ID. See if we can find a match
-
-		services, err := serviceRepo.ListServices(ctx, &client.ListServicesParams{
-			Name: &client.NameParam{idOrName},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if len(services) == 1 {
-			resourceIds[i] = services[0].Id
-			continue
-		}
-
-		kvs, err := kvRepo.ListKeyValue(ctx, &client.ListKeyValueParams{
-			Name: &client.NameParam{idOrName},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if len(kvs) == 1 {
-			resourceIds[i] = kvs[0].Id
-			continue
-		}
-
-		postgreses, err := postgresRepo.ListPostgres(ctx, &client.ListPostgresParams{
-			Name: &client.NameParam{idOrName},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if len(postgreses) == 1 {
-			resourceIds[i] = postgreses[0].Id
-			continue
-		}
-
-		return nil, fmt.Errorf("no resource found with ID or name '%s'", idOrName)
-	}
-
-	return resourceIds, nil
-}
-
-func (l LogInput) ToParam(ctx context.Context, c *client.ClientWithResponses) (*client.ListLogsParams, error) {
-	ownerID, err := config.WorkspaceID()
-	if err != nil {
-		return nil, fmt.Errorf("error getting workspace ID: %v", err)
-	}
-
-	if l.Limit == 0 {
-		l.Limit = 100
-	}
-
-	var startTime *time.Time
-	if l.StartTime != nil {
-		startTime = l.StartTime.T
-	}
-
-	var endTime *time.Time
-	if l.EndTime != nil {
-		endTime = l.EndTime.T
-	}
-
-	resourceIDs, err := getResourceIDsFromIDOrNames(ctx, c, l.ResourceIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	return &client.ListLogsParams{
-		Resource:   resourceIDs,
-		OwnerId:    ownerID,
-		Instance:   pointers.FromArray(l.Instance),
-		Limit:      pointers.From(l.Limit),
-		StartTime:  startTime,
-		EndTime:    endTime,
-		Text:       pointers.FromArray(l.Text),
-		Level:      pointers.FromArray(l.Level),
-		Type:       pointers.FromArray(l.Type),
-		Host:       pointers.FromArray(l.Host),
-		StatusCode: pointers.FromArray(l.StatusCode),
-		Method:     pointers.FromArray(l.Method),
-		Path:       pointers.FromArray(l.Path),
-		Direction:  pointers.From(mapDirection(l.Direction)),
-	}, nil
 }
 
 func mapDirection(direction string) lclient.LogDirection {
@@ -181,8 +71,6 @@ func mapDirection(direction string) lclient.LogDirection {
 }
 
 type LogsView struct {
-	resourceTable *ResourceView
-
 	tabModel    *tui.TabModel
 	logModel    *tui.LogModel
 	footerModel *FooterModel
@@ -224,33 +112,6 @@ func (f *FooterModel) SetWidth(width int) {
 
 func (f *FooterModel) SetHeight(height int) {
 	f.height = height
-}
-
-func LoadLogData(ctx context.Context, in LogInput) (*tui.LogResult, error) {
-	c, err := client.NewDefaultClient()
-	if err != nil {
-		return nil, err
-	}
-
-	logRepo := logs.NewLogRepo(c)
-	params, err := in.ToParam(ctx, c)
-	if err != nil {
-		return nil, fmt.Errorf("error processing arguments: %v", err)
-	}
-
-	if in.Tail {
-		logChan, err := logRepo.TailLogs(ctx, params)
-		if err != nil {
-			return nil, fmt.Errorf("error tailing logs: %v", err)
-		}
-		return &tui.LogResult{Logs: &client.Logs200Response{}, LogChannel: logChan}, nil
-	}
-
-	logs, err := logRepo.ListLogs(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("error listing logs: %v", err)
-	}
-	return &tui.LogResult{Logs: logs, LogChannel: nil}, nil
 }
 
 type tabDefinition struct {
@@ -306,47 +167,34 @@ func NewLogsView(
 	interactiveLogsCommand func(ctx context.Context, input LogInput, breadcrumb string) tea.Cmd,
 	input LogInput,
 	loadLogFunc func(ctx context.Context, in LogInput) (*tui.LogResult, error),
-	opts ...tui.TableOption[resource.Resource],
 ) *LogsView {
 	view := &LogsView{}
+	// Create log filter form
+	fields, result := command.HuhFormFields(logsCmd, &input)
 
-	// If no resources specified, show resource selection view
-	if len(input.ResourceIDs) == 0 {
-		view.resourceTable = NewResourceView(ctx, input.ListResourceInput, func(r resource.Resource) tea.Cmd {
-			input.ResourceIDs = []string{r.ID()}
-			return interactiveLogsCommand(ctx, input, resource.BreadcrumbForResource(r))
-		}, opts...)
-	} else {
-		// Create log filter form
-		fields, result := command.HuhFormFields(logsCmd, &input)
-
-		tabs := tabModel(fields)
-		view.onFilter = func() tea.Cmd {
-			var logInput LogInput
-			err := command.StructFromFormValues(result, &logInput)
-			if err != nil {
-				return func() tea.Msg { return tui.ErrorMsg{Err: fmt.Errorf("failed to parse form values: %w", err)} }
-			}
-
-			return interactiveLogsCommand(ctx, logInput, "") // we don't need a breadcrumb for the filter window
+	tabs := tabModel(fields)
+	view.onFilter = func() tea.Cmd {
+		var logInput LogInput
+		err := command.StructFromFormValues(result, &logInput)
+		if err != nil {
+			return func() tea.Msg { return tui.ErrorMsg{Err: fmt.Errorf("failed to parse form values: %w", err)} }
 		}
-		view.tabModel = tabs
 
-		// Create log view model
-		view.logModel = tui.NewLogModel(command.LoadCmd(ctx, loadLogFunc, input))
-		view.footerModel = &FooterModel{help: view.logsHelp}
-		view.layout = layouts.NewSidebarLayout(layouts.NewBoxLayout(lipgloss.NewStyle().PaddingRight(1), view.tabModel), view.logModel, view.footerModel)
-		view.layout.SetSidebarWidth(sidebarWidth)
-		view.layout.SetFooterHeight(footerHeight)
+		return interactiveLogsCommand(ctx, logInput, "") // we don't need a breadcrumb for the filter window
 	}
+	view.tabModel = tabs
+
+	// Create log view model
+	view.logModel = tui.NewLogModel(command.LoadCmd(ctx, loadLogFunc, input))
+	view.footerModel = &FooterModel{help: view.logsHelp}
+	view.layout = layouts.NewSidebarLayout(layouts.NewBoxLayout(lipgloss.NewStyle().PaddingRight(1), view.tabModel), view.logModel, view.footerModel)
+	view.layout.SetSidebarWidth(sidebarWidth)
+	view.layout.SetFooterHeight(footerHeight)
 
 	return view
 }
 
 func (v *LogsView) Init() tea.Cmd {
-	if v.resourceTable != nil {
-		return v.resourceTable.Init()
-	}
 	return v.layout.Init()
 }
 
@@ -368,11 +216,6 @@ func (v *LogsView) logsHelp() string {
 }
 
 func (v *LogsView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if v.resourceTable != nil {
-		_, cmd := v.resourceTable.Update(msg)
-		return v, cmd
-	}
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -401,8 +244,5 @@ func (v *LogsView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (v *LogsView) View() string {
-	if v.resourceTable != nil {
-		return v.resourceTable.View()
-	}
 	return v.layout.View()
 }

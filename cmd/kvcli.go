@@ -10,6 +10,7 @@ import (
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/tui/flows"
 	"github.com/render-oss/cli/pkg/tui/views"
 )
 
@@ -34,9 +35,9 @@ func InteractiveKeyValueCLIView(ctx context.Context, input *views.RedisCLIInput)
 
 func getRedisTableOptions(ctx context.Context, input *views.RedisCLIInput) []tui.CustomOption {
 	return []tui.CustomOption{
-		WithCopyID(ctx, servicesCmd),
-		WithWorkspaceSelection(ctx),
-		WithProjectFilter(ctx, redisCLICmd, "redisCLI", input, func(ctx context.Context, project *client.Project) tea.Cmd {
+		flows.WithCopyID(ctx, servicesCmd),
+		flows.WithWorkspaceSelection(ctx),
+		flows.WithProjectFilter(ctx, redisCLICmd, "redisCLI", input, func(ctx context.Context, project *client.Project) tea.Cmd {
 			if project != nil {
 				input.EnvironmentIDs = project.EnvironmentIds
 			}

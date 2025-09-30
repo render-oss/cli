@@ -10,6 +10,7 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dashboard"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/postgres"
@@ -17,8 +18,11 @@ import (
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/text"
 	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/tui/flows"
 	"github.com/render-oss/cli/pkg/tui/views"
+	workflowviews "github.com/render-oss/cli/pkg/tui/views/workflows"
 	"github.com/render-oss/cli/pkg/types"
+	"github.com/render-oss/cli/pkg/workflow"
 )
 
 var servicesCmd = &cobra.Command{
@@ -44,6 +48,9 @@ func optionallyAddCommand(commands []views.PaletteCommand, command views.Palette
 }
 
 func selectResource(ctx context.Context) func(resource.Resource) []views.PaletteCommand {
+	// We should refactor this command to take the dependencies on construction
+	// rather than getting them from the context
+	deps := dependencies.GetFromContext(ctx)
 	return func(r resource.Resource) []views.PaletteCommand {
 		type commandWithAllowedTypes struct {
 			command      views.PaletteCommand
@@ -57,10 +64,10 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "logs",
 					Description: "Tail resource logs",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return InteractiveLogs(ctx, views.LogInput{
+						return flows.NewLogFlow(deps).LogsFlow(ctx, views.LogInput{
 							ResourceIDs: []string{r.ID()},
 							Tail:        true,
-						}, "Logs")
+						})
 					},
 				},
 				allowedTypes: append([]string{postgres.PostgresType, keyvalue.KeyValueType}, service.NonStaticTypes...),
@@ -127,6 +134,26 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 			},
 			{
 				command: views.PaletteCommand{
+					Name:        "versions list",
+					Description: "List versions for the workflow",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return flows.NewWorkflow(deps, flows.NewLogFlow(deps), false).VersionList(ctx, &workflowviews.VersionListInput{WorkflowID: r.ID()})
+					},
+				},
+				allowedTypes: []string{workflow.WorkflowType},
+			},
+			{
+				command: views.PaletteCommand{
+					Name:        "versions release",
+					Description: "Release a new version of the workflow",
+					Action: func(ctx context.Context, args []string) tea.Cmd {
+						return flows.NewWorkflow(deps, flows.NewLogFlow(deps), false).VersionRelease(ctx, &workflowviews.VersionReleaseInput{WorkflowID: r.ID()})
+					},
+				},
+				allowedTypes: []string{workflow.WorkflowType},
+			},
+			{
+				command: views.PaletteCommand{
 					Name:        "ssh",
 					Description: "SSH into the service",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
@@ -185,10 +212,12 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 }
 
 func InteractiveServices(ctx context.Context, in views.ListResourceInput, breadcrumb string) tea.Cmd {
+	deps := dependencies.GetFromContext(ctx)
 	return command.AddToStackFunc(ctx, servicesCmd, breadcrumb, &in,
 		views.NewResourceWithPaletteView(
 			ctx,
 			in,
+			deps.ResourceLoader().LoadResourceData,
 			func(r resource.Resource) tea.Cmd {
 				return InteractivePalette(ctx, selectResource(ctx)(r), resource.BreadcrumbForResource(r))
 			},
@@ -199,9 +228,9 @@ func InteractiveServices(ctx context.Context, in views.ListResourceInput, breadc
 
 func getServiceTableOptions(ctx context.Context) []tui.CustomOption {
 	return []tui.CustomOption{
-		WithCopyID(ctx, servicesCmd),
-		WithWorkspaceSelection(ctx),
-		WithProjectFilter(ctx, servicesCmd, "Project Filter", &views.ListResourceInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
+		flows.WithCopyID(ctx, servicesCmd),
+		flows.WithWorkspaceSelection(ctx),
+		flows.WithProjectFilter(ctx, servicesCmd, "Project Filter", &views.ListResourceInput{}, func(ctx context.Context, project *client.Project) tea.Cmd {
 			listResourceInput := views.ListResourceInput{}
 			breadcrumb := "All Projects"
 			if project != nil {
@@ -228,8 +257,9 @@ func init() {
 			return err
 		}
 
+		deps := dependencies.GetFromContext(cmd.Context())
 		if nonInteractive, err := command.NonInteractive(cmd, func() ([]resource.Resource, error) {
-			return views.LoadResourceData(cmd.Context(), in)
+			return deps.ResourceLoader().LoadResourceData(cmd.Context(), in)
 		}, text.ResourceTable); err != nil {
 			return err
 		} else if nonInteractive {

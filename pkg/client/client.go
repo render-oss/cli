@@ -17,6 +17,16 @@ import (
 var ErrUnauthorized = errors.New("unauthorized")
 var ErrForbidden = errors.New("forbidden")
 
+const (
+	LocalKey = ""
+)
+
+func NotLoggedInClient() (*ClientWithResponses, error) {
+	return NewClientWithResponses(cfg.GetHost(), WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
+		return config.ErrLogin
+	}))
+}
+
 func NewDefaultClient() (*ClientWithResponses, error) {
 	apiCfg, err := config.DefaultAPIConfig()
 	if err != nil {
@@ -24,6 +34,18 @@ func NewDefaultClient() (*ClientWithResponses, error) {
 	}
 	apiCfg = maybeRefreshAPIToken(apiCfg)
 	return clientWithAuth(&http.Client{}, apiCfg)
+}
+
+func NewLocalClient(localPort int) (*ClientWithResponses, error) {
+	cfg := LocalConfig(localPort)
+	return NewClientWithResponses(cfg.Host)
+}
+
+func LocalConfig(localPort int) *config.APIConfig {
+	cfg := &config.APIConfig{}
+	cfg.Key = LocalKey
+	cfg.Host = fmt.Sprintf("http://localhost:%d/v1/", localPort)
+	return cfg
 }
 
 func maybeRefreshAPIToken(apiCfg config.APIConfig) config.APIConfig {

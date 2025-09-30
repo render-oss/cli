@@ -15,15 +15,15 @@ func (d DeployInput) String() []string {
 }
 
 func (d DeployInput) Validate(isInteractive bool) error {
-	if isNonZeroString(d.CommitID) && isNonZeroString(d.ImageURL) {
+	if IsNonZeroString(d.CommitID) && IsNonZeroString(d.ImageURL) {
 		return errors.New("only one of commit or image may be specified")
 	}
 
 	if d.ServiceID == "" {
-		if isNonZeroString(d.ImageURL) {
+		if IsNonZeroString(d.ImageURL) {
 			return errors.New("service id must be specified when image is specified")
 		}
-		if isNonZeroString(d.CommitID) {
+		if IsNonZeroString(d.CommitID) {
 			return errors.New("service id must be specified when commit is specified")
 		}
 		if d.Wait {
@@ -34,8 +34,4 @@ func (d DeployInput) Validate(isInteractive bool) error {
 		}
 	}
 	return nil
-}
-
-func isNonZeroString(s *string) bool {
-	return s != nil && *s != ""
 }

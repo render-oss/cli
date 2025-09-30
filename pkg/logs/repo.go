@@ -14,12 +14,13 @@ import (
 	"github.com/render-oss/cli/pkg/config"
 )
 
-func NewLogRepo(c *client.ClientWithResponses) *LogRepo {
-	return &LogRepo{c: c}
+func NewLogRepo(c *client.ClientWithResponses, apiConfig *config.APIConfig) *LogRepo {
+	return &LogRepo{c: c, apiConfig: apiConfig}
 }
 
 type LogRepo struct {
-	c *client.ClientWithResponses
+	c         *client.ClientWithResponses
+	apiConfig *config.APIConfig
 }
 
 func (l *LogRepo) ListLogs(ctx context.Context, params *client.ListLogsParams) (*client.Logs200Response, error) {
@@ -37,18 +38,22 @@ func (l *LogRepo) ListLogs(ctx context.Context, params *client.ListLogsParams) (
 
 func (l *LogRepo) TailLogs(ctx context.Context, params *client.ListLogsParams) (<-chan *lclient.Log, error) {
 	subscribeParams := client.SubscribeLogsParams(*params)
-	apiConfig, err := config.DefaultAPIConfig()
+	req, err := client.NewSubscribeLogsRequest(l.apiConfig.Host, &subscribeParams)
 	if err != nil {
 		return nil, err
 	}
-	req, err := client.NewSubscribeLogsRequest(apiConfig.Host, &subscribeParams)
 	dialer := websocket.Dialer{}
 
 	u := req.URL
-	u.Scheme = "wss"
+
+	if u.Scheme == "https" {
+		u.Scheme = "wss"
+	} else {
+		u.Scheme = "ws"
+	}
 
 	// Establish WebSocket connection using the custom dialer
-	conn, resp, err := dialer.Dial(u.String(), client.AddHeaders(http.Header{}, apiConfig.Key))
+	conn, resp, err := dialer.Dial(u.String(), client.AddHeaders(http.Header{}, l.apiConfig.Key))
 	if err != nil {
 		// Return the http error if it exists, fall back to the websocket error
 		if resp != nil && resp.StatusCode != http.StatusSwitchingProtocols {
