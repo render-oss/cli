@@ -150,6 +150,17 @@ func (f *Workflow) VersionList(ctx context.Context, input *workflowviews.Version
 }
 
 func (f *Workflow) VersionRelease(ctx context.Context, input *workflowviews.VersionReleaseInput) tea.Cmd {
+	if input.WorkflowID == "" {
+		return f.workflowList(ctx, &workflowviews.WorkflowInput{}, func(ctx context.Context, r resource.Resource) tea.Cmd {
+			input.WorkflowID = r.ID()
+			return f.versionRelease(ctx, input)
+		})
+	}
+
+	return f.versionRelease(ctx, input)
+}
+
+func (f *Workflow) versionRelease(ctx context.Context, input *workflowviews.VersionReleaseInput) tea.Cmd {
 	return command.AddToStack(
 		f.deps.Stack(),
 		f.deps.ReleaseVersion(),

@@ -19,13 +19,8 @@ func NewVersionReleaseCmd(deps flows.WorkflowDeps) *cobra.Command {
 		Short: "Release a new workflow version",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			deps, local, err := getLocalDeps(cmd, deps)
-			if err != nil {
-				return fmt.Errorf("failed to get local deps: %w", err)
-			}
-
 			var input workflowviews.VersionReleaseInput
-			err = command.ParseCommand(cmd, args, &input)
+			err := command.ParseCommand(cmd, args, &input)
 			if err != nil {
 				return fmt.Errorf("failed to parse input: %w", err)
 			}
@@ -40,7 +35,7 @@ func NewVersionReleaseCmd(deps flows.WorkflowDeps) *cobra.Command {
 				return nil
 			}
 
-			flows.NewWorkflow(deps, flows.NewLogFlow(deps, flows.WithLocal(local)), local).VersionRelease(cmd.Context(), &input)
+			flows.NewWorkflow(deps, flows.NewLogFlow(deps), false).VersionRelease(cmd.Context(), &input)
 			return nil
 		},
 	}
@@ -98,12 +93,6 @@ func nonInteractiveVersionRelease(cmd *cobra.Command, input workflowviews.Versio
 	if !nonInteractive {
 		return false
 	}
-
-	/*
-		if input.Wait && !workflowversion.IsSuccessful(wfv.Status) {
-			os.Exit(1)
-		}
-	*/
 
 	return nonInteractive
 }

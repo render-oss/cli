@@ -18,13 +18,8 @@ func NewVersionListCmd(deps flows.WorkflowDeps) *cobra.Command {
 		Short: "List versions for a workflow",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			deps, local, err := getLocalDeps(cmd, deps)
-			if err != nil {
-				return fmt.Errorf("failed to get local deps: %w", err)
-			}
-
 			var input workflowviews.VersionListInput
-			err = command.ParseCommand(cmd, args, &input)
+			err := command.ParseCommand(cmd, args, &input)
 			if err != nil {
 				return fmt.Errorf("failed to parse command: %w", err)
 			}
@@ -37,7 +32,7 @@ func NewVersionListCmd(deps flows.WorkflowDeps) *cobra.Command {
 			} else if nonInteractive {
 				return nil
 			}
-			flows.NewWorkflow(deps, flows.NewLogFlow(deps, flows.WithLocal(local)), local).VersionList(cmd.Context(), &input)
+			flows.NewWorkflow(deps, flows.NewLogFlow(deps), false).VersionList(cmd.Context(), &input)
 			return nil
 		},
 	}

@@ -2,7 +2,6 @@ package workflows
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -36,12 +35,6 @@ func NewVersionReleaseView(ctx context.Context, workflowLoader *WorkflowLoader, 
 }
 
 func (v *VersionReleaseView) setupForm() tea.Cmd {
-	// TODO Fix this
-	_, err := v.workflowLoader.workflowRepo.GetWorkflow(v.ctx, v.input.WorkflowID)
-	if err != nil {
-		return func() tea.Msg { return tui.ErrorMsg{Err: fmt.Errorf("failed to get workflow: %w", err)} }
-	}
-
 	var inputs []huh.Field
 	if v.input.CommitID == nil {
 		v.input.CommitID = pointers.From("")
