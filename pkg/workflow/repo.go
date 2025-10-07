@@ -37,7 +37,7 @@ func (r *Repo) ListWorkflows(ctx context.Context, params *client.ListWorkflowsPa
 
 	workflows := make([]*wfclient.Workflow, 0, len(*resp.JSON200))
 	for _, workflow := range *resp.JSON200 {
-		workflows = append(workflows, &workflow)
+		workflows = append(workflows, &workflow.Workflow)
 	}
 
 	return workflows, nil

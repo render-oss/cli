@@ -30,6 +30,8 @@ const (
 	LogLabelNameTaskRun          LogLabelName = "taskRun"
 	LogLabelNameText             LogLabelName = "text"
 	LogLabelNameType             LogLabelName = "type"
+	LogLabelNameWorkflowService  LogLabelName = "workflowService"
+	LogLabelNameWorkflowVeresion LogLabelName = "workflowVeresion"
 )
 
 // Defines values for LogStreamPreviewSetting.
@@ -176,12 +178,6 @@ type LogFilterText = []string
 
 // LogFilterType defines model for logFilterType.
 type LogFilterType = []string
-
-// LogFilterWorkflowService defines model for logFilterWorkflowService.
-type LogFilterWorkflowService = []string
-
-// LogFilterWorkflowVersion defines model for logFilterWorkflowVersion.
-type LogFilterWorkflowVersion = []string
 
 // LogLabelParam defines model for logLabelParam.
 type LogLabelParam string

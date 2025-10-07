@@ -62,11 +62,15 @@ func (r *Repo) ListTasks(ctx context.Context, params *client.ListTasksParams) (c
 
 	result := make([]*workflows.Task, 0, len(*resp.JSON200))
 	for _, task := range *resp.JSON200 {
-		result = append(result, &task)
+		result = append(result, &task.Task)
 	}
 
-	// Currently cursor is not implemented for tasks
-	return "", result, nil
+	var cursor client.Cursor
+	if len(*resp.JSON200) > 0 {
+		cursor = (*resp.JSON200)[len(*resp.JSON200)-1].Cursor
+	}
+
+	return cursor, result, nil
 }
 
 func (r *Repo) ListTaskRuns(ctx context.Context, params *client.ListTaskRunsParams) (client.Cursor, []*workflows.TaskRun, error) {

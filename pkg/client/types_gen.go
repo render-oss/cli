@@ -1887,6 +1887,12 @@ type SyncWithCursor struct {
 	Sync   externalRef1.Sync `json:"sync"`
 }
 
+// TaskWithCursor defines model for taskWithCursor.
+type TaskWithCursor struct {
+	Cursor Cursor             `json:"cursor"`
+	Task   externalRef12.Task `json:"task"`
+}
+
 // TeamMember defines model for teamMember.
 type TeamMember struct {
 	Email      string           `json:"email"`
@@ -2031,6 +2037,18 @@ type WebhookWithCursor struct {
 	Webhook externalRef11.Webhook `json:"webhook"`
 }
 
+// WorkflowVersionWithCursor defines model for workflowVersionWithCursor.
+type WorkflowVersionWithCursor struct {
+	Cursor          Cursor                        `json:"cursor"`
+	WorkflowVersion externalRef12.WorkflowVersion `json:"workflowVersion"`
+}
+
+// WorkflowWithCursor defines model for workflowWithCursor.
+type WorkflowWithCursor struct {
+	Cursor   Cursor                 `json:"cursor"`
+	Workflow externalRef12.Workflow `json:"workflow"`
+}
+
 // CreatedAfterParam defines model for createdAfterParam.
 type CreatedAfterParam = time.Time
 
@@ -2122,6 +2140,9 @@ type UpdatedBeforeParam = time.Time
 
 // WorkflowIdParam defines model for workflowIdParam.
 type WorkflowIdParam = []string
+
+// WorkflowVersionIdParam defines model for workflowVersionIdParam.
+type WorkflowVersionIdParam = []string
 
 // N400BadRequest defines model for 400BadRequest.
 type N400BadRequest = Error
@@ -2347,7 +2368,7 @@ type ListLogsParams struct {
 	// Forward will start with the oldest logs in the time range.
 	Direction *externalRef6.LogDirectionParam `form:"direction,omitempty" json:"direction,omitempty"`
 
-	// Resource Filter logs by their resource. A resource is the id of a server, cronjob, job, postgres, or redis.
+	// Resource Filter logs by their resource. A resource is the id of a server, cronjob, job, postgres, redis, or workflow.
 	Resource externalRef6.LogFilterResource `form:"resource" json:"resource"`
 
 	// Instance Filter logs by the instance they were emitted from. An instance is the id of a specific running server.
@@ -2420,7 +2441,7 @@ type SubscribeLogsParams struct {
 	// Forward will start with the oldest logs in the time range.
 	Direction *externalRef6.LogDirectionParam `form:"direction,omitempty" json:"direction,omitempty"`
 
-	// Resource Filter logs by their resource. A resource is the id of a server, cronjob, job, postgres, or redis.
+	// Resource Filter logs by their resource. A resource is the id of a server, cronjob, job, postgres, redis, or workflow.
 	Resource externalRef6.LogFilterResource `form:"resource" json:"resource"`
 
 	// Instance Filter logs by the instance they were emitted from. An instance is the id of a specific running server.
@@ -2475,7 +2496,7 @@ type ListLogsValuesParams struct {
 	// Forward will start with the oldest logs in the time range.
 	Direction *externalRef6.LogDirectionParam `form:"direction,omitempty" json:"direction,omitempty"`
 
-	// Resource Filter logs by their resource. A resource is the id of a server, cronjob, job, postgres, or redis.
+	// Resource Filter logs by their resource. A resource is the id of a server, cronjob, job, postgres, redis, or workflow.
 	Resource externalRef6.LogFilterResource `form:"resource" json:"resource"`
 
 	// Instance Filter logs by the instance they were emitted from. An instance is the id of a specific running server.
@@ -3344,6 +3365,9 @@ type ListTaskRunsParams struct {
 	// TaskId An array of either task identifiers which can be either a task ID or a workflow slug with task name and optional version. If a version is not provided, the latest version of the task will be used.
 	TaskId *externalRef12.TaskIdFilterParam `form:"taskId,omitempty" json:"taskId,omitempty"`
 
+	// RootTaskRunId An array of root task IDs to filter on
+	RootTaskRunId *externalRef12.RootTaskRunIDFilterParam `form:"rootTaskRunId,omitempty" json:"rootTaskRunId,omitempty"`
+
 	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
@@ -3437,6 +3461,15 @@ type ListWorkflowsParams struct {
 
 // ListWorkflowVersionsParams defines parameters for ListWorkflowVersions.
 type ListWorkflowVersionsParams struct {
+	// OwnerId The ID of the workspaces to return resources for
+	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
+
+	// WorkflowID The IDs of the workflows to return resources for
+	WorkflowID *WorkflowIdParam `form:"workflowID,omitempty" json:"workflowID,omitempty"`
+
+	// WorkflowVersionId The IDs of the workflow versions to return resources for
+	WorkflowVersionId *WorkflowVersionIdParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`
+
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
 

@@ -15,21 +15,26 @@ func NewRepo(c *client.ClientWithResponses) *Repo {
 	return &Repo{client: c}
 }
 
-func (r *Repo) ListVersions(ctx context.Context, workflowID string, params *client.ListWorkflowVersionsParams) ([]*wfclient.WorkflowVersion, error) {
-	resp, err := r.client.ListWorkflowVersionsWithResponse(ctx, workflowID, params)
+func (r *Repo) ListVersions(ctx context.Context, workflowID string, params *client.ListWorkflowVersionsParams) (client.Cursor, []*wfclient.WorkflowVersion, error) {
+	resp, err := r.client.ListWorkflowVersionsWithResponse(ctx, params)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	if err := client.ErrorFromResponse(resp); err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	result := make([]*wfclient.WorkflowVersion, 0, len(*resp.JSON200))
 	for _, version := range *resp.JSON200 {
-		result = append(result, &version)
+		result = append(result, &version.WorkflowVersion)
 	}
 
-	return result, nil
+	var cursor client.Cursor
+	if len(*resp.JSON200) > 0 {
+		cursor = (*resp.JSON200)[len(*resp.JSON200)-1].Cursor
+	}
+
+	return cursor, result, nil
 }
 
 func (r *Repo) GetVersion(ctx context.Context, workflowVersionID string) (*wfclient.WorkflowVersion, error) {

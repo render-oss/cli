@@ -47,29 +47,16 @@ func (t *WorkflowLoader) CreateTaskRun(ctx context.Context, input TaskRunInput) 
 }
 
 func (w *WorkflowLoader) LoadVersionList(ctx context.Context, input VersionListInput, cur client.Cursor) (client.Cursor, []*wfclient.WorkflowVersion, error) {
-	// TODO CAP-7491
-	// https://linear.app/render-com/issue/CAP-7491/workflow-version-queries-do-not-page
-	// for now we don't actually page on workflow versions listing
-	// we should and will so i'm leaving this to reduce that workload
-
-	// pageSize := 20
+	pageSize := 20
 	params := &client.ListWorkflowVersionsParams{
-		// Limit: &pageSize
+		Limit:      &pageSize,
+		WorkflowID: pointers.From([]string{input.WorkflowID}),
 	}
-	// if cur != "" {
-	// 	params.Cursor = &cur
-	// }
-
-	versions, err := w.workflowVersionRepo.ListVersions(ctx, input.WorkflowID, params)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to list workflow versions: %w", err)
+	if cur != "" {
+		params.Cursor = &cur
 	}
 
-	// if len(versions) < pageSize {
-	// 	return "", versions, nil
-	// }
-
-	return "", versions, nil
+	return w.workflowVersionRepo.ListVersions(ctx, input.WorkflowID, params)
 }
 
 func (w *WorkflowLoader) ReleaseVersion(ctx context.Context, input VersionReleaseInput) (*wfclient.WorkflowVersion, error) {
@@ -134,7 +121,7 @@ func (w *WorkflowLoader) WaitForVersionRelease(ctx context.Context, workflowID s
 			// TODO CAP-7490
 			// https://linear.app/render-com/issue/CAP-7490/flesh-out-workflow-version-information-at-least-restgql-if-not-present
 			// hacky "get latest version" straight up does not work without statuses/visibility
-			wfv, err := w.workflowVersionRepo.ListVersions(ctx, workflowID, &client.ListWorkflowVersionsParams{Limit: pointers.From(1)})
+			_, wfv, err := w.workflowVersionRepo.ListVersions(ctx, workflowID, &client.ListWorkflowVersionsParams{Limit: pointers.From(1)})
 			if err != nil {
 				return nil, err
 			}
