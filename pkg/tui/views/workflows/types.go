@@ -55,7 +55,7 @@ func (t TaskRunInput) Validate(interactive bool) error {
 
 	if !interactive && t.Input == "" {
 		return errors.New("input must be specified when output is not interactive")
-	} else if !json.Valid([]byte(t.Input)) {
+	} else if t.Input != "" && !json.Valid([]byte(t.Input)) {
 		return errors.New("input must be valid JSON")
 	}
 
