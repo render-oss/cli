@@ -55,7 +55,10 @@ type TriggerReleaseInput struct {
 }
 
 func (d *Repo) TriggerRelease(ctx context.Context, workflowID string, input TriggerReleaseInput) error {
-	resp, err := d.client.DeployWorkflowWithResponse(ctx, workflowID)
+	resp, err := d.client.CreateWorkflowVersionWithResponse(ctx, client.CreateWorkflowVersionJSONRequestBody{
+		WorkflowId: workflowID,
+		Commit:     input.CommitId,
+	})
 	if err != nil {
 		return err
 	}

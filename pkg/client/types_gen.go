@@ -3630,6 +3630,9 @@ type CreateWorkflowJSONRequestBody = externalRef12.WorkflowCreate
 // UpdateWorkflowJSONRequestBody defines body for UpdateWorkflow for application/json ContentType.
 type UpdateWorkflowJSONRequestBody = externalRef12.WorkflowUpdate
 
+// CreateWorkflowVersionJSONRequestBody defines body for CreateWorkflowVersion for application/json ContentType.
+type CreateWorkflowVersionJSONRequestBody = externalRef12.CreateVersion
+
 // AsEnvVarValue returns the union data inside the AddUpdateEnvVarInput as a EnvVarValue
 func (t AddUpdateEnvVarInput) AsEnvVarValue() (EnvVarValue, error) {
 	var body EnvVarValue

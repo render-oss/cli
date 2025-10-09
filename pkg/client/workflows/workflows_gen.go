@@ -30,6 +30,7 @@ const (
 
 // Defines values for TaskRunStatus.
 const (
+	Canceled  TaskRunStatus = "canceled"
 	Completed TaskRunStatus = "completed"
 	Failed    TaskRunStatus = "failed"
 	Pending   TaskRunStatus = "pending"
@@ -62,6 +63,12 @@ type BuildConfig struct {
 
 	// Runtime The runtime environment for the workflow (e.g., node, python, etc.).
 	Runtime Runtime `json:"runtime"`
+}
+
+// CreateVersion defines model for CreateVersion.
+type CreateVersion struct {
+	Commit     *string `json:"commit,omitempty"`
+	WorkflowId string  `json:"workflowId"`
 }
 
 // Image defines model for Image.

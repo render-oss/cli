@@ -746,11 +746,13 @@ type ClientInterface interface {
 
 	UpdateWorkflow(ctx context.Context, workflowId externalRef12.WorkflowIDParam, body UpdateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeployWorkflow request
-	DeployWorkflow(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// ListWorkflowVersions request
 	ListWorkflowVersions(ctx context.Context, params *ListWorkflowVersionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateWorkflowVersionWithBody request with any body
+	CreateWorkflowVersionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateWorkflowVersion(ctx context.Context, body CreateWorkflowVersionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetWorkflowVersion request
 	GetWorkflowVersion(ctx context.Context, workflowVersionId externalRef12.WorkflowVersionIDParam, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3528,8 +3530,8 @@ func (c *Client) UpdateWorkflow(ctx context.Context, workflowId externalRef12.Wo
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeployWorkflow(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeployWorkflowRequest(c.Server, workflowId)
+func (c *Client) ListWorkflowVersions(ctx context.Context, params *ListWorkflowVersionsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListWorkflowVersionsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -3540,8 +3542,20 @@ func (c *Client) DeployWorkflow(ctx context.Context, workflowId externalRef12.Wo
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListWorkflowVersions(ctx context.Context, params *ListWorkflowVersionsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListWorkflowVersionsRequest(c.Server, params)
+func (c *Client) CreateWorkflowVersionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateWorkflowVersionRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateWorkflowVersion(ctx context.Context, body CreateWorkflowVersionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateWorkflowVersionRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -15797,40 +15811,6 @@ func NewUpdateWorkflowRequestWithBody(server string, workflowId externalRef12.Wo
 	return req, nil
 }
 
-// NewDeployWorkflowRequest generates requests for DeployWorkflow
-func NewDeployWorkflowRequest(server string, workflowId externalRef12.WorkflowIDParam) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "workflowId", runtime.ParamLocationPath, workflowId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/workflows/%s/deploy", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 // NewListWorkflowVersionsRequest generates requests for ListWorkflowVersions
 func NewListWorkflowVersionsRequest(server string, params *ListWorkflowVersionsParams) (*http.Request, error) {
 	var err error
@@ -15940,6 +15920,46 @@ func NewListWorkflowVersionsRequest(server string, params *ListWorkflowVersionsP
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewCreateWorkflowVersionRequest calls the generic CreateWorkflowVersion builder with application/json body
+func NewCreateWorkflowVersionRequest(server string, body CreateWorkflowVersionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateWorkflowVersionRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateWorkflowVersionRequestWithBody generates requests for CreateWorkflowVersion with any type of body
+func NewCreateWorkflowVersionRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workflowversions")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -16663,11 +16683,13 @@ type ClientWithResponsesInterface interface {
 
 	UpdateWorkflowWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, body UpdateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateWorkflowResponse, error)
 
-	// DeployWorkflowWithResponse request
-	DeployWorkflowWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*DeployWorkflowResponse, error)
-
 	// ListWorkflowVersionsWithResponse request
 	ListWorkflowVersionsWithResponse(ctx context.Context, params *ListWorkflowVersionsParams, reqEditors ...RequestEditorFn) (*ListWorkflowVersionsResponse, error)
+
+	// CreateWorkflowVersionWithBodyWithResponse request with any body
+	CreateWorkflowVersionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateWorkflowVersionResponse, error)
+
+	CreateWorkflowVersionWithResponse(ctx context.Context, body CreateWorkflowVersionJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateWorkflowVersionResponse, error)
 
 	// GetWorkflowVersionWithResponse request
 	GetWorkflowVersionWithResponse(ctx context.Context, workflowVersionId externalRef12.WorkflowVersionIDParam, reqEditors ...RequestEditorFn) (*GetWorkflowVersionResponse, error)
@@ -21779,33 +21801,6 @@ func (r UpdateWorkflowResponse) StatusCode() int {
 	return 0
 }
 
-type DeployWorkflowResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON401      *N401Unauthorized
-	JSON403      *N403Forbidden
-	JSON404      *N404NotFound
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r DeployWorkflowResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeployWorkflowResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type ListWorkflowVersionsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -21828,6 +21823,33 @@ func (r ListWorkflowVersionsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListWorkflowVersionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateWorkflowVersionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateWorkflowVersionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateWorkflowVersionResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -23890,15 +23912,6 @@ func (c *ClientWithResponses) UpdateWorkflowWithResponse(ctx context.Context, wo
 	return ParseUpdateWorkflowResponse(rsp)
 }
 
-// DeployWorkflowWithResponse request returning *DeployWorkflowResponse
-func (c *ClientWithResponses) DeployWorkflowWithResponse(ctx context.Context, workflowId externalRef12.WorkflowIDParam, reqEditors ...RequestEditorFn) (*DeployWorkflowResponse, error) {
-	rsp, err := c.DeployWorkflow(ctx, workflowId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeployWorkflowResponse(rsp)
-}
-
 // ListWorkflowVersionsWithResponse request returning *ListWorkflowVersionsResponse
 func (c *ClientWithResponses) ListWorkflowVersionsWithResponse(ctx context.Context, params *ListWorkflowVersionsParams, reqEditors ...RequestEditorFn) (*ListWorkflowVersionsResponse, error) {
 	rsp, err := c.ListWorkflowVersions(ctx, params, reqEditors...)
@@ -23906,6 +23919,23 @@ func (c *ClientWithResponses) ListWorkflowVersionsWithResponse(ctx context.Conte
 		return nil, err
 	}
 	return ParseListWorkflowVersionsResponse(rsp)
+}
+
+// CreateWorkflowVersionWithBodyWithResponse request with arbitrary body returning *CreateWorkflowVersionResponse
+func (c *ClientWithResponses) CreateWorkflowVersionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateWorkflowVersionResponse, error) {
+	rsp, err := c.CreateWorkflowVersionWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateWorkflowVersionResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateWorkflowVersionWithResponse(ctx context.Context, body CreateWorkflowVersionJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateWorkflowVersionResponse, error) {
+	rsp, err := c.CreateWorkflowVersion(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateWorkflowVersionResponse(rsp)
 }
 
 // GetWorkflowVersionWithResponse request returning *GetWorkflowVersionResponse
@@ -36595,20 +36625,27 @@ func ParseUpdateWorkflowResponse(rsp *http.Response) (*UpdateWorkflowResponse, e
 	return response, nil
 }
 
-// ParseDeployWorkflowResponse parses an HTTP response from a DeployWorkflowWithResponse call
-func ParseDeployWorkflowResponse(rsp *http.Response) (*DeployWorkflowResponse, error) {
+// ParseListWorkflowVersionsResponse parses an HTTP response from a ListWorkflowVersionsWithResponse call
+func ParseListWorkflowVersionsResponse(rsp *http.Response) (*ListWorkflowVersionsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeployWorkflowResponse{
+	response := &ListWorkflowVersionsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []WorkflowVersionWithCursor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest N401Unauthorized
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -36656,27 +36693,20 @@ func ParseDeployWorkflowResponse(rsp *http.Response) (*DeployWorkflowResponse, e
 	return response, nil
 }
 
-// ParseListWorkflowVersionsResponse parses an HTTP response from a ListWorkflowVersionsWithResponse call
-func ParseListWorkflowVersionsResponse(rsp *http.Response) (*ListWorkflowVersionsResponse, error) {
+// ParseCreateWorkflowVersionResponse parses an HTTP response from a CreateWorkflowVersionWithResponse call
+func ParseCreateWorkflowVersionResponse(rsp *http.Response) (*CreateWorkflowVersionResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &ListWorkflowVersionsResponse{
+	response := &CreateWorkflowVersionResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []WorkflowVersionWithCursor
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest N401Unauthorized
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
