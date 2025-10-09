@@ -13,12 +13,15 @@ import (
 	"github.com/render-oss/cli/pkg/workflows/store"
 )
 
-func ListTasks(store *store.TaskStore) []*workflowclient.Task {
+func ListTasks(store *store.TaskStore) []*client.TaskWithCursor {
 	tasks := store.GetTasks()
 
-	taskList := make([]*workflowclient.Task, len(tasks))
+	taskList := make([]*client.TaskWithCursor, len(tasks))
 	for i, task := range tasks {
-		taskList[i] = mapTask(task)
+		taskList[i] = &client.TaskWithCursor{
+			Task:   *mapTask(task),
+			Cursor: task.ID,
+		}
 	}
 
 	return taskList

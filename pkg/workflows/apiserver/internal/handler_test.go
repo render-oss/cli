@@ -24,7 +24,7 @@ func TestListTasks(t *testing.T) {
 	got := internal.ListTasks(store)
 
 	require.Equal(t, 1, len(got))
-	require.Equal(t, "test", got[0].Name)
+	require.Equal(t, "test", got[0].Task.Name)
 }
 
 func TestGetTask(t *testing.T) {
