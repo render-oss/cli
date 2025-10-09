@@ -25,7 +25,17 @@ func (i ListItem) Title() string {
 }
 
 func (i ListItem) Description() string {
-	statusLine := style.Status.Foreground(style.ColorDeprioritized).Render("Unknown")
+	var statusStyle lipgloss.Style
+	switch i.version.Status {
+	case wfclient.Ready:
+		statusStyle = style.Status.Foreground(style.ColorOK)
+	case wfclient.Building, wfclient.Registering, wfclient.Created:
+		statusStyle = style.Status.Foreground(style.ColorDeprioritized)
+	case wfclient.BuildFailed, wfclient.RegistrationFailed:
+		statusStyle = style.Status.Foreground(style.ColorError)
+	}
+
+	statusLine := statusStyle.Render(string(i.version.Status))
 
 	timeLine := lipgloss.JoinHorizontal(lipgloss.Left,
 		style.FormatKeyValue("Created", pointers.TimeValue(&i.version.CreatedAt)),

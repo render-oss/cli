@@ -36,6 +36,16 @@ const (
 	Running   TaskRunStatus = "running"
 )
 
+// Defines values for WorkflowVersionStatus.
+const (
+	BuildFailed        WorkflowVersionStatus = "build_failed"
+	Building           WorkflowVersionStatus = "building"
+	Created            WorkflowVersionStatus = "created"
+	Ready              WorkflowVersionStatus = "ready"
+	Registering        WorkflowVersionStatus = "registering"
+	RegistrationFailed WorkflowVersionStatus = "registration_failed"
+)
+
 // BuildConfig defines model for BuildConfig.
 type BuildConfig struct {
 	// Branch The branch to use for the build, if applicable.
@@ -191,12 +201,16 @@ type WorkflowUpdate struct {
 
 // WorkflowVersion defines model for WorkflowVersion.
 type WorkflowVersion struct {
-	CreatedAt  time.Time    `json:"createdAt"`
-	Id         string       `json:"id"`
-	Image      ImageVersion `json:"image"`
-	Name       string       `json:"name"`
-	WorkflowId string       `json:"workflowId"`
+	CreatedAt  time.Time             `json:"createdAt"`
+	Id         string                `json:"id"`
+	Image      ImageVersion          `json:"image"`
+	Name       string                `json:"name"`
+	Status     WorkflowVersionStatus `json:"status"`
+	WorkflowId string                `json:"workflowId"`
 }
+
+// WorkflowVersionStatus defines model for WorkflowVersionStatus.
+type WorkflowVersionStatus string
 
 // RootTaskRunIDFilterParam defines model for RootTaskRunIDFilterParam.
 type RootTaskRunIDFilterParam = []string
