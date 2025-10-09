@@ -22,13 +22,6 @@ type temporalSignalClient interface {
 	SignalWorkflow(ctx context.Context, workflowID string, runID string, signalName string, arg interface{}) error
 }
 
-func loggerMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.Method, r.URL.Path)
-		next.ServeHTTP(w, r)
-	})
-}
-
 type TaskServerFactory struct{}
 
 func NewTaskServerFactory() *TaskServerFactory {
@@ -64,7 +57,6 @@ func (h *ServerHandler) Start() *http.Server {
 	strictHandler := NewStrictHandler(h, nil)
 
 	r := chi.NewMux()
-	r.Use(loggerMiddleware)
 
 	// get an `http.Handler` that we can use
 	muxHandler := HandlerFromMux(strictHandler, r)
