@@ -3,7 +3,10 @@ package workflows
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"strings"
 	"time"
 
 	"github.com/render-oss/cli/pkg/client"
@@ -39,11 +42,50 @@ func NewWorkflowLoader(taskRepo *tasks.Repo, workflowService *workflow.Service, 
 }
 
 func (t *WorkflowLoader) CreateTaskRun(ctx context.Context, input TaskRunInput) (*workflows.TaskRun, error) {
-	var inputData []interface{}
-	if err := json.Unmarshal([]byte(input.Input), &inputData); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal input: %w", err)
+	inputData, err := unmarshalInputData(input.Input)
+	if err != nil {
+		return nil, err
 	}
 	return t.taskRepo.RunTask(ctx, input.TaskID, inputData)
+}
+
+func unmarshalInputData(input string) ([]interface{}, error) {
+	var parsedInputs []interface{}
+
+	if len(input) == 0 {
+		return nil, fmt.Errorf("Task input is required.")
+	}
+
+	inputRaw := []byte(input)
+
+	if err := json.Unmarshal(inputRaw, &parsedInputs); err != nil {
+		var syntaxErr *json.SyntaxError
+		var unmarshaltypeErr *json.UnmarshalTypeError
+		if errors.As(err, &syntaxErr) || errors.Is(err, io.ErrUnexpectedEOF) {
+			return nil, fmt.Errorf("The task input has invalid JSON.")
+		} else if errors.As(err, &unmarshaltypeErr) {
+			actualType := friendlyTypeName(unmarshaltypeErr.Value)
+			return nil, fmt.Errorf("Expected type array for task input, received type %s.", actualType)
+		} else {
+			return nil, err
+		}
+	}
+
+	return parsedInputs, nil
+}
+
+// friendlyTypeName converts type names from Go's json.UnmarshalTypeError to user-friendly names
+func friendlyTypeName(typeName string) string {
+	typeName = strings.TrimSpace(typeName)
+
+	switch typeName {
+	case "[]interface {}":
+		return "array"
+	case "bool":
+		return "boolean"
+	default:
+		return typeName
+	}
 }
 
 func (w *WorkflowLoader) LoadVersionList(ctx context.Context, input VersionListInput, cur client.Cursor) (client.Cursor, []*wfclient.WorkflowVersion, error) {
