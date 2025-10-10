@@ -96,7 +96,7 @@ func isCI() bool {
 
 func setupWorkflowCommands(deps *dependencies.Dependencies) {
 	deps.Commands.Workflow.TaskListCmd = NewTaskListCmd(deps)
-	deps.Commands.Workflow.TaskRunCmd = NewTaskRunCmd(deps)
+	deps.Commands.Workflow.TaskRunCmd = NewTaskRunStartCmd(deps)
 	deps.Commands.Workflow.TaskRunListCmd = NewTaskRunListCmd(deps)
 	deps.Commands.Workflow.TaskRunDetailsCmd = NewTaskRunDetailsCmd(deps)
 	deps.Commands.Workflow.VersionListCmd = NewVersionListCmd(deps)
@@ -104,11 +104,11 @@ func setupWorkflowCommands(deps *dependencies.Dependencies) {
 	deps.Commands.Workflow.WorkflowListCmd = workflowListCmd
 
 	taskCmd.AddCommand(deps.Commands.Workflow.TaskListCmd)
-	taskCmd.AddCommand(deps.Commands.Workflow.TaskRunCmd)
-	taskCmd.AddCommand(deps.Commands.Workflow.TaskRunListCmd)
+	taskRunCmd.AddCommand(deps.Commands.Workflow.TaskRunCmd)
+	taskRunCmd.AddCommand(deps.Commands.Workflow.TaskRunListCmd)
+	taskRunCmd.AddCommand(deps.Commands.Workflow.TaskRunDetailsCmd)
 	versionCmd.AddCommand(deps.Commands.Workflow.VersionListCmd)
 	versionCmd.AddCommand(deps.Commands.Workflow.VersionReleaseCmd)
-	deps.Commands.Workflow.TaskRunCmd.AddCommand(deps.Commands.Workflow.TaskRunDetailsCmd)
 }
 
 func setupLogCommands(deps *dependencies.Dependencies) {

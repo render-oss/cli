@@ -13,8 +13,24 @@ import (
 
 func NewTaskRunDetailsCmd(deps flows.WorkflowDeps) *cobra.Command {
 	return &cobra.Command{
-		Use:   "details [taskRunID]",
-		Short: "Get details for a task run",
+		Use:   "show [taskRunID]",
+		Short: "Show detailed information about a task run",
+		Long: `Display detailed information about a specific task run execution.
+
+This command shows comprehensive information about a task run, including:
+  • Task run ID and status
+  • Input parameters provided
+  • Output or error result
+  • Start and completion timestamps
+
+The task run ID is returned when you execute a task with 'render ea taskruns start'.
+
+In interactive mode, you will be prompted to select a task run if not provided.
+
+Examples:
+  render ea taskruns show tr-1234
+  render ea taskruns show --local tr-5678
+`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			deps, local, err := getLocalDeps(cmd, deps)
 			if err != nil {

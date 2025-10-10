@@ -15,8 +15,25 @@ import (
 func NewVersionListCmd(deps flows.WorkflowDeps) *cobra.Command {
 	var versionListCmd = &cobra.Command{
 		Use:   "list [workflowID]",
-		Short: "List versions for a workflow",
-		Args:  cobra.MaximumNArgs(1),
+		Short: "List versions of a workflow",
+		Long: `List all versions of a workflow service.
+
+Each time you release a workflow service, Render creates a new workflow version. A version
+represents a specific snapshot of your workflow service code and its registered tasks at
+the time of release.
+
+This command displays all versions for a workflow, showing:
+  • Version ID
+  • Creation timestamp
+  • Associated tasks
+
+In interactive mode, you will be prompted to select a workflow if not provided.
+
+Examples:
+  render ea versions list wf-1234
+  render ea versions list my-workflow-slug
+`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var input workflowviews.VersionListInput
 			err := command.ParseCommand(cmd, args, &input)

@@ -17,7 +17,33 @@ func NewVersionReleaseCmd(deps flows.WorkflowDeps) *cobra.Command {
 	var versionReleaseCmd = &cobra.Command{
 		Use:   "release [workflowID]",
 		Short: "Release a new workflow version",
-		Args:  cobra.MaximumNArgs(1),
+		Long: `Release a new version of a workflow service.
+
+This command triggers a new release of your workflow service on Render. When you release,
+Render:
+  1. Pulls the latest code from your repository (or a specific commit)
+  2. Builds your workflow service
+  3. Registers all tasks it finds in the service
+  4. Creates a new workflow version
+
+You can optionally specify a commit ID to release a specific version of your code.
+
+Flags:
+  --commit    Specify a commit ID to release (optional)
+  --wait      Wait for the release to complete before returning (optional)
+              Returns a non-zero exit code if the release fails
+
+In interactive mode, you will be prompted to:
+  • Select a workflow if not provided
+  • Confirm the release
+
+Examples:
+  render ea versions release wf-1234
+  render ea versions release my-workflow-slug
+  render ea versions release wf-1234 --commit abc123
+  render ea versions release wf-1234 --wait
+`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var input workflowviews.VersionReleaseInput
 			err := command.ParseCommand(cmd, args, &input)

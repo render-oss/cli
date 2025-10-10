@@ -28,12 +28,35 @@ const defaultTaskAPIPort = 8120
 
 var taskCmd = &cobra.Command{
 	Use:   "tasks",
-	Short: "Task commands",
+	Short: "Manage tasks",
 }
 
 var taskDevCmd = &cobra.Command{
-	Use:   "dev",
-	Short: "Start a task in development mode",
+	Use:   "dev -- <command to start a workflow service>",
+	Short: "Start a workflow service in development mode",
+	Long: `Start a workflow service in development mode for local testing.
+
+This command runs your workflow service locally on port 8120, allowing you to list and run
+tasks without deploying to Render. Task runs and their logs are stored in memory, so you
+can query them after tasks complete.
+
+The command will spawn a new subprocess with your specified command whenever it needs to
+run a task or list the defined tasks.
+
+To interact with the local task server:
+  • Use the --local flag with other task commands (e.g., 'render tasks list --local')
+  • Or set RENDER_USE_LOCAL_DEV=true when using the workflow client SDK
+
+To use a different port:
+  • Specify --port when starting the dev server
+  • Then use --port with other task commands, or set RENDER_LOCAL_DEV_URL in the SDK
+
+Examples:
+  render ea tasks dev -- "go run main.go"
+  render ea tasks dev --port 9000 -- "npm start"
+  render ea tasks list --local
+  render ea taskruns start my-task --local --input='["arg1"]'
+	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		ctx := cmd.Context()
@@ -81,11 +104,33 @@ var taskDevCmd = &cobra.Command{
 	Args: cobra.MinimumNArgs(1),
 }
 
-func NewTaskRunCmd(deps flows.WorkflowDeps) *cobra.Command {
+func NewTaskRunStartCmd(deps flows.WorkflowDeps) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "run [taskID]",
-		Short: "Run a new task",
-		Args:  cobra.MaximumNArgs(1),
+		Use:   "start [taskID] --input=<json>",
+		Short: "Start a task run with the provided input",
+		Long: `Start a task with the provided input.
+
+You can specify the task by:
+  • Task ID (e.g., tsk-1234)
+  • Workflow slug and task name (e.g., my-workflow/my-task)
+
+Input Format:
+The input should be a JSON array where each element is an argument to the task.
+For example, if your task takes two arguments, provide: ["arg1", "arg2"]
+
+You can provide input via:
+  • --input with inline JSON
+  • --input-file with a path to a JSON file
+
+In interactive mode, you will be prompted to select the task and provide the input.
+
+Examples:
+  render ea taskruns start tsk-1234 --input='["arg1", "arg2"]'
+  render ea taskruns start my-workflow/my-task --input='[42, "hello"]'
+  render ea taskruns start my-task --input-file=input.json
+  render ea taskruns start my-task --local --input='["test"]'
+`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			deps, local, err := getLocalDeps(cmd, deps)
 			if err != nil {
@@ -124,7 +169,10 @@ func NewTaskRunCmd(deps flows.WorkflowDeps) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String("input", "", "JSON input to pass to the task")
+	cmd.Flags().String(
+		"input", "",
+		"JSON array input to pass to the task (e.g., '[\"arg1\", \"arg2\"]')",
+	)
 	cmd.Flags().String("input-file", "", "File containing JSON input to pass to the task")
 	cmd.MarkFlagFilename("input-file")
 

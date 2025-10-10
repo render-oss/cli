@@ -14,9 +14,25 @@ import (
 
 func NewTaskRunListCmd(deps flows.WorkflowDeps) *cobra.Command {
 	var taskRunListCmd = &cobra.Command{
-		Use:   "runs [taskID]",
+		Use:   "list [taskID]",
 		Short: "List task runs for a task",
-		Args:  cobra.MaximumNArgs(1),
+		Long: `List all execution runs for a specific task.
+
+A task run represents a single execution of a task with specific input parameters.
+This command shows the history of all runs for a given task.
+
+You can specify the task by:
+  • Task ID (e.g., tsk-1234)
+  • Workflow slug and task name (e.g., my-workflow/my-task)
+
+In interactive mode, you will be prompted to select a task if not provided.
+
+Examples:
+  render ea taskruns list tsk-1234
+  render ea taskruns list my-workflow/my-task
+  render ea taskruns list --local my-task
+`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			deps, local, err := getLocalDeps(cmd, deps)
 			if err != nil {
