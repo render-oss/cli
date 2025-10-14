@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -62,7 +63,8 @@ func (h *ServerHandler) Start() *http.Server {
 	muxHandler := HandlerFromMux(strictHandler, r)
 
 	server := &http.Server{
-		Handler: muxHandler,
+		Handler:     muxHandler,
+		ReadTimeout: 5 * time.Second, // Prevent Slowloris DoS attacks
 	}
 
 	go func() {

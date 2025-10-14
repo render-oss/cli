@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
@@ -67,8 +68,9 @@ func Start(handler *ServerHandler, port int) *http.Server {
 	})
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf("localhost:%d", port),
-		Handler: mux,
+		Addr:        fmt.Sprintf("localhost:%d", port),
+		Handler:     mux,
+		ReadTimeout: 5 * time.Second, // Prevent Slowloris DoS attacks
 	}
 
 	go func() {
