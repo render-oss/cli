@@ -1387,7 +1387,8 @@ type ProjectPATCHInput struct {
 
 // ProjectPOSTEnvironmentInput defines model for projectPOSTEnvironmentInput.
 type ProjectPOSTEnvironmentInput struct {
-	Name string `json:"name"`
+	IpAllowList *[]CidrBlockAndDescription `json:"ipAllowList,omitempty"`
+	Name        string                     `json:"name"`
 
 	// NetworkIsolationEnabled Indicates whether network connections across environments are allowed.
 	NetworkIsolationEnabled *NetworkIsolationEnabled `json:"networkIsolationEnabled,omitempty"`
