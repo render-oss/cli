@@ -125,7 +125,7 @@ func (l *LogLoader) ToParam(ctx context.Context, in LogInput) (*client.ListLogsP
 	}
 
 	if in.Limit == 0 {
-		in.Limit = 100
+		in.Limit = logs.DefaultLogLimit
 	}
 
 	var startTime *time.Time

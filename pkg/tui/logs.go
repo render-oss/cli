@@ -28,7 +28,18 @@ func NewLogModel(loadFunc TypedCmd[*LogResult]) *LogModel {
 		scrollBar: NewScrollBarModel(1, 0),
 		viewport:  viewport.New(0, 0),
 		state:     logStateLoading,
+		direction: lclient.Backward, // default direction
 	}
+}
+
+// Sets the function to call when more logs need to be loaded
+func (m *LogModel) SetLoadMoreFunc(f func(startTime, endTime *time.Time) tea.Cmd) {
+	m.loadMoreFunc = f
+}
+
+// Sets the log query direction for pagination logic
+func (m *LogModel) SetDirection(direction lclient.LogDirection) {
+	m.direction = direction
 }
 
 type logState string
@@ -39,18 +50,28 @@ const (
 )
 
 type LogModel struct {
-	loadFunc  TypedCmd[*LogResult]
-	content   []string
-	state     logState
-	viewport  viewport.Model
-	scrollBar *ScrollBarModel
-	help      help.Model
+	loadFunc     TypedCmd[*LogResult]
+	loadMoreFunc func(startTime, endTime *time.Time) tea.Cmd
+	content      []string
+	state        logState
+	viewport     viewport.Model
+	scrollBar    *ScrollBarModel
+	help         help.Model
 
 	windowWidth  int
 	windowHeight int
 	top          int
 
 	logChan <-chan *lclient.Log
+
+	// Pagination state
+	hasMore         bool
+	nextStartTime   *time.Time
+	nextEndTime     *time.Time
+	direction       lclient.LogDirection
+	isLoadingMore   bool
+	initialLoadDone bool // Track if initial load is complete to prevent immediate auto-fetch
+	lastYOffset     int  // Track last Y offset to detect actual scroll changes
 }
 
 type appendLogsMsg struct {
@@ -97,16 +118,87 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
+	// Check if user is trying to scroll up while at top (before viewport
+	// update); this is always the case after initial load
+	wasAtTop := m.viewport.AtTop()
+	userTriedToScrollUp := false
+
+	// Detect key presses that would scroll up
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		if key.Matches(keyMsg, m.viewport.KeyMap.Up) ||
+			key.Matches(keyMsg, m.viewport.KeyMap.HalfPageUp) ||
+			key.Matches(keyMsg, m.viewport.KeyMap.PageUp) {
+			if wasAtTop && m.state == logStateLoaded {
+				userTriedToScrollUp = true
+			}
+		}
+	}
+
 	// Handle keyboard and mouse events in the viewport
 	m.viewport, cmd = m.viewport.Update(msg)
 	cmds = append(cmds, cmd)
 
+	// Check if we should load more logs based on scroll position
+	// - when scrolling up, load older logs (prepend above)
+	// - when scrolling down, load newer logs (append below)
+	if m.state == logStateLoaded && m.hasMore && !m.isLoadingMore && m.loadMoreFunc != nil && m.logChan == nil {
+		// Mark initial load as done on first update after content is loaded
+		if !m.initialLoadDone && len(m.content) > 0 {
+			m.initialLoadDone = true
+			m.lastYOffset = m.viewport.YOffset
+		}
+
+		if m.initialLoadDone {
+			shouldLoadMore := false
+
+			if m.direction == lclient.Backward {
+				// Backward direction queries most recent logs first
+				shouldLoadMore = (m.viewport.AtTop() && m.viewport.YOffset != m.lastYOffset) || userTriedToScrollUp
+			} else {
+				// Forward direction queries oldest logs first
+				shouldLoadMore = m.viewport.AtBottom() && m.viewport.YOffset != m.lastYOffset
+			}
+
+			if shouldLoadMore {
+				m.isLoadingMore = true
+				cmds = append(cmds, m.loadMoreFunc(m.nextStartTime, m.nextEndTime))
+			}
+
+			m.lastYOffset = m.viewport.YOffset
+		}
+	}
+
 	switch msg := msg.(type) {
 	case LoadDataMsg[*LogResult]:
 		if msg.Data.Logs != nil {
-			m.content = formatLogs(msg.Data.Logs.Logs)
+			// If loading more logs, append or prepend based on direction
+			if m.isLoadingMore {
+				newContent := formatLogs(msg.Data.Logs.Logs)
+
+				if m.direction == lclient.Backward {
+					// Backward direction: paginated scroll prepends older logs
+					m.content = append(newContent, m.content...)
+					// Adjust viewport to maintain user's scroll position
+					newYOffset := m.viewport.YOffset + len(newContent)
+					m.viewport.SetYOffset(newYOffset)
+				} else {
+					// Forward direction: paginated scroll appends newer logs
+					m.content = append(m.content, newContent...)
+				}
+				m.isLoadingMore = false
+			} else {
+				// Initial load
+				m.content = formatLogs(msg.Data.Logs.Logs)
+				// Mark initial load as complete (but only after first viewport update)
+			}
+
+			// Update pagination state
+			m.hasMore = msg.Data.Logs.HasMore
+			m.nextStartTime = &msg.Data.Logs.NextStartTime
+			m.nextEndTime = &msg.Data.Logs.NextEndTime
 		} else {
 			m.content = []string{}
+			m.hasMore = false
 		}
 
 		m.logChan = msg.Data.LogChannel

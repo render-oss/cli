@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -12,6 +13,7 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/render-oss/cli/pkg/logs"
 	"github.com/render-oss/cli/pkg/style"
 	"github.com/render-oss/cli/pkg/tui/layouts"
 	"github.com/spf13/cobra"
@@ -186,6 +188,30 @@ func NewLogsView(
 
 	// Create log view model
 	view.logModel = tui.NewLogModel(command.LoadCmd(ctx, loadLogFunc, input))
+
+	// Set the direction (need this in the model for pagination logic)
+	view.logModel.SetDirection(mapDirection(input.Direction))
+
+	// Set up the load more function for pagination
+	view.logModel.SetLoadMoreFunc(func(startTime, endTime *time.Time) tea.Cmd {
+		paginatedInput := input
+		paginatedInput.StartTime = &command.TimeOrRelative{T: startTime}
+		paginatedInput.EndTime = &command.TimeOrRelative{T: endTime}
+
+		// Always use pagination limit (1000) for subsequent requests, not initial limit
+		paginatedInput.Limit = logs.PaginationLogLimit
+
+		// Load data silently without LoadingDataMsg/DoneLoadingDataMsg to avoid
+		// triggering the spinner
+		return func() tea.Msg {
+			data, err := loadLogFunc(ctx, paginatedInput)
+			if err != nil {
+				return tui.ErrorMsg{Err: err}
+			}
+			return tui.LoadDataMsg[*tui.LogResult]{Data: data}
+		}
+	})
+
 	view.footerModel = &FooterModel{help: view.logsHelp}
 	view.layout = layouts.NewSidebarLayout(layouts.NewBoxLayout(lipgloss.NewStyle().PaddingRight(1), view.tabModel), view.logModel, view.footerModel)
 	view.layout.SetSidebarWidth(sidebarWidth)

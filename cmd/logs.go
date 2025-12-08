@@ -11,6 +11,7 @@ import (
 
 	lclient "github.com/render-oss/cli/pkg/client/logs"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/logs"
 	"github.com/render-oss/cli/pkg/tui/flows"
 	"github.com/render-oss/cli/pkg/tui/views"
 )
@@ -74,7 +75,7 @@ In interactive mode you can update the filters and view logs in real time.`,
 	logCmd.Flags().StringSlice("status-code", []string{}, "A list of comma separated status codes to query")
 	logCmd.Flags().Var(methodTypeFlag, "method", "A list of comma separated HTTP methods to query")
 	logCmd.Flags().StringSlice("path", []string{}, "A list of comma separated paths to query")
-	logCmd.Flags().Int("limit", 100, "The maximum number of logs to return")
+	logCmd.Flags().Int("limit", logs.DefaultLogLimit, "The maximum number of logs to return")
 	logCmd.Flags().Var(directionFlag, "direction", "The direction to query the logs. Can be 'forward' or 'backward'")
 	logCmd.Flags().Bool("tail", false, "Stream new logs")
 	logCmd.Flags().StringSlice("task-id", []string{}, "A list of comma separated task IDs to query")
