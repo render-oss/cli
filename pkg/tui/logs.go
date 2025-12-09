@@ -118,8 +118,8 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
-	// Check if user is trying to scroll up while at top (before viewport
-	// update); this is always the case after initial load
+	// Check if user is trying to scroll up while at top before the viewport has
+	// updated; this is always the case when scrolling up after the initial load
 	wasAtTop := m.viewport.AtTop()
 	userTriedToScrollUp := false
 
@@ -178,9 +178,12 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.direction == lclient.Backward {
 					// Backward direction: paginated scroll prepends older logs
 					m.content = append(newContent, m.content...)
-					// Adjust viewport to maintain user's scroll position
-					newYOffset := m.viewport.YOffset + len(newContent)
-					m.viewport.SetYOffset(newYOffset)
+					// Set content first so the viewport knows the new valid
+					// range, then adjust the viewport to maintain the current
+					// scroll position. It's fine for SetContent to be called
+					// again outside of this block.
+					m.viewport.SetContent(strings.Join(m.content, "\n"))
+					m.viewport.SetYOffset(m.viewport.YOffset + len(newContent))
 				} else {
 					// Forward direction: paginated scroll appends newer logs
 					m.content = append(m.content, newContent...)
@@ -189,7 +192,6 @@ func (m *LogModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				// Initial load
 				m.content = formatLogs(msg.Data.Logs.Logs)
-				// Mark initial load as complete (but only after first viewport update)
 			}
 
 			// Update pagination state
