@@ -23,6 +23,7 @@ func TestSetTasks(t *testing.T) {
 		})
 
 		tasks := store.GetTasks()
+		require.Equal(t, existing.ID, got.ID)
 		require.Equal(t, 2, len(tasks))
 		require.ElementsMatch(t, []string{"test", "test2"}, []string{tasks[0].Name, tasks[1].Name})
 	})
