@@ -143,8 +143,8 @@ type ResourceLogStreamSetting struct {
 	Setting *LogStreamSetting `json:"setting,omitempty"`
 }
 
-// LogDirectionParam defines model for logDirectionParam.
-type LogDirectionParam = LogDirection
+// DirectionParam defines model for directionParam.
+type DirectionParam = LogDirection
 
 // LogFilterHost defines model for logFilterHost.
 type LogFilterHost = []string

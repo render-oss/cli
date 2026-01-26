@@ -7,7 +7,10 @@
 package client
 
 import (
+	"encoding/json"
 	"time"
+
+	"github.com/oapi-codegen/runtime"
 )
 
 // Defines values for Region.
@@ -97,9 +100,10 @@ type Region string
 
 // RunTask defines model for RunTask.
 type RunTask struct {
+	// Input Input data for a task. Can be either an array (for positional arguments) or an object (for named parameters).
 	Input TaskData `json:"input"`
 
-	// Task Either a task ID or a workflow slug with task name and optional version. If a version is not provided, the latest version of the task will be used.
+	// Task Either a task ID or a workflow slug with task name and optional version name. If a version is not provided, the latest version of the task will be used.
 	Task TaskIdentifier `json:"task"`
 }
 
@@ -115,14 +119,41 @@ type Task struct {
 	WorkflowVersionId *string   `json:"workflowVersionId,omitempty"`
 }
 
-// TaskData defines model for TaskData.
-type TaskData = []interface{}
+// TaskAttempt defines model for TaskAttempt.
+type TaskAttempt struct {
+	CompletedAt *time.Time    `json:"completedAt,omitempty"`
+	StartedAt   time.Time     `json:"startedAt"`
+	Status      TaskRunStatus `json:"status"`
+}
 
-// TaskIdentifier Either a task ID or a workflow slug with task name and optional version. If a version is not provided, the latest version of the task will be used.
+// TaskAttemptDetails defines model for TaskAttemptDetails.
+type TaskAttemptDetails struct {
+	CompletedAt *time.Time `json:"completedAt,omitempty"`
+
+	// Error Error message if the task attempt failed.
+	Error     *string        `json:"error,omitempty"`
+	Results   *TaskRunResult `json:"results,omitempty"`
+	StartedAt time.Time      `json:"startedAt"`
+	Status    TaskRunStatus  `json:"status"`
+}
+
+// TaskData Input data for a task. Can be either an array (for positional arguments) or an object (for named parameters).
+type TaskData struct {
+	union json.RawMessage
+}
+
+// TaskData0 Positional arguments passed to the task function
+type TaskData0 = []interface{}
+
+// TaskData1 Named parameters passed to the task function as keyword arguments
+type TaskData1 map[string]interface{}
+
+// TaskIdentifier Either a task ID or a workflow slug with task name and optional version name. If a version is not provided, the latest version of the task will be used.
 type TaskIdentifier = string
 
 // TaskRun defines model for TaskRun.
 type TaskRun struct {
+	Attempts        []TaskAttempt `json:"attempts"`
 	CompletedAt     *time.Time    `json:"completedAt,omitempty"`
 	Id              string        `json:"id"`
 	ParentTaskRunId string        `json:"parentTaskRunId"`
@@ -135,11 +166,14 @@ type TaskRun struct {
 
 // TaskRunDetails defines model for TaskRunDetails.
 type TaskRunDetails struct {
-	CompletedAt *time.Time `json:"completedAt,omitempty"`
+	Attempts    []TaskAttemptDetails `json:"attempts"`
+	CompletedAt *time.Time           `json:"completedAt,omitempty"`
 
 	// Error Error message if the task run failed.
-	Error           *string       `json:"error,omitempty"`
-	Id              string        `json:"id"`
+	Error *string `json:"error,omitempty"`
+	Id    string  `json:"id"`
+
+	// Input Input data for a task. Can be either an array (for positional arguments) or an object (for named parameters).
 	Input           TaskData      `json:"input"`
 	ParentTaskRunId string        `json:"parentTaskRunId"`
 	Results         TaskRunResult `json:"results"`
@@ -165,41 +199,38 @@ type TaskSlug struct {
 
 // Workflow defines model for Workflow.
 type Workflow struct {
-	BuildConfig   *BuildConfig `json:"buildConfig,omitempty"`
-	CreatedAt     time.Time    `json:"createdAt"`
-	EnvironmentId *string      `json:"environmentId,omitempty"`
-	Id            string       `json:"id"`
-	Image         *Image       `json:"image,omitempty"`
-	Name          string       `json:"name"`
-	OwnerId       string       `json:"ownerId"`
+	BuildConfig   BuildConfig `json:"buildConfig"`
+	CreatedAt     time.Time   `json:"createdAt"`
+	EnvironmentId *string     `json:"environmentId,omitempty"`
+	Id            string      `json:"id"`
+	Name          string      `json:"name"`
+	OwnerId       string      `json:"ownerId"`
 
 	// Region Defaults to "oregon"
-	Region *Region `json:"region,omitempty"`
+	Region Region `json:"region"`
 
 	// RunCommand Command to run the workflow.
-	RunCommand *string   `json:"runCommand,omitempty"`
+	RunCommand string    `json:"runCommand"`
 	Slug       *string   `json:"slug,omitempty"`
 	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
 // WorkflowCreate defines model for WorkflowCreate.
 type WorkflowCreate struct {
-	BuildConfig *BuildConfig `json:"buildConfig,omitempty"`
-	Image       *Image       `json:"image,omitempty"`
-	Name        string       `json:"name"`
-	OwnerId     string       `json:"ownerId"`
+	BuildConfig BuildConfig `json:"buildConfig"`
+	Name        string      `json:"name"`
+	OwnerId     string      `json:"ownerId"`
 
 	// Region Defaults to "oregon"
 	Region Region `json:"region"`
 
 	// RunCommand The command to run the workflow
-	RunCommand *string `json:"runCommand,omitempty"`
+	RunCommand string `json:"runCommand"`
 }
 
 // WorkflowUpdate defines model for WorkflowUpdate.
 type WorkflowUpdate struct {
 	BuildConfig *BuildConfig `json:"buildConfig,omitempty"`
-	Image       *Image       `json:"image,omitempty"`
 	Name        *string      `json:"name,omitempty"`
 
 	// RunCommand The command to run the workflow
@@ -210,7 +241,6 @@ type WorkflowUpdate struct {
 type WorkflowVersion struct {
 	CreatedAt  time.Time             `json:"createdAt"`
 	Id         string                `json:"id"`
-	Image      ImageVersion          `json:"image"`
 	Name       string                `json:"name"`
 	Status     WorkflowVersionStatus `json:"status"`
 	WorkflowId string                `json:"workflowId"`
@@ -242,3 +272,65 @@ type WorkflowVersionIDFilterParam = []string
 
 // WorkflowVersionIDParam defines model for WorkflowVersionIDParam.
 type WorkflowVersionIDParam = string
+
+// AsTaskData0 returns the union data inside the TaskData as a TaskData0
+func (t TaskData) AsTaskData0() (TaskData0, error) {
+	var body TaskData0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTaskData0 overwrites any union data inside the TaskData as the provided TaskData0
+func (t *TaskData) FromTaskData0(v TaskData0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTaskData0 performs a merge with any union data inside the TaskData, using the provided TaskData0
+func (t *TaskData) MergeTaskData0(v TaskData0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTaskData1 returns the union data inside the TaskData as a TaskData1
+func (t TaskData) AsTaskData1() (TaskData1, error) {
+	var body TaskData1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTaskData1 overwrites any union data inside the TaskData as the provided TaskData1
+func (t *TaskData) FromTaskData1(v TaskData1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTaskData1 performs a merge with any union data inside the TaskData, using the provided TaskData1
+func (t *TaskData) MergeTaskData1(v TaskData1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t TaskData) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *TaskData) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}

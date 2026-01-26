@@ -23,12 +23,14 @@ const (
 
 // Defines values for OtelProviderType.
 const (
-	BETTERSTACK OtelProviderType = "BETTER_STACK"
-	CUSTOM      OtelProviderType = "CUSTOM"
-	DATADOG     OtelProviderType = "DATADOG"
-	GRAFANA     OtelProviderType = "GRAFANA"
-	HONEYCOMB   OtelProviderType = "HONEYCOMB"
-	NEWRELIC    OtelProviderType = "NEW_RELIC"
+	BETTERSTACK  OtelProviderType = "BETTER_STACK"
+	CUSTOM       OtelProviderType = "CUSTOM"
+	DATADOG      OtelProviderType = "DATADOG"
+	GRAFANA      OtelProviderType = "GRAFANA"
+	GROUNDSOURCE OtelProviderType = "GROUNDSOURCE"
+	HONEYCOMB    OtelProviderType = "HONEYCOMB"
+	NEWRELIC     OtelProviderType = "NEW_RELIC"
+	SIGNOZ       OtelProviderType = "SIGNOZ"
 )
 
 // Defines values for ApplicationMetricAggregationMethod.
