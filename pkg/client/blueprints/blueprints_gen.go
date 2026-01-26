@@ -8,6 +8,8 @@ package client
 
 import (
 	"time"
+
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for ResourceRefType.
@@ -113,3 +115,55 @@ type SyncId = string
 
 // SyncState defines model for syncState.
 type SyncState string
+
+// ValidateBlueprintRequest defines model for validateBlueprintRequest.
+type ValidateBlueprintRequest struct {
+	// File The render.yaml file to validate
+	File openapi_types.File `json:"file"`
+
+	// OwnerId The ID of the workspace to validate against
+	OwnerId string `json:"ownerId"`
+}
+
+// ValidateBlueprintResponse defines model for validateBlueprintResponse.
+type ValidateBlueprintResponse struct {
+	// Errors Validation errors (only present if valid is false)
+	Errors *[]ValidationError     `json:"errors,omitempty"`
+	Plan   *ValidationPlanSummary `json:"plan,omitempty"`
+
+	// Valid Whether the blueprint is valid
+	Valid bool `json:"valid"`
+}
+
+// ValidationError defines model for validationError.
+type ValidationError struct {
+	// Column The column number in the YAML file (1-indexed)
+	Column *int `json:"column,omitempty"`
+
+	// Error The error message
+	Error string `json:"error"`
+
+	// Line The line number in the YAML file (1-indexed)
+	Line *int `json:"line,omitempty"`
+
+	// Path The path to the field with the error (e.g., services[0].plan)
+	Path *string `json:"path,omitempty"`
+}
+
+// ValidationPlanSummary defines model for validationPlanSummary.
+type ValidationPlanSummary struct {
+	// Databases Names of databases that would be created
+	Databases *[]string `json:"databases,omitempty"`
+
+	// EnvGroups Names of environment groups that would be created
+	EnvGroups *[]string `json:"envGroups,omitempty"`
+
+	// Redis Names of Redis instances that would be created
+	Redis *[]string `json:"redis,omitempty"`
+
+	// Services Names of services that would be created
+	Services *[]string `json:"services,omitempty"`
+
+	// TotalActions Total number of actions in the plan
+	TotalActions *int `json:"totalActions,omitempty"`
+}

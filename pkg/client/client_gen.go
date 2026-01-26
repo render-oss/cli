@@ -119,6 +119,9 @@ type ClientInterface interface {
 	// ListBlueprints request
 	ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ValidateBlueprintWithBody request with any body
+	ValidateBlueprintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// DisconnectBlueprint request
 	DisconnectBlueprint(ctx context.Context, blueprintId externalRef1.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -854,6 +857,18 @@ func (c *Client) PutBlob(ctx context.Context, ownerId OwnerIdPathParam, region R
 
 func (c *Client) ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBlueprintsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ValidateBlueprintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewValidateBlueprintRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4050,6 +4065,35 @@ func NewListBlueprintsRequest(server string, params *ListBlueprintsParams) (*htt
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewValidateBlueprintRequestWithBody generates requests for ValidateBlueprint with any type of body
+func NewValidateBlueprintRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints/validate")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -17072,6 +17116,9 @@ type ClientWithResponsesInterface interface {
 	// ListBlueprintsWithResponse request
 	ListBlueprintsWithResponse(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*ListBlueprintsResponse, error)
 
+	// ValidateBlueprintWithBodyWithResponse request with any body
+	ValidateBlueprintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ValidateBlueprintResponse, error)
+
 	// DisconnectBlueprintWithResponse request
 	DisconnectBlueprintWithResponse(ctx context.Context, blueprintId externalRef1.BlueprintId, reqEditors ...RequestEditorFn) (*DisconnectBlueprintResponse, error)
 
@@ -17865,6 +17912,33 @@ func (r ListBlueprintsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListBlueprintsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ValidateBlueprintResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef1.ValidateBlueprintResponse
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+}
+
+// Status returns HTTPResponse.Status
+func (r ValidateBlueprintResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ValidateBlueprintResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -23382,6 +23456,15 @@ func (c *ClientWithResponses) ListBlueprintsWithResponse(ctx context.Context, pa
 	return ParseListBlueprintsResponse(rsp)
 }
 
+// ValidateBlueprintWithBodyWithResponse request with arbitrary body returning *ValidateBlueprintResponse
+func (c *ClientWithResponses) ValidateBlueprintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ValidateBlueprintResponse, error) {
+	rsp, err := c.ValidateBlueprintWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseValidateBlueprintResponse(rsp)
+}
+
 // DisconnectBlueprintWithResponse request returning *DisconnectBlueprintResponse
 func (c *ClientWithResponses) DisconnectBlueprintWithResponse(ctx context.Context, blueprintId externalRef1.BlueprintId, reqEditors ...RequestEditorFn) (*DisconnectBlueprintResponse, error) {
 	rsp, err := c.DisconnectBlueprint(ctx, blueprintId, reqEditors...)
@@ -25822,6 +25905,67 @@ func ParseListBlueprintsResponse(rsp *http.Response) (*ListBlueprintsResponse, e
 			return nil, err
 		}
 		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseValidateBlueprintResponse parses an HTTP response from a ValidateBlueprintWithResponse call
+func ParseValidateBlueprintResponse(rsp *http.Response) (*ValidateBlueprintResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ValidateBlueprintResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef1.ValidateBlueprintResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
 
 	}
 

@@ -3748,6 +3748,9 @@ type ListWorkflowVersionsParams struct {
 // PutBlobJSONRequestBody defines body for PutBlob for application/json ContentType.
 type PutBlobJSONRequestBody = externalRef12.PutBlobInput
 
+// ValidateBlueprintMultipartRequestBody defines body for ValidateBlueprint for multipart/form-data ContentType.
+type ValidateBlueprintMultipartRequestBody = externalRef1.ValidateBlueprintRequest
+
 // UpdateBlueprintJSONRequestBody defines body for UpdateBlueprint for application/json ContentType.
 type UpdateBlueprintJSONRequestBody = externalRef1.BlueprintPATCH
 
