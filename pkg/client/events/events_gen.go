@@ -13,23 +13,9 @@ import (
 	"github.com/oapi-codegen/runtime"
 	externalRef0 "github.com/render-oss/cli/pkg/client/autoscaling"
 	externalRef2 "github.com/render-oss/cli/pkg/client/disks"
-	externalRef4 "github.com/render-oss/cli/pkg/client/eventtypes"
-	externalRef5 "github.com/render-oss/cli/pkg/client/jobs"
-)
-
-// Defines values for CronJobRunStatus.
-const (
-	CronJobRunStatusCanceled     CronJobRunStatus = "canceled"
-	CronJobRunStatusPending      CronJobRunStatus = "pending"
-	CronJobRunStatusSuccessful   CronJobRunStatus = "successful"
-	CronJobRunStatusUnsuccessful CronJobRunStatus = "unsuccessful"
-)
-
-// Defines values for EventStatus.
-const (
-	EventStatusCanceled  EventStatus = "canceled"
-	EventStatusFailed    EventStatus = "failed"
-	EventStatusSucceeded EventStatus = "succeeded"
+	externalRef4 "github.com/render-oss/cli/pkg/client/eventstatuses"
+	externalRef5 "github.com/render-oss/cli/pkg/client/eventtypes"
+	externalRef6 "github.com/render-oss/cli/pkg/client/jobs"
 )
 
 // AutoscalingConfigChangedEvent defines model for autoscalingConfigChangedEvent.
@@ -108,9 +94,9 @@ type BuildDeployTrigger struct {
 
 // BuildEndedEvent defines model for buildEndedEvent.
 type BuildEndedEvent struct {
-	BuildId     string               `json:"buildId"`
-	BuildStatus EventStatus          `json:"buildStatus"`
-	Reason      BuildDeployEndReason `json:"reason"`
+	BuildId     string                   `json:"buildId"`
+	BuildStatus externalRef4.EventStatus `json:"buildStatus"`
+	Reason      BuildDeployEndReason     `json:"reason"`
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Status int `json:"status"`
 }
@@ -132,9 +118,9 @@ type CommitIgnoredEvent struct {
 
 // CronJobRunEndedEvent defines model for cronJobRunEndedEvent.
 type CronJobRunEndedEvent struct {
-	CronJobRunId string           `json:"cronJobRunId"`
-	Reason       *FailureReason   `json:"reason,omitempty"`
-	Status       CronJobRunStatus `json:"status"`
+	CronJobRunId string                        `json:"cronJobRunId"`
+	Reason       *FailureReason                `json:"reason,omitempty"`
+	Status       externalRef4.CronJobRunStatus `json:"status"`
 
 	// User User who triggered the action
 	User *User `json:"user,omitempty"`
@@ -145,14 +131,11 @@ type CronJobRunStartedEvent struct {
 	CronJobRunId string `json:"cronJobRunId"`
 }
 
-// CronJobRunStatus defines model for cronJobRunStatus.
-type CronJobRunStatus string
-
 // DeployEndedEvent defines model for deployEndedEvent.
 type DeployEndedEvent struct {
-	DeployId     string               `json:"deployId"`
-	DeployStatus EventStatus          `json:"deployStatus"`
-	Reason       BuildDeployEndReason `json:"reason"`
+	DeployId     string                   `json:"deployId"`
+	DeployStatus externalRef4.EventStatus `json:"deployStatus"`
+	Reason       BuildDeployEndReason     `json:"reason"`
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Status int `json:"status"`
 }
@@ -214,7 +197,7 @@ type Event struct {
 	Id        EventId                `json:"id"`
 	ServiceId string                 `json:"serviceId"`
 	Timestamp time.Time              `json:"timestamp"`
-	Type      externalRef4.EventType `json:"type"`
+	Type      externalRef5.EventType `json:"type"`
 }
 
 // EventDetails defines model for eventDetails.
@@ -224,9 +207,6 @@ type EventDetails struct {
 
 // EventId defines model for eventId.
 type EventId = string
-
-// EventStatus defines model for eventStatus.
-type EventStatus string
 
 // FailureReason defines model for failureReason.
 type FailureReason struct {
@@ -269,9 +249,9 @@ type InstanceId = string
 
 // JobRunEndedEvent defines model for jobRunEndedEvent.
 type JobRunEndedEvent struct {
-	JobId  externalRef5.JobId     `json:"jobId"`
+	JobId  externalRef6.JobId     `json:"jobId"`
 	Reason *FailureReason         `json:"reason,omitempty"`
-	Status externalRef5.JobStatus `json:"status"`
+	Status externalRef6.JobStatus `json:"status"`
 }
 
 // KeyValueAvailableEvent defines model for keyValueAvailableEvent.
@@ -432,10 +412,10 @@ type PostgresUpgradeSucceededEvent struct {
 
 // PreDeployEndedEvent defines model for preDeployEndedEvent.
 type PreDeployEndedEvent struct {
-	DeployCommandExecutionId string               `json:"deployCommandExecutionId"`
-	DeployId                 string               `json:"deployId"`
-	PreDeployStatus          EventStatus          `json:"preDeployStatus"`
-	Reason                   BuildDeployEndReason `json:"reason"`
+	DeployCommandExecutionId string                   `json:"deployCommandExecutionId"`
+	DeployId                 string                   `json:"deployId"`
+	PreDeployStatus          externalRef4.EventStatus `json:"preDeployStatus"`
+	Reason                   BuildDeployEndReason     `json:"reason"`
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Status int `json:"status"`
 }
@@ -463,18 +443,13 @@ type ServerRestartedEvent struct {
 	TriggeredByUser *string `json:"triggeredByUser"`
 }
 
-// ServerUnhealthyEvent defines model for serverUnhealthyEvent.
-type ServerUnhealthyEvent struct {
-	InstanceID *InstanceId `json:"instanceID,omitempty"`
-}
-
 // ServiceEvent defines model for serviceEvent.
 type ServiceEvent struct {
 	Details   ServiceEventDetails           `json:"details"`
 	Id        EventId                       `json:"id"`
 	ServiceId string                        `json:"serviceId"`
 	Timestamp time.Time                     `json:"timestamp"`
-	Type      externalRef4.ServiceEventType `json:"type"`
+	Type      externalRef5.ServiceEventType `json:"type"`
 }
 
 // ServiceEventDetails defines model for serviceEventDetails.
@@ -1968,32 +1943,6 @@ func (t *ServiceEventDetails) FromServerRestartedEvent(v ServerRestartedEvent) e
 
 // MergeServerRestartedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ServerRestartedEvent
 func (t *ServiceEventDetails) MergeServerRestartedEvent(v ServerRestartedEvent) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsServerUnhealthyEvent returns the union data inside the ServiceEventDetails as a ServerUnhealthyEvent
-func (t ServiceEventDetails) AsServerUnhealthyEvent() (ServerUnhealthyEvent, error) {
-	var body ServerUnhealthyEvent
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromServerUnhealthyEvent overwrites any union data inside the ServiceEventDetails as the provided ServerUnhealthyEvent
-func (t *ServiceEventDetails) FromServerUnhealthyEvent(v ServerUnhealthyEvent) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeServerUnhealthyEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ServerUnhealthyEvent
-func (t *ServiceEventDetails) MergeServerUnhealthyEvent(v ServerUnhealthyEvent) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err

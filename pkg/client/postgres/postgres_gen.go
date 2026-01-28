@@ -49,6 +49,12 @@ const (
 	NOTAVAILABLE   RecoveryInfoRecoveryStatus = "NOT_AVAILABLE"
 )
 
+// CredentialCreateInput defines model for credentialCreateInput.
+type CredentialCreateInput struct {
+	// Username Name of the new user.
+	Username string `json:"username"`
+}
+
 // PostgresExport defines model for postgresExport.
 type PostgresExport struct {
 	CreatedAt time.Time `json:"createdAt"`
