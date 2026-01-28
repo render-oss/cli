@@ -168,8 +168,8 @@ func printValidationResultInteractive(filePath string, result *bptypes.ValidateB
 			if result.Plan.Databases != nil && len(*result.Plan.Databases) > 0 {
 				fmt.Printf("  %-14s %d\n", "Databases:", len(*result.Plan.Databases))
 			}
-			if result.Plan.Redis != nil && len(*result.Plan.Redis) > 0 {
-				fmt.Printf("  %-14s %d\n", "Redis:", len(*result.Plan.Redis))
+			if result.Plan.KeyValue != nil && len(*result.Plan.KeyValue) > 0 {
+				fmt.Printf("  %-14s %d\n", "Key Value:", len(*result.Plan.KeyValue))
 			}
 			if result.Plan.EnvGroups != nil && len(*result.Plan.EnvGroups) > 0 {
 				fmt.Printf("  %-14s %d\n", "Env Groups:", len(*result.Plan.EnvGroups))

@@ -158,8 +158,8 @@ type ValidationPlanSummary struct {
 	// EnvGroups Names of environment groups that would be created
 	EnvGroups *[]string `json:"envGroups,omitempty"`
 
-	// Redis Names of Redis instances that would be created
-	Redis *[]string `json:"redis,omitempty"`
+	// KeyValue Names of Key-Value instances that would be created
+	KeyValue *[]string `json:"keyValue,omitempty"`
 
 	// Services Names of services that would be created
 	Services *[]string `json:"services,omitempty"`
