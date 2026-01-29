@@ -581,7 +581,7 @@ type BackgroundWorkerDetails struct {
 	NumInstances int       `json:"numInstances"`
 	ParentServer *Resource `json:"parentServer,omitempty"`
 
-	// Plan The instance type to use for the preview instance. Note that base services with any paid instance type can't create preview instances with the `free` instance type.
+	// Plan The instance type to use. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
 	Plan     Plan      `json:"plan"`
 	Previews *Previews `json:"previews,omitempty"`
 
@@ -606,7 +606,7 @@ type BackgroundWorkerDetailsPATCH struct {
 	// MaxShutdownDelaySeconds The maximum amount of time (in seconds) that Render waits for your application process to exit gracefully after sending it a SIGTERM signal.
 	MaxShutdownDelaySeconds *MaxShutdownDelaySeconds `json:"maxShutdownDelaySeconds,omitempty"`
 
-	// Plan Defaults to "starter"
+	// Plan Defaults to `starter` when creating a new database.
 	Plan             *PaidPlan `json:"plan,omitempty"`
 	PreDeployCommand *string   `json:"preDeployCommand,omitempty"`
 	Previews         *Previews `json:"previews,omitempty"`
@@ -635,7 +635,7 @@ type BackgroundWorkerDetailsPOST struct {
 	// NumInstances Defaults to 1
 	NumInstances *int `json:"numInstances,omitempty"`
 
-	// Plan Defaults to "starter"
+	// Plan Defaults to `starter` when creating a new database.
 	Plan             *PaidPlan `json:"plan,omitempty"`
 	PreDeployCommand *string   `json:"preDeployCommand,omitempty"`
 	Previews         *Previews `json:"previews,omitempty"`
@@ -692,7 +692,7 @@ type CronJobDetails struct {
 	EnvSpecificDetails  EnvSpecificDetails `json:"envSpecificDetails"`
 	LastSuccessfulRunAt *time.Time         `json:"lastSuccessfulRunAt,omitempty"`
 
-	// Plan The instance type to use for the preview instance. Note that base services with any paid instance type can't create preview instances with the `free` instance type.
+	// Plan The instance type to use. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
 	Plan Plan `json:"plan"`
 
 	// Region Defaults to "oregon"
@@ -707,7 +707,7 @@ type CronJobDetails struct {
 type CronJobDetailsPATCH struct {
 	EnvSpecificDetails *EnvSpecificDetailsPATCH `json:"envSpecificDetails,omitempty"`
 
-	// Plan Defaults to "starter"
+	// Plan Defaults to `starter` when creating a new database.
 	Plan *PaidPlan `json:"plan,omitempty"`
 
 	// Runtime Runtime
@@ -722,7 +722,7 @@ type CronJobDetailsPOST struct {
 	Env                *ServiceEnv         `json:"env,omitempty"`
 	EnvSpecificDetails *EnvSpecificDetails `json:"envSpecificDetails,omitempty"`
 
-	// Plan Defaults to "starter"
+	// Plan Defaults to `starter` when creating a new database.
 	Plan *PaidPlan `json:"plan,omitempty"`
 
 	// Region Defaults to "oregon"
@@ -1281,10 +1281,10 @@ type OwnerWithCursor struct {
 	Owner  *Owner  `json:"owner,omitempty"`
 }
 
-// PaidPlan Defaults to "starter"
+// PaidPlan Defaults to `starter` when creating a new database.
 type PaidPlan string
 
-// Plan The instance type to use for the preview instance. Note that base services with any paid instance type can't create preview instances with the `free` instance type.
+// Plan The instance type to use. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
 type Plan string
 
 // Postgres defines model for postgres.
@@ -1444,7 +1444,7 @@ type PreviewInput struct {
 	// Name A name for the service preview instance. If not specified, Render generates the name using the base service's name and the specified tag or SHA.
 	Name *string `json:"name,omitempty"`
 
-	// Plan The instance type to use for the preview instance. Note that base services with any paid instance type can't create preview instances with the `free` instance type.
+	// Plan The instance type to use. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
 	Plan *Plan `json:"plan,omitempty"`
 }
 
@@ -1476,7 +1476,7 @@ type PrivateServiceDetails struct {
 	OpenPorts    []ServerPort `json:"openPorts"`
 	ParentServer *Resource    `json:"parentServer,omitempty"`
 
-	// Plan The instance type to use for the preview instance. Note that base services with any paid instance type can't create preview instances with the `free` instance type.
+	// Plan The instance type to use. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
 	Plan     Plan      `json:"plan"`
 	Previews *Previews `json:"previews,omitempty"`
 
@@ -1502,7 +1502,7 @@ type PrivateServiceDetailsPATCH struct {
 	// MaxShutdownDelaySeconds The maximum amount of time (in seconds) that Render waits for your application process to exit gracefully after sending it a SIGTERM signal.
 	MaxShutdownDelaySeconds *MaxShutdownDelaySeconds `json:"maxShutdownDelaySeconds,omitempty"`
 
-	// Plan Defaults to "starter"
+	// Plan Defaults to `starter` when creating a new database.
 	Plan             *PaidPlan `json:"plan,omitempty"`
 	PreDeployCommand *string   `json:"preDeployCommand,omitempty"`
 	Previews         *Previews `json:"previews,omitempty"`
@@ -1531,7 +1531,7 @@ type PrivateServiceDetailsPOST struct {
 	// NumInstances Defaults to 1
 	NumInstances *int `json:"numInstances,omitempty"`
 
-	// Plan Defaults to "starter"
+	// Plan Defaults to `starter` when creating a new database.
 	Plan             *PaidPlan `json:"plan,omitempty"`
 	PreDeployCommand *string   `json:"preDeployCommand,omitempty"`
 	Previews         *Previews `json:"previews,omitempty"`
@@ -1963,18 +1963,22 @@ type ServicePOST struct {
 	// AutoDeployTrigger Controls autodeploy behavior. commit deploys when a commit is pushed to a branch. checksPass waits for the branch to be green.
 	AutoDeployTrigger *AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
 
-	// Branch If left empty, this will fall back to the default branch of the repository
+	// Branch The repo branch to pull, build, and deploy. If omitted, uses the repository's default branch.
 	Branch      *string           `json:"branch,omitempty"`
 	BuildFilter *BuildFilter      `json:"buildFilter,omitempty"`
 	EnvVars     *EnvVarInputArray `json:"envVars,omitempty"`
 
-	// EnvironmentId The ID of the environment the service is associated with
+	// EnvironmentId The ID of the environment the service belongs to, if any. Obtain an environment's ID from its Settings page in the Render Dashboard.
 	EnvironmentId *string `json:"environmentId,omitempty"`
 	Image         *Image  `json:"image,omitempty"`
-	Name          string  `json:"name"`
-	OwnerId       string  `json:"ownerId"`
 
-	// Repo Do not include the branch in the repo string. You can instead supply a 'branch' parameter.
+	// Name The service's name. Must be unique within the workspace.
+	Name string `json:"name"`
+
+	// OwnerId The ID of the workspace the service belongs to. Obtain your workspace's ID from its Settings page in the Render Dashboard.
+	OwnerId string `json:"ownerId"`
+
+	// Repo The service's repository URL. Do not specify a branch in this string (use the `branch` parameter instead).
 	Repo           *string                     `json:"repo,omitempty"`
 	RootDir        *string                     `json:"rootDir,omitempty"`
 	SecretFiles    *[]SecretFileInput          `json:"secretFiles,omitempty"`
@@ -2129,7 +2133,7 @@ type WebServiceDetails struct {
 	OpenPorts    []ServerPort `json:"openPorts"`
 	ParentServer *Resource    `json:"parentServer,omitempty"`
 
-	// Plan The instance type to use for the preview instance. Note that base services with any paid instance type can't create preview instances with the `free` instance type.
+	// Plan The instance type to use. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
 	Plan     Plan      `json:"plan"`
 	Previews *Previews `json:"previews,omitempty"`
 
@@ -2162,8 +2166,8 @@ type WebServiceDetailsPATCH struct {
 	// MaxShutdownDelaySeconds The maximum amount of time (in seconds) that Render waits for your application process to exit gracefully after sending it a SIGTERM signal.
 	MaxShutdownDelaySeconds *MaxShutdownDelaySeconds `json:"maxShutdownDelaySeconds,omitempty"`
 
-	// Plan Defaults to "starter"
-	Plan             *PaidPlan `json:"plan,omitempty"`
+	// Plan The instance type to use. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
+	Plan             *Plan     `json:"plan,omitempty"`
 	PreDeployCommand *string   `json:"preDeployCommand,omitempty"`
 	Previews         *Previews `json:"previews,omitempty"`
 
@@ -2197,8 +2201,8 @@ type WebServiceDetailsPOST struct {
 	// NumInstances Defaults to 1
 	NumInstances *int `json:"numInstances,omitempty"`
 
-	// Plan Defaults to "starter"
-	Plan             *PaidPlan `json:"plan,omitempty"`
+	// Plan The instance type to use. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
+	Plan             *Plan     `json:"plan,omitempty"`
 	PreDeployCommand *string   `json:"preDeployCommand,omitempty"`
 	Previews         *Previews `json:"previews,omitempty"`
 
@@ -2392,6 +2396,15 @@ type Logs200Response struct {
 
 // LogsValues200Response defines model for LogsValues200Response.
 type LogsValues200Response = []string
+
+// ListBlobsParams defines parameters for ListBlobs.
+type ListBlobsParams struct {
+	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
+}
 
 // ListBlueprintsParams defines parameters for ListBlueprints.
 type ListBlueprintsParams struct {

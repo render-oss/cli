@@ -105,6 +105,9 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// ListBlobs request
+	ListBlobs(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, params *ListBlobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// DeleteBlob request
 	DeleteBlob(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -805,6 +808,18 @@ type ClientInterface interface {
 
 	// GetWorkflowVersion request
 	GetWorkflowVersion(ctx context.Context, workflowVersionId externalRef14.WorkflowVersionIDParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) ListBlobs(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, params *ListBlobsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBlobsRequest(c.Server, ownerId, region, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) DeleteBlob(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -3829,6 +3844,85 @@ func (c *Client) GetWorkflowVersion(ctx context.Context, workflowVersionId exter
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewListBlobsRequest generates requests for ListBlobs
+func NewListBlobsRequest(server string, ownerId OwnerIdPathParam, region RegionPathParam, params *ListBlobsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ownerId", runtime.ParamLocationPath, ownerId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "region", runtime.ParamLocationPath, region)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blobs/%s/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "cursor", runtime.ParamLocationQuery, *params.Cursor); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewDeleteBlobRequest generates requests for DeleteBlob
@@ -17102,6 +17196,9 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// ListBlobsWithResponse request
+	ListBlobsWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, params *ListBlobsParams, reqEditors ...RequestEditorFn) (*ListBlobsResponse, error)
+
 	// DeleteBlobWithResponse request
 	DeleteBlobWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, reqEditors ...RequestEditorFn) (*DeleteBlobResponse, error)
 
@@ -17802,6 +17899,34 @@ type ClientWithResponsesInterface interface {
 
 	// GetWorkflowVersionWithResponse request
 	GetWorkflowVersionWithResponse(ctx context.Context, workflowVersionId externalRef14.WorkflowVersionIDParam, reqEditors ...RequestEditorFn) (*GetWorkflowVersionResponse, error)
+}
+
+type ListBlobsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]externalRef12.BlobWithCursor
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBlobsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBlobsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
 }
 
 type DeleteBlobResponse struct {
@@ -23412,6 +23537,15 @@ func (r GetWorkflowVersionResponse) StatusCode() int {
 	return 0
 }
 
+// ListBlobsWithResponse request returning *ListBlobsResponse
+func (c *ClientWithResponses) ListBlobsWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, params *ListBlobsParams, reqEditors ...RequestEditorFn) (*ListBlobsResponse, error) {
+	rsp, err := c.ListBlobs(ctx, ownerId, region, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBlobsResponse(rsp)
+}
+
 // DeleteBlobWithResponse request returning *DeleteBlobResponse
 func (c *ClientWithResponses) DeleteBlobWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, reqEditors ...RequestEditorFn) (*DeleteBlobResponse, error) {
 	rsp, err := c.DeleteBlob(ctx, ownerId, region, key, reqEditors...)
@@ -25623,6 +25757,74 @@ func (c *ClientWithResponses) GetWorkflowVersionWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseGetWorkflowVersionResponse(rsp)
+}
+
+// ParseListBlobsResponse parses an HTTP response from a ListBlobsWithResponse call
+func ParseListBlobsResponse(rsp *http.Response) (*ListBlobsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBlobsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []externalRef12.BlobWithCursor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseDeleteBlobResponse parses an HTTP response from a DeleteBlobWithResponse call

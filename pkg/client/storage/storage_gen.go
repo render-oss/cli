@@ -10,6 +10,27 @@ import (
 	"time"
 )
 
+// BlobMetadata defines model for blobMetadata.
+type BlobMetadata struct {
+	// ContentType MIME type of the blob
+	ContentType string `json:"contentType"`
+
+	// Key The blob's object key
+	Key string `json:"key"`
+
+	// LastModified When the blob was last modified (ISO 8601)
+	LastModified time.Time `json:"lastModified"`
+
+	// SizeBytes Size of the blob in bytes
+	SizeBytes int64 `json:"sizeBytes"`
+}
+
+// BlobWithCursor defines model for blobWithCursor.
+type BlobWithCursor struct {
+	Blob   BlobMetadata `json:"blob"`
+	Cursor string       `json:"cursor"`
+}
+
 // GetBlobOutput defines model for getBlobOutput.
 type GetBlobOutput struct {
 	// ExpiresAt The time at which the presigned URL expires (ISO 8601 format)

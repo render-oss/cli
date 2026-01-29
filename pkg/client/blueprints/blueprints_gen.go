@@ -118,20 +118,20 @@ type SyncState string
 
 // ValidateBlueprintRequest defines model for validateBlueprintRequest.
 type ValidateBlueprintRequest struct {
-	// File The render.yaml file to validate
+	// File The render.yaml file to validate, as a binary file.
 	File openapi_types.File `json:"file"`
 
-	// OwnerId The ID of the workspace to validate against
+	// OwnerId The ID of the workspace to validate against. Obtain your workspace ID from its Settings page in the Render Dashboard.
 	OwnerId string `json:"ownerId"`
 }
 
 // ValidateBlueprintResponse defines model for validateBlueprintResponse.
 type ValidateBlueprintResponse struct {
-	// Errors Validation errors (only present if valid is false)
+	// Errors A list of validation errors. Only present if `valid` is `false`.
 	Errors *[]ValidationError     `json:"errors,omitempty"`
 	Plan   *ValidationPlanSummary `json:"plan,omitempty"`
 
-	// Valid Whether the blueprint is valid
+	// Valid If `true`, the Blueprint validated successfully. If `false`, at least one validation error occurred.
 	Valid bool `json:"valid"`
 }
 
@@ -146,24 +146,24 @@ type ValidationError struct {
 	// Line The line number in the YAML file (1-indexed)
 	Line *int `json:"line,omitempty"`
 
-	// Path The path to the field with the error (e.g., services[0].plan)
+	// Path The path to the field with the error (e.g., `services[0].plan`)
 	Path *string `json:"path,omitempty"`
 }
 
 // ValidationPlanSummary defines model for validationPlanSummary.
 type ValidationPlanSummary struct {
-	// Databases Names of databases that would be created
+	// Databases The names of Render Postgres databases that would be created as part of the Blueprint.
 	Databases *[]string `json:"databases,omitempty"`
 
-	// EnvGroups Names of environment groups that would be created
+	// EnvGroups The names of environment groups that would be created as part of the Blueprint.
 	EnvGroups *[]string `json:"envGroups,omitempty"`
 
-	// KeyValue Names of Key-Value instances that would be created
+	// KeyValue The names of Render Key Value instances that would be created as part of the Blueprint.
 	KeyValue *[]string `json:"keyValue,omitempty"`
 
-	// Services Names of services that would be created
+	// Services The names of services that would be created as part of the Blueprint.
 	Services *[]string `json:"services,omitempty"`
 
-	// TotalActions Total number of actions in the plan
+	// TotalActions The total number of actions that would be performed by the Blueprint. In addition to created resources, this includes modifications to individual configuration fields.
 	TotalActions *int `json:"totalActions,omitempty"`
 }
