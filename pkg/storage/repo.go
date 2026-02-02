@@ -8,6 +8,7 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	storageclient "github.com/render-oss/cli/pkg/client/storage"
+	"github.com/render-oss/cli/pkg/pointers"
 )
 
 // Repo handles REST API calls for object storage
@@ -85,6 +86,49 @@ func (r *Repo) Delete(ctx context.Context, ownerId, region, key string) error {
 	}
 
 	return nil
+}
+
+// List lists objects in object storage with pagination support
+func (r *Repo) List(ctx context.Context, ownerId, region, cursor string, limit int) ([]ObjectInfo, string, error) {
+	params := &client.ListBlobsParams{
+		Limit: pointers.From(limit),
+	}
+	if cursor != "" {
+		params.Cursor = &cursor
+	}
+
+	resp, err := r.client.ListBlobsWithResponse(ctx, ownerId, client.Region(region), params)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to execute request: %w", err)
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, "", fmt.Errorf("list objects request failed: %w", err)
+	}
+
+	if resp.JSON200 == nil {
+		return nil, "", nil
+	}
+
+	respOK := *resp.JSON200
+	objects := make([]ObjectInfo, len(respOK))
+	var lastCursor string
+	for i, bwc := range respOK {
+		objects[i] = ObjectInfo{
+			Key:          bwc.Blob.Key,
+			ContentType:  bwc.Blob.ContentType,
+			SizeBytes:    bwc.Blob.SizeBytes,
+			LastModified: bwc.Blob.LastModified,
+		}
+		lastCursor = bwc.Cursor
+	}
+
+	// Return cursor only if we got a full page (more data likely exists)
+	if len(objects) < limit {
+		lastCursor = ""
+	}
+
+	return objects, lastCursor, nil
 }
 
 // UploadToPresignedURL uploads file content to a presigned URL

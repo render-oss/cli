@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -329,4 +330,159 @@ type bufferWriter struct {
 func (b *bufferWriter) Write(p []byte) (n int, err error) {
 	*b.buf = append(*b.buf, p...)
 	return len(p), nil
+}
+
+func TestLocalService_List_Empty(t *testing.T) {
+	basePath := t.TempDir()
+	svc := NewLocalService(basePath, "oregon", "usr-123")
+
+	result, err := svc.List(context.Background(), "", 10)
+	require.NoError(t, err)
+	require.Empty(t, result.Objects)
+	require.Empty(t, result.Cursor)
+}
+
+func TestLocalService_List_SingleFile(t *testing.T) {
+	basePath := t.TempDir()
+	svc := NewLocalService(basePath, "oregon", "usr-123")
+
+	// Upload a file
+	key := "test/file.txt"
+	srcFile := filepath.Join(t.TempDir(), "source.txt")
+	require.NoError(t, os.WriteFile(srcFile, []byte("content"), 0644))
+	_, err := svc.Upload(context.Background(), key, srcFile)
+	require.NoError(t, err)
+
+	// List
+	result, err := svc.List(context.Background(), "", 10)
+	require.NoError(t, err)
+	require.Len(t, result.Objects, 1)
+	require.Equal(t, key, result.Objects[0].Key)
+	require.Equal(t, int64(7), result.Objects[0].SizeBytes)
+	require.Empty(t, result.Cursor) // No more items
+}
+
+func TestLocalService_List_MultipleFiles(t *testing.T) {
+	basePath := t.TempDir()
+	svc := NewLocalService(basePath, "oregon", "usr-123")
+
+	// Upload multiple files
+	keys := []string{"a.txt", "b.txt", "c.txt"}
+	for _, key := range keys {
+		srcFile := filepath.Join(t.TempDir(), "source.txt")
+		require.NoError(t, os.WriteFile(srcFile, []byte("content"), 0644))
+		_, err := svc.Upload(context.Background(), key, srcFile)
+		require.NoError(t, err)
+	}
+
+	// List all
+	result, err := svc.List(context.Background(), "", 10)
+	require.NoError(t, err)
+	require.Len(t, result.Objects, len(keys))
+	require.Empty(t, result.Cursor) // No more items
+
+	// Verify all keys are returned (order depends on filesystem)
+	returnedKeys := extractKeys(result.Objects)
+	require.ElementsMatch(t, keys, returnedKeys)
+}
+
+// extractKeys returns the keys from a slice of ObjectInfo
+func extractKeys(objects []ObjectInfo) []string {
+	keys := make([]string, len(objects))
+	for i, obj := range objects {
+		keys[i] = obj.Key
+	}
+	return keys
+}
+
+func TestLocalService_List_Pagination(t *testing.T) {
+	basePath := t.TempDir()
+	svc := NewLocalService(basePath, "oregon", "usr-123")
+
+	// Upload 5 files
+	for i := 0; i < 5; i++ {
+		key := fmt.Sprintf("file%d.txt", i)
+		srcFile := filepath.Join(t.TempDir(), "source.txt")
+		require.NoError(t, os.WriteFile(srcFile, []byte("content"), 0644))
+		_, err := svc.Upload(context.Background(), key, srcFile)
+		require.NoError(t, err)
+	}
+
+	// List with limit 2
+	result, err := svc.List(context.Background(), "", 2)
+	require.NoError(t, err)
+	require.Len(t, result.Objects, 2)
+	require.NotEmpty(t, result.Cursor) // More items available
+
+	// List next page using cursor
+	result2, err := svc.List(context.Background(), result.Cursor, 2)
+	require.NoError(t, err)
+	require.Len(t, result2.Objects, 2)
+	require.NotEmpty(t, result2.Cursor) // Still more items
+
+	// List final page
+	result3, err := svc.List(context.Background(), result2.Cursor, 2)
+	require.NoError(t, err)
+	require.Len(t, result3.Objects, 1) // Only 1 left
+	require.Empty(t, result3.Cursor) // No more items
+
+	// Verify all unique keys returned
+	allKeys := make(map[string]bool)
+	for _, b := range result.Objects {
+		allKeys[b.Key] = true
+	}
+	for _, b := range result2.Objects {
+		allKeys[b.Key] = true
+	}
+	for _, b := range result3.Objects {
+		allKeys[b.Key] = true
+	}
+	require.Len(t, allKeys, 5)
+}
+
+func TestLocalService_List_PaginationEvenlyDivides(t *testing.T) {
+	basePath := t.TempDir()
+	svc := NewLocalService(basePath, "oregon", "usr-123")
+
+	// Upload exactly 4 files
+	for i := 0; i < 4; i++ {
+		key := fmt.Sprintf("file%d.txt", i)
+		srcFile := filepath.Join(t.TempDir(), "source.txt")
+		require.NoError(t, os.WriteFile(srcFile, []byte("content"), 0644))
+		_, err := svc.Upload(context.Background(), key, srcFile)
+		require.NoError(t, err)
+	}
+
+	// List with limit 2 (exactly divides total)
+	result, err := svc.List(context.Background(), "", 2)
+	require.NoError(t, err)
+	require.Len(t, result.Objects, 2)
+	require.NotEmpty(t, result.Cursor)
+
+	// Second page - should return remaining 2 with no cursor
+	result2, err := svc.List(context.Background(), result.Cursor, 2)
+	require.NoError(t, err)
+	require.Len(t, result2.Objects, 2)
+	require.Empty(t, result2.Cursor) // No more items
+}
+
+func TestLocalService_List_LimitEqualsTotal(t *testing.T) {
+	basePath := t.TempDir()
+	svc := NewLocalService(basePath, "oregon", "usr-123")
+
+	// Upload exactly 3 files
+	numFiles := 3
+	for i := 0; i < numFiles; i++ {
+		key := fmt.Sprintf("file%d.txt", i)
+		srcFile := filepath.Join(t.TempDir(), "source.txt")
+		require.NoError(t, os.WriteFile(srcFile, []byte("content"), 0644))
+		_, err := svc.Upload(context.Background(), key, srcFile)
+		require.NoError(t, err)
+	}
+
+	// List with limit = exact number of files
+	result, err := svc.List(context.Background(), "", numFiles)
+	require.NoError(t, err)
+	require.Len(t, result.Objects, numFiles)
+	require.Empty(t, result.Cursor) // No cursor when limit equals total
 }

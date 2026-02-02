@@ -1,6 +1,10 @@
 package text
 
 import (
+	"time"
+
+	"github.com/jedib0t/go-pretty/table"
+
 	"github.com/render-oss/cli/pkg/storage"
 	"github.com/render-oss/cli/pkg/utils"
 )
@@ -26,4 +30,19 @@ func ObjectDownload(result *storage.DownloadResult) string {
 // ObjectDelete formats a delete result for text output
 func ObjectDelete(result *storage.DeleteResult) string {
 	return FormatStringF("Deleted %s", result.Key)
+}
+
+// ObjectTable formats a list of objects for text output
+func ObjectTable(objects []storage.ObjectInfo) string {
+	t := newTable()
+	t.AppendHeader(table.Row{"KEY", "CONTENT TYPE", "SIZE", "LAST MODIFIED"})
+	for _, obj := range objects {
+		t.AppendRow(table.Row{
+			obj.Key,
+			obj.ContentType,
+			utils.FormatBytes(obj.SizeBytes),
+			obj.LastModified.Format(time.RFC3339),
+		})
+	}
+	return FormatString(t.Render())
 }

@@ -80,7 +80,6 @@ func (s *LocalService) Upload(ctx context.Context, key, filePath string) (*Uploa
 func (s *LocalService) Download(ctx context.Context, key string, dest io.Writer) (*DownloadResult, error) {
 	objectPath := s.objectPath(key)
 
-	// Check if object exists
 	if _, err := os.Stat(objectPath); err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("object not found: %s", key)
@@ -175,6 +174,71 @@ func (s *LocalService) cleanupEmptyParents(path string) {
 		os.Remove(parent)
 		parent = filepath.Dir(parent)
 	}
+}
+
+// List lists objects in local storage with pagination support
+func (s *LocalService) List(ctx context.Context, cursor string, limit int) (*ListResult, error) {
+	bucketPath := filepath.Join(s.basePath, s.region, s.bucketName)
+
+	if _, err := os.Stat(bucketPath); os.IsNotExist(err) {
+		return &ListResult{Objects: []ObjectInfo{}}, nil
+	}
+
+	entries, err := os.ReadDir(bucketPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read directory: %w", err)
+	}
+
+	var objects []ObjectInfo
+	startIndex := 0
+
+	if cursor != "" {
+		encodedCursor := url.PathEscape(cursor)
+		for i, entry := range entries {
+			if entry.Name() == encodedCursor {
+				startIndex = i + 1
+				break
+			}
+		}
+	}
+
+	lastIndex := startIndex
+	for i := startIndex; i < len(entries) && len(objects) < limit; i++ {
+		entry := entries[i]
+		// Skip directories - users may have manually created them in the local storage path
+		if entry.IsDir() {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		decodedKey, err := url.PathUnescape(entry.Name())
+		if err != nil {
+			decodedKey = entry.Name()
+		}
+
+		objects = append(objects, ObjectInfo{
+			Key:          decodedKey,
+			ContentType:  "application/octet-stream",
+			SizeBytes:    info.Size(),
+			LastModified: info.ModTime(),
+		})
+		lastIndex = i + 1
+	}
+
+	// Determine next cursor - only set if there are more entries to process
+	nextCursor := ""
+	if len(objects) > 0 && lastIndex < len(entries) {
+		nextCursor = objects[len(objects)-1].Key
+	}
+
+	return &ListResult{
+		Objects: objects,
+		Cursor:  nextCursor,
+	}, nil
 }
 
 // IsLocalMode checks if local development mode is enabled

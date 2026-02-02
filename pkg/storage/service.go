@@ -15,6 +15,7 @@ type StorageService interface {
 	Upload(ctx context.Context, key, filePath string) (*UploadResult, error)
 	Download(ctx context.Context, key string, dest io.Writer) (*DownloadResult, error)
 	Delete(ctx context.Context, key string) (*DeleteResult, error)
+	List(ctx context.Context, cursor string, limit int) (*ListResult, error)
 }
 
 // CloudService implements StorageService for Render cloud storage
@@ -97,6 +98,19 @@ func (s *CloudService) Delete(ctx context.Context, key string) (*DeleteResult, e
 	return &DeleteResult{
 		Key:    key,
 		Region: s.region,
+	}, nil
+}
+
+// List lists objects in cloud storage with pagination support
+func (s *CloudService) List(ctx context.Context, cursor string, limit int) (*ListResult, error) {
+	objects, nextCursor, err := s.repo.List(ctx, s.ownerId, s.region, cursor, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ListResult{
+		Objects: objects,
+		Cursor:  nextCursor,
 	}, nil
 }
 
