@@ -24,6 +24,10 @@ func GetAPIKey() string {
 	return os.Getenv("RENDER_API_KEY")
 }
 
+func GetRegion() string {
+	return os.Getenv("RENDER_REGION")
+}
+
 func AddUserAgent(header http.Header) http.Header {
 	header.Add("user-agent", fmt.Sprintf("render-cli/%s (%s)", Version, getOSInfoOnce()))
 	return header

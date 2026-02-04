@@ -12,6 +12,10 @@ var objectCmd = &cobra.Command{
 Object storage allows you to store and retrieve arbitrary data. Use these commands
 to list, upload, download, and delete objects.
 
+The --region flag specifies which region to use. Alternatively, set the
+RENDER_REGION environment variable. The --region flag takes precedence
+if both are provided.
+
 In local development mode (when running with 'render ea tasks dev' or with the
 --local flag), objects are stored in the .render/objects/ directory.
 
@@ -23,6 +27,7 @@ Available commands:
 
 Examples:
   render ea objects list --region=oregon
+  RENDER_REGION=oregon render ea objects list
   render ea objects put my/object/key --file=./data.txt --region=oregon
   render ea objects get my/object/key --file=./output.txt --region=oregon
   render ea objects delete my/object/key --region=oregon --yes
@@ -31,11 +36,8 @@ Examples:
 
 func init() {
 	// Add persistent flags shared by all object commands
-	objectCmd.PersistentFlags().String("region", "", "Target region (required)")
+	objectCmd.PersistentFlags().String("region", "", "Target region (or set RENDER_REGION env var)")
 	objectCmd.PersistentFlags().Bool("local", false, "Use local storage (.render/objects/) instead of cloud storage")
-
-	// Mark region as required for all object commands
-	objectCmd.MarkPersistentFlagRequired("region")
 
 	EarlyAccessCmd.AddCommand(objectCmd)
 }

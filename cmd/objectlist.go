@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/render-oss/cli/pkg/cfg"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/storage"
 	"github.com/render-oss/cli/pkg/text"
@@ -18,7 +19,10 @@ type ObjectListInput struct {
 
 func (i *ObjectListInput) Validate(interactive bool) error {
 	if i.Region == "" {
-		return fmt.Errorf("--region is required")
+		i.Region = cfg.GetRegion()
+	}
+	if i.Region == "" {
+		return fmt.Errorf("--region is required (or set RENDER_REGION environment variable)")
 	}
 	if i.Limit <= 0 {
 		return fmt.Errorf("--limit must be greater than 0")

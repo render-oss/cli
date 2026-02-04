@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/render-oss/cli/pkg/cfg"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/storage"
 	"github.com/render-oss/cli/pkg/text"
@@ -23,7 +24,10 @@ func (i *ObjectGetInput) Validate(interactive bool) error {
 		return fmt.Errorf("key is required")
 	}
 	if i.Region == "" {
-		return fmt.Errorf("--region is required")
+		i.Region = cfg.GetRegion()
+	}
+	if i.Region == "" {
+		return fmt.Errorf("--region is required (or set RENDER_REGION environment variable)")
 	}
 	return nil
 }
