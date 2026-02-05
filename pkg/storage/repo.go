@@ -117,7 +117,6 @@ func (r *Repo) List(ctx context.Context, ownerId, region, cursor string, limit i
 	for i, bwc := range respOK {
 		objects[i] = ObjectInfo{
 			Key:          bwc.Blob.Key,
-			ContentType:  bwc.Blob.ContentType,
 			SizeBytes:    bwc.Blob.SizeBytes,
 			LastModified: bwc.Blob.LastModified,
 		}

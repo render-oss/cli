@@ -35,11 +35,10 @@ func ObjectDelete(result *storage.DeleteResult) string {
 // ObjectTable formats a list of objects for text output
 func ObjectTable(objects []storage.ObjectInfo) string {
 	t := newTable()
-	t.AppendHeader(table.Row{"KEY", "CONTENT TYPE", "SIZE", "LAST MODIFIED"})
+	t.AppendHeader(table.Row{"KEY", "SIZE", "LAST MODIFIED"})
 	for _, obj := range objects {
 		t.AppendRow(table.Row{
 			obj.Key,
-			obj.ContentType,
 			utils.FormatBytes(obj.SizeBytes),
 			obj.LastModified.Format(time.RFC3339),
 		})

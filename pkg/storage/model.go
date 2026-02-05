@@ -5,7 +5,6 @@ import "time"
 // ObjectInfo represents metadata about a single object
 type ObjectInfo struct {
 	Key          string    `json:"key"`
-	ContentType  string    `json:"contentType"`
 	SizeBytes    int64     `json:"sizeBytes"`
 	LastModified time.Time `json:"lastModified"`
 }

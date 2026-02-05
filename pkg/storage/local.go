@@ -222,7 +222,6 @@ func (s *LocalService) List(ctx context.Context, cursor string, limit int) (*Lis
 
 		objects = append(objects, ObjectInfo{
 			Key:          decodedKey,
-			ContentType:  "application/octet-stream",
 			SizeBytes:    info.Size(),
 			LastModified: info.ModTime(),
 		})
