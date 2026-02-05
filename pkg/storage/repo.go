@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -147,8 +148,7 @@ func (r *Repo) UploadToPresignedURL(ctx context.Context, presignedURL string, co
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(respBody))
+		return errors.New(storageErrorMessage(resp.StatusCode))
 	}
 
 	return nil
@@ -168,8 +168,7 @@ func (r *Repo) DownloadFromPresignedURL(ctx context.Context, presignedURL string
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, _ := io.ReadAll(resp.Body)
-		return 0, fmt.Errorf("download failed with status %d: %s", resp.StatusCode, string(respBody))
+		return 0, errors.New(storageErrorMessage(resp.StatusCode))
 	}
 
 	written, err := io.Copy(dest, resp.Body)
@@ -178,4 +177,27 @@ func (r *Repo) DownloadFromPresignedURL(ctx context.Context, presignedURL string
 	}
 
 	return written, nil
+}
+
+func storageErrorMessage(statusCode int) string {
+	var message string
+	switch statusCode {
+	case 400:
+		message = "bad request"
+	case 401, 403:
+		message = "access denied"
+	case 404:
+		message = "object not found"
+	case 409:
+		message = "conflict"
+	case 413:
+		message = "object too large"
+	case 429:
+		message = "rate limited, please try again later"
+	case 500, 502, 503, 504:
+		message = "storage service temporarily unavailable"
+	default:
+		message = "unexpected error"
+	}
+	return fmt.Sprintf("received response code %d: %s", statusCode, message)
 }
