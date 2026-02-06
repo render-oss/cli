@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/gorilla/websocket"
 	"github.com/render-oss/cli/pkg/client"
@@ -58,7 +61,6 @@ Examples:
   render ea taskruns start my-task --local --input='["arg1"]'
 	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-
 		ctx := cmd.Context()
 		var commandArgs []string
 		if cmd.ArgsLenAtDash() >= 0 {
@@ -67,6 +69,13 @@ Examples:
 
 		if len(commandArgs) == 0 {
 			return errors.New("command is required")
+		}
+
+		command.Println(cmd, "✓ Dev server starting...")
+
+		debugMode, err := cmd.Flags().GetBool("debug")
+		if err != nil {
+			return fmt.Errorf("failed to get debug flag: %w", err)
 		}
 
 		socketTracker, err := orchestrator.NewSocketTracker(ctx)
@@ -78,7 +87,32 @@ Examples:
 
 		logs := logstore.NewLogStore()
 		store := store.NewTaskStore()
-		coordinator := orchestrator.NewCoordinator(ctx, store, orchestrator.NewExec(logs, commandArgs[0], commandArgs[1:]...), socketTracker, taskServerFactory)
+		var (
+			pending []string
+			ready   bool
+		)
+
+		statusReporter := orchestrator.NewPrintStatusReporter(
+			func(format string, args ...any) {
+				message := fmt.Sprintf(format, args...)
+				if !ready {
+					pending = append(pending, message)
+					return
+				}
+				command.Println(cmd, "%s", message)
+			},
+			orchestrator.WithStatusReporterTimestamps(debugMode),
+			orchestrator.WithStatusReporterTaskEnqueued(debugMode),
+			orchestrator.WithStatusReporterIncludeInputs(true),
+		)
+		coordinator := orchestrator.NewCoordinator(
+			ctx,
+			store,
+			orchestrator.NewExec(logs, debugMode, commandArgs[0], commandArgs[1:]...),
+			socketTracker,
+			taskServerFactory,
+			statusReporter,
+		)
 
 		upgrader := &websocket.Upgrader{
 			Error: func(w http.ResponseWriter, r *http.Request, status int, reason error) {
@@ -94,6 +128,28 @@ Examples:
 		api := apiserver.NewHandler(coordinator, store, logs, upgrader)
 		apiSrv := apiserver.Start(api, port)
 		logs.Start(ctx)
+
+		registeredTasks, err := coordinator.PopulateTasks(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to load tasks: %w", err)
+		}
+
+		if source := describeWorkflowSource(commandArgs); source != "" {
+			command.Println(cmd, "✓ Loaded tasks from %s", source)
+		} else {
+			command.Println(cmd, "✓ Loaded tasks")
+		}
+
+		command.Println(cmd, "%s", formatTaskSummary(registeredTasks))
+		command.Println(cmd, "✓ Server ready at http://localhost:%d", port)
+		command.Println(cmd, "✓ Watching for tasks...")
+		command.Println(cmd, "")
+
+		ready = true
+		for _, line := range pending {
+			command.Println(cmd, "%s", line)
+		}
+		pending = nil
 
 		<-ctx.Done()
 
@@ -184,6 +240,7 @@ func init() {
 	taskCmd.PersistentFlags().Int("port", defaultTaskAPIPort, "Port of the local task server (8120 when not specified)")
 
 	taskDevCmd.Flags().Int("port", defaultTaskAPIPort, "Port of the local task server (8120 when not specified)")
+	taskDevCmd.Flags().Bool("debug", false, "Print detailed workflow task execution events")
 
 	EarlyAccessCmd.AddCommand(taskCmd)
 	taskCmd.AddCommand(taskDevCmd)
@@ -237,4 +294,37 @@ func getLocalDeps(cmd *cobra.Command, deps flows.WorkflowDeps) (flows.WorkflowDe
 		}
 	}
 	return deps, local, nil
+}
+
+func describeWorkflowSource(commandArgs []string) string {
+	if len(commandArgs) == 0 {
+		return ""
+	}
+
+	last := commandArgs[len(commandArgs)-1]
+	base := filepath.Base(last)
+	if strings.Contains(base, ".") {
+		return base
+	}
+
+	return strings.Join(commandArgs, " ")
+}
+
+func formatTaskSummary(tasks []*store.Task) string {
+	if len(tasks) == 0 {
+		return "✓ Found 0 tasks (waiting for registration)"
+	}
+
+	names := make([]string, 0, len(tasks))
+	for _, task := range tasks {
+		names = append(names, task.Name)
+	}
+	sort.Strings(names)
+
+	plural := ""
+	if len(names) > 1 {
+		plural = "s"
+	}
+
+	return fmt.Sprintf("✓ Found %d task%s: %s", len(names), plural, strings.Join(names, ", "))
 }

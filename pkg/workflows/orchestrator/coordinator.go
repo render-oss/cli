@@ -9,17 +9,19 @@ import (
 	"github.com/render-oss/cli/pkg/workflows/taskserver"
 )
 
-const (
-	minPort = 10000
-	maxPort = 20000
-)
-
 type TaskNotFoundError struct {
 	TaskIdentifier string
 }
 
 func (e *TaskNotFoundError) Error() string {
 	return fmt.Sprintf("task not found: %s", e.TaskIdentifier)
+}
+
+type StatusReporter interface {
+	TaskEnqueued(taskRun *store.TaskRun)
+	TaskRunning(taskRun *store.TaskRun)
+	TaskCompleted(taskRun *store.TaskRun)
+	TaskFailed(taskRun *store.TaskRun)
 }
 
 type Coordinator struct {
@@ -32,6 +34,7 @@ type Coordinator struct {
 	serverFactory serverFactory
 
 	topLevelContext context.Context
+	statusReporter  StatusReporter
 }
 
 type sdkExec interface {
@@ -47,14 +50,17 @@ type serverFactory interface {
 	) *taskserver.ServerHandler
 }
 
-func NewCoordinator(ctx context.Context, store *store.TaskStore, sdkExec sdkExec, socketTracker *SocketTracker, serverFactory serverFactory) *Coordinator {
-	return &Coordinator{
+func NewCoordinator(ctx context.Context, store *store.TaskStore, sdkExec sdkExec, socketTracker *SocketTracker, serverFactory serverFactory, statusReporter StatusReporter) *Coordinator {
+	coordinator := &Coordinator{
 		store:           store,
 		sdkExec:         sdkExec,
 		socketTracker:   socketTracker,
 		serverFactory:   serverFactory,
+		statusReporter:  statusReporter,
 		topLevelContext: ctx,
 	}
+
+	return coordinator
 }
 
 func (c *Coordinator) GetSubtaskResult(taskRunID string) (taskserver.PostGetSubtaskResultResponseObject, error) {
@@ -78,7 +84,7 @@ func (c *Coordinator) GetSubtaskResult(taskRunID string) (taskserver.PostGetSubt
 
 	return taskserver.PostGetSubtaskResult200JSONResponse{
 		Complete:     complete,
-		StillRunning: taskRun.Status != store.TaskRunStatusComplete,
+		StillRunning: taskRun.Status == store.TaskRunStatusRunning,
 		Error:        taskError,
 	}, nil
 }
@@ -102,8 +108,7 @@ func (c *Coordinator) StartSubtaskFunc(parentTaskRunID string) taskserver.StartS
 
 func (c *Coordinator) StartTask(ctx context.Context, taskIdentifier string, input []byte, parentTaskRunID *string) (*store.TaskRun, error) {
 	// Ensure tasks are up to date
-	_, err := c.PopulateTasks(ctx)
-	if err != nil {
+	if _, err := c.PopulateTasks(ctx); err != nil {
 		return nil, err
 	}
 
@@ -121,6 +126,8 @@ func (c *Coordinator) StartTask(ctx context.Context, taskIdentifier string, inpu
 
 	taskRun := c.store.StartTaskRun(taskName, input, parentTaskRunID)
 
+	c.statusReporter.TaskEnqueued(taskRun)
+
 	server := c.serverFactory.NewHandler(socket, taskserver.GetInput200JSONResponse{
 		TaskName: taskName,
 		Input:    input,
@@ -134,12 +141,14 @@ func (c *Coordinator) StartTask(ctx context.Context, taskIdentifier string, inpu
 		return nil, err
 	}
 
+	c.statusReporter.TaskRunning(taskRun)
+
 	go func() {
 		defer cleanupFunc()
 
 		callback := <-server.Channels.PostCallback
 
-		err := c.completeTask(c.topLevelContext, callback.Body, taskRun.ID)
+		err := c.completeTask(callback.Body, taskRun.ID)
 		if err != nil {
 			fmt.Println("error completing task", err)
 		}
@@ -176,16 +185,24 @@ func (c *Coordinator) PopulateTasks(ctx context.Context) ([]*store.Task, error) 
 	}
 }
 
-func (c *Coordinator) completeTask(ctx context.Context, completeBody *taskserver.CallbackRequest, taskRunID string) error {
+func (c *Coordinator) completeTask(completeBody *taskserver.CallbackRequest, taskRunID string) error {
 	taskRun := c.store.GetTaskRun(taskRunID)
 	if taskRun == nil {
 		return fmt.Errorf("task run not found")
 	}
 
 	if completeBody.Complete != nil {
-		c.store.CompleteTaskRun(taskRun.ID, completeBody.Complete.Output)
+		updated, err := c.store.CompleteTaskRun(taskRun.ID, completeBody.Complete.Output)
+		if err != nil {
+			return err
+		}
+		c.statusReporter.TaskCompleted(updated)
 	} else if completeBody.Error != nil {
-		c.store.FailTaskRun(taskRun.ID, completeBody.Error.Details)
+		updated, err := c.store.FailTaskRun(taskRun.ID, completeBody.Error.Details)
+		if err != nil {
+			return err
+		}
+		c.statusReporter.TaskFailed(updated)
 	}
 
 	return nil

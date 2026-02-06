@@ -25,6 +25,15 @@ type fakeServerFactory struct {
 	newHandler func(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc) *taskserver.ServerHandler
 }
 
+type noopStatusReporter struct{}
+
+func (noopStatusReporter) Ready() {}
+func (noopStatusReporter) TasksRegistered(taskNames []string) {}
+func (noopStatusReporter) TaskEnqueued(taskRun *store.TaskRun) {}
+func (noopStatusReporter) TaskRunning(taskRun *store.TaskRun) {}
+func (noopStatusReporter) TaskCompleted(taskRun *store.TaskRun) {}
+func (noopStatusReporter) TaskFailed(taskRun *store.TaskRun) {}
+
 func (f *fakeServerFactory) NewHandler(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
 	return f.newHandler(socket, input, getSubtaskResultFunc, startSubtaskFunc)
 }
@@ -89,7 +98,9 @@ func TestStartTask(t *testing.T) {
 					},
 				}
 			},
-		})
+		},
+		&noopStatusReporter{},
+	)
 
 	_, err = coordinator.StartTask(ctx, "fake-workflow/test-task", []byte{}, nil)
 	require.NoError(t, err)
@@ -193,7 +204,9 @@ func TestStartTaskWithSubtask(t *testing.T) {
 					},
 				}
 			},
-		})
+		},
+		&noopStatusReporter{},
+	)
 
 	// Trigger a task and then we will simulate a subtask
 	go func() {

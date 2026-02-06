@@ -111,26 +111,26 @@ func (s *TaskStore) updateTaskRun(taskRunID string, output []byte, errString *st
 	return nil, fmt.Errorf("task run not found")
 }
 
-func (s *TaskStore) CompleteTaskRun(taskRunID string, output []byte) error {
+func (s *TaskStore) CompleteTaskRun(taskRunID string, output []byte) (*TaskRun, error) {
 	taskRun, err := s.updateTaskRun(taskRunID, output, nil, TaskRunStatusComplete)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	s.sendResultsToChannels(taskRun)
 
-	return nil
+	return taskRun, nil
 }
 
-func (s *TaskStore) FailTaskRun(taskRunID string, errString string) error {
+func (s *TaskStore) FailTaskRun(taskRunID string, errString string) (*TaskRun, error) {
 	taskRun, err := s.updateTaskRun(taskRunID, nil, &errString, TaskRunStatusFailed)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	s.sendResultsToChannels(taskRun)
 
-	return nil
+	return taskRun, nil
 }
 
 func (s *TaskStore) GetTaskRun(taskRunID string) *TaskRun {

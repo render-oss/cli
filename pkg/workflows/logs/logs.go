@@ -3,7 +3,7 @@ package logs
 import (
 	"context"
 	"fmt"
-	"os"
+	"io"
 	"regexp"
 	"slices"
 	"strings"
@@ -151,21 +151,25 @@ func (l *LogStore) Start(ctx context.Context) {
 }
 
 type LogInterceptor struct {
-	file      *os.File
+	writer    io.Writer
 	taskRunID string
 	logs      *LogStore
 }
 
-func NewLogInterceptor(taskRunID string, file *os.File, logs *LogStore) *LogInterceptor {
+func NewLogInterceptor(taskRunID string, writer io.Writer, logs *LogStore) *LogInterceptor {
 	return &LogInterceptor{
-		file:      file,
+		writer:    writer,
 		taskRunID: taskRunID,
 		logs:      logs,
 	}
 }
 
 func (l *LogInterceptor) Write(p []byte) (n int, err error) {
-	l.file.Write(p)
+	if l.writer != nil {
+		if _, err := l.writer.Write(p); err != nil {
+			return 0, err
+		}
+	}
 	l.logs.AddLog(&Log{
 		TaskRunID: l.taskRunID,
 		Message:   string(p),
