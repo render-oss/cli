@@ -105,20 +105,6 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
-	// ListBlobs request
-	ListBlobs(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, params *ListBlobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// DeleteBlob request
-	DeleteBlob(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetBlob request
-	GetBlob(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// PutBlobWithBody request with any body
-	PutBlobWithBody(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PutBlob(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, body PutBlobJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// ListBlueprints request
 	ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -390,6 +376,12 @@ type ClientInterface interface {
 	// GetReplicationLag request
 	GetReplicationLag(ctx context.Context, params *GetReplicationLagParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetTaskRunsCompleted request
+	GetTaskRunsCompleted(ctx context.Context, params *GetTaskRunsCompletedParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTaskRunsQueued request
+	GetTaskRunsQueued(ctx context.Context, params *GetTaskRunsQueuedParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListNotificationOverrides request
 	ListNotificationOverrides(ctx context.Context, params *ListNotificationOverridesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -408,6 +400,20 @@ type ClientInterface interface {
 	PatchOwnerNotificationSettingsWithBody(ctx context.Context, ownerId OwnerIdPathParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PatchOwnerNotificationSettings(ctx context.Context, ownerId OwnerIdPathParam, body PatchOwnerNotificationSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListObjects request
+	ListObjects(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteObject request
+	DeleteObject(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetObject request
+	GetObject(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutObjectWithBody request with any body
+	PutObjectWithBody(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutObject(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, body PutObjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListOrganizationAuditLogs request
 	ListOrganizationAuditLogs(ctx context.Context, orgId string, params *ListOrganizationAuditLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -631,6 +637,9 @@ type ClientInterface interface {
 
 	UpdateEnvVar(ctx context.Context, serviceId ServiceIdParam, envVarKey EnvVarKeyParam, body UpdateEnvVarJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CreateEphemeralShell request
+	CreateEphemeralShell(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListEvents request
 	ListEvents(ctx context.Context, serviceId ServiceIdParam, params *ListEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -808,66 +817,6 @@ type ClientInterface interface {
 
 	// GetWorkflowVersion request
 	GetWorkflowVersion(ctx context.Context, workflowVersionId externalRef14.WorkflowVersionIDParam, reqEditors ...RequestEditorFn) (*http.Response, error)
-}
-
-func (c *Client) ListBlobs(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, params *ListBlobsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListBlobsRequest(c.Server, ownerId, region, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) DeleteBlob(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteBlobRequest(c.Server, ownerId, region, key)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetBlob(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetBlobRequest(c.Server, ownerId, region, key)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PutBlobWithBody(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutBlobRequestWithBody(c.Server, ownerId, region, key, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PutBlob(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, body PutBlobJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutBlobRequest(c.Server, ownerId, region, key, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
 }
 
 func (c *Client) ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -2022,6 +1971,30 @@ func (c *Client) GetReplicationLag(ctx context.Context, params *GetReplicationLa
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetTaskRunsCompleted(ctx context.Context, params *GetTaskRunsCompletedParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTaskRunsCompletedRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTaskRunsQueued(ctx context.Context, params *GetTaskRunsQueuedParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTaskRunsQueuedRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListNotificationOverrides(ctx context.Context, params *ListNotificationOverridesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListNotificationOverridesRequest(c.Server, params)
 	if err != nil {
@@ -2096,6 +2069,66 @@ func (c *Client) PatchOwnerNotificationSettingsWithBody(ctx context.Context, own
 
 func (c *Client) PatchOwnerNotificationSettings(ctx context.Context, ownerId OwnerIdPathParam, body PatchOwnerNotificationSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPatchOwnerNotificationSettingsRequest(c.Server, ownerId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListObjects(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListObjectsRequest(c.Server, ownerId, region, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteObject(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteObjectRequest(c.Server, ownerId, region, key)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetObject(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetObjectRequest(c.Server, ownerId, region, key)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutObjectWithBody(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutObjectRequestWithBody(c.Server, ownerId, region, key, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutObject(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, body PutObjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutObjectRequest(c.Server, ownerId, region, key, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3066,6 +3099,18 @@ func (c *Client) UpdateEnvVar(ctx context.Context, serviceId ServiceIdParam, env
 	return c.Client.Do(req)
 }
 
+func (c *Client) CreateEphemeralShell(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateEphemeralShellRequest(c.Server, serviceId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListEvents(ctx context.Context, serviceId ServiceIdParam, params *ListEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListEventsRequest(c.Server, serviceId, params)
 	if err != nil {
@@ -3844,242 +3889,6 @@ func (c *Client) GetWorkflowVersion(ctx context.Context, workflowVersionId exter
 		return nil, err
 	}
 	return c.Client.Do(req)
-}
-
-// NewListBlobsRequest generates requests for ListBlobs
-func NewListBlobsRequest(server string, ownerId OwnerIdPathParam, region RegionPathParam, params *ListBlobsParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ownerId", runtime.ParamLocationPath, ownerId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "region", runtime.ParamLocationPath, region)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/blobs/%s/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Cursor != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "cursor", runtime.ParamLocationQuery, *params.Cursor); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Limit != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewDeleteBlobRequest generates requests for DeleteBlob
-func NewDeleteBlobRequest(server string, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ownerId", runtime.ParamLocationPath, ownerId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "region", runtime.ParamLocationPath, region)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam2 string
-
-	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "key", runtime.ParamLocationPath, key)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/blobs/%s/%s/%s", pathParam0, pathParam1, pathParam2)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetBlobRequest generates requests for GetBlob
-func NewGetBlobRequest(server string, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ownerId", runtime.ParamLocationPath, ownerId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "region", runtime.ParamLocationPath, region)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam2 string
-
-	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "key", runtime.ParamLocationPath, key)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/blobs/%s/%s/%s", pathParam0, pathParam1, pathParam2)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewPutBlobRequest calls the generic PutBlob builder with application/json body
-func NewPutBlobRequest(server string, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, body PutBlobJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPutBlobRequestWithBody(server, ownerId, region, key, "application/json", bodyReader)
-}
-
-// NewPutBlobRequestWithBody generates requests for PutBlob with any type of body
-func NewPutBlobRequestWithBody(server string, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ownerId", runtime.ParamLocationPath, ownerId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "region", runtime.ParamLocationPath, region)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam2 string
-
-	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "key", runtime.ParamLocationPath, key)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/blobs/%s/%s/%s", pathParam0, pathParam1, pathParam2)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PUT", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
 }
 
 // NewListBlueprintsRequest generates requests for ListBlueprints
@@ -10272,6 +10081,232 @@ func NewGetReplicationLagRequest(server string, params *GetReplicationLagParams)
 	return req, nil
 }
 
+// NewGetTaskRunsCompletedRequest generates requests for GetTaskRunsCompleted
+func NewGetTaskRunsCompletedRequest(server string, params *GetTaskRunsCompletedParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metrics/task-runs-completed")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.StartTime != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "startTime", runtime.ParamLocationQuery, *params.StartTime); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.EndTime != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "endTime", runtime.ParamLocationQuery, *params.EndTime); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.ResolutionSeconds != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "resolutionSeconds", runtime.ParamLocationQuery, *params.ResolutionSeconds); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Resource != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "resource", runtime.ParamLocationQuery, *params.Resource); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.State != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "state", runtime.ParamLocationQuery, *params.State); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.AggregateBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "aggregateBy", runtime.ParamLocationQuery, *params.AggregateBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetTaskRunsQueuedRequest generates requests for GetTaskRunsQueued
+func NewGetTaskRunsQueuedRequest(server string, params *GetTaskRunsQueuedParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metrics/task-runs-queued")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.StartTime != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "startTime", runtime.ParamLocationQuery, *params.StartTime); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.EndTime != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "endTime", runtime.ParamLocationQuery, *params.EndTime); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.ResolutionSeconds != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "resolutionSeconds", runtime.ParamLocationQuery, *params.ResolutionSeconds); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Resource != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "resource", runtime.ParamLocationQuery, *params.Resource); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListNotificationOverridesRequest generates requests for ListNotificationOverrides
 func NewListNotificationOverridesRequest(server string, params *ListNotificationOverridesParams) (*http.Request, error) {
 	var err error
@@ -10522,6 +10557,242 @@ func NewPatchOwnerNotificationSettingsRequestWithBody(server string, ownerId Own
 	}
 
 	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListObjectsRequest generates requests for ListObjects
+func NewListObjectsRequest(server string, ownerId OwnerIdPathParam, region RegionPathParam, params *ListObjectsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ownerId", runtime.ParamLocationPath, ownerId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "region", runtime.ParamLocationPath, region)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/objects/%s/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "cursor", runtime.ParamLocationQuery, *params.Cursor); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteObjectRequest generates requests for DeleteObject
+func NewDeleteObjectRequest(server string, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ownerId", runtime.ParamLocationPath, ownerId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "region", runtime.ParamLocationPath, region)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "key", runtime.ParamLocationPath, key)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/objects/%s/%s/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetObjectRequest generates requests for GetObject
+func NewGetObjectRequest(server string, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ownerId", runtime.ParamLocationPath, ownerId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "region", runtime.ParamLocationPath, region)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "key", runtime.ParamLocationPath, key)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/objects/%s/%s/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutObjectRequest calls the generic PutObject builder with application/json body
+func NewPutObjectRequest(server string, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, body PutObjectJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutObjectRequestWithBody(server, ownerId, region, key, "application/json", bodyReader)
+}
+
+// NewPutObjectRequestWithBody generates requests for PutObject with any type of body
+func NewPutObjectRequestWithBody(server string, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ownerId", runtime.ParamLocationPath, ownerId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "region", runtime.ParamLocationPath, region)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "key", runtime.ParamLocationPath, key)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/objects/%s/%s/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -14317,6 +14588,40 @@ func NewUpdateEnvVarRequestWithBody(server string, serviceId ServiceIdParam, env
 	return req, nil
 }
 
+// NewCreateEphemeralShellRequest generates requests for CreateEphemeralShell
+func NewCreateEphemeralShellRequest(server string, serviceId ServiceIdParam) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "serviceId", runtime.ParamLocationPath, serviceId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/services/%s/ephemeral-shell", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListEventsRequest generates requests for ListEvents
 func NewListEventsRequest(server string, serviceId ServiceIdParam, params *ListEventsParams) (*http.Request, error) {
 	var err error
@@ -17196,20 +17501,6 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
-	// ListBlobsWithResponse request
-	ListBlobsWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, params *ListBlobsParams, reqEditors ...RequestEditorFn) (*ListBlobsResponse, error)
-
-	// DeleteBlobWithResponse request
-	DeleteBlobWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, reqEditors ...RequestEditorFn) (*DeleteBlobResponse, error)
-
-	// GetBlobWithResponse request
-	GetBlobWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, reqEditors ...RequestEditorFn) (*GetBlobResponse, error)
-
-	// PutBlobWithBodyWithResponse request with any body
-	PutBlobWithBodyWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutBlobResponse, error)
-
-	PutBlobWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, body PutBlobJSONRequestBody, reqEditors ...RequestEditorFn) (*PutBlobResponse, error)
-
 	// ListBlueprintsWithResponse request
 	ListBlueprintsWithResponse(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*ListBlueprintsResponse, error)
 
@@ -17481,6 +17772,12 @@ type ClientWithResponsesInterface interface {
 	// GetReplicationLagWithResponse request
 	GetReplicationLagWithResponse(ctx context.Context, params *GetReplicationLagParams, reqEditors ...RequestEditorFn) (*GetReplicationLagResponse, error)
 
+	// GetTaskRunsCompletedWithResponse request
+	GetTaskRunsCompletedWithResponse(ctx context.Context, params *GetTaskRunsCompletedParams, reqEditors ...RequestEditorFn) (*GetTaskRunsCompletedResponse, error)
+
+	// GetTaskRunsQueuedWithResponse request
+	GetTaskRunsQueuedWithResponse(ctx context.Context, params *GetTaskRunsQueuedParams, reqEditors ...RequestEditorFn) (*GetTaskRunsQueuedResponse, error)
+
 	// ListNotificationOverridesWithResponse request
 	ListNotificationOverridesWithResponse(ctx context.Context, params *ListNotificationOverridesParams, reqEditors ...RequestEditorFn) (*ListNotificationOverridesResponse, error)
 
@@ -17499,6 +17796,20 @@ type ClientWithResponsesInterface interface {
 	PatchOwnerNotificationSettingsWithBodyWithResponse(ctx context.Context, ownerId OwnerIdPathParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchOwnerNotificationSettingsResponse, error)
 
 	PatchOwnerNotificationSettingsWithResponse(ctx context.Context, ownerId OwnerIdPathParam, body PatchOwnerNotificationSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchOwnerNotificationSettingsResponse, error)
+
+	// ListObjectsWithResponse request
+	ListObjectsWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*ListObjectsResponse, error)
+
+	// DeleteObjectWithResponse request
+	DeleteObjectWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, reqEditors ...RequestEditorFn) (*DeleteObjectResponse, error)
+
+	// GetObjectWithResponse request
+	GetObjectWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, reqEditors ...RequestEditorFn) (*GetObjectResponse, error)
+
+	// PutObjectWithBodyWithResponse request with any body
+	PutObjectWithBodyWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutObjectResponse, error)
+
+	PutObjectWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, body PutObjectJSONRequestBody, reqEditors ...RequestEditorFn) (*PutObjectResponse, error)
 
 	// ListOrganizationAuditLogsWithResponse request
 	ListOrganizationAuditLogsWithResponse(ctx context.Context, orgId string, params *ListOrganizationAuditLogsParams, reqEditors ...RequestEditorFn) (*ListOrganizationAuditLogsResponse, error)
@@ -17722,6 +18033,9 @@ type ClientWithResponsesInterface interface {
 
 	UpdateEnvVarWithResponse(ctx context.Context, serviceId ServiceIdParam, envVarKey EnvVarKeyParam, body UpdateEnvVarJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateEnvVarResponse, error)
 
+	// CreateEphemeralShellWithResponse request
+	CreateEphemeralShellWithResponse(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*CreateEphemeralShellResponse, error)
+
 	// ListEventsWithResponse request
 	ListEventsWithResponse(ctx context.Context, serviceId ServiceIdParam, params *ListEventsParams, reqEditors ...RequestEditorFn) (*ListEventsResponse, error)
 
@@ -17899,118 +18213,6 @@ type ClientWithResponsesInterface interface {
 
 	// GetWorkflowVersionWithResponse request
 	GetWorkflowVersionWithResponse(ctx context.Context, workflowVersionId externalRef14.WorkflowVersionIDParam, reqEditors ...RequestEditorFn) (*GetWorkflowVersionResponse, error)
-}
-
-type ListBlobsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]externalRef12.BlobWithCursor
-	JSON401      *N401Unauthorized
-	JSON403      *N403Forbidden
-	JSON404      *N404NotFound
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r ListBlobsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListBlobsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type DeleteBlobResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON401      *N401Unauthorized
-	JSON403      *N403Forbidden
-	JSON404      *N404NotFound
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteBlobResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteBlobResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetBlobResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *externalRef12.GetBlobOutput
-	JSON401      *N401Unauthorized
-	JSON403      *N403Forbidden
-	JSON404      *N404NotFound
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r GetBlobResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetBlobResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type PutBlobResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *externalRef12.PutBlobOutput
-	JSON400      *N400BadRequest
-	JSON401      *N401Unauthorized
-	JSON403      *N403Forbidden
-	JSON404      *N404NotFound
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r PutBlobResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PutBlobResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
 }
 
 type ListBlueprintsResponse struct {
@@ -20198,6 +20400,54 @@ func (r GetReplicationLagResponse) StatusCode() int {
 	return 0
 }
 
+type GetTaskRunsCompletedResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef9.Metrics200Response
+	JSON400      *N400BadRequest
+	JSON500      *N500InternalServerError
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTaskRunsCompletedResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTaskRunsCompletedResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetTaskRunsQueuedResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef9.Metrics200Response
+	JSON400      *N400BadRequest
+	JSON500      *N500InternalServerError
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTaskRunsQueuedResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTaskRunsQueuedResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListNotificationOverridesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -20327,6 +20577,118 @@ func (r PatchOwnerNotificationSettingsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r PatchOwnerNotificationSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListObjectsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]externalRef12.ObjectWithCursor
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListObjectsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListObjectsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteObjectResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteObjectResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteObjectResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetObjectResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef12.GetObjectOutput
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r GetObjectResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetObjectResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutObjectResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef12.PutObjectOutput
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r PutObjectResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutObjectResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -22156,6 +22518,34 @@ func (r UpdateEnvVarResponse) StatusCode() int {
 	return 0
 }
 
+type CreateEphemeralShellResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateEphemeralShellResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateEphemeralShellResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListEventsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -23537,50 +23927,6 @@ func (r GetWorkflowVersionResponse) StatusCode() int {
 	return 0
 }
 
-// ListBlobsWithResponse request returning *ListBlobsResponse
-func (c *ClientWithResponses) ListBlobsWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, params *ListBlobsParams, reqEditors ...RequestEditorFn) (*ListBlobsResponse, error) {
-	rsp, err := c.ListBlobs(ctx, ownerId, region, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListBlobsResponse(rsp)
-}
-
-// DeleteBlobWithResponse request returning *DeleteBlobResponse
-func (c *ClientWithResponses) DeleteBlobWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, reqEditors ...RequestEditorFn) (*DeleteBlobResponse, error) {
-	rsp, err := c.DeleteBlob(ctx, ownerId, region, key, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteBlobResponse(rsp)
-}
-
-// GetBlobWithResponse request returning *GetBlobResponse
-func (c *ClientWithResponses) GetBlobWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, reqEditors ...RequestEditorFn) (*GetBlobResponse, error) {
-	rsp, err := c.GetBlob(ctx, ownerId, region, key, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetBlobResponse(rsp)
-}
-
-// PutBlobWithBodyWithResponse request with arbitrary body returning *PutBlobResponse
-func (c *ClientWithResponses) PutBlobWithBodyWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutBlobResponse, error) {
-	rsp, err := c.PutBlobWithBody(ctx, ownerId, region, key, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePutBlobResponse(rsp)
-}
-
-func (c *ClientWithResponses) PutBlobWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.BlobKeyPathParam, body PutBlobJSONRequestBody, reqEditors ...RequestEditorFn) (*PutBlobResponse, error) {
-	rsp, err := c.PutBlob(ctx, ownerId, region, key, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePutBlobResponse(rsp)
-}
-
 // ListBlueprintsWithResponse request returning *ListBlueprintsResponse
 func (c *ClientWithResponses) ListBlueprintsWithResponse(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*ListBlueprintsResponse, error) {
 	rsp, err := c.ListBlueprints(ctx, params, reqEditors...)
@@ -24428,6 +24774,24 @@ func (c *ClientWithResponses) GetReplicationLagWithResponse(ctx context.Context,
 	return ParseGetReplicationLagResponse(rsp)
 }
 
+// GetTaskRunsCompletedWithResponse request returning *GetTaskRunsCompletedResponse
+func (c *ClientWithResponses) GetTaskRunsCompletedWithResponse(ctx context.Context, params *GetTaskRunsCompletedParams, reqEditors ...RequestEditorFn) (*GetTaskRunsCompletedResponse, error) {
+	rsp, err := c.GetTaskRunsCompleted(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTaskRunsCompletedResponse(rsp)
+}
+
+// GetTaskRunsQueuedWithResponse request returning *GetTaskRunsQueuedResponse
+func (c *ClientWithResponses) GetTaskRunsQueuedWithResponse(ctx context.Context, params *GetTaskRunsQueuedParams, reqEditors ...RequestEditorFn) (*GetTaskRunsQueuedResponse, error) {
+	rsp, err := c.GetTaskRunsQueued(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTaskRunsQueuedResponse(rsp)
+}
+
 // ListNotificationOverridesWithResponse request returning *ListNotificationOverridesResponse
 func (c *ClientWithResponses) ListNotificationOverridesWithResponse(ctx context.Context, params *ListNotificationOverridesParams, reqEditors ...RequestEditorFn) (*ListNotificationOverridesResponse, error) {
 	rsp, err := c.ListNotificationOverrides(ctx, params, reqEditors...)
@@ -24487,6 +24851,50 @@ func (c *ClientWithResponses) PatchOwnerNotificationSettingsWithResponse(ctx con
 		return nil, err
 	}
 	return ParsePatchOwnerNotificationSettingsResponse(rsp)
+}
+
+// ListObjectsWithResponse request returning *ListObjectsResponse
+func (c *ClientWithResponses) ListObjectsWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*ListObjectsResponse, error) {
+	rsp, err := c.ListObjects(ctx, ownerId, region, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListObjectsResponse(rsp)
+}
+
+// DeleteObjectWithResponse request returning *DeleteObjectResponse
+func (c *ClientWithResponses) DeleteObjectWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, reqEditors ...RequestEditorFn) (*DeleteObjectResponse, error) {
+	rsp, err := c.DeleteObject(ctx, ownerId, region, key, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteObjectResponse(rsp)
+}
+
+// GetObjectWithResponse request returning *GetObjectResponse
+func (c *ClientWithResponses) GetObjectWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, reqEditors ...RequestEditorFn) (*GetObjectResponse, error) {
+	rsp, err := c.GetObject(ctx, ownerId, region, key, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetObjectResponse(rsp)
+}
+
+// PutObjectWithBodyWithResponse request with arbitrary body returning *PutObjectResponse
+func (c *ClientWithResponses) PutObjectWithBodyWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutObjectResponse, error) {
+	rsp, err := c.PutObjectWithBody(ctx, ownerId, region, key, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutObjectResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutObjectWithResponse(ctx context.Context, ownerId OwnerIdPathParam, region RegionPathParam, key externalRef12.ObjectKeyPathParam, body PutObjectJSONRequestBody, reqEditors ...RequestEditorFn) (*PutObjectResponse, error) {
+	rsp, err := c.PutObject(ctx, ownerId, region, key, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutObjectResponse(rsp)
 }
 
 // ListOrganizationAuditLogsWithResponse request returning *ListOrganizationAuditLogsResponse
@@ -25191,6 +25599,15 @@ func (c *ClientWithResponses) UpdateEnvVarWithResponse(ctx context.Context, serv
 	return ParseUpdateEnvVarResponse(rsp)
 }
 
+// CreateEphemeralShellWithResponse request returning *CreateEphemeralShellResponse
+func (c *ClientWithResponses) CreateEphemeralShellWithResponse(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*CreateEphemeralShellResponse, error) {
+	rsp, err := c.CreateEphemeralShell(ctx, serviceId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateEphemeralShellResponse(rsp)
+}
+
 // ListEventsWithResponse request returning *ListEventsResponse
 func (c *ClientWithResponses) ListEventsWithResponse(ctx context.Context, serviceId ServiceIdParam, params *ListEventsParams, reqEditors ...RequestEditorFn) (*ListEventsResponse, error) {
 	rsp, err := c.ListEvents(ctx, serviceId, params, reqEditors...)
@@ -25757,278 +26174,6 @@ func (c *ClientWithResponses) GetWorkflowVersionWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseGetWorkflowVersionResponse(rsp)
-}
-
-// ParseListBlobsResponse parses an HTTP response from a ListBlobsWithResponse call
-func ParseListBlobsResponse(rsp *http.Response) (*ListBlobsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListBlobsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []externalRef12.BlobWithCursor
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseDeleteBlobResponse parses an HTTP response from a DeleteBlobWithResponse call
-func ParseDeleteBlobResponse(rsp *http.Response) (*DeleteBlobResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteBlobResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetBlobResponse parses an HTTP response from a GetBlobWithResponse call
-func ParseGetBlobResponse(rsp *http.Response) (*GetBlobResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetBlobResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef12.GetBlobOutput
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParsePutBlobResponse parses an HTTP response from a PutBlobWithResponse call
-func ParsePutBlobResponse(rsp *http.Response) (*PutBlobResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PutBlobResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef12.PutBlobOutput
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
 }
 
 // ParseListBlueprintsResponse parses an HTTP response from a ListBlueprintsWithResponse call
@@ -31129,6 +31274,86 @@ func ParseGetReplicationLagResponse(rsp *http.Response) (*GetReplicationLagRespo
 	return response, nil
 }
 
+// ParseGetTaskRunsCompletedResponse parses an HTTP response from a GetTaskRunsCompletedWithResponse call
+func ParseGetTaskRunsCompletedResponse(rsp *http.Response) (*GetTaskRunsCompletedResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTaskRunsCompletedResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef9.Metrics200Response
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTaskRunsQueuedResponse parses an HTTP response from a GetTaskRunsQueuedWithResponse call
+func ParseGetTaskRunsQueuedResponse(rsp *http.Response) (*GetTaskRunsQueuedResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTaskRunsQueuedResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef9.Metrics200Response
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListNotificationOverridesResponse parses an HTTP response from a ListNotificationOverridesWithResponse call
 func ParseListNotificationOverridesResponse(rsp *http.Response) (*ListNotificationOverridesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -31407,6 +31632,278 @@ func ParsePatchOwnerNotificationSettingsResponse(rsp *http.Response) (*PatchOwne
 			return nil, err
 		}
 		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListObjectsResponse parses an HTTP response from a ListObjectsWithResponse call
+func ParseListObjectsResponse(rsp *http.Response) (*ListObjectsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListObjectsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []externalRef12.ObjectWithCursor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteObjectResponse parses an HTTP response from a DeleteObjectWithResponse call
+func ParseDeleteObjectResponse(rsp *http.Response) (*DeleteObjectResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteObjectResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetObjectResponse parses an HTTP response from a GetObjectWithResponse call
+func ParseGetObjectResponse(rsp *http.Response) (*GetObjectResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetObjectResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef12.GetObjectOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutObjectResponse parses an HTTP response from a PutObjectWithResponse call
+func ParsePutObjectResponse(rsp *http.Response) (*PutObjectResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutObjectResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef12.PutObjectOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest N429RateLimit
@@ -36202,6 +36699,74 @@ func ParseUpdateEnvVarResponse(rsp *http.Response) (*UpdateEnvVarResponse, error
 			return nil, err
 		}
 		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateEphemeralShellResponse parses an HTTP response from a CreateEphemeralShellWithResponse call
+func ParseCreateEphemeralShellResponse(rsp *http.Response) (*CreateEphemeralShellResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateEphemeralShellResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest N429RateLimit

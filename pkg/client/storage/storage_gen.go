@@ -10,53 +10,50 @@ import (
 	"time"
 )
 
-// BlobMetadata defines model for blobMetadata.
-type BlobMetadata struct {
-	// ContentType MIME type of the blob
-	ContentType string `json:"contentType"`
+// GetObjectOutput defines model for getObjectOutput.
+type GetObjectOutput struct {
+	// ExpiresAt The time at which the presigned URL expires (ISO 8601 format)
+	ExpiresAt time.Time `json:"expiresAt"`
 
-	// Key The blob's object key
+	// Url Presigned URL for downloading the object
+	Url string `json:"url"`
+}
+
+// ObjectMetadata defines model for objectMetadata.
+type ObjectMetadata struct {
+	// Key The object's key
 	Key string `json:"key"`
 
-	// LastModified When the blob was last modified (ISO 8601)
+	// LastModified When the object was last modified (ISO 8601)
 	LastModified time.Time `json:"lastModified"`
 
-	// SizeBytes Size of the blob in bytes
+	// SizeBytes Size of the object in bytes
 	SizeBytes int64 `json:"sizeBytes"`
 }
 
-// BlobWithCursor defines model for blobWithCursor.
-type BlobWithCursor struct {
-	Blob   BlobMetadata `json:"blob"`
-	Cursor string       `json:"cursor"`
+// ObjectWithCursor defines model for objectWithCursor.
+type ObjectWithCursor struct {
+	Cursor string         `json:"cursor"`
+	Object ObjectMetadata `json:"object"`
 }
 
-// GetBlobOutput defines model for getBlobOutput.
-type GetBlobOutput struct {
-	// ExpiresAt The time at which the presigned URL expires (ISO 8601 format)
-	ExpiresAt time.Time `json:"expiresAt"`
-
-	// Url Presigned URL for downloading the blob
-	Url string `json:"url"`
-}
-
-// PutBlobInput defines model for putBlobInput.
-type PutBlobInput struct {
-	// SizeBytes The size of the blob in bytes.
+// PutObjectInput defines model for putObjectInput.
+type PutObjectInput struct {
+	// SizeBytes The size of the object in bytes.
 	SizeBytes int64 `json:"sizeBytes"`
 }
 
-// PutBlobOutput defines model for putBlobOutput.
-type PutBlobOutput struct {
+// PutObjectOutput defines model for putObjectOutput.
+type PutObjectOutput struct {
 	// ExpiresAt The time at which the presigned URL expires (ISO 8601 format)
 	ExpiresAt time.Time `json:"expiresAt"`
 
-	// MaxSizeBytes The maximum size of the blob in bytes
+	// MaxSizeBytes The maximum size of the object in bytes
 	MaxSizeBytes int64 `json:"maxSizeBytes"`
 
-	// Url Presigned URL for uploading the blob
+	// Url Presigned URL for uploading the object
 	Url string `json:"url"`
 }
 
-// BlobKeyPathParam defines model for blobKeyPathParam.
-type BlobKeyPathParam = string
+// ObjectKeyPathParam defines model for objectKeyPathParam.
+type ObjectKeyPathParam = string

@@ -36,6 +36,7 @@ const (
 	Canceled  TaskRunStatus = "canceled"
 	Completed TaskRunStatus = "completed"
 	Failed    TaskRunStatus = "failed"
+	Paused    TaskRunStatus = "paused"
 	Pending   TaskRunStatus = "pending"
 	Running   TaskRunStatus = "running"
 )

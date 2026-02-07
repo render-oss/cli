@@ -27,8 +27,8 @@ func NewRepo(c *client.ClientWithResponses) *Repo {
 }
 
 // GetUploadURL requests a presigned URL for uploading an object
-func (r *Repo) GetUploadURL(ctx context.Context, ownerId, region, key string, sizeBytes int64) (*storageclient.PutBlobOutput, error) {
-	resp, err := r.client.PutBlobWithResponse(ctx, ownerId, client.Region(region), key, storageclient.PutBlobInput{
+func (r *Repo) GetUploadURL(ctx context.Context, ownerId, region, key string, sizeBytes int64) (*storageclient.PutObjectOutput, error) {
+	resp, err := r.client.PutObjectWithResponse(ctx, ownerId, client.Region(region), key, storageclient.PutObjectInput{
 		SizeBytes: sizeBytes,
 	})
 	if err != nil {
@@ -47,8 +47,8 @@ func (r *Repo) GetUploadURL(ctx context.Context, ownerId, region, key string, si
 }
 
 // GetDownloadURL requests a presigned URL for downloading an object
-func (r *Repo) GetDownloadURL(ctx context.Context, ownerId, region, key string) (*storageclient.GetBlobOutput, error) {
-	resp, err := r.client.GetBlobWithResponse(ctx, ownerId, client.Region(region), key)
+func (r *Repo) GetDownloadURL(ctx context.Context, ownerId, region, key string) (*storageclient.GetObjectOutput, error) {
+	resp, err := r.client.GetObjectWithResponse(ctx, ownerId, client.Region(region), key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -70,7 +70,7 @@ func (r *Repo) GetDownloadURL(ctx context.Context, ownerId, region, key string) 
 
 // Delete deletes an object
 func (r *Repo) Delete(ctx context.Context, ownerId, region, key string) error {
-	resp, err := r.client.DeleteBlobWithResponse(ctx, ownerId, client.Region(region), key)
+	resp, err := r.client.DeleteObjectWithResponse(ctx, ownerId, client.Region(region), key)
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -91,14 +91,14 @@ func (r *Repo) Delete(ctx context.Context, ownerId, region, key string) error {
 
 // List lists objects in object storage with pagination support
 func (r *Repo) List(ctx context.Context, ownerId, region, cursor string, limit int) ([]ObjectInfo, string, error) {
-	params := &client.ListBlobsParams{
+	params := &client.ListObjectsParams{
 		Limit: pointers.From(limit),
 	}
 	if cursor != "" {
 		params.Cursor = &cursor
 	}
 
-	resp, err := r.client.ListBlobsWithResponse(ctx, ownerId, client.Region(region), params)
+	resp, err := r.client.ListObjectsWithResponse(ctx, ownerId, client.Region(region), params)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -116,9 +116,9 @@ func (r *Repo) List(ctx context.Context, ownerId, region, cursor string, limit i
 	var lastCursor string
 	for i, bwc := range respOK {
 		objects[i] = ObjectInfo{
-			Key:          bwc.Blob.Key,
-			SizeBytes:    bwc.Blob.SizeBytes,
-			LastModified: bwc.Blob.LastModified,
+			Key:          bwc.Object.Key,
+			SizeBytes:    bwc.Object.SizeBytes,
+			LastModified: bwc.Object.LastModified,
 		}
 		lastCursor = bwc.Cursor
 	}

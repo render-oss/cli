@@ -2397,15 +2397,6 @@ type Logs200Response struct {
 // LogsValues200Response defines model for LogsValues200Response.
 type LogsValues200Response = []string
 
-// ListBlobsParams defines parameters for ListBlobs.
-type ListBlobsParams struct {
-	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
-	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
-
-	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
-	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
-}
-
 // ListBlueprintsParams defines parameters for ListBlueprints.
 type ListBlueprintsParams struct {
 	// OwnerId The ID of the workspaces to return resources for
@@ -3124,6 +3115,42 @@ type GetReplicationLagParams struct {
 	Resource *externalRef9.PostgresResourceQueryParam `form:"resource,omitempty" json:"resource,omitempty"`
 }
 
+// GetTaskRunsCompletedParams defines parameters for GetTaskRunsCompleted.
+type GetTaskRunsCompletedParams struct {
+	// StartTime Epoch/Unix timestamp of start of time range to return. Defaults to `now() - 1 hour`.
+	StartTime *StartTimeParam `form:"startTime,omitempty" json:"startTime,omitempty"`
+
+	// EndTime Epoch/Unix timestamp of end of time range to return. Defaults to `now()`.
+	EndTime *EndTimeParam `form:"endTime,omitempty" json:"endTime,omitempty"`
+
+	// ResolutionSeconds The resolution of the returned data
+	ResolutionSeconds *externalRef9.ResolutionParam `form:"resolutionSeconds,omitempty" json:"resolutionSeconds,omitempty"`
+
+	// Resource Task ID to query. When multiple task IDs are provided, they are ORed together
+	Resource *externalRef9.TaskResourceQueryParam `form:"resource,omitempty" json:"resource,omitempty"`
+
+	// State The state of task runs to filter to. When multiple state query params are provided, they are ORed together
+	State *externalRef9.TaskStateQueryParam `form:"state,omitempty" json:"state,omitempty"`
+
+	// AggregateBy The field to aggregate by
+	AggregateBy *externalRef9.TaskAggregateBy `form:"aggregateBy,omitempty" json:"aggregateBy,omitempty"`
+}
+
+// GetTaskRunsQueuedParams defines parameters for GetTaskRunsQueued.
+type GetTaskRunsQueuedParams struct {
+	// StartTime Epoch/Unix timestamp of start of time range to return. Defaults to `now() - 1 hour`.
+	StartTime *StartTimeParam `form:"startTime,omitempty" json:"startTime,omitempty"`
+
+	// EndTime Epoch/Unix timestamp of end of time range to return. Defaults to `now()`.
+	EndTime *EndTimeParam `form:"endTime,omitempty" json:"endTime,omitempty"`
+
+	// ResolutionSeconds The resolution of the returned data
+	ResolutionSeconds *externalRef9.ResolutionParam `form:"resolutionSeconds,omitempty" json:"resolutionSeconds,omitempty"`
+
+	// Resource Task ID to query. When multiple task IDs are provided, they are ORed together
+	Resource *externalRef9.TaskResourceQueryParam `form:"resource,omitempty" json:"resource,omitempty"`
+}
+
 // ListNotificationOverridesParams defines parameters for ListNotificationOverrides.
 type ListNotificationOverridesParams struct {
 	// OwnerId The ID of the workspaces to return resources for
@@ -3132,6 +3159,15 @@ type ListNotificationOverridesParams struct {
 	// ServiceId Filter for resources by service ID
 	ServiceId *ServiceIdsParam `form:"serviceId,omitempty" json:"serviceId,omitempty"`
 
+	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListObjectsParams defines parameters for ListObjects.
+type ListObjectsParams struct {
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
 
@@ -3758,9 +3794,6 @@ type ListWorkflowVersionsParams struct {
 	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
-// PutBlobJSONRequestBody defines body for PutBlob for application/json ContentType.
-type PutBlobJSONRequestBody = externalRef12.PutBlobInput
-
 // ValidateBlueprintMultipartRequestBody defines body for ValidateBlueprint for multipart/form-data ContentType.
 type ValidateBlueprintMultipartRequestBody = externalRef1.ValidateBlueprintRequest
 
@@ -3820,6 +3853,9 @@ type PatchServiceNotificationOverridesJSONRequestBody = externalRef10.Notificati
 
 // PatchOwnerNotificationSettingsJSONRequestBody defines body for PatchOwnerNotificationSettings for application/json ContentType.
 type PatchOwnerNotificationSettingsJSONRequestBody = externalRef10.NotificationSettingPATCH
+
+// PutObjectJSONRequestBody defines body for PutObject for application/json ContentType.
+type PutObjectJSONRequestBody = externalRef12.PutObjectInput
 
 // UpdateWorkspaceMemberJSONRequestBody defines body for UpdateWorkspaceMember for application/json ContentType.
 type UpdateWorkspaceMemberJSONRequestBody UpdateWorkspaceMemberJSONBody

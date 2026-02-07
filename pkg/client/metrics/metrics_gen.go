@@ -23,14 +23,14 @@ const (
 
 // Defines values for OtelProviderType.
 const (
-	BETTERSTACK  OtelProviderType = "BETTER_STACK"
-	CUSTOM       OtelProviderType = "CUSTOM"
-	DATADOG      OtelProviderType = "DATADOG"
-	GRAFANA      OtelProviderType = "GRAFANA"
-	GROUNDSOURCE OtelProviderType = "GROUNDSOURCE"
-	HONEYCOMB    OtelProviderType = "HONEYCOMB"
-	NEWRELIC     OtelProviderType = "NEW_RELIC"
-	SIGNOZ       OtelProviderType = "SIGNOZ"
+	BETTERSTACK OtelProviderType = "BETTER_STACK"
+	CUSTOM      OtelProviderType = "CUSTOM"
+	DATADOG     OtelProviderType = "DATADOG"
+	GRAFANA     OtelProviderType = "GRAFANA"
+	GROUNDCOVER OtelProviderType = "GROUNDCOVER"
+	HONEYCOMB   OtelProviderType = "HONEYCOMB"
+	NEWRELIC    OtelProviderType = "NEW_RELIC"
+	SIGNOZ      OtelProviderType = "SIGNOZ"
 )
 
 // Defines values for ApplicationMetricAggregationMethod.
@@ -44,6 +44,17 @@ const (
 const (
 	HttpAggregateByHost       HttpAggregateBy = "host"
 	HttpAggregateByStatusCode HttpAggregateBy = "statusCode"
+)
+
+// Defines values for TaskAggregateBy.
+const (
+	State TaskAggregateBy = "state"
+)
+
+// Defines values for TaskStateQueryParam.
+const (
+	Failed    TaskStateQueryParam = "failed"
+	Succeeded TaskStateQueryParam = "succeeded"
 )
 
 // FilterApplicationValuesCollection A collection of filter values for application metrics
@@ -160,6 +171,15 @@ type ServiceQueryParam = string
 
 // ServiceResourceQueryParam defines model for serviceResourceQueryParam.
 type ServiceResourceQueryParam = string
+
+// TaskAggregateBy defines model for taskAggregateBy.
+type TaskAggregateBy string
+
+// TaskResourceQueryParam defines model for taskResourceQueryParam.
+type TaskResourceQueryParam = string
+
+// TaskStateQueryParam defines model for taskStateQueryParam.
+type TaskStateQueryParam string
 
 // GetMetricsStream200Response defines model for GetMetricsStream200Response.
 type GetMetricsStream200Response = MetricsStream
