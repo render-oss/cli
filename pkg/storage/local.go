@@ -16,8 +16,8 @@ const (
 
 // LocalService implements StorageService for local filesystem storage
 type LocalService struct {
-	basePath  string
-	region    string
+	basePath   string
+	region     string
 	bucketName string
 }
 
@@ -42,7 +42,7 @@ func (s *LocalService) Upload(ctx context.Context, key, filePath string) (*Uploa
 
 	// Get the full object file path (key includes filename)
 	destPath := s.objectPath(key)
-	
+
 	// Create parent directories
 	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
 		return nil, fmt.Errorf("failed to create object directory: %w", err)
@@ -164,7 +164,7 @@ func (s *LocalService) objectPath(key string) string {
 func (s *LocalService) cleanupEmptyParents(path string) {
 	// Stop at the region level: {basePath}/{region}
 	regionPath := filepath.Join(s.basePath, s.region)
-	
+
 	parent := filepath.Dir(path)
 	for parent != regionPath && parent != s.basePath && parent != "." && parent != "/" {
 		entries, err := os.ReadDir(parent)

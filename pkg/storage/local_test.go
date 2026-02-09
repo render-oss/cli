@@ -424,7 +424,7 @@ func TestLocalService_List_Pagination(t *testing.T) {
 	result3, err := svc.List(context.Background(), result2.Cursor, 2)
 	require.NoError(t, err)
 	require.Len(t, result3.Objects, 1) // Only 1 left
-	require.Empty(t, result3.Cursor) // No more items
+	require.Empty(t, result3.Cursor)   // No more items
 
 	// Verify all unique keys returned
 	allKeys := make(map[string]bool)

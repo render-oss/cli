@@ -27,12 +27,12 @@ type fakeServerFactory struct {
 
 type noopStatusReporter struct{}
 
-func (noopStatusReporter) Ready() {}
-func (noopStatusReporter) TasksRegistered(taskNames []string) {}
-func (noopStatusReporter) TaskEnqueued(taskRun *store.TaskRun) {}
-func (noopStatusReporter) TaskRunning(taskRun *store.TaskRun) {}
+func (noopStatusReporter) Ready()                               {}
+func (noopStatusReporter) TasksRegistered(taskNames []string)   {}
+func (noopStatusReporter) TaskEnqueued(taskRun *store.TaskRun)  {}
+func (noopStatusReporter) TaskRunning(taskRun *store.TaskRun)   {}
 func (noopStatusReporter) TaskCompleted(taskRun *store.TaskRun) {}
-func (noopStatusReporter) TaskFailed(taskRun *store.TaskRun) {}
+func (noopStatusReporter) TaskFailed(taskRun *store.TaskRun)    {}
 
 func (f *fakeServerFactory) NewHandler(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
 	return f.newHandler(socket, input, getSubtaskResultFunc, startSubtaskFunc)

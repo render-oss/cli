@@ -141,10 +141,10 @@ func TestNewCloudServiceWithConfig(t *testing.T) {
 	mockClient := &client.ClientWithResponses{}
 
 	tests := []struct {
-		name     string
-		cfg      ServiceConfig
-		wantErr  bool
-		wantOwner string
+		name       string
+		cfg        ServiceConfig
+		wantErr    bool
+		wantOwner  string
 		wantRegion string
 	}{
 		{
