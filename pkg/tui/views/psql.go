@@ -1,12 +1,14 @@
 package views
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -26,6 +28,7 @@ type PSQLInput struct {
 	Project          *client.Project
 	EnvironmentIDs   []string
 	Tool             PSQLTool
+	Command          string `cli:"command"`
 
 	Args []string
 }
@@ -33,6 +36,63 @@ type PSQLInput struct {
 type PSQLView struct {
 	postgresTable *PostgresList
 	execModel     *tui.ExecModel
+}
+
+type PSQLResult struct {
+	Output string `json:"output"`
+}
+
+func ExecutePSQLNonInteractive(ctx context.Context, input *PSQLInput) (*PSQLResult, error) {
+	c, err := client.NewDefaultClient()
+	if err != nil {
+		return nil, err
+	}
+
+	pgc := postgres.NewRepo(c)
+
+	pg, err := getPostgresFromIDOrName(ctx, c, input.PostgresIDOrName)
+	if err != nil {
+		return nil, err
+	}
+
+	userIP, ok := getUserIP()
+	if ok {
+		hasAccess, err := hasAccessToPostgres(pg, userIP)
+		if err != nil {
+			return nil, err
+		}
+
+		if !hasAccess {
+			return nil, fmt.Errorf("IP address (%s) not in allow list for %s", userIP, pg.Name)
+		}
+	}
+
+	connectionInfo, err := pgc.GetPostgresConnectionInfo(ctx, pg.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	args := []string{connectionInfo.ExternalConnectionString, "-c", input.Command}
+	for _, arg := range input.Args {
+		args = append(args, arg)
+	}
+
+	cmd := exec.CommandContext(ctx, string(input.Tool), args...)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err = cmd.Run()
+	if err != nil {
+		errMsg := stderr.String()
+		if errMsg != "" {
+			return nil, fmt.Errorf("%s: %s", err, strings.TrimSpace(errMsg))
+		}
+		return nil, err
+	}
+
+	return &PSQLResult{Output: stdout.String()}, nil
 }
 
 func NewPSQLView(ctx context.Context, input *PSQLInput, opts ...tui.TableOption[*postgres.Model]) *PSQLView {

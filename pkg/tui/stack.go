@@ -20,7 +20,16 @@ type UserFacingError struct {
 }
 
 func (u UserFacingError) Error() string {
-	return u.Err.Error()
+	if u.Err != nil {
+		return u.Err.Error()
+	}
+	if u.Message != "" {
+		return u.Message
+	}
+	if u.Title != "" {
+		return u.Title
+	}
+	return "unknown error"
 }
 
 var stackHeaderStyle = lipgloss.NewStyle().MarginTop(1).MarginBottom(1)
