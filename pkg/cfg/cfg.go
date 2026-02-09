@@ -7,7 +7,7 @@ import (
 )
 
 const RepoURL = "https://api.github.com/repos/render-oss/cli"
-const InstallationInstructionsURL = "https://render.com/docs/cli#1-install"
+const InstallationInstructionsURL = "https://render.com/docs/cli#1-install-or-upgrade"
 
 var Version = "dev"
 var osInfo string

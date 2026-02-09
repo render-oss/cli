@@ -14,6 +14,7 @@ import (
 
 	"github.com/render-oss/cli/pkg/cfg"
 	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/client/version"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/dependencies"
@@ -192,9 +193,36 @@ func setupRootCmdPersistentRun(deps *dependencies.Dependencies) {
 	}
 }
 
+// printVersionWithUpdateCheck prints the current version and checks for updates
+func printVersionWithUpdateCheck() {
+	fmt.Printf("render v%s\n", cfg.Version)
+
+	vc := version.NewClient(cfg.RepoURL)
+	newVersion, err := vc.NewVersionAvailable()
+	if err == nil && newVersion != "" {
+		fmt.Println()
+		fmt.Println(lipgloss.NewStyle().Foreground(renderstyle.ColorWarning).
+			Render(fmt.Sprintf("A new version is available: %s\n\nTo upgrade, see: %s",
+				renderstyle.Bold("v"+newVersion),
+				cfg.InstallationInstructionsURL)))
+	} else if err == nil {
+		fmt.Println()
+		fmt.Println(lipgloss.NewStyle().Foreground(renderstyle.ColorOK).
+			Render("You are using the latest version"))
+	}
+}
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	// Check if version flag is explicitly requested before Cobra handles it
+	for _, arg := range os.Args[1:] {
+		if arg == "--version" || arg == "-v" {
+			printVersionWithUpdateCheck()
+			return
+		}
+	}
+
 	if err := SetupCommands(); err != nil {
 		os.Exit(1)
 	}
