@@ -97,6 +97,15 @@ func TaskRunTable(v []*wfclient.TaskRun) string {
 	return FormatString(t.Render())
 }
 
+func WorkspaceTable(v []*client.Owner) string {
+	t := newTable()
+	t.AppendHeader(table.Row{"Name", "Email", "ID"})
+	for _, o := range v {
+		t.AppendRow(table.Row{o.Name, o.Email, o.Id})
+	}
+	return FormatString(t.Render())
+}
+
 func newTable() table.Writer {
 	t := table.NewWriter()
 	t.Style().Options.DrawBorder = false
