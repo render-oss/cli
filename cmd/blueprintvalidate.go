@@ -53,6 +53,11 @@ func runBlueprintValidate(ctx context.Context, cmd *cobra.Command, args []string
 		filePath = args[0]
 	}
 
+	filePath, err := command.ExpandPath(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve file path: %w", err)
+	}
+
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to resolve file path: %w", err)

@@ -196,6 +196,10 @@ Examples:
 			var input workflowviews.TaskRunInput
 
 			if fileName, err := cmd.Flags().GetString("input-file"); err == nil && fileName != "" {
+				fileName, err = command.ExpandPath(fileName)
+				if err != nil {
+					return fmt.Errorf("failed to resolve input file path: %w", err)
+				}
 				content, err := os.ReadFile(fileName)
 				if err != nil {
 					return fmt.Errorf("failed to read input file: %w", err)

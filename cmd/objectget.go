@@ -58,6 +58,12 @@ Examples:
 			return fmt.Errorf("failed to parse input: %w", err)
 		}
 
+		if expanded, err := command.ExpandPath(input.FilePath); err != nil {
+			return fmt.Errorf("failed to resolve file path: %w", err)
+		} else {
+			input.FilePath = expanded
+		}
+
 		// If writing to file, use structured output
 		if input.FilePath != "" {
 			if nonInteractive, err := command.NonInteractive(cmd, func() (*storage.DownloadResult, error) {
