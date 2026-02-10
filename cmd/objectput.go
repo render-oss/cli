@@ -93,7 +93,7 @@ func uploadObject(cmd *cobra.Command, input ObjectPutInput) (*storage.UploadResu
 
 	result, err := svc.Upload(ctx, input.Key, input.FilePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to upload object: %w", err)
+		return nil, err
 	}
 
 	return result, nil

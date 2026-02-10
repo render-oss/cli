@@ -99,7 +99,7 @@ func deleteObject(cmd *cobra.Command, input ObjectDeleteInput) (*storage.DeleteR
 
 	result, err := svc.Delete(ctx, input.Key)
 	if err != nil {
-		return nil, fmt.Errorf("failed to delete object: %w", err)
+		return nil, err
 	}
 
 	return result, nil

@@ -179,24 +179,22 @@ func (r *Repo) DownloadFromPresignedURL(ctx context.Context, presignedURL string
 }
 
 func storageErrorMessage(statusCode int) string {
-	var message string
 	switch statusCode {
 	case 400:
-		message = "bad request"
+		return "bad request"
 	case 401, 403:
-		message = "access denied"
+		return "access denied"
 	case 404:
-		message = "object not found"
+		return "object not found"
 	case 409:
-		message = "conflict"
+		return "conflict"
 	case 413:
-		message = "object too large"
+		return "object too large"
 	case 429:
-		message = "rate limited, please try again later"
+		return "rate limited, please try again later"
 	case 500, 502, 503, 504:
-		message = "storage service temporarily unavailable"
+		return "storage service temporarily unavailable"
 	default:
-		message = "unexpected error"
+		return fmt.Sprintf("unexpected error (HTTP %d)", statusCode)
 	}
-	return fmt.Sprintf("received response code %d: %s", statusCode, message)
 }

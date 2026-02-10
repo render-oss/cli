@@ -105,7 +105,7 @@ func downloadObjectToFile(cmd *cobra.Command, input ObjectGetInput) (*storage.Do
 	if err != nil {
 		// Clean up partial file on error
 		os.Remove(input.FilePath)
-		return nil, fmt.Errorf("failed to download object: %w", err)
+		return nil, err
 	}
 
 	result.LocalPath = input.FilePath
@@ -127,7 +127,7 @@ func downloadObjectToStdout(cmd *cobra.Command, input ObjectGetInput) error {
 
 	_, err = svc.Download(ctx, input.Key, os.Stdout)
 	if err != nil {
-		return fmt.Errorf("failed to download object: %w", err)
+		return err
 	}
 
 	return nil

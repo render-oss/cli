@@ -20,62 +20,62 @@ func TestStorageErrorMessage(t *testing.T) {
 		{
 			name:       "400 bad request",
 			statusCode: 400,
-			want:       "received response code 400: bad request",
+			want:       "bad request",
 		},
 		{
 			name:       "401 unauthorized",
 			statusCode: 401,
-			want:       "received response code 401: access denied",
+			want:       "access denied",
 		},
 		{
 			name:       "403 forbidden",
 			statusCode: 403,
-			want:       "received response code 403: access denied",
+			want:       "access denied",
 		},
 		{
 			name:       "404 not found",
 			statusCode: 404,
-			want:       "received response code 404: object not found",
+			want:       "object not found",
 		},
 		{
 			name:       "409 conflict",
 			statusCode: 409,
-			want:       "received response code 409: conflict",
+			want:       "conflict",
 		},
 		{
 			name:       "413 payload too large",
 			statusCode: 413,
-			want:       "received response code 413: object too large",
+			want:       "object too large",
 		},
 		{
 			name:       "429 too many requests",
 			statusCode: 429,
-			want:       "received response code 429: rate limited, please try again later",
+			want:       "rate limited, please try again later",
 		},
 		{
 			name:       "500 internal server error",
 			statusCode: 500,
-			want:       "received response code 500: storage service temporarily unavailable",
+			want:       "storage service temporarily unavailable",
 		},
 		{
 			name:       "502 bad gateway",
 			statusCode: 502,
-			want:       "received response code 502: storage service temporarily unavailable",
+			want:       "storage service temporarily unavailable",
 		},
 		{
 			name:       "503 service unavailable",
 			statusCode: 503,
-			want:       "received response code 503: storage service temporarily unavailable",
+			want:       "storage service temporarily unavailable",
 		},
 		{
 			name:       "504 gateway timeout",
 			statusCode: 504,
-			want:       "received response code 504: storage service temporarily unavailable",
+			want:       "storage service temporarily unavailable",
 		},
 		{
 			name:       "unknown status code",
 			statusCode: 418,
-			want:       "received response code 418: unexpected error",
+			want:       "unexpected error (HTTP 418)",
 		},
 	}
 
@@ -100,7 +100,7 @@ func TestDownloadFromPresignedURL_StorageErrors(t *testing.T) {
 			statusCode: 404,
 			responseBody: `<?xml version="1.0" encoding="UTF-8"?>
 <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>tea-d3tc3fuuk2gs73d0paug/foo/bar/test.txt</Key><RequestId>95N55HR7H0QBF3X9</RequestId><HostId>QfLXA55SGkqZ6VEKV97lgMjiFNWRFhpTj29FAylq2SOh2LJFMyvHuRdUjDu1IaZ/NmQR0znt4/0=</HostId></Error>`,
-			wantErrContain: []string{"received response code 404", "object not found"},
+			wantErrContain: []string{"object not found"},
 			wantErrExclude: []string{"NoSuchKey", "tea-d3tc3fuuk2gs73d0paug", "RequestId", "HostId"},
 		},
 		{
@@ -108,14 +108,14 @@ func TestDownloadFromPresignedURL_StorageErrors(t *testing.T) {
 			statusCode: 403,
 			responseBody: `<?xml version='1.0' encoding='UTF-8'?>
 <Error><Code>AccessDenied</Code><Message>Access denied.</Message><Details>render-objects-bucket/some/path</Details></Error>`,
-			wantErrContain: []string{"received response code 403", "access denied"},
+			wantErrContain: []string{"access denied"},
 			wantErrExclude: []string{"render-objects-bucket", "AccessDenied", "Details"},
 		},
 		{
 			name:           "500 server error",
 			statusCode:     500,
 			responseBody:   `Internal Server Error: connection to storage backend failed`,
-			wantErrContain: []string{"received response code 500", "storage service temporarily unavailable"},
+			wantErrContain: []string{"storage service temporarily unavailable"},
 			wantErrExclude: []string{"Internal Server Error", "storage backend"},
 		},
 	}
@@ -163,7 +163,7 @@ func TestUploadToPresignedURL_StorageErrors(t *testing.T) {
 			statusCode: 403,
 			responseBody: `<?xml version="1.0" encoding="UTF-8"?>
 <Error><Code>AccessDenied</Code><Message>Access Denied</Message><RequestId>ABC123</RequestId><HostId>xyz789</HostId></Error>`,
-			wantErrContain: []string{"received response code 403", "access denied"},
+			wantErrContain: []string{"access denied"},
 			wantErrExclude: []string{"AccessDenied", "RequestId", "HostId", "ABC123", "xyz789"},
 		},
 		{
@@ -171,14 +171,14 @@ func TestUploadToPresignedURL_StorageErrors(t *testing.T) {
 			statusCode: 413,
 			responseBody: `<?xml version="1.0" encoding="UTF-8"?>
 <Error><Code>EntityTooLarge</Code><Message>Your proposed upload exceeds the maximum allowed size</Message><MaxSizeAllowed>5368709120</MaxSizeAllowed></Error>`,
-			wantErrContain: []string{"received response code 413", "object too large"},
+			wantErrContain: []string{"object too large"},
 			wantErrExclude: []string{"EntityTooLarge", "MaxSizeAllowed", "5368709120"},
 		},
 		{
 			name:           "502 bad gateway",
 			statusCode:     502,
 			responseBody:   `Bad Gateway: upstream storage unavailable`,
-			wantErrContain: []string{"received response code 502", "storage service temporarily unavailable"},
+			wantErrContain: []string{"storage service temporarily unavailable"},
 			wantErrExclude: []string{"Bad Gateway", "upstream"},
 		},
 	}
