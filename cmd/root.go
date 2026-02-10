@@ -34,8 +34,9 @@ start psql/SSH sessions, and more.
 
 The CLI's default %s mode provides intuitive, menu-based navigation.
 
-To use in %s mode (such as in a script), set each command's --output
-option to either json or yaml for structured responses.
+To use in %s mode (such as in a script), you can set each command's --output
+option to either json or yaml for structured responses. We'll also detect if stdout 
+is not a TTY and automatically switch to json output.
 `, welcomeMsg, renderstyle.Bold("interactive"), renderstyle.Bold("non-interactive"))
 
 // rootCmd represents the base command when called without any subcommands
@@ -78,21 +79,6 @@ var rootCmd = &cobra.Command{
 
 		return nil
 	},
-}
-
-func isPipe() bool {
-	stdout, err := os.Stdout.Stat()
-	if err != nil {
-		return false
-	}
-
-	isTerminal := (stdout.Mode() & os.ModeCharDevice) == os.ModeCharDevice
-	return !isTerminal
-}
-
-func isCI() bool {
-	ci := os.Getenv("CI")
-	return ci == "true" || ci == "1"
 }
 
 func setupWorkflowCommands(deps *dependencies.Dependencies) {
@@ -148,7 +134,11 @@ func SetupCommands() error {
 }
 
 func setupRootCmdPersistentRun(deps *dependencies.Dependencies) {
-	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+	rootCmd.PersistentPreRunE = rootPersistentPreRun(deps)
+}
+
+func rootPersistentPreRun(deps *dependencies.Dependencies) func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 
 		if err := checkForDeprecatedFlagUsage(cmd); err != nil {
@@ -167,15 +157,24 @@ func setupRootCmdPersistentRun(deps *dependencies.Dependencies) {
 			panic(err)
 		}
 
-		output, err := command.StringToOutput(outputFlag)
+		requestedOutput, err := command.StringToOutput(outputFlag)
 		if err != nil {
 			println(err.Error())
 			os.Exit(1)
 		}
-		// Honor the output flag if it's set
-		if outputFlag == "" && output.Interactive() && (isPipe() || isCI()) {
-			output = command.TEXT
+
+		explicitOutputSet := cmd.Flags().Changed("output")
+		signals, err := deps.DetectRuntimeSignals()
+		if err != nil {
+			println(err.Error())
+			os.Exit(1)
 		}
+		output, err := command.ResolveAutoOutput(explicitOutputSet, requestedOutput, signals)
+		if err != nil {
+			println(err.Error())
+			os.Exit(1)
+		}
+
 		ctx = command.SetFormatInContext(ctx, &output)
 
 		deps.SetStack(tui.NewStack())
@@ -240,7 +239,7 @@ func init() {
 
 	rootCmd.Version = cfg.Version
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "interactive, json, yaml, or text")
+	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "interactive, json, yaml, or text (auto: json in non-TTY contexts)")
 	rootCmd.PersistentFlags().Bool(command.ConfirmFlag, false, "set to skip confirmation prompts")
 
 	// Flags from the old CLI that we error with a helpful message

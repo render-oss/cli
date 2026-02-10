@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/deploy"
 	"github.com/render-oss/cli/pkg/environment"
@@ -61,9 +62,10 @@ type cachedDependencies struct {
 
 type Dependencies struct {
 	*Commands
-	stack  *tui.StackModel
-	client *client.ClientWithResponses
-	cache  *cachedDependencies
+	stack                *tui.StackModel
+	client               *client.ClientWithResponses
+	cache                *cachedDependencies
+	DetectRuntimeSignals func() (command.RuntimeSignals, error)
 }
 
 func New(c *client.ClientWithResponses) *Dependencies {
@@ -74,7 +76,8 @@ func New(c *client.ClientWithResponses) *Dependencies {
 			Logs:      &LogsCommands{},
 			Workspace: &WorkspaceCommands{},
 		},
-		cache: &cachedDependencies{},
+		cache:                &cachedDependencies{},
+		DetectRuntimeSignals: command.DetectRuntimeSignals,
 	}
 }
 
