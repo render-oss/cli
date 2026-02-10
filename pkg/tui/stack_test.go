@@ -15,6 +15,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestStackIsEmpty(t *testing.T) {
+	t.Run("returns true for new stack", func(t *testing.T) {
+		stack := tui.NewStack()
+		require.True(t, stack.IsEmpty())
+	})
+
+	t.Run("returns false after push", func(t *testing.T) {
+		stack := tui.NewStack()
+		fooModel := &testhelper.SimpleModel{Str: "foo"}
+		stack.Push(tui.ModelWithCmd{Model: fooModel})
+		require.False(t, stack.IsEmpty())
+	})
+
+	t.Run("returns true after popping all items", func(t *testing.T) {
+		stack := tui.NewStack()
+		fooModel := &testhelper.SimpleModel{Str: "foo"}
+		stack.Push(tui.ModelWithCmd{Model: fooModel})
+		stack.Pop()
+		require.True(t, stack.IsEmpty())
+	})
+}
+
 func TestStack(t *testing.T) {
 	t.Run("Can append and go back", func(t *testing.T) {
 		stack := tui.NewStack()

@@ -80,6 +80,10 @@ func NewStack() *StackModel {
 	return &StackModel{}
 }
 
+func (m *StackModel) IsEmpty() bool {
+	return m == nil || len(m.stack) == 0
+}
+
 func (m *StackModel) WithDone(f func(tea.Msg) (tea.Model, tea.Cmd)) {
 	m.done = f
 }

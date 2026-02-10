@@ -52,7 +52,7 @@ var rootCmd = &cobra.Command{
 		output := command.GetFormatFromContext(ctx)
 		if output.Interactive() {
 			stack := tui.GetStackFromContext(ctx)
-			if stack == nil {
+			if stack.IsEmpty() {
 				return nil
 			}
 
