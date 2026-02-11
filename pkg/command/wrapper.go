@@ -169,8 +169,13 @@ func AddToStack[T any](stack *tui.StackModel, cmd *cobra.Command, breadcrumb str
 }
 
 func LoadCmd[T any, D any](ctx context.Context, loadData func(context.Context, T) (D, error), in T) tui.TypedCmd[D] {
+	return LoadCmdWithLoadingMsg(ctx, loadData, in, "")
+}
+
+func LoadCmdWithLoadingMsg[T any, D any](ctx context.Context, loadData func(context.Context, T) (D, error), in T, loadingMsg string) tui.TypedCmd[D] {
 	loadDataCmd := func() tea.Msg {
 		return tui.LoadingDataMsg{
+			LoadingMsgTmpl: loadingMsg,
 			Cmd: tea.Sequence(
 				func() tea.Msg {
 					data, err := loadData(ctx, in)

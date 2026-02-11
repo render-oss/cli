@@ -38,7 +38,6 @@ func interactiveSSHView(ctx context.Context, input *views.SSHInput, breadcrumb s
 		input.ServiceIDOrName = validate.ExtractServiceIDFromInstanceID(input.ServiceIDOrName)
 		return InteractiveSSHView(ctx, input, breadcrumb)
 	}
-
 	if input.ServiceIDOrName == "" {
 		// No service specified, show service selection
 		return command.AddToStackFunc(
@@ -48,7 +47,9 @@ func interactiveSSHView(ctx context.Context, input *views.SSHInput, breadcrumb s
 			input,
 			views.NewServiceList(ctx, getServiceListInput(ctx, input), func(ctx context.Context, r resource.Resource) tea.Cmd {
 				input.ServiceIDOrName = r.ID()
-
+				if input.Ephemeral {
+					return InteractiveSSHView(ctx, input, "SSH")
+				}
 				// Show instance selection for the selected service
 				return command.AddToStackFunc(
 					ctx,
@@ -63,6 +64,9 @@ func interactiveSSHView(ctx context.Context, input *views.SSHInput, breadcrumb s
 			}, tui.WithCustomOptions[*service.Model](getSSHTableOptions(ctx, breadcrumb))),
 		)
 	} else if validate.IsServiceID(input.ServiceIDOrName) {
+		if input.Ephemeral {
+			return InteractiveSSHView(ctx, input, "SSH")
+		}
 		// Service ID provided, show instance selection
 		return command.AddToStackFunc(
 			ctx,
@@ -113,6 +117,8 @@ func getSSHTableOptions(ctx context.Context, breadcrumb string) []tui.CustomOpti
 
 func init() {
 	rootCmd.AddCommand(sshCmd)
+
+	sshCmd.Flags().BoolP("ephemeral", "e", false, "connect to ephemeral instance")
 
 	sshCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
