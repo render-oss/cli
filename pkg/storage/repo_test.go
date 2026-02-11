@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -252,4 +253,31 @@ func TestUploadToPresignedURL_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, content, receivedContent.String())
+}
+
+func TestUploadToPresignedURL_ZeroLength(t *testing.T) {
+	var receivedContentLength int64
+	var receivedTransferEncoding []string
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedContentLength = r.ContentLength
+		receivedTransferEncoding = r.TransferEncoding
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	repo := &Repo{
+		httpClient: server.Client(),
+	}
+
+	// NopCloser wraps the buffer so net/http can't type-switch on it.
+	// Without this, net/http detects the empty body and skips chunked
+	// encoding, which would mask the bug this test is meant to catch.
+	body := io.NopCloser(&bytes.Buffer{})
+
+	err := repo.UploadToPresignedURL(context.Background(), server.URL, body, 0)
+
+	require.NoError(t, err)
+	require.Equal(t, int64(0), receivedContentLength, "server should receive Content-Length: 0")
+	require.Empty(t, receivedTransferEncoding, "should not use chunked transfer encoding")
 }

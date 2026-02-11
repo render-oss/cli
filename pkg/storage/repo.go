@@ -133,7 +133,16 @@ func (r *Repo) List(ctx context.Context, ownerId, region, cursor string, limit i
 
 // UploadToPresignedURL uploads file content to a presigned URL
 func (r *Repo) UploadToPresignedURL(ctx context.Context, presignedURL string, content io.Reader, contentLength int64) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, presignedURL, content)
+	body := content
+	if contentLength == 0 {
+		// In Go's net/http, a ContentLength of 0 with a non-nil Body is treated as
+		// unknown, causing the client to use chunked transfer encoding. Presigned S3
+		// URLs do not support chunked encoding, so we use http.NoBody to ensure
+		// Content-Length: 0 is sent instead.
+		body = http.NoBody
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, presignedURL, body)
 	if err != nil {
 		return fmt.Errorf("failed to create upload request: %w", err)
 	}
