@@ -54,18 +54,24 @@ type Blueprint struct {
 	Id       BlueprintId `json:"id"`
 	LastSync *time.Time  `json:"lastSync,omitempty"`
 	Name     string      `json:"name"`
-	Repo     string      `json:"repo"`
-	Status   Status      `json:"status"`
+
+	// Path Path to the Blueprint file in the repository
+	Path   BlueprintPath `json:"path"`
+	Repo   string        `json:"repo"`
+	Status Status        `json:"status"`
 }
 
 // BlueprintDetail defines model for blueprintDetail.
 type BlueprintDetail struct {
 	// AutoSync Automatically sync changes to render.yaml
-	AutoSync  AutoSync      `json:"autoSync"`
-	Branch    string        `json:"branch"`
-	Id        BlueprintId   `json:"id"`
-	LastSync  *time.Time    `json:"lastSync,omitempty"`
-	Name      string        `json:"name"`
+	AutoSync AutoSync    `json:"autoSync"`
+	Branch   string      `json:"branch"`
+	Id       BlueprintId `json:"id"`
+	LastSync *time.Time  `json:"lastSync,omitempty"`
+	Name     string      `json:"name"`
+
+	// Path Path to the Blueprint file in the repository
+	Path      BlueprintPath `json:"path"`
 	Repo      string        `json:"repo"`
 	Resources []ResourceRef `json:"resources"`
 	Status    Status        `json:"status"`
@@ -79,7 +85,13 @@ type BlueprintPATCH struct {
 	// AutoSync Automatically sync changes to render.yaml
 	AutoSync *AutoSync `json:"autoSync,omitempty"`
 	Name     *string   `json:"name,omitempty"`
+
+	// Path Path to the Blueprint file in the repository
+	Path *BlueprintPath `json:"path,omitempty"`
 }
+
+// BlueprintPath Path to the Blueprint file in the repository
+type BlueprintPath = string
 
 // CommitRef defines model for commitRef.
 type CommitRef struct {

@@ -19,6 +19,16 @@ type GetObjectOutput struct {
 	Url string `json:"url"`
 }
 
+// ListObjectsResponse defines model for listObjectsResponse.
+type ListObjectsResponse struct {
+	// HasNext Whether there are more results after this page.
+	HasNext bool               `json:"hasNext"`
+	Items   []ObjectWithCursor `json:"items"`
+
+	// NextCursor Cursor to fetch the next page. Only present when hasNext is true.
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
 // ObjectMetadata defines model for objectMetadata.
 type ObjectMetadata struct {
 	// Key The object's key

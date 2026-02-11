@@ -20586,7 +20586,7 @@ func (r PatchOwnerNotificationSettingsResponse) StatusCode() int {
 type ListObjectsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]externalRef12.ObjectWithCursor
+	JSON200      *externalRef12.ListObjectsResponse
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
 	JSON404      *N404NotFound
@@ -31674,7 +31674,7 @@ func ParseListObjectsResponse(rsp *http.Response) (*ListObjectsResponse, error) 
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []externalRef12.ObjectWithCursor
+		var dest externalRef12.ListObjectsResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

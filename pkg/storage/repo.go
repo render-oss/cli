@@ -111,24 +111,23 @@ func (r *Repo) List(ctx context.Context, ownerId, region, cursor string, limit i
 		return nil, "", nil
 	}
 
-	respOK := *resp.JSON200
-	objects := make([]ObjectInfo, len(respOK))
-	var lastCursor string
-	for i, bwc := range respOK {
+	respOK := resp.JSON200
+	items := respOK.Items
+	objects := make([]ObjectInfo, len(items))
+	for i, bwc := range items {
 		objects[i] = ObjectInfo{
 			Key:          bwc.Object.Key,
 			SizeBytes:    bwc.Object.SizeBytes,
 			LastModified: bwc.Object.LastModified,
 		}
-		lastCursor = bwc.Cursor
 	}
 
-	// Return cursor only if we got a full page (more data likely exists)
-	if len(objects) < limit {
-		lastCursor = ""
+	var nextCursor string
+	if respOK.HasNext && respOK.NextCursor != nil {
+		nextCursor = *respOK.NextCursor
 	}
 
-	return objects, lastCursor, nil
+	return objects, nextCursor, nil
 }
 
 // UploadToPresignedURL uploads file content to a presigned URL
