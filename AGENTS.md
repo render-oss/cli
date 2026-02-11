@@ -54,7 +54,7 @@ go test -run TestName ./pkg/...   # Single test
 
 # Linting & Formatting
 golangci-lint run                 # Lint
-pre-commit run --all-files        # All hooks
+prek run --all-files              # All hooks (see prek.toml)
 
 # Type Generation (from public-api-schema)
 export RENDER_API_PATH=/path/to/api
@@ -127,7 +127,7 @@ export RENDER_API_KEY="your-api-key"
 
 - **Table-driven tests** with `stretchr/testify`
 - **Manual fakes** in `pkg/tui/testhelper/`
-- **Pre-commit hooks**: golangci-lint, go fmt, yaml checks, large file detection
+- **Hooks** (`prek.toml`): golangci-lint, shellcheck, shfmt, yaml checks, large file detection
 
 ## Common Gotchas
 

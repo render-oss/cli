@@ -35,7 +35,7 @@ start psql/SSH sessions, and more.
 The CLI's default %s mode provides intuitive, menu-based navigation.
 
 To use in %s mode (such as in a script), you can set each command's --output
-option to either json or yaml for structured responses. We'll also detect if stdout 
+option to either json or yaml for structured responses. We'll also detect if stdout
 is not a TTY and automatically switch to json output.
 `, welcomeMsg, renderstyle.Bold("interactive"), renderstyle.Bold("non-interactive"))
 

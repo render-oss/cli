@@ -1,0 +1,37 @@
+name: prek
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: prek-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  prek:
+    name: Run prek hooks
+    runs-on: arc-runner-15cpu
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-go-prek-${{ hashFiles('**/go.sum') }}
+
+      - name: Install shfmt
+        run: go install mvdan.cc/sh/v3/cmd/shfmt@latest
+
+      - name: Cache prek
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/prek
+          key: prek-${{ hashFiles('prek.toml') }}
+
+      - name: Run prek
+        run: prek run --all-files --show-diff-on-failure --verbose

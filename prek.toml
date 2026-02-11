@@ -1,0 +1,46 @@
+fail_fast = false
+
+# Prek builtin hooks - fast, no network required (priority 0 = run first)
+[[repos]]
+repo = "builtin"
+hooks = [
+  { id = "trailing-whitespace", priority = 0 },
+  { id = "end-of-file-fixer", priority = 0 },
+  { id = "check-yaml", priority = 0 },
+  { id = "check-added-large-files", args = ["--maxkb=500"], priority = 0 },
+  { id = "check-case-conflict", priority = 0 },
+  { id = "check-merge-conflict", priority = 0 },
+  { id = "check-symlinks", priority = 0 },
+  { id = "detect-private-key", priority = 0 },
+  { id = "check-executables-have-shebangs", priority = 0 },
+]
+
+# Additional hooks not available as builtins (priority 0 = run with other checks)
+[[repos]]
+repo = "https://github.com/pre-commit/pre-commit-hooks"
+rev = "v5.0.0"
+hooks = [
+  { id = "destroyed-symlinks", priority = 0 },
+  { id = "check-vcs-permalinks", files = "\\.md$", priority = 0 },
+]
+
+# Formatters (priority 10 = run after builtin, before linters)
+[[repos]]
+repo = "local"
+hooks = [
+  { id = "shfmt", name = "shfmt", entry = "shfmt -l -w -i 2 -bn -ci -sr", language = "system", files = "\\.sh$", priority = 10 },
+]
+
+# Linters (priority 20 = run last, after formatting)
+[[repos]]
+repo = "https://github.com/golangci/golangci-lint"
+rev = "v2.4.0"
+hooks = [
+  { id = "golangci-lint", priority = 20 },
+]
+
+[[repos]]
+repo = "local"
+hooks = [
+  { id = "shellcheck", name = "shellcheck", entry = "shellcheck", language = "system", types = ["shell"], priority = 20 },
+]
