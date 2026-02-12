@@ -20,7 +20,7 @@ func TestRootPersistentPreRunOutputResolution(t *testing.T) {
 		wantStackContext bool
 	}{
 		{
-			name: "default output with unchanged flag uses auto mode and resolves json for non-tty",
+			name: "default output with unchanged flag uses auto mode and resolves text for non-tty",
 			input: runRootPersistentPreRunInput{
 				explicitOutput: false,
 				outputValue:    "interactive",
@@ -30,7 +30,7 @@ func TestRootPersistentPreRunOutputResolution(t *testing.T) {
 					StderrTTY: true,
 				},
 			},
-			wantOutput: command.JSON,
+			wantOutput: command.TEXT,
 		},
 		{
 			name: "explicit interactive remains interactive regardless of non-tty ci signals",
@@ -104,7 +104,7 @@ func TestRootPersistentPreRunOutputResolution(t *testing.T) {
 			wantOutput: command.YAML,
 		},
 		{
-			name: "ci truthy in auto mode resolves json",
+			name: "ci truthy in auto mode resolves text",
 			input: runRootPersistentPreRunInput{
 				explicitOutput: false,
 				outputValue:    "interactive",
@@ -115,7 +115,7 @@ func TestRootPersistentPreRunOutputResolution(t *testing.T) {
 					CI:        true,
 				},
 			},
-			wantOutput: command.JSON,
+			wantOutput: command.TEXT,
 		},
 		{
 			name: "all tty and ci false in auto mode resolves interactive",

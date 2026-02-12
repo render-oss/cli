@@ -60,7 +60,7 @@ func ResolveAutoOutput(explicitOutputSet bool, requested Output, signals Runtime
 		return Interactive, nil
 	}
 
-	return JSON, nil
+	return TEXT, nil
 }
 
 func isSupportedOutput(output Output) bool {

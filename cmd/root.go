@@ -239,7 +239,7 @@ func init() {
 
 	rootCmd.Version = cfg.Version
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "interactive, json, yaml, or text (auto: json in non-TTY contexts)")
+	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "interactive, json, yaml, or text (auto: text in non-TTY contexts)")
 	rootCmd.PersistentFlags().Bool(command.ConfirmFlag, false, "set to skip confirmation prompts")
 
 	// Flags from the old CLI that we error with a helpful message

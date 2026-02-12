@@ -229,7 +229,7 @@ func TestResolveAutoOutput(t *testing.T) {
 				StdoutTTY: true,
 				StderrTTY: true,
 			},
-			wantOutput: command.JSON,
+			wantOutput: command.TEXT,
 		},
 		{
 			name:            "all tty and ci false resolves interactive",
@@ -243,7 +243,7 @@ func TestResolveAutoOutput(t *testing.T) {
 			wantOutput: command.Interactive,
 		},
 		{
-			name:            "non-tty stdin resolves json",
+			name:            "non-tty stdin resolves text",
 			explicitOutput:  false,
 			requestedOutput: command.Interactive,
 			signals: command.RuntimeSignals{
@@ -251,10 +251,10 @@ func TestResolveAutoOutput(t *testing.T) {
 				StdoutTTY: true,
 				StderrTTY: true,
 			},
-			wantOutput: command.JSON,
+			wantOutput: command.TEXT,
 		},
 		{
-			name:            "non-tty stdout resolves json",
+			name:            "non-tty stdout resolves text",
 			explicitOutput:  false,
 			requestedOutput: command.Interactive,
 			signals: command.RuntimeSignals{
@@ -262,10 +262,10 @@ func TestResolveAutoOutput(t *testing.T) {
 				StdoutTTY: false,
 				StderrTTY: true,
 			},
-			wantOutput: command.JSON,
+			wantOutput: command.TEXT,
 		},
 		{
-			name:            "non-tty stderr resolves json",
+			name:            "non-tty stderr resolves text",
 			explicitOutput:  false,
 			requestedOutput: command.Interactive,
 			signals: command.RuntimeSignals{
@@ -273,10 +273,10 @@ func TestResolveAutoOutput(t *testing.T) {
 				StdoutTTY: true,
 				StderrTTY: false,
 			},
-			wantOutput: command.JSON,
+			wantOutput: command.TEXT,
 		},
 		{
-			name:            "ci true resolves json",
+			name:            "ci true resolves text",
 			explicitOutput:  false,
 			requestedOutput: command.Interactive,
 			signals: command.RuntimeSignals{
@@ -285,10 +285,10 @@ func TestResolveAutoOutput(t *testing.T) {
 				StderrTTY: true,
 				CI:        true,
 			},
-			wantOutput: command.JSON,
+			wantOutput: command.TEXT,
 		},
 		{
-			name:            "TERM=dumb resolves json even with all TTYs",
+			name:            "TERM=dumb resolves text even with all TTYs",
 			explicitOutput:  false,
 			requestedOutput: command.Interactive,
 			signals: command.RuntimeSignals{
@@ -297,7 +297,7 @@ func TestResolveAutoOutput(t *testing.T) {
 				StderrTTY:    true,
 				DumbTerminal: true,
 			},
-			wantOutput: command.JSON,
+			wantOutput: command.TEXT,
 		},
 		{
 			name:            "invalid requested output returns error",
