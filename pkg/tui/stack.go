@@ -39,10 +39,11 @@ type StackModel struct {
 	loadingSpinner *spinner.Model
 	stack          []ModelWithCmd
 
-	width      int
-	height     int
-	done       func(msg tea.Msg) (tea.Model, tea.Cmd)
-	loadingMsg string
+	width             int
+	height            int
+	done              func(msg tea.Msg) (tea.Model, tea.Cmd)
+	loadingMsg        string
+	workspaceOverride *string
 }
 
 type ModelWithCmd struct {
@@ -86,6 +87,10 @@ func (m *StackModel) IsEmpty() bool {
 
 func (m *StackModel) WithDone(f func(tea.Msg) (tea.Model, tea.Cmd)) {
 	m.done = f
+}
+
+func (m *StackModel) SetWorkspaceOverride(label string) {
+	m.workspaceOverride = &label
 }
 
 func newSpinner() *spinner.Model {
@@ -257,7 +262,12 @@ func (m *StackModel) View() string {
 func (m *StackModel) header() string {
 	var breadCrumbs []string
 
-	workspace, _ := config.WorkspaceName()
+	var workspace string
+	if m.workspaceOverride != nil {
+		workspace = *m.workspaceOverride
+	} else {
+		workspace, _ = config.WorkspaceName()
+	}
 	if workspace != "" {
 		breadCrumbs = append(breadCrumbs, stackInfoStyle.Render(workspace))
 	}

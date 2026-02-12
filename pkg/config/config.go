@@ -26,6 +26,7 @@ type Config struct {
 	Version       int    `yaml:"version"`
 	Workspace     string `yaml:"workspace"`
 	WorkspaceName string `yaml:"workspace_name"`
+	UserEmail     string `yaml:"user_email,omitempty"`
 	ProjectFilter string `yaml:"project_filter,omitempty"` // Project ID for filtering
 	ProjectName   string `yaml:"project_name,omitempty"`   // Project name for display
 
@@ -145,6 +146,23 @@ func WorkspaceName() (string, error) {
 		return "", ErrNoWorkspace
 	}
 	return cfg.WorkspaceName, nil
+}
+
+func UserEmail() (string, error) {
+	cfg, err := Load()
+	if err != nil {
+		return "", err
+	}
+	return cfg.UserEmail, nil
+}
+
+func SetUserEmail(email string) error {
+	cfg, err := Load()
+	if err != nil {
+		return err
+	}
+	cfg.UserEmail = email
+	return cfg.Persist()
 }
 
 func GetProjectFilter() (projectID string, projectName string, err error) {

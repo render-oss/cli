@@ -159,7 +159,19 @@ func (v *WorkspaceView) Init() tea.Cmd {
 }
 
 func (v *WorkspaceView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	return v.table.Update(msg)
+	model, cmd := v.table.Update(msg)
+
+	if _, ok := msg.(tui.LoadDataMsg[[]*client.Owner]); ok {
+		currentID, _ := config.WorkspaceID()
+		for i, row := range v.table.Model.GetVisibleRows() {
+			if id, _ := row.Data["ID"].(string); id == currentID {
+				v.table.Model = v.table.Model.WithHighlightedRow(i)
+				break
+			}
+		}
+	}
+
+	return model, cmd
 }
 
 func (v *WorkspaceView) View() string {

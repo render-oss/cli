@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -152,6 +153,77 @@ func TestStack(t *testing.T) {
 		teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
 			return !bytes.Contains(bts, []byte("Loading"))
 		})
+
+		err := tm.Quit()
+		require.NoError(t, err)
+	})
+}
+
+func setupTestConfig(t *testing.T, content string) {
+	t.Helper()
+	f, err := os.CreateTemp("", "render-config")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = os.Remove(f.Name()) })
+
+	_, err = f.WriteString(content)
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	t.Setenv("RENDER_CLI_CONFIG_PATH", f.Name())
+}
+
+func TestStackHeader(t *testing.T) {
+	t.Run("shows workspace name from config when no override set", func(t *testing.T) {
+		setupTestConfig(t, "version: 1\nworkspace: tea-123\nworkspace_name: MyTeam\n")
+
+		stack := tui.NewStack()
+		stack.Push(tui.ModelWithCmd{Model: &testhelper.SimpleModel{Str: "content"}, Breadcrumb: "Services"})
+		tm := teatest.NewTestModel(t, stack)
+
+		tm.Send(tea.WindowSizeMsg{Width: 80, Height: 24})
+
+		teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+			return bytes.Contains(bts, []byte("MyTeam")) && bytes.Contains(bts, []byte("Services"))
+		}, teatest.WithCheckInterval(time.Millisecond*1), teatest.WithDuration(time.Second*3))
+
+		err := tm.Quit()
+		require.NoError(t, err)
+	})
+
+	t.Run("shows workspace override instead of config workspace name", func(t *testing.T) {
+		setupTestConfig(t, "version: 1\nworkspace: tea-123\nworkspace_name: MyTeam\n")
+
+		stack := tui.NewStack()
+		stack.SetWorkspaceOverride("user@example.com")
+		stack.Push(tui.ModelWithCmd{Model: &testhelper.SimpleModel{Str: "content"}, Breadcrumb: "Workspaces"})
+		tm := teatest.NewTestModel(t, stack)
+
+		tm.Send(tea.WindowSizeMsg{Width: 80, Height: 24})
+
+		teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+			return bytes.Contains(bts, []byte("user@example.com")) &&
+				bytes.Contains(bts, []byte("Workspaces")) &&
+				!bytes.Contains(bts, []byte("MyTeam"))
+		}, teatest.WithCheckInterval(time.Millisecond*1), teatest.WithDuration(time.Second*3))
+
+		err := tm.Quit()
+		require.NoError(t, err)
+	})
+
+	t.Run("shows only breadcrumb when override is empty string", func(t *testing.T) {
+		setupTestConfig(t, "version: 1\nworkspace: tea-123\nworkspace_name: MyTeam\n")
+
+		stack := tui.NewStack()
+		stack.SetWorkspaceOverride("")
+		stack.Push(tui.ModelWithCmd{Model: &testhelper.SimpleModel{Str: "content"}, Breadcrumb: "Workspaces"})
+		tm := teatest.NewTestModel(t, stack)
+
+		tm.Send(tea.WindowSizeMsg{Width: 80, Height: 24})
+
+		teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+			return bytes.Contains(bts, []byte("Workspaces")) &&
+				!bytes.Contains(bts, []byte("MyTeam"))
+		}, teatest.WithCheckInterval(time.Millisecond*1), teatest.WithDuration(time.Second*3))
 
 		err := tm.Quit()
 		require.NoError(t, err)
