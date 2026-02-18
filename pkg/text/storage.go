@@ -1,6 +1,7 @@
 package text
 
 import (
+	"strings"
 	"time"
 
 	"github.com/jedib0t/go-pretty/table"
@@ -30,6 +31,15 @@ func ObjectDownload(result *storage.DownloadResult) string {
 // ObjectDelete formats a delete result for text output
 func ObjectDelete(result *storage.DeleteResult) string {
 	return FormatStringF("Deleted %s", result.Key)
+}
+
+// ObjectDeleteMultiple formats multiple delete results for text output
+func ObjectDeleteMultiple(results []*storage.DeleteResult) string {
+	var lines []string
+	for _, result := range results {
+		lines = append(lines, FormatStringF("Deleted %s", result.Key))
+	}
+	return strings.Join(lines, "")
 }
 
 // ObjectTable formats a list of objects for text output

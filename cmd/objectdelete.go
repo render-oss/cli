@@ -15,15 +15,15 @@ import (
 )
 
 type ObjectDeleteInput struct {
-	Key    string `cli:"arg:0"`
+	Keys   []string
 	Yes    bool   `cli:"yes"`
 	Region string `cli:"region"`
 	Local  bool   `cli:"local"`
 }
 
 func (i *ObjectDeleteInput) Validate(interactive bool) error {
-	if i.Key == "" {
-		return fmt.Errorf("key is required")
+	if len(i.Keys) == 0 {
+		return fmt.Errorf("at least one key is required")
 	}
 	if i.Region == "" {
 		i.Region = cfg.GetRegion()
@@ -35,9 +35,9 @@ func (i *ObjectDeleteInput) Validate(interactive bool) error {
 }
 
 var objectDeleteCmd = &cobra.Command{
-	Use:   "delete <key>",
-	Short: "Delete an object from storage",
-	Long: `Delete an object from storage.
+	Use:   "delete <key> [key...]",
+	Short: "Delete one or more objects from storage",
+	Long: `Delete one or more objects from storage.
 
 This operation is irreversible. By default, you will be prompted for confirmation
 unless you specify the --yes flag.
@@ -48,12 +48,13 @@ files are deleted from the .render/objects/ directory.
 Examples:
   render ea objects delete my/object/key --region=oregon
   render ea objects delete my/object/key --region=oregon --yes
-  render ea objects delete uploads/data.json --region=oregon --yes
+  render ea objects delete seed/file-00000.txt seed/file-00001.txt seed/file-00002.txt --region=oregon --yes
   render ea objects delete test/file --region=oregon --local --yes
 `,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var input ObjectDeleteInput
+		input.Keys = args
 
 		if err := command.ParseCommand(cmd, args, &input); err != nil {
 			return fmt.Errorf("failed to parse input: %w", err)
@@ -61,30 +62,30 @@ Examples:
 
 		// Prompt for confirmation unless --yes is specified or non-interactive
 		if !input.Yes && command.IsInteractive(cmd.Context()) {
-			if !confirmDelete(input.Key) {
+			if !confirmDelete(input.Keys) {
 				fmt.Println("Delete cancelled.")
 				return nil
 			}
 		}
 
-		if nonInteractive, err := command.NonInteractive(cmd, func() (*storage.DeleteResult, error) {
-			return deleteObject(cmd, input)
-		}, text.ObjectDelete); err != nil {
+		if nonInteractive, err := command.NonInteractive(cmd, func() ([]*storage.DeleteResult, error) {
+			return deleteObjects(cmd, input)
+		}, text.ObjectDeleteMultiple); err != nil {
 			return err
 		} else if nonInteractive {
 			return nil
 		}
 
-		result, err := deleteObject(cmd, input)
+		results, err := deleteObjects(cmd, input)
 		if err != nil {
 			return err
 		}
-		fmt.Print(text.ObjectDelete(result))
+		fmt.Print(text.ObjectDeleteMultiple(results))
 		return nil
 	},
 }
 
-func deleteObject(cmd *cobra.Command, input ObjectDeleteInput) (*storage.DeleteResult, error) {
+func deleteObjects(cmd *cobra.Command, input ObjectDeleteInput) ([]*storage.DeleteResult, error) {
 	ctx := cmd.Context()
 
 	cfg := storage.ServiceConfig{
@@ -97,17 +98,25 @@ func deleteObject(cmd *cobra.Command, input ObjectDeleteInput) (*storage.DeleteR
 		return nil, fmt.Errorf("failed to create storage service: %w", err)
 	}
 
-	result, err := svc.Delete(ctx, input.Key)
-	if err != nil {
-		return nil, err
+	var results []*storage.DeleteResult
+	for _, key := range input.Keys {
+		result, err := svc.Delete(ctx, key)
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete %s: %w", key, err)
+		}
+		results = append(results, result)
 	}
 
-	return result, nil
+	return results, nil
 }
 
-func confirmDelete(key string) bool {
+func confirmDelete(keys []string) bool {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("Are you sure you want to delete object '%s'? This cannot be undone. [y/N]: ", key)
+	if len(keys) == 1 {
+		fmt.Printf("Are you sure you want to delete object '%s'? This cannot be undone. [y/N]: ", keys[0])
+	} else {
+		fmt.Printf("Are you sure you want to delete %d objects? This cannot be undone. [y/N]: ", len(keys))
+	}
 	response, err := reader.ReadString('\n')
 	if err != nil {
 		return false
