@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -39,7 +40,7 @@ func handleError(w http.ResponseWriter, err error, statusCode int) {
 	w.Write(errJSON)
 }
 
-func Start(handler *ServerHandler, port int) *http.Server {
+func Start(handler *ServerHandler, port int) (*http.Server, error) {
 	mux := chi.NewMux()
 
 	mux.Route("/v1", func(r chi.Router) {
@@ -67,21 +68,23 @@ func Start(handler *ServerHandler, port int) *http.Server {
 		})
 	})
 
+	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	if err != nil {
+		return nil, err
+	}
+
 	server := &http.Server{
-		Addr:        fmt.Sprintf("localhost:%d", port),
 		Handler:     mux,
-		ReadTimeout: 5 * time.Second, // Prevent Slowloris DoS attacks
+		ReadTimeout: 5 * time.Second,
 	}
 
 	go func() {
-		// And we serve HTTP until the world ends.
-		err := server.ListenAndServe()
-		if err != nil {
-			log.Println("api server error listening on localhost", err)
+		if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
+			log.Println("api server error:", err)
 		}
 	}()
 
-	return server
+	return server, nil
 }
 
 func NewHandler(coordinator *orchestrator.Coordinator, taskStore *store.TaskStore, logStore *logs.LogStore, upgrader *websocket.Upgrader) *ServerHandler {

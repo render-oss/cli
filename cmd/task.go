@@ -8,12 +8,15 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/gorilla/websocket"
 	"github.com/render-oss/cli/pkg/client"
 	workflows "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/logs"
+	renderstyle "github.com/render-oss/cli/pkg/style"
 	"github.com/render-oss/cli/pkg/tasks"
 	"github.com/render-oss/cli/pkg/text"
 	"github.com/render-oss/cli/pkg/tui/flows"
@@ -35,8 +38,9 @@ var taskCmd = &cobra.Command{
 }
 
 var taskDevCmd = &cobra.Command{
-	Use:   "dev -- <command to start a workflow service>",
-	Short: "Start a workflow service in development mode",
+	Use:          "dev -- <command to start a workflow service>",
+	Short:        "Start a workflow service in development mode",
+	SilenceUsage: true,
 	Long: `Start a workflow service in development mode for local testing.
 
 This command runs your workflow service locally on port 8120, allowing you to list and run
@@ -71,11 +75,14 @@ Examples:
 			return errors.New("command is required")
 		}
 
-		command.Println(cmd, "✓ Dev server starting...")
-
 		debugMode, err := cmd.Flags().GetBool("debug")
 		if err != nil {
 			return fmt.Errorf("failed to get debug flag: %w", err)
+		}
+
+		port, err := cmd.Flags().GetInt("port")
+		if err != nil {
+			return fmt.Errorf("failed to get port flag: %w", err)
 		}
 
 		socketTracker, err := orchestrator.NewSocketTracker(ctx)
@@ -120,13 +127,24 @@ Examples:
 			},
 		}
 
-		port, err := cmd.Flags().GetInt("port")
+		api := apiserver.NewHandler(coordinator, store, logs, upgrader)
+		apiSrv, err := apiserver.Start(api, port)
 		if err != nil {
-			return fmt.Errorf("failed to get port flag: %w", err)
+			if errors.Is(err, syscall.EADDRINUSE) {
+				return fmt.Errorf("port %d is already in use. Stop the other process or use --port to pick a different one", port)
+			}
+			return fmt.Errorf("failed to start server on port %d: %w", port, err)
 		}
 
-		api := apiserver.NewHandler(coordinator, store, logs, upgrader)
-		apiSrv := apiserver.Start(api, port)
+		ok := lipgloss.NewStyle().Foreground(renderstyle.ColorOK)
+		info := lipgloss.NewStyle().Foreground(renderstyle.ColorInfo)
+		dim := lipgloss.NewStyle().Foreground(renderstyle.ColorDeprioritized)
+
+		command.Println(cmd, "%s %s",
+			ok.Render("Workflow server listening on"),
+			renderstyle.Bold(fmt.Sprintf("http://localhost:%d", port)),
+		)
+
 		logs.Start(ctx)
 
 		registeredTasks, err := coordinator.PopulateTasks(ctx)
@@ -134,15 +152,18 @@ Examples:
 			return fmt.Errorf("failed to load tasks: %w", err)
 		}
 
-		if source := describeWorkflowSource(commandArgs); source != "" {
-			command.Println(cmd, "✓ Loaded tasks from %s", source)
-		} else {
-			command.Println(cmd, "✓ Loaded tasks")
-		}
+		command.Println(cmd, "%s", formatTaskSummary(info, registeredTasks, describeWorkflowSource(commandArgs)))
+		command.Println(cmd, "")
 
-		command.Println(cmd, "%s", formatTaskSummary(registeredTasks))
-		command.Println(cmd, "✓ Server ready at http://localhost:%d", port)
-		command.Println(cmd, "✓ Watching for tasks...")
+		portFlag := ""
+		if port != defaultTaskAPIPort {
+			portFlag = fmt.Sprintf(" --port %d", port)
+		}
+		command.Println(cmd, "%s", dim.Render("To browse and run tasks, open another terminal and run:"))
+		command.Println(cmd, "  %s", renderstyle.Bold(fmt.Sprintf("render ea tasks list --local%s", portFlag)))
+		command.Println(cmd, "")
+		command.Println(cmd, "%s", dim.Render("To trigger a specific task directly:"))
+		command.Println(cmd, "  %s", renderstyle.Bold(fmt.Sprintf("render ea taskruns start <task-name> --local%s --input='[\"arg1\"]'", portFlag)))
 		command.Println(cmd, "")
 
 		ready = true
@@ -314,9 +335,9 @@ func describeWorkflowSource(commandArgs []string) string {
 	return strings.Join(commandArgs, " ")
 }
 
-func formatTaskSummary(tasks []*store.Task) string {
+func formatTaskSummary(info lipgloss.Style, tasks []*store.Task, source string) string {
 	if len(tasks) == 0 {
-		return "✓ Found 0 tasks (waiting for registration)"
+		return fmt.Sprintf("0 tasks found in %s (waiting for registration)", renderstyle.Bold(source))
 	}
 
 	names := make([]string, 0, len(tasks))
@@ -330,5 +351,13 @@ func formatTaskSummary(tasks []*store.Task) string {
 		plural = "s"
 	}
 
-	return fmt.Sprintf("✓ Found %d task%s: %s", len(names), plural, strings.Join(names, ", "))
+	header := fmt.Sprintf("%d task%s found in %s", len(names), plural, renderstyle.Bold(source))
+
+	var b strings.Builder
+	b.WriteString(header)
+	for _, name := range names {
+		b.WriteString("\n  • ")
+		b.WriteString(info.Render(name))
+	}
+	return b.String()
 }
