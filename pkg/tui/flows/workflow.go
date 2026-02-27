@@ -134,7 +134,7 @@ func (f *Workflow) workflowList(ctx context.Context, input *workflowviews.Workfl
 	)
 }
 
-func (f *Workflow) VersionList(ctx context.Context, input *workflowviews.VersionListInput) tea.Cmd {
+func (f *Workflow) VersionListFlow(ctx context.Context, input *workflowviews.VersionListInput) tea.Cmd {
 	if input.WorkflowID == "" {
 		return f.workflowList(ctx, &workflowviews.WorkflowInput{}, func(ctx context.Context, r resource.Resource) tea.Cmd {
 			input.WorkflowID = r.ID()

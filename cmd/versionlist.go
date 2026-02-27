@@ -30,8 +30,8 @@ This command displays all versions for a workflow, showing:
 In interactive mode, you will be prompted to select a workflow if not provided.
 
 Examples:
-  render ea versions list wf-1234
-  render ea versions list my-workflow-slug
+  render workflows versions list wf-1234
+  render workflows versions list my-workflow-slug
 `,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -49,7 +49,7 @@ Examples:
 			} else if nonInteractive {
 				return nil
 			}
-			flows.NewWorkflow(deps, flows.NewLogFlow(deps), false).VersionList(cmd.Context(), &input)
+			flows.NewWorkflow(deps, flows.NewLogFlow(deps), false).VersionListFlow(cmd.Context(), &input)
 			return nil
 		},
 	}

@@ -10,5 +10,5 @@ var versionCmd = &cobra.Command{
 }
 
 func init() {
-	EarlyAccessCmd.AddCommand(versionCmd)
+	WorkflowsCmd.AddCommand(versionCmd)
 }

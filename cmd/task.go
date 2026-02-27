@@ -59,10 +59,10 @@ To use a different port:
   • Then use --port with other task commands, or set RENDER_LOCAL_DEV_URL in the SDK
 
 Examples:
-  render ea tasks dev -- "go run main.go"
-  render ea tasks dev --port 9000 -- "npm start"
-  render ea tasks list --local
-  render ea taskruns start my-task --local --input='["arg1"]'
+  render workflows tasks dev -- "go run main.go"
+  render workflows tasks dev --port 9000 -- "npm start"
+  render workflows tasks list --local
+  render workflows taskruns start my-task --local --input='["arg1"]'
 	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
@@ -160,10 +160,10 @@ Examples:
 			portFlag = fmt.Sprintf(" --port %d", port)
 		}
 		command.Println(cmd, "%s", dim.Render("To browse and run tasks, open another terminal and run:"))
-		command.Println(cmd, "  %s", renderstyle.Bold(fmt.Sprintf("render ea tasks list --local%s", portFlag)))
+		command.Println(cmd, "  %s", renderstyle.Bold(fmt.Sprintf("render workflows tasks list --local%s", portFlag)))
 		command.Println(cmd, "")
 		command.Println(cmd, "%s", dim.Render("To trigger a specific task directly:"))
-		command.Println(cmd, "  %s", renderstyle.Bold(fmt.Sprintf("render ea taskruns start <task-name> --local%s --input='[\"arg1\"]'", portFlag)))
+		command.Println(cmd, "  %s", renderstyle.Bold(fmt.Sprintf("render workflows taskruns start <task-name> --local%s --input='[\"arg1\"]'", portFlag)))
 		command.Println(cmd, "")
 
 		ready = true
@@ -202,10 +202,10 @@ You can provide input via:
 In interactive mode, you will be prompted to select the task and provide the input.
 
 Examples:
-  render ea taskruns start tsk-1234 --input='["arg1", "arg2"]'
-  render ea taskruns start my-workflow/my-task --input='[42, "hello"]'
-  render ea taskruns start my-task --input-file=input.json
-  render ea taskruns start my-task --local --input='["test"]'
+  render workflows taskruns start tsk-1234 --input='["arg1", "arg2"]'
+  render workflows taskruns start my-workflow/my-task --input='[42, "hello"]'
+  render workflows taskruns start my-task --input-file=input.json
+  render workflows taskruns start my-task --local --input='["test"]'
 `,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -267,7 +267,7 @@ func init() {
 	taskDevCmd.Flags().Int("port", defaultTaskAPIPort, "Port of the local task server (8120 when not specified)")
 	taskDevCmd.Flags().Bool("debug", false, "Print detailed workflow task execution events")
 
-	EarlyAccessCmd.AddCommand(taskCmd)
+	WorkflowsCmd.AddCommand(taskCmd)
 	taskCmd.AddCommand(taskDevCmd)
 }
 

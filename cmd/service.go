@@ -137,7 +137,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 					Name:        "versions list",
 					Description: "List versions for the workflow",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
-						return flows.NewWorkflow(deps, flows.NewLogFlow(deps), false).VersionList(ctx, &workflowviews.VersionListInput{WorkflowID: r.ID()})
+						return flows.NewWorkflow(deps, flows.NewLogFlow(deps), false).VersionListFlow(ctx, &workflowviews.VersionListInput{WorkflowID: r.ID()})
 					},
 				},
 				allowedTypes: []string{workflow.WorkflowType},

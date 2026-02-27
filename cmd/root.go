@@ -88,7 +88,8 @@ func setupWorkflowCommands(deps *dependencies.Dependencies) {
 	deps.Commands.Workflow.TaskRunDetailsCmd = NewTaskRunDetailsCmd(deps)
 	deps.Commands.Workflow.VersionListCmd = NewVersionListCmd(deps)
 	deps.Commands.Workflow.VersionReleaseCmd = NewVersionReleaseCmd(deps)
-	deps.Commands.Workflow.WorkflowListCmd = workflowListCmd
+	deps.Commands.Workflow.WorkflowListCmd = NewWorkflowListCmd(deps)
+	WorkflowsCmd.AddCommand(deps.Commands.Workflow.WorkflowListCmd)
 
 	taskCmd.AddCommand(deps.Commands.Workflow.TaskListCmd)
 	taskRunCmd.AddCommand(deps.Commands.Workflow.TaskRunCmd)

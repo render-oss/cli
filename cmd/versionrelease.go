@@ -38,10 +38,10 @@ In interactive mode, you will be prompted to:
   • Confirm the release
 
 Examples:
-  render ea versions release wf-1234
-  render ea versions release my-workflow-slug
-  render ea versions release wf-1234 --commit abc123
-  render ea versions release wf-1234 --wait
+  render workflows versions release wf-1234
+  render workflows versions release my-workflow-slug
+  render workflows versions release wf-1234 --commit abc123
+  render workflows versions release wf-1234 --wait
 `,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

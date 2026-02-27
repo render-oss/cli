@@ -2,19 +2,15 @@ package cmd
 
 import "github.com/spf13/cobra"
 
-var workflowCmd = &cobra.Command{
-	Use:    "workflow",
-	Hidden: true,
-	Short:  "Manage workflows",
-}
+var WorkflowsCmd = &cobra.Command{
+	Use:   "workflows",
+	Short: "Manage workflows",
+	Long: `Manage workflow services for the active workspace.
 
-var workflowListCmd = &cobra.Command{
-	Use:    "list",
-	Hidden: true,
-	Short:  "List workflows",
+List workflows, browse versions and tasks, start task runs, and trigger releases.`,
+	GroupID: GroupCore.ID,
 }
 
 func init() {
-	EarlyAccessCmd.AddCommand(workflowCmd)
-	workflowCmd.AddCommand(workflowListCmd)
+	rootCmd.AddCommand(WorkflowsCmd)
 }

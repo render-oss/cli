@@ -27,11 +27,11 @@ In interactive mode, you will be prompted to select a workflow version if not pr
 Local Development:
 When using the --local flag, you don't need to provide a workflow version ID. Instead,
 the command connects to your local dev server (default port 8120) to list tasks from
-your running workflow service. Start the dev server with 'render ea tasks dev' first.
+your running workflow service. Start the dev server with 'render workflows tasks dev' first.
 
 Examples:
-  render ea tasks list wfv-1234
-  render ea tasks list --local
+  render workflows tasks list wfv-1234
+  render workflows tasks list --local
 `,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

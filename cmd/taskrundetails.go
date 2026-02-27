@@ -23,13 +23,13 @@ This command shows comprehensive information about a task run, including:
   • Output or error result
   • Start and completion timestamps
 
-The task run ID is returned when you execute a task with 'render ea taskruns start'.
+The task run ID is returned when you execute a task with 'render workflows taskruns start'.
 
 In interactive mode, you will be prompted to select a task run if not provided.
 
 Examples:
-  render ea taskruns show tr-1234
-  render ea taskruns show --local tr-5678
+  render workflows taskruns show tr-1234
+  render workflows taskruns show --local tr-5678
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			deps, local, err := getLocalDeps(cmd, deps)

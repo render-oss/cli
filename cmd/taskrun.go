@@ -21,5 +21,5 @@ func init() {
 	taskRunCmd.PersistentFlags().Bool("local", false, "Run against the server spawned by the task dev command")
 	taskRunCmd.PersistentFlags().Int("port", defaultTaskAPIPort, "Port of the local task server (8120 when not specified)")
 
-	EarlyAccessCmd.AddCommand(taskRunCmd)
+	WorkflowsCmd.AddCommand(taskRunCmd)
 }

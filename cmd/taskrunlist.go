@@ -28,9 +28,9 @@ You can specify the task by:
 In interactive mode, you will be prompted to select a task if not provided.
 
 Examples:
-  render ea taskruns list tsk-1234
-  render ea taskruns list my-workflow/my-task
-  render ea taskruns list --local my-task
+  render workflows taskruns list tsk-1234
+  render workflows taskruns list my-workflow/my-task
+  render workflows taskruns list --local my-task
 `,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
