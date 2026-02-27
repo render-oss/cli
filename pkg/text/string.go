@@ -48,12 +48,12 @@ func Version(workflowID string) func(wfv *wfclient.WorkflowVersion) string {
 func TaskRunDetails(taskRun *wfclient.TaskRunDetails) string {
 	errorOrResults := ""
 	if taskRun.Results != nil {
-		errorOrResults = fmt.Sprintf("results: %v", taskRun.Results)
+		errorOrResults = fmt.Sprintf(",\nresults: %v", taskRun.Results)
 	} else if taskRun.Error != nil {
-		errorOrResults = fmt.Sprintf("error: %s", *taskRun.Error)
+		errorOrResults = fmt.Sprintf(",\nerror: %s", *taskRun.Error)
 	}
 
 	return FormatStringF(
-		"Task run details for %s, status %s, started at %s, completed at %s\n, %s",
+		"Task run details for %s: status %s, started at %s, completed at %s%s",
 		taskRun.Id, taskRun.Status, taskRun.StartedAt, taskRun.CompletedAt, errorOrResults)
 }
