@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -56,7 +55,10 @@ Examples:
 				command.DefaultFormatNonInteractive(cmd)
 			}
 
-			nonInteractive := nonInteractiveVersionRelease(cmd, input, deps)
+			nonInteractive, err := nonInteractiveVersionRelease(cmd, input, deps)
+			if err != nil {
+				return err
+			}
 			if nonInteractive {
 				return nil
 			}
@@ -78,7 +80,7 @@ Examples:
 	return versionReleaseCmd
 }
 
-func nonInteractiveVersionRelease(cmd *cobra.Command, input workflowviews.VersionReleaseInput, deps flows.WorkflowDeps) bool {
+func nonInteractiveVersionRelease(cmd *cobra.Command, input workflowviews.VersionReleaseInput, deps flows.WorkflowDeps) (bool, error) {
 	var wfv *wfclient.WorkflowVersion
 	releaseVersion := func() (*wfclient.WorkflowVersion, error) {
 		v, err := deps.WorkflowLoader().ReleaseVersion(cmd.Context(), input)
@@ -113,12 +115,8 @@ func nonInteractiveVersionRelease(cmd *cobra.Command, input workflowviews.Versio
 
 	nonInteractive, err := command.NonInteractiveWithConfirm(cmd, releaseVersion, text.Version(input.WorkflowID), deps.WorkflowLoader().VersionReleaseConfirm(cmd.Context(), input))
 	if err != nil {
-		_, err = fmt.Fprint(cmd.OutOrStderr(), err.Error()+"\n")
-		os.Exit(1)
-	}
-	if !nonInteractive {
-		return false
+		return false, err
 	}
 
-	return nonInteractive
+	return nonInteractive, nil
 }
