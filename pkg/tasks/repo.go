@@ -16,15 +16,10 @@ type Repo struct {
 	client *client.ClientWithResponses
 }
 
-func (r *Repo) RunTask(ctx context.Context, taskID string, input []interface{}) (*workflows.TaskRun, error) {
-	var taskData workflows.TaskData
-	if err := taskData.FromTaskData0(input); err != nil {
-		return nil, fmt.Errorf("failed to convert input to TaskData: %w", err)
-	}
-
+func (r *Repo) RunTask(ctx context.Context, taskID string, input *workflows.TaskData) (*workflows.TaskRun, error) {
 	resp, err := r.client.CreateTaskWithResponse(ctx, client.CreateTaskJSONRequestBody{
 		Task:  taskID,
-		Input: taskData,
+		Input: *input,
 	})
 
 	if err != nil {

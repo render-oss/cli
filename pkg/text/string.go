@@ -1,6 +1,7 @@
 package text
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/render-oss/cli/pkg/client"
@@ -46,6 +47,12 @@ func Version(workflowID string) func(wfv *wfclient.WorkflowVersion) string {
 }
 
 func TaskRunDetails(taskRun *wfclient.TaskRunDetails) string {
+	inputStr := ""
+	inputJSON, err := json.Marshal(taskRun.Input)
+	if err == nil {
+		inputStr = fmt.Sprintf(",\ninput: %s", string(inputJSON))
+	}
+
 	errorOrResults := ""
 	if taskRun.Results != nil {
 		errorOrResults = fmt.Sprintf(",\nresults: %v", taskRun.Results)
@@ -54,6 +61,6 @@ func TaskRunDetails(taskRun *wfclient.TaskRunDetails) string {
 	}
 
 	return FormatStringF(
-		"Task run details for %s: status %s, started at %s, completed at %s%s",
-		taskRun.Id, taskRun.Status, taskRun.StartedAt, taskRun.CompletedAt, errorOrResults)
+		"Task run details for %s: status %s, started at %s, completed at %s%s%s",
+		taskRun.Id, taskRun.Status, taskRun.StartedAt, taskRun.CompletedAt, inputStr, errorOrResults)
 }

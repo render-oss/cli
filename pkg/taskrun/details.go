@@ -30,6 +30,11 @@ func TaskRunDetailsFormat(taskRun *wfclient.TaskRunDetails) []tui.KeyValue {
 		{Key: "Completed At", Value: completedAt},
 	}
 
+	inputJSON, err := json.Marshal(taskRun.Input)
+	if err == nil {
+		keyValues = append(keyValues, tui.KeyValue{Key: "Input", Value: string(inputJSON)})
+	}
+
 	if taskRun.Error != nil {
 		keyValues = append(keyValues, tui.KeyValue{Key: "Error", Value: *taskRun.Error})
 	}

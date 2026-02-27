@@ -3,10 +3,7 @@ package workflows
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
-	"strings"
 	"time"
 
 	"github.com/render-oss/cli/pkg/client"
@@ -49,43 +46,39 @@ func (t *WorkflowLoader) CreateTaskRun(ctx context.Context, input TaskRunInput) 
 	return t.taskRepo.RunTask(ctx, input.TaskID, inputData)
 }
 
-func unmarshalInputData(input string) ([]interface{}, error) {
-	var parsedInputs []interface{}
-
+func unmarshalInputData(input string) (*workflows.TaskData, error) {
 	if len(input) == 0 {
 		return nil, fmt.Errorf("Task input is required.")
 	}
 
 	inputRaw := []byte(input)
 
-	if err := json.Unmarshal(inputRaw, &parsedInputs); err != nil {
-		var syntaxErr *json.SyntaxError
-		var unmarshaltypeErr *json.UnmarshalTypeError
-		if errors.As(err, &syntaxErr) || errors.Is(err, io.ErrUnexpectedEOF) {
-			return nil, fmt.Errorf("The task input has invalid JSON.")
-		} else if errors.As(err, &unmarshaltypeErr) {
-			actualType := friendlyTypeName(unmarshaltypeErr.Value)
-			return nil, fmt.Errorf("Expected type array for task input, received type %s.", actualType)
-		} else {
-			return nil, err
+	// Validate that the input is valid JSON
+	if !json.Valid(inputRaw) {
+		return nil, fmt.Errorf("The task input has invalid JSON.")
+	}
+
+	var taskData workflows.TaskData
+
+	// Try to parse as array (TaskData0 contains positional arguments)
+	var arrayInput workflows.TaskData0
+	if err := json.Unmarshal(inputRaw, &arrayInput); err == nil {
+		if err := taskData.FromTaskData0(arrayInput); err != nil {
+			return nil, fmt.Errorf("failed to convert input to TaskData: %w", err)
 		}
+		return &taskData, nil
 	}
 
-	return parsedInputs, nil
-}
-
-// friendlyTypeName converts type names from Go's json.UnmarshalTypeError to user-friendly names
-func friendlyTypeName(typeName string) string {
-	typeName = strings.TrimSpace(typeName)
-
-	switch typeName {
-	case "[]interface {}":
-		return "array"
-	case "bool":
-		return "boolean"
-	default:
-		return typeName
+	// Try to parse as object (TaskData1 contains named parameters)
+	var objectInput workflows.TaskData1
+	if err := json.Unmarshal(inputRaw, &objectInput); err == nil {
+		if err := taskData.FromTaskData1(objectInput); err != nil {
+			return nil, fmt.Errorf("failed to convert input to TaskData: %w", err)
+		}
+		return &taskData, nil
 	}
+
+	return nil, fmt.Errorf("Task input must be a JSON array or object.")
 }
 
 func (w *WorkflowLoader) LoadVersionList(ctx context.Context, input VersionListInput, cur client.Cursor) (client.Cursor, []*wfclient.WorkflowVersion, error) {
