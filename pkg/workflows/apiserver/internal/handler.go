@@ -54,7 +54,7 @@ func GetTaskRun(store *store.TaskStore, taskRunID string) *workflowclient.TaskRu
 	return mapTaskRunDetails(store, taskRun)
 }
 
-func ListLogs(logStore *logs.LogStore, input client.ListLogsParams) []*logclient.Log {
+func ListLogs(logStore *logs.LogStore, input client.ListLogsParams) []logclient.Log {
 	searchParams := MapLogSearchParams(input)
 	logs := logStore.GetLogs(searchParams)
 	return mapLogs(logs)

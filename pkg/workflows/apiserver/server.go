@@ -238,5 +238,8 @@ func (h *ServerHandler) GetLogs(w http.ResponseWriter, r *http.Request) {
 
 	logs := internal.ListLogs(h.logStore, input)
 
-	json.NewEncoder(w).Encode(logs)
+	json.NewEncoder(w).Encode(client.Logs200Response{
+		Logs:    logs,
+		HasMore: false,
+	})
 }

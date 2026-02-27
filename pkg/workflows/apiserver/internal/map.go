@@ -126,16 +126,16 @@ func MapLogSearchParams(params client.ListLogsParams) logs.LogSearch {
 	}
 }
 
-func mapLogs(logs logs.Logs) []*logClient.Log {
-	logsList := make([]*logClient.Log, len(logs))
+func mapLogs(logs logs.Logs) []logClient.Log {
+	logsList := make([]logClient.Log, len(logs))
 	for i, log := range logs {
 		logsList[i] = mapLog(log)
 	}
 	return logsList
 }
 
-func mapLog(log *logs.Log) *logClient.Log {
-	return &logClient.Log{
+func mapLog(log *logs.Log) logClient.Log {
+	return logClient.Log{
 		Id:        log.ID,
 		Message:   log.Message,
 		Timestamp: log.Timestamp,
