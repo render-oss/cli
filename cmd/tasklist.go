@@ -22,7 +22,7 @@ Tasks are user-defined functions registered with the Render workflow SDK. Each t
 release a workflow service, Render creates a new workflow version and registers all tasks
 it finds in that version.
 
-In interactive mode, you will be prompted to select a workflow version if not provided.
+In interactive mode, you will be prompted to select a workflow if not provided.
 
 Local Development:
 When using the --local flag, you don't need to provide a workflow version ID. Instead,

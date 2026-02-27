@@ -197,8 +197,12 @@ func (w *WorkflowLoader) ListWorkflows(ctx context.Context, in WorkflowInput) ([
 }
 
 func (w *WorkflowLoader) LoadTaskList(ctx context.Context, input TaskListInput, cur client.Cursor) (client.Cursor, []*wfclient.Task, error) {
-	params := &client.ListTasksParams{
-		WorkflowVersionId: pointers.From([]string{input.WorkflowVersionID}),
+	params := &client.ListTasksParams{}
+
+	if input.WorkflowVersionID != "" {
+		params.WorkflowVersionId = pointers.From([]string{input.WorkflowVersionID})
+	} else if input.WorkflowID != "" {
+		params.WorkflowId = pointers.From([]string{input.WorkflowID})
 	}
 
 	return w.taskRepo.ListTasks(ctx, params)

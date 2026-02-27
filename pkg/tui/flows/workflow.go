@@ -54,7 +54,7 @@ func (f *Workflow) TaskRunFlow(ctx context.Context, input *workflowviews.TaskRun
 }
 
 func (f *Workflow) TaskListFlow(ctx context.Context, input *workflowviews.TaskListInput) tea.Cmd {
-	if input.WorkflowVersionID == "" {
+	if input.WorkflowVersionID == "" && input.WorkflowID == "" {
 		return f.unspecifiedTask(ctx, func(t *workflows.Task) tea.Cmd {
 			return f.taskListPalette(ctx, t)
 		})
@@ -184,9 +184,7 @@ func (f *Workflow) unspecifiedTask(ctx context.Context, action func(t *workflows
 	}
 
 	return f.workflowList(ctx, &workflowviews.WorkflowInput{}, func(ctx context.Context, r resource.Resource) tea.Cmd {
-		return f.versionList(ctx, &workflowviews.VersionListInput{WorkflowID: r.ID()}, func(v *workflows.WorkflowVersion) tea.Cmd {
-			return f.taskList(ctx, &workflowviews.TaskListInput{WorkflowVersionID: v.Id}, action)
-		})
+		return f.taskList(ctx, &workflowviews.TaskListInput{WorkflowID: r.ID()}, action)
 	})
 }
 

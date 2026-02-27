@@ -9,6 +9,7 @@ import (
 
 type TaskListInput struct {
 	WorkflowVersionID string `cli:"arg:0"`
+	WorkflowID        string
 }
 
 type TaskRunInput struct {
