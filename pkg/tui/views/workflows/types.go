@@ -50,7 +50,7 @@ func (t TaskRunListInput) Validate(interactive bool) error {
 
 func (t TaskRunInput) Validate(interactive bool) error {
 	if !interactive && t.TaskID == "" {
-		return errors.New("service id must be specified when output is not interactive")
+		return errors.New("task id must be specified when output is not interactive")
 	}
 
 	if !interactive && t.Input == "" {
