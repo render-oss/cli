@@ -13,6 +13,7 @@ import (
 	"github.com/render-oss/cli/pkg/tasks"
 	"github.com/render-oss/cli/pkg/version"
 	"github.com/render-oss/cli/pkg/workflow"
+	"github.com/render-oss/cli/pkg/workflowversion"
 )
 
 type WorkflowLoaderDeps interface {
@@ -116,46 +117,54 @@ func (w *WorkflowLoader) ReleaseVersion(ctx context.Context, input VersionReleas
 
 func (w *WorkflowLoader) WaitForVersion(ctx context.Context, workflowID, workflowVersionID string) (*wfclient.WorkflowVersion, error) {
 	timeoutTimer := time.NewTimer(versionTimeout)
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	// Check immediately before waiting for the first tick
+	v, err := w.workflowVersionRepo.GetVersion(ctx, workflowVersionID)
+	if err != nil {
+		return nil, err
+	}
+	if workflowversion.IsComplete(v.Status) {
+		return v, nil
+	}
 
 	for {
 		select {
 		case <-timeoutTimer.C:
 			return nil, fmt.Errorf("timed out waiting for release to finish")
-		default:
+		case <-ticker.C:
 			v, err := w.workflowVersionRepo.GetVersion(ctx, workflowVersionID)
 			if err != nil {
 				return nil, err
 			}
 
-			return v, nil
-
-			// TODO CAP-7490
-			// https://linear.app/render-com/issue/CAP-7490/flesh-out-workflow-version-information-at-least-restgql-if-not-present
-			// if workflowversion.IsComplete(v.Status) {
-			// 	return v, nil
-			// }
-
-			// if v.Status == nil || *v.Status == client.VersionStatusCreated {
-			// 	time.Sleep(10 * time.Second)
-			// } else {
-			// 	// if the release has started, poll more frequently
-			// 	time.Sleep(5 * time.Second)
-			// }
+			if workflowversion.IsComplete(v.Status) {
+				return v, nil
+			}
 		}
 	}
 }
 
 func (w *WorkflowLoader) WaitForVersionRelease(ctx context.Context, workflowID string) (*wfclient.WorkflowVersion, error) {
 	timeoutTimer := time.NewTimer(versionReleaseTimeout)
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	// Check immediately before waiting for the first tick
+	_, wfv, err := w.workflowVersionRepo.ListVersions(ctx, workflowID, &client.ListWorkflowVersionsParams{Limit: pointers.From(1)})
+	if err != nil {
+		return nil, err
+	}
+	if len(wfv) > 0 {
+		return wfv[0], nil
+	}
 
 	for {
 		select {
 		case <-timeoutTimer.C:
 			return nil, fmt.Errorf("timed out waiting for version to be created")
-		default:
-			// TODO CAP-7490
-			// https://linear.app/render-com/issue/CAP-7490/flesh-out-workflow-version-information-at-least-restgql-if-not-present
-			// hacky "get latest version" straight up does not work without statuses/visibility
+		case <-ticker.C:
 			_, wfv, err := w.workflowVersionRepo.ListVersions(ctx, workflowID, &client.ListWorkflowVersionsParams{Limit: pointers.From(1)})
 			if err != nil {
 				return nil, err
@@ -164,8 +173,6 @@ func (w *WorkflowLoader) WaitForVersionRelease(ctx context.Context, workflowID s
 			if len(wfv) > 0 {
 				return wfv[0], nil
 			}
-
-			time.Sleep(time.Second)
 		}
 	}
 }

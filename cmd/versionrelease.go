@@ -10,6 +10,7 @@ import (
 	"github.com/render-oss/cli/pkg/text"
 	"github.com/render-oss/cli/pkg/tui/flows"
 	workflowviews "github.com/render-oss/cli/pkg/tui/views/workflows"
+	"github.com/render-oss/cli/pkg/workflowversion"
 )
 
 func NewVersionReleaseCmd(deps flows.WorkflowDeps) *cobra.Command {
@@ -68,10 +69,6 @@ Examples:
 		},
 	}
 
-	// TODO CAP-7490
-	// https://linear.app/render-com/issue/CAP-7490/flesh-out-workflow-version-information-at-least-restgql-if-not-present
-	// these are stubbed and non-functional
-	// the underlying information we need to display/act on these is not yet available
 	versionReleaseCmd.Flags().String("commit", "", "The commit ID to release")
 	versionReleaseCmd.Flags().Bool("wait", false, "Wait for release to finish. Returns non-zero exit code if release fails")
 	// optionally, image backed is not in scope for alpha, native env only
@@ -107,7 +104,13 @@ func nonInteractiveVersionRelease(cmd *cobra.Command, input workflowviews.Versio
 				return nil, err
 			}
 			wfv, err = deps.WorkflowLoader().WaitForVersion(cmd.Context(), input.WorkflowID, v.Id)
-			return wfv, err
+			if err != nil {
+				return nil, err
+			}
+			if !workflowversion.IsSuccessful(wfv.Status) {
+				return wfv, fmt.Errorf("release %s failed with status %s", wfv.Id, wfv.Status)
+			}
+			return wfv, nil
 		}
 
 		return v, err
