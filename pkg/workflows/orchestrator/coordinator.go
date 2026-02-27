@@ -38,7 +38,7 @@ type Coordinator struct {
 }
 
 type sdkExec interface {
-	StartService(ctx context.Context, taskRunID string, socket string, mode Mode) (CleanupFunc, error)
+	StartService(ctx context.Context, taskRunID string, socket string, mode Mode) (CleanupFunc, <-chan error, error)
 }
 
 type serverFactory interface {
@@ -135,8 +135,8 @@ func (c *Coordinator) StartTask(ctx context.Context, taskIdentifier string, inpu
 
 	server.Start()
 
-	// Pass in a background context to avoid
-	cleanupFunc, err := c.sdkExec.StartService(context.Background(), taskRun.ID, socket.Addr().String(), ModeRun)
+	// Pass in a background context to avoid cancellation from the caller
+	cleanupFunc, processDone, err := c.sdkExec.StartService(context.Background(), taskRun.ID, socket.Addr().String(), ModeRun)
 	if err != nil {
 		return nil, err
 	}
@@ -146,11 +146,23 @@ func (c *Coordinator) StartTask(ctx context.Context, taskIdentifier string, inpu
 	go func() {
 		defer cleanupFunc()
 
-		callback := <-server.Channels.PostCallback
-
-		err := c.completeTask(callback.Body, taskRun.ID)
-		if err != nil {
-			fmt.Println("error completing task", err)
+		select {
+		case callback := <-server.Channels.PostCallback:
+			err := c.completeTask(callback.Body, taskRun.ID)
+			if err != nil {
+				fmt.Println("error completing task", err)
+			}
+		case err := <-processDone:
+			errMsg := "start command exited before completing the task"
+			if err != nil {
+				errMsg = fmt.Sprintf("%s: %s", errMsg, err)
+			}
+			updated, failErr := c.store.FailTaskRun(taskRun.ID, errMsg)
+			if failErr != nil {
+				fmt.Println("error failing task", failErr)
+				return
+			}
+			c.statusReporter.TaskFailed(updated)
 		}
 	}()
 
@@ -169,16 +181,21 @@ func (c *Coordinator) PopulateTasks(ctx context.Context) ([]*store.Task, error) 
 
 	// we don't need to pass in a task run id here, because we don't need to
 	// keep track of the logs for registration
-	cleanupFunc, err := c.sdkExec.StartService(context.Background(), "", socket.Addr().String(), ModeRegister)
+	cleanupFunc, processDone, err := c.sdkExec.StartService(context.Background(), "", socket.Addr().String(), ModeRegister)
 	if err != nil {
 		return nil, err
 	}
 	defer cleanupFunc()
 
-	// Wait until either the context is done or the server has received the tasks
+	// Wait until either the context is done, the process exits, or the server has received the tasks
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
+	case err := <-processDone:
+		if err != nil {
+			return nil, fmt.Errorf("start command exited before registering tasks: %w\nRun with --debug to see process output", err)
+		}
+		return nil, fmt.Errorf("start command exited before registering tasks\nRun with --debug to see process output")
 	case tasks := <-server.Channels.PostTasks:
 		c.store.SetTasks(tasks.Body.Tasks)
 		return c.store.GetTasks(), nil

@@ -3,6 +3,7 @@ package orchestrator_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -14,11 +15,16 @@ import (
 )
 
 type fakeSdkExec struct {
-	startService func(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (cleanupFunc func() error, err error)
+	startService func(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (cleanupFunc func() error, processDone <-chan error, err error)
 }
 
-func (f *fakeSdkExec) StartService(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (orchestrator.CleanupFunc, error) {
+func (f *fakeSdkExec) StartService(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (orchestrator.CleanupFunc, <-chan error, error) {
 	return f.startService(ctx, taskRunID, socket, mode)
+}
+
+// neverExits returns a process-done channel that never fires, simulating a long-running process.
+func neverExits() <-chan error {
+	return make(chan error)
 }
 
 type fakeServerFactory struct {
@@ -75,7 +81,7 @@ func TestStartTask(t *testing.T) {
 		ctx,
 		s,
 		&fakeSdkExec{
-			startService: func(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (func() error, error) {
+			startService: func(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (func() error, <-chan error, error) {
 				if startCount == 0 {
 					require.Equal(t, mode, orchestrator.ModeRegister)
 					startCount++
@@ -83,7 +89,7 @@ func TestStartTask(t *testing.T) {
 					require.Equal(t, mode, orchestrator.ModeRun)
 				}
 
-				return cleanupFunc, nil
+				return cleanupFunc, neverExits(), nil
 			},
 		},
 		socketTracker,
@@ -162,8 +168,8 @@ func TestStartTaskWithSubtask(t *testing.T) {
 		ctx,
 		s,
 		&fakeSdkExec{
-			startService: func(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (func() error, error) {
-				return cleanupFunc, nil
+			startService: func(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (func() error, <-chan error, error) {
+				return cleanupFunc, neverExits(), nil
 			},
 		},
 		socketTracker,
@@ -243,4 +249,114 @@ func TestStartTaskWithSubtask(t *testing.T) {
 
 		return taskRun.(taskserver.PostGetSubtaskResult200JSONResponse).Complete != nil
 	}, time.Second*2, time.Millisecond*10)
+}
+
+func TestPopulateTasksProcessExits(t *testing.T) {
+	ctx := context.Background()
+
+	s := store.NewTaskStore()
+
+	postTasksChan := make(chan taskserver.PostRegisterTasksRequestObject)
+
+	socketTracker, err := orchestrator.NewSocketTracker(ctx)
+	require.NoError(t, err)
+
+	coordinator := orchestrator.NewCoordinator(
+		ctx,
+		s,
+		&fakeSdkExec{
+			startService: func(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (func() error, <-chan error, error) {
+				processDone := make(chan error, 1)
+				processDone <- fmt.Errorf("exit status 1")
+				return func() error { return nil }, processDone, nil
+			},
+		},
+		socketTracker,
+		&fakeServerFactory{
+			newHandler: func(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
+				return &taskserver.ServerHandler{
+					Socket: socket,
+					Input:  input,
+					Channels: taskserver.ServerChannels{
+						PostCallback: make(chan taskserver.PostCallbackRequestObject),
+						PostTasks:    postTasksChan,
+					},
+				}
+			},
+		},
+		&noopStatusReporter{},
+	)
+
+	_, err = coordinator.PopulateTasks(ctx)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "start command exited before registering tasks")
+	require.Contains(t, err.Error(), "exit status 1")
+	require.Contains(t, err.Error(), "--debug")
+}
+
+func TestStartTaskProcessExits(t *testing.T) {
+	ctx := context.Background()
+
+	s := store.NewTaskStore()
+
+	tasks := []taskserver.Task{
+		{
+			Name: "test-task",
+		},
+	}
+
+	postTasksChan := make(chan taskserver.PostRegisterTasksRequestObject, 1)
+	postTasksChan <- taskserver.PostRegisterTasksRequestObject{
+		Body: &taskserver.PostRegisterTasksJSONRequestBody{
+			Tasks: tasks,
+		},
+	}
+
+	socketTracker, err := orchestrator.NewSocketTracker(ctx)
+	require.NoError(t, err)
+
+	startCount := 0
+	coordinator := orchestrator.NewCoordinator(
+		ctx,
+		s,
+		&fakeSdkExec{
+			startService: func(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (func() error, <-chan error, error) {
+				startCount++
+				if startCount == 1 {
+					// Registration succeeds normally
+					return func() error { return nil }, neverExits(), nil
+				}
+				// Task run: process exits immediately
+				processDone := make(chan error, 1)
+				processDone <- fmt.Errorf("exit status 1")
+				return func() error { return nil }, processDone, nil
+			},
+		},
+		socketTracker,
+		&fakeServerFactory{
+			newHandler: func(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
+				return &taskserver.ServerHandler{
+					Socket: socket,
+					Input:  input,
+					Channels: taskserver.ServerChannels{
+						PostCallback: make(chan taskserver.PostCallbackRequestObject),
+						PostTasks:    postTasksChan,
+					},
+				}
+			},
+		},
+		&noopStatusReporter{},
+	)
+
+	taskRun, err := coordinator.StartTask(ctx, "fake-workflow/test-task", []byte{}, nil)
+	require.NoError(t, err)
+
+	// The background goroutine should detect the process exit and fail the task run
+	require.Eventually(t, func() bool {
+		tr := s.GetTaskRun(taskRun.ID)
+		return tr.Status == store.TaskRunStatusFailed
+	}, time.Second*2, time.Millisecond*10)
+
+	tr := s.GetTaskRun(taskRun.ID)
+	require.Contains(t, *tr.Error, "start command exited before completing the task")
 }

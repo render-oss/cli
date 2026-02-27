@@ -41,7 +41,7 @@ func NewExec(logsStore *logs.LogStore, debug bool, command string, args ...strin
 	}
 }
 
-func (e *Exec) StartService(ctx context.Context, taskRunID string, socketPath string, mode Mode) (CleanupFunc, error) {
+func (e *Exec) StartService(ctx context.Context, taskRunID string, socketPath string, mode Mode) (CleanupFunc, <-chan error, error) {
 	cmd := exec.CommandContext(ctx, e.command, e.args...)
 	cmd.Env = append(os.Environ(), fmt.Sprintf(SocketPathEnv+"=%s", socketPath), fmt.Sprintf(ModeEnv+"=%s", mode))
 
@@ -64,7 +64,16 @@ func (e *Exec) StartService(ctx context.Context, taskRunID string, socketPath st
 		pt.Kill()
 	}()
 
+	if err := cmd.Start(); err != nil {
+		return nil, nil, err
+	}
+
+	processDone := make(chan error, 1)
+	go func() {
+		processDone <- cmd.Wait()
+	}()
+
 	return func() error {
 		return pt.Kill()
-	}, cmd.Start()
+	}, processDone, nil
 }
