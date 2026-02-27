@@ -39,7 +39,7 @@ func NewWorkflowListCmd(deps flows.WorkflowDeps) *cobra.Command {
 				return nil
 			}
 
-			flows.NewWorkflow(deps, flows.NewLogFlow(deps), false).VersionListFlow(cmd.Context(), &workflowviews.VersionListInput{})
+			flows.NewWorkflow(deps, flows.NewLogFlow(deps), false).WorkflowListPaletteFlow(cmd.Context(), &input)
 
 			return nil
 		},

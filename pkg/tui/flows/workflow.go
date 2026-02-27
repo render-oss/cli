@@ -198,6 +198,60 @@ func (f *Workflow) versionList(ctx context.Context, input *workflowviews.Version
 	)
 }
 
+func (f *Workflow) workflowListPalette(ctx context.Context, r resource.Resource) tea.Cmd {
+	return command.AddToStack(f.deps.Stack(), f.deps.ListWorkflow(), resource.BreadcrumbForResource(r), &views.PaletteCommand{},
+		views.NewPaletteView(ctx, []views.PaletteCommand{
+			{
+				Name:        "tasks",
+				Description: "View tasks for this workflow",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return f.taskList(ctx, &workflowviews.TaskListInput{WorkflowID: r.ID(), LatestVersionOnly: true}, func(t *workflows.Task) tea.Cmd {
+						return f.taskListPalette(ctx, t)
+					})
+				},
+			},
+			{
+				Name:        "versions",
+				Description: "List versions for this workflow",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return f.VersionListFlow(ctx, &workflowviews.VersionListInput{WorkflowID: r.ID()})
+				},
+			},
+			{
+				Name:        "release",
+				Description: "Release a new version",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return f.versionRelease(ctx, &workflowviews.VersionReleaseInput{WorkflowID: r.ID()})
+				},
+			},
+			{
+				Name:        "logs",
+				Description: "Tail workflow logs",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return f.logsFlow.LogsFlow(ctx, views.LogInput{
+						ResourceIDs: []string{r.ID()},
+						Tail:        true,
+					})
+				},
+			},
+			{
+				Name:        "dashboard",
+				Description: "Open Render Dashboard to the workflow's page",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					err := dashboard.OpenResource(r.ID(), r.Type())
+					return command.AddErrToStack(ctx, f.deps.ListWorkflow(), err)
+				},
+			},
+		}),
+	)
+}
+
+func (f *Workflow) WorkflowListPaletteFlow(ctx context.Context, input *workflowviews.WorkflowInput) tea.Cmd {
+	return f.workflowList(ctx, input, func(ctx context.Context, r resource.Resource) tea.Cmd {
+		return f.workflowListPalette(ctx, r)
+	})
+}
+
 func (f *Workflow) versionListPalette(ctx context.Context, v *workflows.WorkflowVersion) tea.Cmd {
 	return command.AddToStack(f.deps.Stack(), f.deps.ListVersions(), v.Name, &views.PaletteCommand{},
 		views.NewPaletteView(ctx, []views.PaletteCommand{

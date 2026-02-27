@@ -202,10 +202,34 @@ func (w *WorkflowLoader) LoadTaskList(ctx context.Context, input TaskListInput, 
 	if input.WorkflowVersionID != "" {
 		params.WorkflowVersionId = pointers.From([]string{input.WorkflowVersionID})
 	} else if input.WorkflowID != "" {
-		params.WorkflowId = pointers.From([]string{input.WorkflowID})
+		if input.LatestVersionOnly {
+			versionID, err := w.latestVersionID(ctx, input.WorkflowID)
+			if err != nil {
+				return "", nil, err
+			}
+			params.WorkflowVersionId = pointers.From([]string{versionID})
+		} else {
+			params.WorkflowId = pointers.From([]string{input.WorkflowID})
+		}
 	}
 
 	return w.taskRepo.ListTasks(ctx, params)
+}
+
+func (w *WorkflowLoader) latestVersionID(ctx context.Context, workflowID string) (string, error) {
+	limit := 1
+	params := &client.ListWorkflowVersionsParams{
+		Limit:      &limit,
+		WorkflowID: pointers.From([]string{workflowID}),
+	}
+	_, versions, err := w.workflowVersionRepo.ListVersions(ctx, workflowID, params)
+	if err != nil {
+		return "", err
+	}
+	if len(versions) == 0 {
+		return "", fmt.Errorf("no versions found for workflow %s", workflowID)
+	}
+	return versions[0].Id, nil
 }
 
 func (w *WorkflowLoader) GetTask(ctx context.Context, id string) (*wfclient.Task, error) {
