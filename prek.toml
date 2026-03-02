@@ -29,6 +29,7 @@ hooks = [
 repo = "local"
 hooks = [
   { id = "shfmt", name = "shfmt", entry = "shfmt -l -w -i 2 -bn -ci -sr", language = "system", files = "\\.sh$", priority = 10 },
+  { id = "go-mod-tidy", name = "go mod tidy", entry = "go mod tidy", language = "system", pass_filenames = false, files = "\\.(go|mod|sum)$", priority = 10 },
 ]
 
 # Linters (priority 20 = run last, after formatting)
@@ -43,4 +44,5 @@ hooks = [
 repo = "local"
 hooks = [
   { id = "shellcheck", name = "shellcheck", entry = "shellcheck", language = "system", types = ["shell"], priority = 20 },
+  { id = "go-filenames", name = "go filenames", entry = "bin/lint-go-filenames.sh", language = "script", files = "\\.go$", priority = 20 },
 ]
