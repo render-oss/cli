@@ -39,9 +39,74 @@ func (noopStatusReporter) TaskEnqueued(taskRun *store.TaskRun)  {}
 func (noopStatusReporter) TaskRunning(taskRun *store.TaskRun)   {}
 func (noopStatusReporter) TaskCompleted(taskRun *store.TaskRun) {}
 func (noopStatusReporter) TaskFailed(taskRun *store.TaskRun)    {}
+func (noopStatusReporter) TaskNotFound(taskIdentifier string)   {}
 
 func (f *fakeServerFactory) NewHandler(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
 	return f.newHandler(socket, input, getSubtaskResultFunc, startSubtaskFunc)
+}
+
+type recordingStatusReporter struct {
+	noopStatusReporter
+	notFoundIdentifier string
+}
+
+func (r *recordingStatusReporter) TaskNotFound(taskIdentifier string) {
+	r.notFoundIdentifier = taskIdentifier
+}
+
+func TestStartTaskNotFound(t *testing.T) {
+	ctx := context.Background()
+
+	s := store.NewTaskStore()
+
+	tasks := []taskserver.Task{
+		{
+			Name: "test-task",
+		},
+	}
+
+	postTasksChan := make(chan taskserver.PostRegisterTasksRequestObject, 1)
+	postTasksChan <- taskserver.PostRegisterTasksRequestObject{
+		Body: &taskserver.PostRegisterTasksJSONRequestBody{
+			Tasks: tasks,
+		},
+	}
+
+	socketTracker, err := orchestrator.NewSocketTracker(ctx)
+	require.NoError(t, err)
+
+	reporter := &recordingStatusReporter{}
+	coordinator := orchestrator.NewCoordinator(
+		ctx,
+		s,
+		&fakeSdkExec{
+			startService: func(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (func() error, <-chan error, error) {
+				return func() error { return nil }, neverExits(), nil
+			},
+		},
+		socketTracker,
+		&fakeServerFactory{
+			newHandler: func(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
+				return &taskserver.ServerHandler{
+					Socket: socket,
+					Input:  input,
+					Channels: taskserver.ServerChannels{
+						PostCallback: make(chan taskserver.PostCallbackRequestObject),
+						PostTasks:    postTasksChan,
+					},
+				}
+			},
+		},
+		reporter,
+	)
+
+	_, err = coordinator.StartTask(ctx, "nonexistent-task", []byte{}, nil)
+	require.Error(t, err)
+
+	var taskNotFoundErr *orchestrator.TaskNotFoundError
+	require.ErrorAs(t, err, &taskNotFoundErr)
+	require.Equal(t, "nonexistent-task", taskNotFoundErr.TaskIdentifier)
+	require.Equal(t, "nonexistent-task", reporter.notFoundIdentifier)
 }
 
 func TestStartTask(t *testing.T) {

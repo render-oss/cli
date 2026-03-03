@@ -85,6 +85,11 @@ func (r *PrintStatusReporter) TaskFailed(taskRun *store.TaskRun) {
 	r.print(r.formatWithDuration("%s %s: %s%s", taskRun), r.taskLabel(taskRun), status, r.describeTaskRun(taskRun), details)
 }
 
+func (r *PrintStatusReporter) TaskNotFound(taskIdentifier string) {
+	status := renderstyle.Status.Foreground(renderstyle.ColorError).Render("Not found")
+	r.print("Task %s: %s", status, taskIdentifier)
+}
+
 func (r *PrintStatusReporter) print(format string, args ...any) {
 	if r.printFn == nil {
 		return

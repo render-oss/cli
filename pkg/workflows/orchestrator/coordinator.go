@@ -22,6 +22,7 @@ type StatusReporter interface {
 	TaskRunning(taskRun *store.TaskRun)
 	TaskCompleted(taskRun *store.TaskRun)
 	TaskFailed(taskRun *store.TaskRun)
+	TaskNotFound(taskIdentifier string)
 }
 
 type Coordinator struct {
@@ -114,6 +115,7 @@ func (c *Coordinator) StartTask(ctx context.Context, taskIdentifier string, inpu
 
 	task := c.store.GetTask(taskIdentifier)
 	if task == nil {
+		c.statusReporter.TaskNotFound(taskIdentifier)
 		return nil, &TaskNotFoundError{TaskIdentifier: taskIdentifier}
 	}
 

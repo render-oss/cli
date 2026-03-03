@@ -37,7 +37,7 @@ func handleError(w http.ResponseWriter, err error, statusCode int) {
 		log.Println("error marshalling error", err)
 		return
 	}
-	w.Write(errJSON)
+	_, _ = w.Write(errJSON)
 }
 
 func Start(handler *ServerHandler, port int) (*http.Server, error) {
@@ -153,7 +153,6 @@ func (h *ServerHandler) RunTask(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if _, ok := err.(*orchestrator.TaskNotFoundError); ok {
 			handleError(w, err, http.StatusNotFound)
-			w.Write([]byte(err.Error()))
 			return
 		}
 
@@ -175,16 +174,12 @@ func (h *ServerHandler) RunTask(w http.ResponseWriter, r *http.Request) {
 func (h *ServerHandler) ListTaskRuns(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	var params client.ListTaskRunsParams
-
-	params.TaskId = pointers.From([]string{r.URL.Query().Get("taskId")})
-	if params.TaskId == nil {
+	taskID := r.URL.Query().Get("taskId")
+	if taskID == "" {
 		handleError(w, fmt.Errorf("taskId is required"), http.StatusBadRequest)
-		w.Write([]byte("taskId is required"))
 		return
 	}
 
-	taskID := (*params.TaskId)[0]
 	json.NewEncoder(w).Encode(internal.ListTaskRuns(h.taskStore, taskID))
 }
 
