@@ -23,7 +23,7 @@ type WorkflowDeps interface {
 	WorkflowLoader() *workflowviews.WorkflowLoader
 	ResourceService() *resource.Service
 	ListTaskRuns() *cobra.Command
-	RunTask() *cobra.Command
+	StartTask() *cobra.Command
 	ListTask() *cobra.Command
 	ListVersions() *cobra.Command
 	ReleaseVersion() *cobra.Command
@@ -83,13 +83,13 @@ func (f *Workflow) TaskRunListFlow(ctx context.Context, input *workflowviews.Tas
 func (f *Workflow) taskRun(ctx context.Context, input *workflowviews.TaskRunInput) tea.Cmd {
 	return command.AddToStack(
 		f.deps.Stack(),
-		f.deps.RunTask(),
+		f.deps.StartTask(),
 		"Run",
 		input,
-		workflowviews.NewTaskRunView(ctx, f.deps.WorkflowLoader(), input, f.deps.RunTask(), func(j *workflows.TaskRun) tea.Cmd {
+		workflowviews.NewTaskRunView(ctx, f.deps.WorkflowLoader(), input, f.deps.StartTask(), func(j *workflows.TaskRun) tea.Cmd {
 			workflowID, err := f.getWorkflowID(ctx, j.TaskId)
 			if err != nil {
-				return command.AddErrToStack(ctx, f.deps.RunTask(), err)
+				return command.AddErrToStack(ctx, f.deps.StartTask(), err)
 			}
 			return f.logsFlow.LogsFlow(ctx, views.LogInput{
 				// Start querying logs from 10 seconds ago to avoid missing any logs
@@ -324,7 +324,7 @@ func (f *Workflow) taskRunListPalette(ctx context.Context, taskRun *workflows.Ta
 				Action: func(ctx context.Context, args []string) tea.Cmd {
 					workflowID, err := f.getWorkflowID(ctx, taskRun.TaskId)
 					if err != nil {
-						return command.AddErrToStack(ctx, f.deps.RunTask(), err)
+						return command.AddErrToStack(ctx, f.deps.ListTaskRuns(), err)
 					}
 					var startTime *command.TimeOrRelative
 					if taskRun.StartedAt != nil {

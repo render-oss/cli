@@ -46,7 +46,7 @@ The command will spawn a new subprocess with your specified command whenever it 
 run a task or list the defined tasks.
 
 To interact with the local task server:
-  • Use the --local flag with other task commands (e.g., 'render tasks list --local')
+  • Use the --local flag with other task commands (e.g., 'render workflows tasks list --local')
   • Or set RENDER_USE_LOCAL_DEV=true when using the workflow client SDK
 
 To use a different port:
@@ -57,7 +57,7 @@ Examples:
   render workflows dev -- "python main.py"
   render workflows dev --port 9000 -- "npm start"
   render workflows tasks list --local
-  render workflows taskruns start my-task --local --input='["arg1"]'
+  render workflows tasks start my-task --local --input='["arg1"]'
 	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
@@ -158,7 +158,7 @@ Examples:
 		command.Println(cmd, "  %s", renderstyle.Bold(fmt.Sprintf("render workflows tasks list --local%s", portFlag)))
 		command.Println(cmd, "")
 		command.Println(cmd, "%s", dim.Render("To trigger a specific task directly:"))
-		command.Println(cmd, "  %s", renderstyle.Bold(fmt.Sprintf("render workflows taskruns start <task-name> --local%s --input='[\"arg1\"]'", portFlag)))
+		command.Println(cmd, "  %s", renderstyle.Bold(fmt.Sprintf("render workflows tasks start <task-name> --local%s --input='[\"arg1\"]'", portFlag)))
 		command.Println(cmd, "")
 
 		ready = true

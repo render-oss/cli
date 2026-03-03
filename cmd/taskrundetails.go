@@ -23,7 +23,7 @@ This command shows comprehensive information about a task run, including:
   • Output or error result
   • Start and completion timestamps
 
-The task run ID is returned when you execute a task with 'render workflows taskruns start'.
+The task run ID is returned when you execute a task with 'render workflows tasks start'.
 
 In interactive mode, you will be prompted to select a task run if not provided.
 

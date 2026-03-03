@@ -21,7 +21,7 @@ var taskCmd = &cobra.Command{
 	Short: "Manage tasks",
 }
 
-func NewTaskRunStartCmd(deps flows.WorkflowDeps) *cobra.Command {
+func NewTaskStartCmd(deps flows.WorkflowDeps) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start [taskID] --input=<json>",
 		Short: "Start a task run with the provided input",
@@ -42,10 +42,10 @@ You can provide input via:
 In interactive mode, you will be prompted to select the task and provide the input.
 
 Examples:
-  render workflows taskruns start tsk-1234 --input='["arg1", "arg2"]'
-  render workflows taskruns start my-workflow/my-task --input='[42, "hello"]'
-  render workflows taskruns start my-task --input-file=input.json
-  render workflows taskruns start my-task --local --input='["test"]'
+  render workflows tasks start tsk-1234 --input='["arg1", "arg2"]'
+  render workflows tasks start my-workflow/my-task --input='[42, "hello"]'
+  render workflows tasks start my-task --input-file=input.json
+  render workflows tasks start my-task --local --input='["test"]'
 `,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

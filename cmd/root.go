@@ -94,7 +94,7 @@ func isLocalCommand(cmd *cobra.Command) bool {
 
 func setupWorkflowCommands(deps *dependencies.Dependencies) {
 	deps.Commands.Workflow.TaskListCmd = NewTaskListCmd(deps)
-	deps.Commands.Workflow.TaskRunCmd = NewTaskRunStartCmd(deps)
+	deps.Commands.Workflow.TaskStartCmd = NewTaskStartCmd(deps)
 	deps.Commands.Workflow.TaskRunListCmd = NewTaskRunListCmd(deps)
 	deps.Commands.Workflow.TaskRunDetailsCmd = NewTaskRunDetailsCmd(deps)
 	deps.Commands.Workflow.VersionListCmd = NewVersionListCmd(deps)
@@ -103,7 +103,7 @@ func setupWorkflowCommands(deps *dependencies.Dependencies) {
 	WorkflowsCmd.AddCommand(deps.Commands.Workflow.WorkflowListCmd)
 
 	taskCmd.AddCommand(deps.Commands.Workflow.TaskListCmd)
-	taskRunCmd.AddCommand(deps.Commands.Workflow.TaskRunCmd)
+	taskCmd.AddCommand(deps.Commands.Workflow.TaskStartCmd)
 	taskRunCmd.AddCommand(deps.Commands.Workflow.TaskRunListCmd)
 	taskRunCmd.AddCommand(deps.Commands.Workflow.TaskRunDetailsCmd)
 	versionCmd.AddCommand(deps.Commands.Workflow.VersionListCmd)

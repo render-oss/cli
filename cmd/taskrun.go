@@ -4,16 +4,17 @@ import "github.com/spf13/cobra"
 
 var taskRunCmd = &cobra.Command{
 	Use:   "taskruns",
-	Short: "Manage task runs",
-	Long: `Manage task run executions.
+	Short: "View task runs",
+	Long: `View task run executions.
 
 A task run represents a single execution of a task with specific input parameters.
-Use these commands to start new task runs, view their history, and inspect details.
+Use these commands to view task run history and inspect details.
 
 Available commands:
-  start    - Execute a task with input parameters
   list     - List all runs for a task
   show     - Show detailed information about a specific run
+
+To start a new task run, use 'render workflows tasks start'.
 `,
 }
 
