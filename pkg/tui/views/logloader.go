@@ -22,10 +22,15 @@ type LogLoader struct {
 	kvRepo       *keyvalue.Repo
 	postgresRepo *postgres.Repo
 	workflowRepo *workflow.Repo
+	local        bool
 }
 
 func NewLogLoader(logRepo *logs.LogRepo, serviceRepo *service.Repo, kvRepo *keyvalue.Repo, postgresRepo *postgres.Repo, workflowRepo *workflow.Repo) *LogLoader {
 	return &LogLoader{logRepo: logRepo, serviceRepo: serviceRepo, kvRepo: kvRepo, postgresRepo: postgresRepo, workflowRepo: workflowRepo}
+}
+
+func NewLocalLogLoader(logRepo *logs.LogRepo) *LogLoader {
+	return &LogLoader{logRepo: logRepo, local: true}
 }
 
 func (l *LogLoader) LoadLogData(ctx context.Context, in LogInput) (*tui.LogResult, error) {
@@ -119,9 +124,13 @@ func (l *LogLoader) getResourceIDsFromIDOrNames(ctx context.Context, idOrNames [
 }
 
 func (l *LogLoader) ToParam(ctx context.Context, in LogInput) (*client.ListLogsParams, error) {
-	ownerID, err := config.WorkspaceID()
-	if err != nil {
-		return nil, fmt.Errorf("error getting workspace ID: %v", err)
+	var ownerID string
+	if !l.local {
+		var err error
+		ownerID, err = config.WorkspaceID()
+		if err != nil {
+			return nil, fmt.Errorf("error getting workspace ID: %v", err)
+		}
 	}
 
 	if in.Limit == 0 {

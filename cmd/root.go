@@ -59,13 +59,15 @@ var rootCmd = &cobra.Command{
 
 			var m tea.Model = stack
 
-			if cmd.Name() != deps.Commands.WorkspaceSetCmd().Name() {
+			local := isLocalCommand(cmd)
+
+			if !local && cmd.Name() != deps.Commands.WorkspaceSetCmd().Name() {
 				if !config.IsWorkspaceSet() {
 					m = tui.NewConfigWrapper(m, "Set Workspace", views.NewWorkspaceView(ctx, views.ListWorkspaceInput{}))
 				}
 			}
 
-			if cmd.Name() != loginCmd.Name() {
+			if !local && cmd.Name() != loginCmd.Name() {
 				m = tui.NewConfigWrapper(m, "Login", views.NewLoginView(ctx))
 			}
 
@@ -79,6 +81,15 @@ var rootCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func isLocalCommand(cmd *cobra.Command) bool {
+	v, err := cmd.Flags().GetBool("local")
+	if err != nil {
+		// Flag doesn't exist or isn't a bool
+		return false
+	}
+	return v
 }
 
 func setupWorkflowCommands(deps *dependencies.Dependencies) {

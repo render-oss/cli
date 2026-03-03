@@ -134,7 +134,7 @@ func (d *localDeps) WorkflowLoader() *workflowviews.WorkflowLoader {
 }
 
 func (d *localDeps) LogLoader() *views.LogLoader {
-	return views.NewLogLoader(d.LogRepo(), nil, nil, nil, nil)
+	return views.NewLocalLogLoader(d.LogRepo())
 }
 
 func getLocalDeps(cmd *cobra.Command, deps flows.WorkflowDeps) (flows.WorkflowDeps, bool, error) {
