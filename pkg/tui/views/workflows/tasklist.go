@@ -8,15 +8,8 @@ import (
 	wfclient "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/task"
-	"github.com/render-oss/cli/pkg/tasks"
 	"github.com/render-oss/cli/pkg/tui"
-	"github.com/render-oss/cli/pkg/version"
 )
-
-type TaskListDeps interface {
-	TaskRepo() *tasks.Repo
-	WorkflowVersionRepo() *version.Repo
-}
 
 type TaskListView struct {
 	list *tui.List[*wfclient.Task]

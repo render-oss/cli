@@ -10,10 +10,23 @@ import (
 	"github.com/render-oss/cli/pkg/resource/util"
 )
 
+type workflowRepository interface {
+	ListWorkflows(ctx context.Context, params *client.ListWorkflowsParams) ([]*wfclient.Workflow, error)
+	GetWorkflow(ctx context.Context, id string) (*wfclient.Workflow, error)
+}
+
+type projectRepository interface {
+	ListProjects(ctx context.Context) ([]*client.Project, error)
+}
+
+type environmentRepository interface {
+	ListEnvironments(ctx context.Context, params *client.ListEnvironmentsParams) ([]*client.Environment, error)
+}
+
 type Service struct {
-	repo            *Repo
-	environmentRepo *environment.Repo
-	projectRepo     *project.Repo
+	repo            workflowRepository
+	environmentRepo environmentRepository
+	projectRepo     projectRepository
 }
 
 func NewService(repo *Repo, environmentRepo *environment.Repo, projectRepo *project.Repo) *Service {

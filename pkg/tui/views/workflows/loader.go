@@ -16,18 +16,40 @@ import (
 	"github.com/render-oss/cli/pkg/workflowversion"
 )
 
-type WorkflowLoaderDeps interface {
-	TaskRepo() *tasks.Repo
-	WorkflowService() *workflow.Service
-	WorkflowVersionRepo() *version.Repo
-	WorkflowRepo() *workflow.Repo
+// taskRepo defines the task operations the loader needs (unexported; used for testability).
+type taskRepo interface {
+	RunTask(ctx context.Context, taskID string, input *workflows.TaskData) (*workflows.TaskRun, error)
+	GetTask(ctx context.Context, id string) (*workflows.Task, error)
+	ListTasks(ctx context.Context, params *client.ListTasksParams) (client.Cursor, []*workflows.Task, error)
+	ListTaskRuns(ctx context.Context, params *client.ListTaskRunsParams) (client.Cursor, []*workflows.TaskRun, error)
+	GetTaskRunDetails(ctx context.Context, taskRunID string) (*workflows.TaskRunDetails, error)
 }
 
+// versionRepo defines the version operations the loader needs (unexported; used for testability).
+type versionRepo interface {
+	ListVersions(ctx context.Context, workflowID string, params *client.ListWorkflowVersionsParams) (client.Cursor, []*wfclient.WorkflowVersion, error)
+	GetVersion(ctx context.Context, workflowVersionID string) (*wfclient.WorkflowVersion, error)
+	TriggerRelease(ctx context.Context, workflowID string, input version.TriggerReleaseInput) error
+}
+
+// workflowRepo defines the workflow operations the loader needs (unexported; used for testability).
+type workflowRepoIface interface {
+	GetWorkflow(ctx context.Context, id string) (*wfclient.Workflow, error)
+}
+
+const (
+	defaultVersionPollInterval        = 5 * time.Second
+	defaultVersionReleasePollInterval = time.Second
+)
+
 type WorkflowLoader struct {
-	taskRepo            *tasks.Repo
+	taskRepo            taskRepo
 	workflowService     *workflow.Service
-	workflowVersionRepo *version.Repo
-	workflowRepo        *workflow.Repo
+	workflowVersionRepo versionRepo
+	workflowRepo        workflowRepoIface
+
+	versionPollInterval        *time.Duration
+	versionReleasePollInterval *time.Duration
 }
 
 func NewWorkflowLoader(taskRepo *tasks.Repo, workflowService *workflow.Service, workflowVersionRepo *version.Repo, workflowRepo *workflow.Repo) *WorkflowLoader {
@@ -117,7 +139,11 @@ func (w *WorkflowLoader) ReleaseVersion(ctx context.Context, input VersionReleas
 
 func (w *WorkflowLoader) WaitForVersion(ctx context.Context, workflowID, workflowVersionID string) (*wfclient.WorkflowVersion, error) {
 	timeoutTimer := time.NewTimer(versionTimeout)
-	ticker := time.NewTicker(5 * time.Second)
+	pollInterval := defaultVersionPollInterval
+	if w.versionPollInterval != nil {
+		pollInterval = *w.versionPollInterval
+	}
+	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
 
 	// Check immediately before waiting for the first tick
@@ -148,7 +174,11 @@ func (w *WorkflowLoader) WaitForVersion(ctx context.Context, workflowID, workflo
 
 func (w *WorkflowLoader) WaitForVersionRelease(ctx context.Context, workflowID string) (*wfclient.WorkflowVersion, error) {
 	timeoutTimer := time.NewTimer(versionReleaseTimeout)
-	ticker := time.NewTicker(time.Second)
+	releasePollInterval := defaultVersionReleasePollInterval
+	if w.versionReleasePollInterval != nil {
+		releasePollInterval = *w.versionReleasePollInterval
+	}
+	ticker := time.NewTicker(releasePollInterval)
 	defer ticker.Stop()
 
 	// Check immediately before waiting for the first tick
