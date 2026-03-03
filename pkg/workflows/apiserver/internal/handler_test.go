@@ -56,6 +56,55 @@ func (f *fakeRunner) StartTask(ctx context.Context, taskName string, input []byt
 	return f.startTask(ctx, taskName, input, parentTaskRunID)
 }
 
+func TestMapTaskRunAttemptsNotNull(t *testing.T) {
+	t.Run("running task run has one attempt", func(t *testing.T) {
+		s := store.NewTaskStore()
+		s.SetTasks([]taskserver.Task{{Name: "test"}})
+		taskRun := s.StartTaskRun("test", []byte(`[1]`), nil)
+
+		got := internal.MapTaskRun(s, taskRun)
+
+		require.NotNil(t, got.Attempts)
+		require.Len(t, got.Attempts, 1)
+		require.Equal(t, workflowclient.Running, got.Attempts[0].Status)
+		require.Nil(t, got.Attempts[0].CompletedAt)
+	})
+
+	t.Run("completed task run attempt has completedAt", func(t *testing.T) {
+		s := store.NewTaskStore()
+		s.SetTasks([]taskserver.Task{{Name: "test"}})
+		taskRun := s.StartTaskRun("test", []byte(`[1]`), nil)
+		s.CompleteTaskRun(taskRun.ID, []byte(`["done"]`))
+
+		updated := s.GetTaskRun(taskRun.ID)
+		got := internal.MapTaskRun(s, updated)
+
+		require.Len(t, got.Attempts, 1)
+		require.Equal(t, workflowclient.Completed, got.Attempts[0].Status)
+		require.NotNil(t, got.Attempts[0].CompletedAt)
+	})
+}
+
+func TestGetTaskRunDetailsAttempts(t *testing.T) {
+	s := store.NewTaskStore()
+	s.SetTasks([]taskserver.Task{{Name: "test"}})
+
+	input, _ := json.Marshal([]interface{}{"abc"})
+	output, _ := json.Marshal([]interface{}{"def"})
+
+	taskRun := s.StartTaskRun("test", input, nil)
+	s.CompleteTaskRun(taskRun.ID, output)
+
+	got := internal.GetTaskRun(s, taskRun.ID)
+
+	require.NotNil(t, got.Attempts)
+	require.Len(t, got.Attempts, 1)
+	require.Equal(t, workflowclient.Completed, got.Attempts[0].Status)
+	require.NotNil(t, got.Attempts[0].CompletedAt)
+	require.NotNil(t, got.Attempts[0].Results)
+	require.Equal(t, []interface{}{"def"}, *got.Attempts[0].Results)
+}
+
 func TestListTaskRuns(t *testing.T) {
 	t.Run("by task ID", func(t *testing.T) {
 		store := store.NewTaskStore()

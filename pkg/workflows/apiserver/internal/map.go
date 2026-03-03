@@ -43,6 +43,44 @@ func parentTaskRunID(taskRun *store.TaskRun) string {
 	return ""
 }
 
+func mapTaskAttempt(taskRun *store.TaskRun) []workflowClient.TaskAttempt {
+	if taskRun.StartedAt == nil {
+		return []workflowClient.TaskAttempt{}
+	}
+
+	return []workflowClient.TaskAttempt{
+		{
+			StartedAt:   *taskRun.StartedAt,
+			CompletedAt: taskRun.CompletedAt,
+			Status:      mapTaskRunStatus(taskRun.Status),
+		},
+	}
+}
+
+func mapTaskAttemptDetails(taskRun *store.TaskRun) []workflowClient.TaskAttemptDetails {
+	if taskRun.StartedAt == nil {
+		return []workflowClient.TaskAttemptDetails{}
+	}
+
+	var results *workflowClient.TaskRunResult
+	if taskRun.Output != nil {
+		var r workflowClient.TaskRunResult
+		if json.Unmarshal(taskRun.Output, &r) == nil {
+			results = &r
+		}
+	}
+
+	return []workflowClient.TaskAttemptDetails{
+		{
+			StartedAt:   *taskRun.StartedAt,
+			CompletedAt: taskRun.CompletedAt,
+			Status:      mapTaskRunStatus(taskRun.Status),
+			Error:       taskRun.Error,
+			Results:     results,
+		},
+	}
+}
+
 func MapTaskRun(store *store.TaskStore, taskRun *store.TaskRun) *workflowClient.TaskRun {
 	task := store.GetTaskByName(taskRun.TaskName)
 
@@ -54,6 +92,7 @@ func MapTaskRun(store *store.TaskStore, taskRun *store.TaskRun) *workflowClient.
 		CompletedAt:     taskRun.CompletedAt,
 		ParentTaskRunId: parentTaskRunID(taskRun),
 		RootTaskRunId:   taskRun.RootTaskRunID,
+		Attempts:        mapTaskAttempt(taskRun),
 	}
 }
 
@@ -78,6 +117,7 @@ func mapTaskRunDetails(store *store.TaskStore, taskRun *store.TaskRun) *workflow
 		Error:           taskRun.Error,
 		ParentTaskRunId: parentTaskRunID(taskRun),
 		RootTaskRunId:   taskRun.RootTaskRunID,
+		Attempts:        mapTaskAttemptDetails(taskRun),
 	}
 }
 
