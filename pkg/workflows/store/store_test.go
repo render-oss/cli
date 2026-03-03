@@ -141,6 +141,38 @@ func TestGetTask(t *testing.T) {
 		},
 	})
 
-	task := s.GetTask("foo/test")
-	require.Equal(t, "test", task.Name)
+	t.Run("by name", func(t *testing.T) {
+		task := s.GetTask("test")
+		require.NotNil(t, task)
+		require.Equal(t, "test", task.Name)
+	})
+
+	t.Run("by ID", func(t *testing.T) {
+		tasks := s.GetTasks()
+		task := s.GetTask(tasks[0].ID)
+		require.NotNil(t, task)
+		require.Equal(t, "test", task.Name)
+	})
+
+	t.Run("by slug with workflow prefix", func(t *testing.T) {
+		task := s.GetTask("my-workflow/test")
+		require.NotNil(t, task)
+		require.Equal(t, "test", task.Name)
+	})
+
+	t.Run("by slug with multi-segment prefix", func(t *testing.T) {
+		task := s.GetTask("org/my-workflow/test")
+		require.NotNil(t, task)
+		require.Equal(t, "test", task.Name)
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		task := s.GetTask("nonexistent")
+		require.Nil(t, task)
+	})
+
+	t.Run("slug not found", func(t *testing.T) {
+		task := s.GetTask("my-workflow/nonexistent")
+		require.Nil(t, task)
+	})
 }

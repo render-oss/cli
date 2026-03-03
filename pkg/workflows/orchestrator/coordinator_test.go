@@ -108,7 +108,7 @@ func TestStartTask(t *testing.T) {
 		&noopStatusReporter{},
 	)
 
-	_, err = coordinator.StartTask(ctx, "fake-workflow/test-task", []byte{}, nil)
+	_, err = coordinator.StartTask(ctx, "test-task", []byte{}, nil)
 	require.NoError(t, err)
 
 	ts := s.GetTasks()
@@ -216,7 +216,7 @@ func TestStartTaskWithSubtask(t *testing.T) {
 
 	// Trigger a task and then we will simulate a subtask
 	go func() {
-		_, err = coordinator.StartTask(ctx, "fake-workflow/test-task", []byte{}, nil)
+		_, err = coordinator.StartTask(ctx, "test-task", []byte{}, nil)
 		require.NoError(t, err)
 	}()
 
@@ -348,7 +348,7 @@ func TestStartTaskProcessExits(t *testing.T) {
 		&noopStatusReporter{},
 	)
 
-	taskRun, err := coordinator.StartTask(ctx, "fake-workflow/test-task", []byte{}, nil)
+	taskRun, err := coordinator.StartTask(ctx, "test-task", []byte{}, nil)
 	require.NoError(t, err)
 
 	// The background goroutine should detect the process exit and fail the task run

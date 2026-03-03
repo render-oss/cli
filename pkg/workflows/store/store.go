@@ -3,8 +3,8 @@ package store
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -184,14 +184,19 @@ func (s *TaskStore) GetTask(taskID string) *Task {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for i := range s.tasks {
-		if s.tasks[i].ID == taskID {
-			return s.tasks[i]
-		}
+	// Strip workflow prefix (e.g. "workflow-name/task-name") and match by
+	// plain task name so production slugs work against local dev.
+	var name string
+	hasStrippedName := false
+	if idx := strings.LastIndex(taskID, "/"); idx != -1 {
+		name = taskID[idx+1:]
+		hasStrippedName = true
 	}
 
-	for _, task := range s.tasks {
-		if regexp.MustCompile(fmt.Sprintf("^.*/%s(:.*)?$", task.Name)).MatchString(taskID) {
+	for i := range s.tasks {
+		task := s.tasks[i]
+
+		if task.ID == taskID || task.Name == taskID || (hasStrippedName && task.Name == name) {
 			return task
 		}
 	}
