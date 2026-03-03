@@ -73,6 +73,10 @@ Examples:
 				return fmt.Errorf("failed to parse input: %w", err)
 			}
 
+			if input.TaskID != "" && cmd.Flags().Changed("input") {
+				command.DefaultFormatNonInteractive(cmd)
+			}
+
 			if nonInteractive, err := command.NonInteractive(cmd, func() (*workflows.TaskRun, error) {
 				taskLoader := deps.WorkflowLoader()
 				return taskLoader.CreateTaskRun(cmd.Context(), input)

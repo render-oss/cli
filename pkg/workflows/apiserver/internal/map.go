@@ -55,6 +55,9 @@ func mapTaskRunDetails(store *store.TaskStore, taskRun *store.TaskRun) *workflow
 	// ignore error, we will just return empty results
 	_ = json.Unmarshal(taskRun.Output, &results)
 
+	var input workflowClient.TaskData
+	_ = json.Unmarshal(taskRun.Input, &input)
+
 	return &workflowClient.TaskRunDetails{
 		Id:          taskRun.ID,
 		TaskId:      task.ID,
@@ -62,6 +65,7 @@ func mapTaskRunDetails(store *store.TaskStore, taskRun *store.TaskRun) *workflow
 		StartedAt:   taskRun.StartedAt,
 		CompletedAt: taskRun.CompletedAt,
 		Results:     results,
+		Input:       input,
 		Error:       taskRun.Error,
 	}
 }
