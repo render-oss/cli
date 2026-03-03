@@ -16,8 +16,8 @@ The --region flag specifies which region to use. Alternatively, set the
 RENDER_REGION environment variable. The --region flag takes precedence
 if both are provided.
 
-In local development mode (when running with 'render ea tasks dev' or with the
---local flag), objects are stored in the .render/objects/ directory.
+When using the --local flag, objects are stored in the .render/objects/ directory
+instead of cloud storage.
 
 Available commands:
   list     - List objects in storage

@@ -27,7 +27,7 @@ In interactive mode, you will be prompted to select a workflow if not provided.
 Local Development:
 When using the --local flag, you don't need to provide a workflow version ID. Instead,
 the command connects to your local dev server (default port 8120) to list tasks from
-your running workflow service. Start the dev server with 'render workflows tasks dev' first.
+your running workflow service. Start the dev server with 'render workflows dev' first.
 
 Examples:
   render workflows tasks list wfv-1234
