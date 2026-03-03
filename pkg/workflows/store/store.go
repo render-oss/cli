@@ -30,6 +30,9 @@ type TaskRun struct {
 	CompletedAt *time.Time
 
 	ParentTaskRunID *string
+	// RootTaskRunID is the ID of the top-level task run that initiated this
+	// chain of subtasks. For root tasks, this equals ID.
+	RootTaskRunID string
 }
 
 type TaskRunStatus string
@@ -77,8 +80,19 @@ func (s *TaskStore) StartTaskRun(taskName string, input []byte, parentTaskRunID 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	id := NewTaskRunID()
+
+	// Propagate the root task run ID from the parent. For root tasks (no
+	// parent), the task run is its own root.
+	rootTaskRunID := id
+	if parentTaskRunID != nil {
+		if parent := s.getTaskRun(*parentTaskRunID); parent != nil {
+			rootTaskRunID = parent.RootTaskRunID
+		}
+	}
+
 	taskRun := &TaskRun{
-		ID:       NewTaskRunID(),
+		ID:       id,
 		TaskName: taskName,
 		Input:    input,
 		Status:   TaskRunStatusRunning,
@@ -86,6 +100,7 @@ func (s *TaskStore) StartTaskRun(taskName string, input []byte, parentTaskRunID 
 		StartedAt: pointers.From(time.Now()),
 
 		ParentTaskRunID: parentTaskRunID,
+		RootTaskRunID:   rootTaskRunID,
 	}
 
 	s.taskRuns = append(s.taskRuns, taskRun)
@@ -133,17 +148,20 @@ func (s *TaskStore) FailTaskRun(taskRunID string, errString string) (*TaskRun, e
 	return taskRun, nil
 }
 
-func (s *TaskStore) GetTaskRun(taskRunID string) *TaskRun {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
+func (s *TaskStore) getTaskRun(taskRunID string) *TaskRun {
 	for i := range s.taskRuns {
 		if s.taskRuns[i].ID == taskRunID {
 			return s.taskRuns[i]
 		}
 	}
-
 	return nil
+}
+
+func (s *TaskStore) GetTaskRun(taskRunID string) *TaskRun {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.getTaskRun(taskRunID)
 }
 
 func (s *TaskStore) GetTasks() []*Task {
@@ -162,11 +180,20 @@ func (s *TaskStore) GetTaskRuns(taskID string) []*TaskRun {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// Resolve taskID to task name, matching by ID first, then by name
 	var taskName string
 	for _, task := range s.tasks {
 		if task.ID == taskID {
 			taskName = task.Name
 			break
+		}
+	}
+	if taskName == "" {
+		for _, task := range s.tasks {
+			if task.Name == taskID {
+				taskName = task.Name
+				break
+			}
 		}
 	}
 
@@ -177,6 +204,15 @@ func (s *TaskStore) GetTaskRuns(taskID string) []*TaskRun {
 		}
 	}
 
+	return taskRuns
+}
+
+func (s *TaskStore) GetAllTaskRuns() []*TaskRun {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	taskRuns := make([]*TaskRun, len(s.taskRuns))
+	copy(taskRuns, s.taskRuns)
 	return taskRuns
 }
 

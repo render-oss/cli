@@ -275,7 +275,10 @@ func (w *WorkflowLoader) GetTask(ctx context.Context, id string) (*wfclient.Task
 
 func (w *WorkflowLoader) LoadTaskRunList(ctx context.Context, input TaskRunListInput, cur client.Cursor) (client.Cursor, []*wfclient.TaskRun, error) {
 	pageSize := 20
-	params := &client.ListTaskRunsParams{Limit: &pageSize, TaskId: pointers.From([]string{input.TaskID})}
+	params := &client.ListTaskRunsParams{Limit: &pageSize}
+	if input.TaskID != "" {
+		params.TaskId = pointers.From([]string{input.TaskID})
+	}
 	if cur != "" {
 		params.Cursor = &cur
 	}
@@ -312,7 +315,10 @@ func (w *WorkflowLoader) LoadAllTasks(ctx context.Context, input TaskListInput) 
 // progressive loading, so older runs beyond this limit will not be shown.
 func (w *WorkflowLoader) LoadAllTaskRuns(ctx context.Context, input TaskRunListInput) ([]*wfclient.TaskRun, error) {
 	pageSize := 100
-	params := &client.ListTaskRunsParams{Limit: &pageSize, TaskId: pointers.From([]string{input.TaskID})}
+	params := &client.ListTaskRunsParams{Limit: &pageSize}
+	if input.TaskID != "" {
+		params.TaskId = pointers.From([]string{input.TaskID})
+	}
 
 	_, taskRuns, err := w.taskRepo.ListTaskRuns(ctx, params)
 	return taskRuns, err

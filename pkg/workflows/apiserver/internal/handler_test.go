@@ -57,23 +57,53 @@ func (f *fakeRunner) StartTask(ctx context.Context, taskName string, input []byt
 }
 
 func TestListTaskRuns(t *testing.T) {
-	store := store.NewTaskStore()
+	t.Run("by task ID", func(t *testing.T) {
+		store := store.NewTaskStore()
 
-	store.SetTasks([]taskserver.Task{
-		{
-			Name: "test",
-		},
+		store.SetTasks([]taskserver.Task{
+			{Name: "test"},
+		})
+
+		store.StartTaskRun("test", []byte("abc"), nil)
+
+		tasks := store.GetTasks()
+		got := internal.ListTaskRuns(store, tasks[0].ID)
+
+		require.Equal(t, 1, len(got))
+		require.Equal(t, tasks[0].ID, got[0].TaskId)
 	})
 
-	input := []byte("abc")
+	t.Run("by task name", func(t *testing.T) {
+		store := store.NewTaskStore()
 
-	store.StartTaskRun("test", input, nil)
+		store.SetTasks([]taskserver.Task{
+			{Name: "test"},
+		})
 
-	tasks := store.GetTasks()
-	got := internal.ListTaskRuns(store, tasks[0].ID)
+		store.StartTaskRun("test", []byte("abc"), nil)
 
-	require.Equal(t, 1, len(got))
-	require.Equal(t, tasks[0].ID, got[0].TaskId)
+		tasks := store.GetTasks()
+		got := internal.ListTaskRuns(store, "test")
+
+		require.Equal(t, 1, len(got))
+		require.Equal(t, tasks[0].ID, got[0].TaskId)
+	})
+
+	t.Run("all task runs when taskID is empty", func(t *testing.T) {
+		store := store.NewTaskStore()
+
+		store.SetTasks([]taskserver.Task{
+			{Name: "task1"},
+			{Name: "task2"},
+		})
+
+		store.StartTaskRun("task1", []byte("abc"), nil)
+		store.StartTaskRun("task2", []byte("def"), nil)
+
+		got := internal.ListTaskRuns(store, "")
+
+		require.Equal(t, 2, len(got))
+	})
 }
 
 func TestGetTaskRun(t *testing.T) {

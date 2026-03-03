@@ -36,15 +36,24 @@ func mapTaskRunStatus(status store.TaskRunStatus) workflowClient.TaskRunStatus {
 	}
 }
 
+func parentTaskRunID(taskRun *store.TaskRun) string {
+	if taskRun.ParentTaskRunID != nil {
+		return *taskRun.ParentTaskRunID
+	}
+	return ""
+}
+
 func MapTaskRun(store *store.TaskStore, taskRun *store.TaskRun) *workflowClient.TaskRun {
 	task := store.GetTaskByName(taskRun.TaskName)
 
 	return &workflowClient.TaskRun{
-		Id:          taskRun.ID,
-		TaskId:      task.ID,
-		Status:      mapTaskRunStatus(taskRun.Status),
-		StartedAt:   taskRun.StartedAt,
-		CompletedAt: taskRun.CompletedAt,
+		Id:              taskRun.ID,
+		TaskId:          task.ID,
+		Status:          mapTaskRunStatus(taskRun.Status),
+		StartedAt:       taskRun.StartedAt,
+		CompletedAt:     taskRun.CompletedAt,
+		ParentTaskRunId: parentTaskRunID(taskRun),
+		RootTaskRunId:   taskRun.RootTaskRunID,
 	}
 }
 
@@ -59,14 +68,16 @@ func mapTaskRunDetails(store *store.TaskStore, taskRun *store.TaskRun) *workflow
 	_ = json.Unmarshal(taskRun.Input, &input)
 
 	return &workflowClient.TaskRunDetails{
-		Id:          taskRun.ID,
-		TaskId:      task.ID,
-		Status:      mapTaskRunStatus(taskRun.Status),
-		StartedAt:   taskRun.StartedAt,
-		CompletedAt: taskRun.CompletedAt,
-		Results:     results,
-		Input:       input,
-		Error:       taskRun.Error,
+		Id:              taskRun.ID,
+		TaskId:          task.ID,
+		Status:          mapTaskRunStatus(taskRun.Status),
+		StartedAt:       taskRun.StartedAt,
+		CompletedAt:     taskRun.CompletedAt,
+		Results:         results,
+		Input:           input,
+		Error:           taskRun.Error,
+		ParentTaskRunId: parentTaskRunID(taskRun),
+		RootTaskRunId:   taskRun.RootTaskRunID,
 	}
 }
 

@@ -11,6 +11,7 @@ type TaskListInput struct {
 	WorkflowVersionID string `cli:"arg:0"`
 	WorkflowID        string
 	LatestVersionOnly bool
+	Local             bool
 }
 
 type TaskRunInput struct {
@@ -28,6 +29,7 @@ type VersionListInput struct {
 
 type TaskRunListInput struct {
 	TaskID string `cli:"arg:0"`
+	Local  bool
 }
 
 type VersionReleaseInput struct {
@@ -37,14 +39,17 @@ type VersionReleaseInput struct {
 }
 
 func (t TaskListInput) Validate(interactive bool) error {
-	if !interactive && t.WorkflowVersionID == "" {
+	if !interactive && t.Local && t.WorkflowVersionID != "" {
+		return errors.New("workflow version id is not supported in local mode")
+	}
+	if !interactive && !t.Local && t.WorkflowVersionID == "" {
 		return errors.New("workflow version id must be specified when output is not interactive")
 	}
 	return nil
 }
 
 func (t TaskRunListInput) Validate(interactive bool) error {
-	if !interactive && t.TaskID == "" {
+	if !interactive && !t.Local && t.TaskID == "" {
 		return errors.New("task id must be specified when output is not interactive")
 	}
 	return nil

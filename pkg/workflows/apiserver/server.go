@@ -175,11 +175,6 @@ func (h *ServerHandler) ListTaskRuns(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	taskID := r.URL.Query().Get("taskId")
-	if taskID == "" {
-		handleError(w, fmt.Errorf("taskId is required"), http.StatusBadRequest)
-		return
-	}
-
 	json.NewEncoder(w).Encode(internal.ListTaskRuns(h.taskStore, taskID))
 }
 

@@ -24,6 +24,18 @@ func TestTaskListInputValidate(t *testing.T) {
 		input := TaskListInput{WorkflowVersionID: "wfv-123"}
 		assert.NoError(t, input.Validate(false))
 	})
+
+	t.Run("non-interactive local allows empty version ID", func(t *testing.T) {
+		input := TaskListInput{Local: true}
+		assert.NoError(t, input.Validate(false))
+	})
+
+	t.Run("non-interactive local rejects version ID", func(t *testing.T) {
+		input := TaskListInput{Local: true, WorkflowVersionID: "wfv-123"}
+		err := input.Validate(false)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "workflow version id is not supported in local mode")
+	})
 }
 
 func TestTaskRunInputValidate(t *testing.T) {
@@ -74,6 +86,16 @@ func TestTaskRunListInputValidate(t *testing.T) {
 
 	t.Run("non-interactive with task ID succeeds", func(t *testing.T) {
 		input := TaskRunListInput{TaskID: "tsk-1"}
+		assert.NoError(t, input.Validate(false))
+	})
+
+	t.Run("non-interactive local allows empty task ID", func(t *testing.T) {
+		input := TaskRunListInput{Local: true}
+		assert.NoError(t, input.Validate(false))
+	})
+
+	t.Run("non-interactive local with task ID succeeds", func(t *testing.T) {
+		input := TaskRunListInput{TaskID: "tsk-1", Local: true}
 		assert.NoError(t, input.Validate(false))
 	})
 }

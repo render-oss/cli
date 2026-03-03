@@ -179,8 +179,7 @@ func (f *Workflow) versionRelease(ctx context.Context, input *workflowviews.Vers
 
 func (f *Workflow) unspecifiedTask(ctx context.Context, action func(t *workflows.Task) tea.Cmd) tea.Cmd {
 	if f.local {
-		// when running locally, we don't have a workflow version id, so we just use a dummy one
-		return f.taskList(ctx, &workflowviews.TaskListInput{WorkflowVersionID: "local"}, action)
+		return f.taskList(ctx, &workflowviews.TaskListInput{}, action)
 	}
 
 	return f.workflowList(ctx, &workflowviews.WorkflowInput{}, func(ctx context.Context, r resource.Resource) tea.Cmd {

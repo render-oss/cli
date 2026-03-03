@@ -37,12 +37,17 @@ func GetTask(store *store.TaskStore, taskID string) *workflowclient.Task {
 	return mapTask(task)
 }
 
-func ListTaskRuns(store *store.TaskStore, taskID string) []*workflowclient.TaskRun {
-	taskRuns := store.GetTaskRuns(taskID)
+func ListTaskRuns(s *store.TaskStore, taskID string) []*workflowclient.TaskRun {
+	var taskRuns []*store.TaskRun
+	if taskID == "" {
+		taskRuns = s.GetAllTaskRuns()
+	} else {
+		taskRuns = s.GetTaskRuns(taskID)
+	}
 
 	taskRunList := make([]*workflowclient.TaskRun, len(taskRuns))
 	for i, taskRun := range taskRuns {
-		taskRunList[i] = MapTaskRun(store, taskRun)
+		taskRunList[i] = MapTaskRun(s, taskRun)
 	}
 
 	return taskRunList

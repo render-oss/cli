@@ -41,6 +41,7 @@ Examples:
 			}
 
 			var input workflowviews.TaskListInput
+			input.Local = local
 			err = command.ParseCommand(cmd, args, &input)
 			if err != nil {
 				return fmt.Errorf("failed to parse command: %w", err)

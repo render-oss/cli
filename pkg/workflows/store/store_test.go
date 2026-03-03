@@ -132,6 +132,50 @@ func TestTaskRun(t *testing.T) {
 	})
 }
 
+func TestGetTaskRunsByName(t *testing.T) {
+	s := store.NewTaskStore()
+
+	s.SetTasks([]taskserver.Task{
+		{Name: "test"},
+	})
+
+	tasks := s.GetTasks()
+	s.StartTaskRun(tasks[0].Name, []byte("input"), nil)
+
+	t.Run("by task name", func(t *testing.T) {
+		taskRuns := s.GetTaskRuns("test")
+		require.Equal(t, 1, len(taskRuns))
+		require.Equal(t, "test", taskRuns[0].TaskName)
+	})
+
+	t.Run("by task ID", func(t *testing.T) {
+		taskRuns := s.GetTaskRuns(tasks[0].ID)
+		require.Equal(t, 1, len(taskRuns))
+		require.Equal(t, "test", taskRuns[0].TaskName)
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		taskRuns := s.GetTaskRuns("nonexistent")
+		require.Equal(t, 0, len(taskRuns))
+	})
+}
+
+func TestGetAllTaskRuns(t *testing.T) {
+	s := store.NewTaskStore()
+
+	s.SetTasks([]taskserver.Task{
+		{Name: "task1"},
+		{Name: "task2"},
+	})
+
+	s.StartTaskRun("task1", []byte("input1"), nil)
+	s.StartTaskRun("task2", []byte("input2"), nil)
+	s.StartTaskRun("task1", []byte("input3"), nil)
+
+	taskRuns := s.GetAllTaskRuns()
+	require.Equal(t, 3, len(taskRuns))
+}
+
 func TestGetTask(t *testing.T) {
 	s := store.NewTaskStore()
 
