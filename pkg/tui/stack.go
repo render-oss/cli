@@ -244,19 +244,33 @@ func (m *StackModel) StackSizeMsg() StackSizeMsg {
 }
 
 func (m *StackModel) View() string {
+	if len(m.stack) == 0 {
+		if m.loadingSpinner != nil {
+			loadingTmpl := "%s Loading..."
+			if m.loadingMsg != "" {
+				loadingTmpl = m.loadingMsg
+			}
+			return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, fmt.Sprintf(loadingTmpl, m.loadingSpinner.View()))
+		}
+		return ""
+	}
+
+	header := m.header()
+	footer := m.footer()
+
+	var content string
 	if m.loadingSpinner != nil {
 		loadingTmpl := "%s Loading..."
 		if m.loadingMsg != "" {
 			loadingTmpl = m.loadingMsg
 		}
-		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, fmt.Sprintf(loadingTmpl, m.loadingSpinner.View()))
+		contentHeight := m.height - lipgloss.Height(header) - lipgloss.Height(footer)
+		content = lipgloss.Place(m.width, contentHeight, lipgloss.Center, lipgloss.Center, fmt.Sprintf(loadingTmpl, m.loadingSpinner.View()))
+	} else {
+		content = m.stack[len(m.stack)-1].Model.View()
 	}
 
-	if len(m.stack) == 0 {
-		return ""
-	}
-
-	return lipgloss.JoinVertical(lipgloss.Left, m.header(), m.stack[len(m.stack)-1].Model.View(), m.footer())
+	return lipgloss.JoinVertical(lipgloss.Left, header, content, footer)
 }
 
 func (m *StackModel) header() string {
@@ -293,7 +307,7 @@ func (m *StackModel) footer() string {
 		commands = append(commands, prevCommand)
 	}
 
-	if m.stack[len(m.stack)-1].Cmd != "" {
+	if len(m.stack) > 0 && m.stack[len(m.stack)-1].Cmd != "" {
 		commands = append(commands, saveToClipboard)
 	}
 
