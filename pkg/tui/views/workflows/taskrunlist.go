@@ -4,6 +4,7 @@ import (
 	"context"
 
 	tea "github.com/charmbracelet/bubbletea"
+	btable "github.com/evertras/bubble-table/table"
 
 	wfclient "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/command"
@@ -12,38 +13,44 @@ import (
 )
 
 type TaskRunListView struct {
-	list *tui.List[*wfclient.TaskRun]
+	table *tui.Table[*wfclient.TaskRun]
 }
 
 func NewTaskRunListView(ctx context.Context, workflowLoader *WorkflowLoader, input TaskRunListInput, generateCommands func(*wfclient.TaskRun) tea.Cmd) *TaskRunListView {
-	onSelect := func(selectedItem tui.ListItem) tea.Cmd {
-		selectedTaskRun := selectedItem.(taskrun.ListItem).TaskRun()
-		return generateCommands(selectedTaskRun)
+	onSelect := func(rows []btable.Row) tea.Cmd {
+		if len(rows) == 0 {
+			return nil
+		}
+
+		tr, ok := rows[0].Data["taskRun"].(*wfclient.TaskRun)
+		if !ok {
+			return nil
+		}
+
+		return generateCommands(tr)
 	}
 
-	list := tui.NewList(
-		"",
-		command.PaginatedLoadCmd(ctx, workflowLoader.LoadTaskRunList, input),
-		func(tr *wfclient.TaskRun) tui.ListItem {
-			return taskrun.NewListItem(tr)
-		},
-		tui.WithOnSelect[*wfclient.TaskRun](onSelect),
-	)
-
 	return &TaskRunListView{
-		list: list,
+		table: tui.NewTable(
+			taskrun.Columns(),
+			command.LoadCmd(ctx, workflowLoader.LoadAllTaskRuns, input),
+			func(tr *wfclient.TaskRun) btable.Row {
+				return taskrun.TableRow(tr)
+			},
+			onSelect,
+		),
 	}
 }
 
 func (v *TaskRunListView) Init() tea.Cmd {
-	return v.list.Init()
+	return v.table.Init()
 }
 
 func (v *TaskRunListView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	_, cmd := v.list.Update(msg)
+	_, cmd := v.table.Update(msg)
 	return v, cmd
 }
 
 func (v *TaskRunListView) View() string {
-	return v.list.View()
+	return v.table.View()
 }

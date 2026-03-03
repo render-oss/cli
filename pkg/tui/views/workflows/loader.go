@@ -283,6 +283,41 @@ func (w *WorkflowLoader) LoadTaskRunList(ctx context.Context, input TaskRunListI
 	return w.taskRepo.ListTaskRuns(ctx, params)
 }
 
+// LoadAllTasks fetches tasks in a single request without cursor-based pagination.
+// The API default page size applies (typically 100 or less). The compact table
+// widget does not support progressive loading, so results are capped to one page.
+func (w *WorkflowLoader) LoadAllTasks(ctx context.Context, input TaskListInput) ([]*wfclient.Task, error) {
+	params := &client.ListTasksParams{}
+
+	if input.WorkflowVersionID != "" {
+		params.WorkflowVersionId = pointers.From([]string{input.WorkflowVersionID})
+	} else if input.WorkflowID != "" {
+		if input.LatestVersionOnly {
+			versionID, err := w.latestVersionID(ctx, input.WorkflowID)
+			if err != nil {
+				return nil, err
+			}
+			params.WorkflowVersionId = pointers.From([]string{versionID})
+		} else {
+			params.WorkflowId = pointers.From([]string{input.WorkflowID})
+		}
+	}
+
+	_, tasks, err := w.taskRepo.ListTasks(ctx, params)
+	return tasks, err
+}
+
+// LoadAllTaskRuns fetches task runs in a single request without cursor-based pagination.
+// Results are capped at 100 items. The compact table widget does not support
+// progressive loading, so older runs beyond this limit will not be shown.
+func (w *WorkflowLoader) LoadAllTaskRuns(ctx context.Context, input TaskRunListInput) ([]*wfclient.TaskRun, error) {
+	pageSize := 100
+	params := &client.ListTaskRunsParams{Limit: &pageSize, TaskId: pointers.From([]string{input.TaskID})}
+
+	_, taskRuns, err := w.taskRepo.ListTaskRuns(ctx, params)
+	return taskRuns, err
+}
+
 func (w *WorkflowLoader) LoadTaskRunDetails(ctx context.Context, input *TaskRunDetailsInput) (*workflows.TaskRunDetails, error) {
 	return w.taskRepo.GetTaskRunDetails(ctx, input.TaskRunID)
 }
