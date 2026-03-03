@@ -12,8 +12,8 @@ import (
 	workflowviews "github.com/render-oss/cli/pkg/tui/views/workflows"
 )
 
-func NewTaskRunListCmd(deps flows.WorkflowDeps) *cobra.Command {
-	var taskRunListCmd = &cobra.Command{
+func NewRunListCmd(deps flows.WorkflowDeps) *cobra.Command {
+	var runListCmd = &cobra.Command{
 		Use:   "list [taskID]",
 		Short: "List task runs for a task",
 		Long: `List all execution runs for a specific task.
@@ -28,9 +28,9 @@ You can specify the task by:
 In interactive mode, you will be prompted to select a task if not provided.
 
 Examples:
-  render workflows taskruns list tsk-1234
-  render workflows taskruns list my-workflow/my-task
-  render workflows taskruns list --local my-task
+  render workflows runs list tsk-1234
+  render workflows runs list my-workflow/my-task
+  render workflows runs list --local my-task
 `,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -55,10 +55,10 @@ Examples:
 				return nil
 			}
 
-			flows.NewWorkflow(deps, flows.NewLogFlow(deps, flows.WithLocal(local)), local).TaskRunListFlow(cmd.Context(), &input)
+			flows.NewWorkflow(deps, flows.NewLogFlow(deps, flows.WithLocal(local)), local).RunListFlow(cmd.Context(), &input)
 			return nil
 		},
 	}
 
-	return taskRunListCmd
+	return runListCmd
 }

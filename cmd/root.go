@@ -95,8 +95,8 @@ func isLocalCommand(cmd *cobra.Command) bool {
 func setupWorkflowCommands(deps *dependencies.Dependencies) {
 	deps.Commands.Workflow.TaskListCmd = NewTaskListCmd(deps)
 	deps.Commands.Workflow.TaskStartCmd = NewTaskStartCmd(deps)
-	deps.Commands.Workflow.TaskRunListCmd = NewTaskRunListCmd(deps)
-	deps.Commands.Workflow.TaskRunDetailsCmd = NewTaskRunDetailsCmd(deps)
+	deps.Commands.Workflow.RunListCmd = NewRunListCmd(deps)
+	deps.Commands.Workflow.RunDetailsCmd = NewRunDetailsCmd(deps)
 	deps.Commands.Workflow.VersionListCmd = NewVersionListCmd(deps)
 	deps.Commands.Workflow.VersionReleaseCmd = NewVersionReleaseCmd(deps)
 	deps.Commands.Workflow.WorkflowListCmd = NewWorkflowListCmd(deps)
@@ -104,8 +104,8 @@ func setupWorkflowCommands(deps *dependencies.Dependencies) {
 
 	taskCmd.AddCommand(deps.Commands.Workflow.TaskListCmd)
 	taskCmd.AddCommand(deps.Commands.Workflow.TaskStartCmd)
-	taskRunCmd.AddCommand(deps.Commands.Workflow.TaskRunListCmd)
-	taskRunCmd.AddCommand(deps.Commands.Workflow.TaskRunDetailsCmd)
+	runsCmd.AddCommand(deps.Commands.Workflow.RunListCmd)
+	runsCmd.AddCommand(deps.Commands.Workflow.RunDetailsCmd)
 	versionCmd.AddCommand(deps.Commands.Workflow.VersionListCmd)
 	versionCmd.AddCommand(deps.Commands.Workflow.VersionReleaseCmd)
 }

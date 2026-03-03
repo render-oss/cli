@@ -22,13 +22,13 @@ type WorkflowDeps interface {
 	Stack() *tui.StackModel
 	WorkflowLoader() *workflowviews.WorkflowLoader
 	ResourceService() *resource.Service
-	ListTaskRuns() *cobra.Command
+	ListRuns() *cobra.Command
 	StartTask() *cobra.Command
 	ListTask() *cobra.Command
 	ListVersions() *cobra.Command
 	ReleaseVersion() *cobra.Command
 	ListWorkflow() *cobra.Command
-	TaskRunDetailsCmd() *cobra.Command
+	RunDetailsCmd() *cobra.Command
 	LogFlowDeps
 }
 
@@ -65,18 +65,18 @@ func (f *Workflow) TaskListFlow(ctx context.Context, input *workflowviews.TaskLi
 	})
 }
 
-func (f *Workflow) TaskRunListFlow(ctx context.Context, input *workflowviews.TaskRunListInput) tea.Cmd {
+func (f *Workflow) RunListFlow(ctx context.Context, input *workflowviews.TaskRunListInput) tea.Cmd {
 	if input.TaskID == "" {
 		return f.unspecifiedTask(ctx, func(t *workflows.Task) tea.Cmd {
 			input.TaskID = t.Id
-			return f.taskRunList(ctx, input, func(tr *workflows.TaskRun) tea.Cmd {
-				return f.taskRunListPalette(ctx, tr)
+			return f.runList(ctx, input, func(tr *workflows.TaskRun) tea.Cmd {
+				return f.runListPalette(ctx, tr)
 			})
 		})
 	}
 
-	return f.taskRunList(ctx, input, func(tr *workflows.TaskRun) tea.Cmd {
-		return f.taskRunListPalette(ctx, tr)
+	return f.runList(ctx, input, func(tr *workflows.TaskRun) tea.Cmd {
+		return f.runListPalette(ctx, tr)
 	})
 }
 
@@ -292,7 +292,7 @@ func (f *Workflow) taskListPalette(ctx context.Context, t *workflows.Task) tea.C
 				Name:        "runs",
 				Description: "View all runs for this task",
 				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return f.TaskRunListFlow(ctx, &workflowviews.TaskRunListInput{TaskID: t.Id})
+					return f.RunListFlow(ctx, &workflowviews.TaskRunListInput{TaskID: t.Id})
 				},
 			},
 			{
@@ -306,8 +306,8 @@ func (f *Workflow) taskListPalette(ctx context.Context, t *workflows.Task) tea.C
 	)
 }
 
-func (f *Workflow) taskRunList(ctx context.Context, input *workflowviews.TaskRunListInput, action func(tr *workflows.TaskRun) tea.Cmd) tea.Cmd {
-	return command.AddToStack(f.deps.Stack(), f.deps.ListTaskRuns(), "Runs", input, workflowviews.NewTaskRunListView(
+func (f *Workflow) runList(ctx context.Context, input *workflowviews.TaskRunListInput, action func(tr *workflows.TaskRun) tea.Cmd) tea.Cmd {
+	return command.AddToStack(f.deps.Stack(), f.deps.ListRuns(), "Runs", input, workflowviews.NewTaskRunListView(
 		ctx,
 		f.deps.WorkflowLoader(),
 		*input,
@@ -315,8 +315,8 @@ func (f *Workflow) taskRunList(ctx context.Context, input *workflowviews.TaskRun
 	))
 }
 
-func (f *Workflow) taskRunListPalette(ctx context.Context, taskRun *workflows.TaskRun) tea.Cmd {
-	return command.AddToStack(f.deps.Stack(), f.deps.ListTaskRuns(), taskRun.Id, &views.PaletteCommand{},
+func (f *Workflow) runListPalette(ctx context.Context, taskRun *workflows.TaskRun) tea.Cmd {
+	return command.AddToStack(f.deps.Stack(), f.deps.ListRuns(), taskRun.Id, &views.PaletteCommand{},
 		views.NewPaletteView(ctx, []views.PaletteCommand{
 			{
 				Name:        "logs",
@@ -324,7 +324,7 @@ func (f *Workflow) taskRunListPalette(ctx context.Context, taskRun *workflows.Ta
 				Action: func(ctx context.Context, args []string) tea.Cmd {
 					workflowID, err := f.getWorkflowID(ctx, taskRun.TaskId)
 					if err != nil {
-						return command.AddErrToStack(ctx, f.deps.ListTaskRuns(), err)
+						return command.AddErrToStack(ctx, f.deps.ListRuns(), err)
 					}
 					var startTime *command.TimeOrRelative
 					if taskRun.StartedAt != nil {
@@ -351,30 +351,30 @@ func (f *Workflow) taskRunListPalette(ctx context.Context, taskRun *workflows.Ta
 				Name:        "results",
 				Description: "View task run results",
 				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return f.taskRunDetails(ctx, &workflowviews.TaskRunDetailsInput{TaskRunID: taskRun.Id})
+					return f.runDetails(ctx, &workflowviews.TaskRunDetailsInput{TaskRunID: taskRun.Id})
 				},
 			},
 		}),
 	)
 }
 
-func (f *Workflow) taskRunDetails(ctx context.Context, input *workflowviews.TaskRunDetailsInput) tea.Cmd {
-	return command.AddToStack(f.deps.Stack(), f.deps.TaskRunDetailsCmd(), "Details", input, tui.NewDetailsModel[*workflows.TaskRunDetails](
+func (f *Workflow) runDetails(ctx context.Context, input *workflowviews.TaskRunDetailsInput) tea.Cmd {
+	return command.AddToStack(f.deps.Stack(), f.deps.RunDetailsCmd(), "Details", input, tui.NewDetailsModel[*workflows.TaskRunDetails](
 		"Task Run Details",
 		command.LoadCmd(ctx, f.deps.WorkflowLoader().LoadTaskRunDetails, input),
 		taskrun.TaskRunDetailsFormat,
 	))
 }
 
-func (f *Workflow) TaskRunDetailsFlow(ctx context.Context, input *workflowviews.TaskRunDetailsInput) tea.Cmd {
+func (f *Workflow) RunDetailsFlow(ctx context.Context, input *workflowviews.TaskRunDetailsInput) tea.Cmd {
 	if input.TaskRunID == "" {
 		return f.unspecifiedTask(ctx, func(t *workflows.Task) tea.Cmd {
-			return f.taskRunList(ctx, &workflowviews.TaskRunListInput{TaskID: t.Id}, func(tr *workflows.TaskRun) tea.Cmd {
+			return f.runList(ctx, &workflowviews.TaskRunListInput{TaskID: t.Id}, func(tr *workflows.TaskRun) tea.Cmd {
 				input.TaskRunID = tr.Id
-				return f.taskRunDetails(ctx, input)
+				return f.runDetails(ctx, input)
 			})
 		})
 	}
 
-	return f.taskRunDetails(ctx, input)
+	return f.runDetails(ctx, input)
 }

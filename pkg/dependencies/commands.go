@@ -8,8 +8,8 @@ type WorkflowCommands struct {
 	VersionReleaseCmd *cobra.Command
 	TaskListCmd       *cobra.Command
 	TaskStartCmd      *cobra.Command
-	TaskRunListCmd    *cobra.Command
-	TaskRunDetailsCmd *cobra.Command
+	RunListCmd        *cobra.Command
+	RunDetailsCmd     *cobra.Command
 	WorkflowListCmd   *cobra.Command
 }
 
@@ -51,8 +51,8 @@ func (c *Commands) StartTask() *cobra.Command {
 	return c.Workflow.TaskStartCmd
 }
 
-func (c *Commands) ListTaskRuns() *cobra.Command {
-	return c.Workflow.TaskRunListCmd
+func (c *Commands) ListRuns() *cobra.Command {
+	return c.Workflow.RunListCmd
 }
 
 func (c *Commands) ListWorkflow() *cobra.Command {
@@ -67,6 +67,6 @@ func (c *Commands) WorkspaceSetCmd() *cobra.Command {
 	return c.Workspace.WorkspaceSetCmd
 }
 
-func (c *Commands) TaskRunDetailsCmd() *cobra.Command {
-	return c.Workflow.TaskRunDetailsCmd
+func (c *Commands) RunDetailsCmd() *cobra.Command {
+	return c.Workflow.RunDetailsCmd
 }

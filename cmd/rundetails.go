@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewTaskRunDetailsCmd(deps flows.WorkflowDeps) *cobra.Command {
+func NewRunDetailsCmd(deps flows.WorkflowDeps) *cobra.Command {
 	return &cobra.Command{
 		Use:   "show [taskRunID]",
 		Short: "Show detailed information about a task run",
@@ -28,8 +28,8 @@ The task run ID is returned when you execute a task with 'render workflows tasks
 In interactive mode, you will be prompted to select a task run if not provided.
 
 Examples:
-  render workflows taskruns show tr-1234
-  render workflows taskruns show --local tr-5678
+  render workflows runs show tr-1234
+  render workflows runs show --local tr-5678
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			deps, local, err := getLocalDeps(cmd, deps)
@@ -52,7 +52,7 @@ Examples:
 				return nil
 			}
 
-			flows.NewWorkflow(deps, flows.NewLogFlow(deps, flows.WithLocal(local)), local).TaskRunDetailsFlow(cmd.Context(), &input)
+			flows.NewWorkflow(deps, flows.NewLogFlow(deps, flows.WithLocal(local)), local).RunDetailsFlow(cmd.Context(), &input)
 
 			return nil
 		},
