@@ -3,7 +3,7 @@ package store
 import (
 	"fmt"
 
-	"github.com/google/uuid"
+	"github.com/rs/xid"
 )
 
 const (
@@ -12,7 +12,7 @@ const (
 )
 
 func NewObjectID(prefix string) string {
-	return fmt.Sprintf("%s-%s", prefix, uuid.New().String())
+	return fmt.Sprintf("%s-%s", prefix, xid.New().String())
 }
 
 func NewTaskID() string {
