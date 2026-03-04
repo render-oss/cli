@@ -19,6 +19,7 @@ DESTINATION_FILES = [
   "go.mod",
   "go.sum",
   "main.go",
+  "CHANGELOG.md",
   "copy.bara.sky",
   "prek.toml",
 ]
