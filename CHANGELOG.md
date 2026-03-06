@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.12.0] - 2026-03-05
+
+### Added
+
+- Support for paginated workflows task run listing
+- Handle `succeeded` workflows task run status
+
+### Changed
+
+- Renamed "task identifier" / "task ID" to "task slug" in error messages and help text for workflows
+
 ## [2.11.0] - 2026-03-03
 
 ### Added
