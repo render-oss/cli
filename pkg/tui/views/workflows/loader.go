@@ -66,7 +66,7 @@ func (t *WorkflowLoader) CreateTaskRun(ctx context.Context, input TaskRunInput) 
 	if err != nil {
 		return nil, err
 	}
-	return t.taskRepo.RunTask(ctx, input.TaskID, inputData)
+	return t.taskRepo.RunTask(ctx, input.TaskSlug, inputData)
 }
 
 func unmarshalInputData(input string) (*workflows.TaskData, error) {
@@ -276,8 +276,8 @@ func (w *WorkflowLoader) GetTask(ctx context.Context, id string) (*wfclient.Task
 func (w *WorkflowLoader) LoadTaskRunList(ctx context.Context, input TaskRunListInput, cur client.Cursor) (client.Cursor, []*wfclient.TaskRun, error) {
 	pageSize := 20
 	params := &client.ListTaskRunsParams{Limit: &pageSize}
-	if input.TaskID != "" {
-		params.TaskId = pointers.From([]string{input.TaskID})
+	if input.TaskSlug != "" {
+		params.TaskSlug = pointers.From([]string{input.TaskSlug})
 	}
 	if cur != "" {
 		params.Cursor = &cur
@@ -316,8 +316,8 @@ func (w *WorkflowLoader) LoadAllTasks(ctx context.Context, input TaskListInput) 
 func (w *WorkflowLoader) LoadAllTaskRuns(ctx context.Context, input TaskRunListInput) ([]*wfclient.TaskRun, error) {
 	pageSize := 100
 	params := &client.ListTaskRunsParams{Limit: &pageSize}
-	if input.TaskID != "" {
-		params.TaskId = pointers.From([]string{input.TaskID})
+	if input.TaskSlug != "" {
+		params.TaskSlug = pointers.From([]string{input.TaskSlug})
 	}
 
 	_, taskRuns, err := w.taskRepo.ListTaskRuns(ctx, params)

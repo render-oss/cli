@@ -16198,9 +16198,9 @@ func NewListTaskRunsRequest(server string, params *ListTaskRunsParams) (*http.Re
 
 		}
 
-		if params.TaskId != nil {
+		if params.TaskSlug != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "taskId", runtime.ParamLocationQuery, *params.TaskId); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "taskSlug", runtime.ParamLocationQuery, *params.TaskSlug); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -16527,9 +16527,9 @@ func NewListTasksRequest(server string, params *ListTasksParams) (*http.Request,
 
 		}
 
-		if params.TaskId != nil {
+		if params.TaskSlug != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "taskId", runtime.ParamLocationQuery, *params.TaskId); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "taskSlug", runtime.ParamLocationQuery, *params.TaskSlug); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err

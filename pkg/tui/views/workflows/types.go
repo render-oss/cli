@@ -15,8 +15,8 @@ type TaskListInput struct {
 }
 
 type TaskRunInput struct {
-	TaskID string `cli:"arg:0"`
-	Input  string `cli:"input"`
+	TaskSlug string `cli:"arg:0"`
+	Input    string `cli:"input"`
 }
 
 type TaskRunDetailsInput struct {
@@ -28,8 +28,8 @@ type VersionListInput struct {
 }
 
 type TaskRunListInput struct {
-	TaskID string `cli:"arg:0"`
-	Local  bool
+	TaskSlug string `cli:"arg:0"`
+	Local    bool
 }
 
 type VersionReleaseInput struct {
@@ -49,15 +49,15 @@ func (t TaskListInput) Validate(interactive bool) error {
 }
 
 func (t TaskRunListInput) Validate(interactive bool) error {
-	if !interactive && !t.Local && t.TaskID == "" {
-		return errors.New("task id must be specified when output is not interactive")
+	if !interactive && !t.Local && t.TaskSlug == "" {
+		return errors.New("task slug must be specified when output is not interactive")
 	}
 	return nil
 }
 
 func (t TaskRunInput) Validate(interactive bool) error {
-	if !interactive && t.TaskID == "" {
-		return errors.New("task id must be specified when output is not interactive")
+	if !interactive && t.TaskSlug == "" {
+		return errors.New("task slug must be specified when output is not interactive")
 	}
 
 	if !interactive && t.Input == "" {

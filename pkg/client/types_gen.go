@@ -3686,10 +3686,10 @@ type ListTaskRunsParams struct {
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// TaskId An array of either task identifiers which can be either a task ID or a workflow slug with task name and optional version. If a version is not provided, the latest version of the task will be used.
-	TaskId *externalRef14.TaskIdFilterParam `form:"taskId,omitempty" json:"taskId,omitempty"`
+	// TaskSlug An array of task slugs in the format workflow-slug/task-name. An optional version can be appended (workflow-slug/task-name:version). If no version is provided, the latest version is used.
+	TaskSlug *externalRef14.TaskSlugFilterParam `form:"taskSlug,omitempty" json:"taskSlug,omitempty"`
 
-	// RootTaskRunId An array of root task IDs to filter on
+	// RootTaskRunId An array of root task run IDs to filter on
 	RootTaskRunId *externalRef14.RootTaskRunIDFilterParam `form:"rootTaskRunId,omitempty" json:"rootTaskRunId,omitempty"`
 
 	// OwnerId The ID of the workspaces to return resources for
@@ -3725,8 +3725,8 @@ type ListTasksParams struct {
 	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
-	// TaskId An array of either task identifiers which can be either a task ID or a workflow slug with task name and optional version. If a version is not provided, the latest version of the task will be used.
-	TaskId *externalRef14.TaskIdFilterParam `form:"taskId,omitempty" json:"taskId,omitempty"`
+	// TaskSlug An array of task slugs in the format workflow-slug/task-name. An optional version can be appended (workflow-slug/task-name:version). If no version is provided, the latest version is used.
+	TaskSlug *externalRef14.TaskSlugFilterParam `form:"taskSlug,omitempty" json:"taskSlug,omitempty"`
 
 	// WorkflowVersionId An array of workflow version IDs
 	WorkflowVersionId *externalRef14.WorkflowVersionIDFilterParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`

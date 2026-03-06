@@ -10,11 +10,11 @@ import (
 )
 
 type TaskNotFoundError struct {
-	TaskIdentifier string
+	TaskSlug string
 }
 
 func (e *TaskNotFoundError) Error() string {
-	return fmt.Sprintf("task not found: %s", e.TaskIdentifier)
+	return fmt.Sprintf("task not found: %s", e.TaskSlug)
 }
 
 type StatusReporter interface {
@@ -22,7 +22,7 @@ type StatusReporter interface {
 	TaskRunning(taskRun *store.TaskRun)
 	TaskCompleted(taskRun *store.TaskRun)
 	TaskFailed(taskRun *store.TaskRun)
-	TaskNotFound(taskIdentifier string)
+	TaskNotFound(taskSlug string)
 }
 
 type Coordinator struct {
@@ -107,16 +107,16 @@ func (c *Coordinator) StartSubtaskFunc(parentTaskRunID string) taskserver.StartS
 	}
 }
 
-func (c *Coordinator) StartTask(ctx context.Context, taskIdentifier string, input []byte, parentTaskRunID *string) (*store.TaskRun, error) {
+func (c *Coordinator) StartTask(ctx context.Context, taskSlug string, input []byte, parentTaskRunID *string) (*store.TaskRun, error) {
 	// Ensure tasks are up to date
 	if _, err := c.PopulateTasks(ctx); err != nil {
 		return nil, err
 	}
 
-	task := c.store.GetTask(taskIdentifier)
+	task := c.store.GetTask(taskSlug)
 	if task == nil {
-		c.statusReporter.TaskNotFound(taskIdentifier)
-		return nil, &TaskNotFoundError{TaskIdentifier: taskIdentifier}
+		c.statusReporter.TaskNotFound(taskSlug)
+		return nil, &TaskNotFoundError{TaskSlug: taskSlug}
 	}
 
 	taskName := task.Name

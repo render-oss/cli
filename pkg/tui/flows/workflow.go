@@ -43,9 +43,9 @@ func NewWorkflow(deps WorkflowDeps, logsFlow *LogFlow, local bool) *Workflow {
 }
 
 func (f *Workflow) TaskRunFlow(ctx context.Context, input *workflowviews.TaskRunInput) tea.Cmd {
-	if input.TaskID == "" {
+	if input.TaskSlug == "" {
 		return f.unspecifiedTask(ctx, func(t *workflows.Task) tea.Cmd {
-			input.TaskID = t.Id
+			input.TaskSlug = t.Id
 			return f.taskRun(ctx, input)
 		})
 	}
@@ -66,9 +66,9 @@ func (f *Workflow) TaskListFlow(ctx context.Context, input *workflowviews.TaskLi
 }
 
 func (f *Workflow) RunListFlow(ctx context.Context, input *workflowviews.TaskRunListInput) tea.Cmd {
-	if input.TaskID == "" {
+	if input.TaskSlug == "" {
 		return f.unspecifiedTask(ctx, func(t *workflows.Task) tea.Cmd {
-			input.TaskID = t.Id
+			input.TaskSlug = t.Id
 			return f.runList(ctx, input, func(tr *workflows.TaskRun) tea.Cmd {
 				return f.runListPalette(ctx, tr)
 			})
@@ -292,14 +292,14 @@ func (f *Workflow) taskListPalette(ctx context.Context, t *workflows.Task) tea.C
 				Name:        "runs",
 				Description: "View all runs for this task",
 				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return f.RunListFlow(ctx, &workflowviews.TaskRunListInput{TaskID: t.Id})
+					return f.RunListFlow(ctx, &workflowviews.TaskRunListInput{TaskSlug: t.Id})
 				},
 			},
 			{
 				Name:        "run",
 				Description: "Start a new task run with inputs",
 				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return f.TaskRunFlow(ctx, &workflowviews.TaskRunInput{TaskID: t.Id})
+					return f.TaskRunFlow(ctx, &workflowviews.TaskRunInput{TaskSlug: t.Id})
 				},
 			},
 		}),
@@ -369,7 +369,7 @@ func (f *Workflow) runDetails(ctx context.Context, input *workflowviews.TaskRunD
 func (f *Workflow) RunDetailsFlow(ctx context.Context, input *workflowviews.TaskRunDetailsInput) tea.Cmd {
 	if input.TaskRunID == "" {
 		return f.unspecifiedTask(ctx, func(t *workflows.Task) tea.Cmd {
-			return f.runList(ctx, &workflowviews.TaskRunListInput{TaskID: t.Id}, func(tr *workflows.TaskRun) tea.Cmd {
+			return f.runList(ctx, &workflowviews.TaskRunListInput{TaskSlug: t.Id}, func(tr *workflows.TaskRun) tea.Cmd {
 				input.TaskRunID = tr.Id
 				return f.runDetails(ctx, input)
 			})

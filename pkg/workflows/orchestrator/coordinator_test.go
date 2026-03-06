@@ -39,7 +39,7 @@ func (noopStatusReporter) TaskEnqueued(taskRun *store.TaskRun)  {}
 func (noopStatusReporter) TaskRunning(taskRun *store.TaskRun)   {}
 func (noopStatusReporter) TaskCompleted(taskRun *store.TaskRun) {}
 func (noopStatusReporter) TaskFailed(taskRun *store.TaskRun)    {}
-func (noopStatusReporter) TaskNotFound(taskIdentifier string)   {}
+func (noopStatusReporter) TaskNotFound(taskSlug string)   {}
 
 func (f *fakeServerFactory) NewHandler(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
 	return f.newHandler(socket, input, getSubtaskResultFunc, startSubtaskFunc)
@@ -50,8 +50,8 @@ type recordingStatusReporter struct {
 	notFoundIdentifier string
 }
 
-func (r *recordingStatusReporter) TaskNotFound(taskIdentifier string) {
-	r.notFoundIdentifier = taskIdentifier
+func (r *recordingStatusReporter) TaskNotFound(taskSlug string) {
+	r.notFoundIdentifier = taskSlug
 }
 
 func TestStartTaskNotFound(t *testing.T) {
@@ -105,7 +105,7 @@ func TestStartTaskNotFound(t *testing.T) {
 
 	var taskNotFoundErr *orchestrator.TaskNotFoundError
 	require.ErrorAs(t, err, &taskNotFoundErr)
-	require.Equal(t, "nonexistent-task", taskNotFoundErr.TaskIdentifier)
+	require.Equal(t, "nonexistent-task", taskNotFoundErr.TaskSlug)
 	require.Equal(t, "nonexistent-task", reporter.notFoundIdentifier)
 }
 

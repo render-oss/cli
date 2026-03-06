@@ -23,13 +23,11 @@ var taskCmd = &cobra.Command{
 
 func NewTaskStartCmd(deps flows.WorkflowDeps) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "start [taskID] --input=<json>",
+		Use:   "start [task-slug] --input=<json>",
 		Short: "Start a task run with the provided input",
 		Long: `Start a task with the provided input.
 
-You can specify the task by:
-  • Task ID (e.g., tsk-1234)
-  • Workflow slug and task name (e.g., my-workflow/my-task)
+You can specify the task by its workflow slug and task name (e.g., my-workflow/my-task)
 
 Input Format:
 The input should be a JSON array where each element is an argument to the task.
@@ -73,7 +71,7 @@ Examples:
 				return fmt.Errorf("failed to parse input: %w", err)
 			}
 
-			if input.TaskID != "" && cmd.Flags().Changed("input") {
+			if input.TaskSlug != "" && cmd.Flags().Changed("input") {
 				command.DefaultFormatNonInteractive(cmd)
 			}
 
@@ -81,7 +79,7 @@ Examples:
 				taskLoader := deps.WorkflowLoader()
 				return taskLoader.CreateTaskRun(cmd.Context(), input)
 			}, func(j *workflows.TaskRun) string {
-				return text.FormatStringF("Created task run %s for %s", j.Id, input.TaskID)
+				return text.FormatStringF("Created task run %s for %s", j.Id, input.TaskSlug)
 			}); err != nil {
 				return err
 			} else if nonInteractive {

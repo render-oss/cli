@@ -16,9 +16,9 @@ type Repo struct {
 	client *client.ClientWithResponses
 }
 
-func (r *Repo) RunTask(ctx context.Context, taskID string, input *workflows.TaskData) (*workflows.TaskRun, error) {
+func (r *Repo) RunTask(ctx context.Context, taskSlug string, input *workflows.TaskData) (*workflows.TaskRun, error) {
 	resp, err := r.client.CreateTaskWithResponse(ctx, client.CreateTaskJSONRequestBody{
-		Task:  taskID,
+		Task:  taskSlug,
 		Input: *input,
 	})
 

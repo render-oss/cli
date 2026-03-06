@@ -21,9 +21,7 @@ func NewRunListCmd(deps flows.WorkflowDeps) *cobra.Command {
 A task run represents a single execution of a task with specific input parameters.
 This command shows the history of all runs for a given task.
 
-You can specify the task by:
-  • Task ID (e.g., tsk-1234)
-  • Workflow slug and task name (e.g., my-workflow/my-task)
+You can specify the task by its workflow slug and task name (e.g., my-workflow/my-task)
 
 In interactive mode, you will be prompted to select a task if not provided.
 

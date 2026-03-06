@@ -39,63 +39,63 @@ func TestTaskListInputValidate(t *testing.T) {
 }
 
 func TestTaskRunInputValidate(t *testing.T) {
-	t.Run("non-interactive missing task ID", func(t *testing.T) {
+	t.Run("non-interactive missing task slug", func(t *testing.T) {
 		input := TaskRunInput{Input: `["a"]`}
 		err := input.Validate(false)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "task id must be specified")
+		assert.Contains(t, err.Error(), "task slug must be specified")
 	})
 
 	t.Run("non-interactive missing input", func(t *testing.T) {
-		input := TaskRunInput{TaskID: "tsk-1"}
+		input := TaskRunInput{TaskSlug: "tsk-1"}
 		err := input.Validate(false)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "input must be specified")
 	})
 
 	t.Run("invalid JSON input errors even in interactive mode", func(t *testing.T) {
-		input := TaskRunInput{TaskID: "tsk-1", Input: "not-json"}
+		input := TaskRunInput{TaskSlug: "tsk-1", Input: "not-json"}
 		err := input.Validate(true)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "input must be valid JSON")
 	})
 
 	t.Run("valid array JSON", func(t *testing.T) {
-		input := TaskRunInput{TaskID: "tsk-1", Input: `["a","b"]`}
+		input := TaskRunInput{TaskSlug: "tsk-1", Input: `["a","b"]`}
 		assert.NoError(t, input.Validate(false))
 	})
 
 	t.Run("valid object JSON", func(t *testing.T) {
-		input := TaskRunInput{TaskID: "tsk-1", Input: `{"k":"v"}`}
+		input := TaskRunInput{TaskSlug: "tsk-1", Input: `{"k":"v"}`}
 		assert.NoError(t, input.Validate(false))
 	})
 }
 
 func TestTaskRunListInputValidate(t *testing.T) {
-	t.Run("interactive allows empty task ID", func(t *testing.T) {
+	t.Run("interactive allows empty task slug", func(t *testing.T) {
 		input := TaskRunListInput{}
 		assert.NoError(t, input.Validate(true))
 	})
 
-	t.Run("non-interactive requires task ID", func(t *testing.T) {
+	t.Run("non-interactive requires task slug", func(t *testing.T) {
 		input := TaskRunListInput{}
 		err := input.Validate(false)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "task id must be specified")
+		assert.Contains(t, err.Error(), "task slug must be specified")
 	})
 
-	t.Run("non-interactive with task ID succeeds", func(t *testing.T) {
-		input := TaskRunListInput{TaskID: "tsk-1"}
+	t.Run("non-interactive with task slug succeeds", func(t *testing.T) {
+		input := TaskRunListInput{TaskSlug: "tsk-1"}
 		assert.NoError(t, input.Validate(false))
 	})
 
-	t.Run("non-interactive local allows empty task ID", func(t *testing.T) {
+	t.Run("non-interactive local allows empty task slug", func(t *testing.T) {
 		input := TaskRunListInput{Local: true}
 		assert.NoError(t, input.Validate(false))
 	})
 
-	t.Run("non-interactive local with task ID succeeds", func(t *testing.T) {
-		input := TaskRunListInput{TaskID: "tsk-1", Local: true}
+	t.Run("non-interactive local with task slug succeeds", func(t *testing.T) {
+		input := TaskRunListInput{TaskSlug: "tsk-1", Local: true}
 		assert.NoError(t, input.Validate(false))
 	})
 }
