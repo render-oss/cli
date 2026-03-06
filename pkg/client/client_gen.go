@@ -23320,7 +23320,7 @@ func (r SuspendServiceResponse) StatusCode() int {
 type ListTaskRunsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]externalRef14.TaskRun
+	JSON200      *[]TaskRunWithCursor
 	JSON401      *N401Unauthorized
 	JSON403      *N403Forbidden
 	JSON404      *N404NotFound
@@ -38854,7 +38854,7 @@ func ParseListTaskRunsResponse(rsp *http.Response) (*ListTaskRunsResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []externalRef14.TaskRun
+		var dest []TaskRunWithCursor
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

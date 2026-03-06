@@ -335,7 +335,7 @@ func (f *Workflow) runListPalette(ctx context.Context, taskRun *workflows.TaskRu
 						endTime = &command.TimeOrRelative{T: taskRun.CompletedAt}
 					}
 					var tail bool
-					if taskRun.Status != workflows.Completed && taskRun.Status != workflows.Failed {
+					if taskRun.Status != workflows.Completed && taskRun.Status != workflows.Succeeded && taskRun.Status != workflows.Failed {
 						tail = true
 					}
 					return f.logsFlow.LogsFlow(ctx, views.LogInput{

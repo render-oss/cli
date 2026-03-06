@@ -84,6 +84,7 @@ const (
 	DocumentDownloadEvent              AuditLogEvent = "DocumentDownloadEvent"
 	DownloadDatabaseBackupEvent        AuditLogEvent = "DownloadDatabaseBackupEvent"
 	EnableRedisInternalAuthEvent       AuditLogEvent = "EnableRedisInternalAuthEvent"
+	EndShellEvent                      AuditLogEvent = "EndShellEvent"
 	InviteToOrgEvent                   AuditLogEvent = "InviteToOrgEvent"
 	InviteToTeamEvent                  AuditLogEvent = "InviteToTeamEvent"
 	JoinTeamEvent                      AuditLogEvent = "JoinTeamEvent"
@@ -2075,6 +2076,12 @@ type SuspenderType string
 type SyncWithCursor struct {
 	Cursor Cursor            `json:"cursor"`
 	Sync   externalRef1.Sync `json:"sync"`
+}
+
+// TaskRunWithCursor defines model for taskRunWithCursor.
+type TaskRunWithCursor struct {
+	Cursor  Cursor                `json:"cursor"`
+	TaskRun externalRef14.TaskRun `json:"taskRun"`
 }
 
 // TaskWithCursor defines model for taskWithCursor.

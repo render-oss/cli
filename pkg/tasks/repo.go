@@ -86,14 +86,14 @@ func (r *Repo) ListTaskRuns(ctx context.Context, params *client.ListTaskRunsPara
 	respOK := *resp.JSON200
 	taskRuns := make([]*workflows.TaskRun, len(respOK))
 	for i, tr := range respOK {
-		taskRuns[i] = &tr
+		taskRuns[i] = &tr.TaskRun
 	}
 
 	if len(taskRuns) < *params.Limit {
 		return "", taskRuns, nil
 	}
 
-	return respOK[len(respOK)-1].Id, taskRuns, nil
+	return respOK[len(respOK)-1].Cursor, taskRuns, nil
 }
 
 func (r *Repo) GetTaskRunDetails(ctx context.Context, taskRunID string) (*workflows.TaskRunDetails, error) {

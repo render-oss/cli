@@ -39,6 +39,7 @@ const (
 	Paused    TaskRunStatus = "paused"
 	Pending   TaskRunStatus = "pending"
 	Running   TaskRunStatus = "running"
+	Succeeded TaskRunStatus = "succeeded"
 )
 
 // Defines values for WorkflowVersionStatus.
