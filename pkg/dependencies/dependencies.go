@@ -13,6 +13,7 @@ import (
 	"github.com/render-oss/cli/pkg/owner"
 	"github.com/render-oss/cli/pkg/postgres"
 	"github.com/render-oss/cli/pkg/project"
+	"github.com/render-oss/cli/pkg/registry"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/tasks"
@@ -45,6 +46,8 @@ type cachedDependencies struct {
 	projectRepo         cache[*project.Repo]
 	environmentRepo     cache[*environment.Repo]
 	serviceRepo         cache[*service.Repo]
+	registryRepo        cache[*registry.Repo]
+	registryService     cache[*registry.Service]
 	postgresRepo        cache[*postgres.Repo]
 	keyValueRepo        cache[*keyvalue.Repo]
 	userRepo            cache[*user.Repo]
@@ -125,6 +128,12 @@ func (d *Dependencies) ServiceRepo() *service.Repo {
 	})
 }
 
+func (d *Dependencies) RegistryRepo() *registry.Repo {
+	return d.cache.registryRepo.Get(func() *registry.Repo {
+		return registry.NewRepo(d.client)
+	})
+}
+
 func (d *Dependencies) PostgresRepo() *postgres.Repo {
 	return d.cache.postgresRepo.Get(func() *postgres.Repo {
 		return postgres.NewRepo(d.client)
@@ -170,6 +179,12 @@ func (d *Dependencies) PostgresService() *postgres.Service {
 func (d *Dependencies) KeyValueService() *keyvalue.Service {
 	return d.cache.keyValueService.Get(func() *keyvalue.Service {
 		return keyvalue.NewService(d.KeyValueRepo(), d.EnvironmentRepo(), d.ProjectRepo())
+	})
+}
+
+func (d *Dependencies) RegistryService() *registry.Service {
+	return d.cache.registryService.Get(func() *registry.Service {
+		return registry.NewService(d.RegistryRepo())
 	})
 }
 

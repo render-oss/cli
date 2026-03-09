@@ -83,6 +83,16 @@ func getStringSliceValue(flags *pflag.FlagSet, tag string) ([]string, error) {
 			val := cobraEnum.SelectedValues()
 			return val, nil
 		}
+
+		// StringArray flags support multiple invocations: --flag a --flag b
+		// Unlike StringSlice which expects comma-separated: --flag=a,b
+		if flag.Value.Type() == "stringArray" {
+			val, err := flags.GetStringArray(tag)
+			if err != nil {
+				return nil, err
+			}
+			return val, nil
+		}
 	}
 
 	val, err := flags.GetStringSlice(tag)

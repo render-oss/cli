@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"strings"
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/config"
@@ -138,4 +141,60 @@ func (s *Repo) RestartService(ctx context.Context, id string) error {
 	}
 
 	return nil
+}
+
+func (s *Repo) ResolveServiceIDFromNameOrID(ctx context.Context, idOrName string) (string, error) {
+	query := strings.TrimSpace(idOrName)
+	if query == "" {
+		return "", fmt.Errorf("service ID or name is required")
+	}
+
+	if looksLikeServiceID(query) {
+		resp, err := s.client.RetrieveServiceWithResponse(ctx, query)
+		if err != nil {
+			return "", err
+		}
+
+		// On 404, fall through to name search. This handles edge cases where
+		// a service name looks like an ID but isn't one.
+		if resp.StatusCode() != http.StatusNotFound {
+			if err := client.ErrorFromResponse(resp); err != nil {
+				return "", err
+			}
+			if resp.JSON200 == nil {
+				return "", fmt.Errorf("service lookup failed for %q: empty response", query)
+			}
+			if err := validate.WorkspaceMatches(resp.JSON200.OwnerId); err != nil {
+				return "", err
+			}
+			return resp.JSON200.Id, nil
+		}
+	}
+
+	services, err := s.ListServices(ctx, &client.ListServicesParams{
+		Name: &client.NameParam{query},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	exactMatches := make([]*client.Service, 0, len(services))
+	for _, svc := range services {
+		if svc != nil && svc.Name == query {
+			exactMatches = append(exactMatches, svc)
+		}
+	}
+
+	switch len(exactMatches) {
+	case 0:
+		return "", fmt.Errorf("no service found with ID or name %q", query)
+	case 1:
+		return exactMatches[0].Id, nil
+	default:
+		return "", fmt.Errorf("multiple services found with name %q; please use the service ID", query)
+	}
+}
+
+func looksLikeServiceID(v string) bool {
+	return validate.IsObjectID("srv", v) || validate.IsObjectID("crn", v)
 }

@@ -26,8 +26,9 @@ import (
 )
 
 var servicesCmd = &cobra.Command{
-	Use:   "services",
-	Short: "Manage services and datastores",
+	Use:     "services",
+	Aliases: []string{"service"},
+	Short:   "Manage services and datastores",
 	Long: `Manage services and datastores for the active workspace.
 In interactive mode you can view logs, restart, deploy, SSH, and open PSQL sessions.`,
 	GroupID: GroupCore.ID,

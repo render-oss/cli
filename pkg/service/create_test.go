@@ -1,0 +1,273 @@
+package service
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/pointers"
+	servicetypes "github.com/render-oss/cli/pkg/types/service"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestBuildCreateRequest_FromCLIInput(t *testing.T) {
+	input := servicetypes.Service{
+		Name:         "my-service",
+		Type:         pointers.From("web_service"),
+		Repo:         pointers.From("https://github.com/org/repo"),
+		Runtime:      pointers.From("node"),
+		Region:       pointers.From("oregon"),
+		BuildCommand: pointers.From("npm ci"),
+		StartCommand: pointers.From("npm run start"),
+	}
+
+	parsed, err := BuildCreateRequest(input, "tea-abc123")
+	require.NoError(t, err)
+	require.NotNil(t, parsed.ServiceDetails)
+	require.Nil(t, parsed.EnvVars)
+
+	details, err := parsed.ServiceDetails.AsWebServiceDetailsPOST()
+	require.NoError(t, err)
+	require.Equal(t, client.ServiceRuntimeNode, details.Runtime)
+	require.Equal(t, client.Region("oregon"), *details.Region)
+}
+
+func TestBuildCreateRequest_FromCLIInput_DefaultRuntimeAndEnvVars(t *testing.T) {
+	input := servicetypes.Service{
+		Name:    "my-image-service",
+		Type:    pointers.From("web_service"),
+		Image:   pointers.From("docker.io/org/app:latest"),
+		EnvVars: []string{"FOO=bar"},
+	}
+
+	parsed, err := BuildCreateRequest(input, "tea-abc123")
+	require.NoError(t, err)
+	details, err := parsed.ServiceDetails.AsWebServiceDetailsPOST()
+	require.NoError(t, err)
+	require.Equal(t, client.ServiceRuntimeImage, details.Runtime)
+	require.Len(t, *parsed.EnvVars, 1)
+}
+
+func TestBuildCreateRequest_FromCLIInput_WithNormalizedInputOmitsEmptyOptionals(t *testing.T) {
+	empty := ""
+	input := servicetypes.Service{
+		Name:               "my-service",
+		Type:               pointers.From("web_service"),
+		Repo:               pointers.From("https://github.com/org/repo"),
+		Branch:             &empty,
+		Image:              &empty,
+		Plan:               &empty,
+		Runtime:            pointers.From("node"),
+		RootDirectory:      &empty,
+		BuildCommand:       &empty,
+		StartCommand:       &empty,
+		HealthCheckPath:    &empty,
+		PublishDirectory:   &empty,
+		CronCommand:        &empty,
+		CronSchedule:       &empty,
+		EnvironmentID:      &empty,
+		RegistryCredential: &empty,
+		PreDeployCommand:   &empty,
+	}
+
+	normalized := servicetypes.NormalizeServiceCreateCLIInput(input)
+	parsed, err := BuildCreateRequest(normalized, "tea-abc123")
+	require.NoError(t, err)
+	require.Equal(t, "https://github.com/org/repo", *parsed.Repo)
+	require.Nil(t, parsed.Branch)
+	require.Nil(t, parsed.Image)
+	require.Nil(t, parsed.RootDir)
+	require.Nil(t, parsed.EnvironmentId)
+}
+
+func TestBuildCreateRequest_FromCLIInput_ParsesSecretFiles(t *testing.T) {
+	secretPath := filepath.Join(t.TempDir(), "config.txt")
+	require.NoError(t, os.WriteFile(secretPath, []byte("top-secret"), 0o600))
+
+	input := servicetypes.Service{
+		Name:        "my-service",
+		Type:        pointers.From("web_service"),
+		Image:       pointers.From("docker.io/org/app:latest"),
+		SecretFiles: []string{"app-secret:" + secretPath},
+	}
+
+	parsed, err := BuildCreateRequest(input, "tea-abc123")
+	require.NoError(t, err)
+	require.Len(t, *parsed.SecretFiles, 1)
+	require.Equal(t, "app-secret", (*parsed.SecretFiles)[0].Name)
+	require.Equal(t, "top-secret", (*parsed.SecretFiles)[0].Content)
+}
+
+func TestBuildCreateRequest_FromCLIInput_SecretFileReadError(t *testing.T) {
+	input := servicetypes.Service{
+		Name:        "my-service",
+		Type:        pointers.From("web_service"),
+		Image:       pointers.From("docker.io/org/app:latest"),
+		SecretFiles: []string{"app-secret:/definitely/missing"},
+	}
+
+	_, err := BuildCreateRequest(input, "tea-abc123")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to read --secret-file")
+}
+
+func TestBuildCreateRequest(t *testing.T) {
+	t.Run("non-static service includes serviceDetails", func(t *testing.T) {
+		input := servicetypes.Service{
+			Name:    "my-service",
+			Type:    pointers.From("web_service"),
+			Image:   pointers.From("nginx:latest"),
+			Runtime: pointers.From("image"),
+		}
+
+		body, err := BuildCreateRequest(input, "tea-abc123")
+		require.NoError(t, err)
+		require.NotNil(t, body.ServiceDetails)
+
+		details, err := body.ServiceDetails.AsWebServiceDetailsPOST()
+		require.NoError(t, err)
+		assert.Equal(t, client.ServiceRuntimeImage, details.Runtime)
+	})
+
+	t.Run("static sites do not require runtime", func(t *testing.T) {
+		input := servicetypes.Service{
+			Name:             "my-static-site",
+			Type:             pointers.From("static_site"),
+			Repo:             pointers.From("https://github.com/org/site"),
+			BuildCommand:     pointers.From("npm run build"),
+			PublishDirectory: pointers.From("dist"),
+		}
+
+		body, err := BuildCreateRequest(input, "tea-abc123")
+		require.NoError(t, err)
+		require.NotNil(t, body.ServiceDetails)
+
+		details, err := body.ServiceDetails.AsStaticSiteDetailsPOST()
+		require.NoError(t, err)
+		require.Equal(t, "npm run build", pointers.ValueOrDefault(details.BuildCommand, ""))
+		require.Equal(t, "dist", pointers.ValueOrDefault(details.PublishPath, ""))
+	})
+
+	t.Run("explicit runtime is applied to serviceDetails", func(t *testing.T) {
+		input := servicetypes.Service{
+			Name:    "my-service",
+			Type:    pointers.From("web_service"),
+			Image:   pointers.From("nginx:latest"),
+			Runtime: pointers.From("node"),
+		}
+
+		body, err := BuildCreateRequest(input, "tea-abc123")
+		require.NoError(t, err)
+		require.NotNil(t, body.ServiceDetails)
+
+		details, err := body.ServiceDetails.AsWebServiceDetailsPOST()
+		require.NoError(t, err)
+		assert.Equal(t, client.ServiceRuntimeNode, details.Runtime)
+	})
+
+	t.Run("web service maps build and start commands to native env specific details", func(t *testing.T) {
+		input := servicetypes.Service{
+			Name:         "my-service",
+			Type:         pointers.From("web_service"),
+			Repo:         pointers.From("https://github.com/org/repo"),
+			Runtime:      pointers.From("node"),
+			BuildCommand: pointers.From("npm ci"),
+			StartCommand: pointers.From("npm run start"),
+		}
+
+		body, err := BuildCreateRequest(input, "tea-abc123")
+		require.NoError(t, err)
+		require.NotNil(t, body.ServiceDetails)
+
+		details, err := body.ServiceDetails.AsWebServiceDetailsPOST()
+		require.NoError(t, err)
+		require.NotNil(t, details.EnvSpecificDetails)
+
+		native, err := details.EnvSpecificDetails.AsNativeEnvironmentDetailsPOST()
+		require.NoError(t, err)
+		assert.Equal(t, "npm ci", native.BuildCommand)
+		assert.Equal(t, "npm run start", native.StartCommand)
+	})
+
+	t.Run("web service with docker runtime maps registry credential to docker details", func(t *testing.T) {
+		input := servicetypes.Service{
+			Name:               "my-service",
+			Type:               pointers.From("web_service"),
+			Repo:               pointers.From("https://github.com/org/repo"),
+			Runtime:            pointers.From("docker"),
+			RegistryCredential: pointers.From("rgc-123"),
+		}
+
+		body, err := BuildCreateRequest(input, "tea-abc123")
+		require.NoError(t, err)
+		require.NotNil(t, body.ServiceDetails)
+
+		details, err := body.ServiceDetails.AsWebServiceDetailsPOST()
+		require.NoError(t, err)
+		require.NotNil(t, details.EnvSpecificDetails)
+
+		dockerDetails, err := details.EnvSpecificDetails.AsDockerDetailsPOST()
+		require.NoError(t, err)
+		require.Equal(t, "rgc-123", pointers.ValueOrDefault(dockerDetails.RegistryCredentialId, ""))
+	})
+
+	t.Run("cron job maps cron-command to native env specific start command", func(t *testing.T) {
+		input := servicetypes.Service{
+			Name:         "my-cron",
+			Type:         pointers.From("cron_job"),
+			Repo:         pointers.From("https://github.com/org/repo"),
+			Runtime:      pointers.From("ruby"),
+			CronCommand:  pointers.From("echo hello"),
+			CronSchedule: pointers.From("*/5 * * * *"),
+			BuildCommand: pointers.From("npm ci"),
+		}
+
+		body, err := BuildCreateRequest(input, "tea-abc123")
+		require.NoError(t, err)
+		require.NotNil(t, body.ServiceDetails)
+
+		details, err := body.ServiceDetails.AsCronJobDetailsPOST()
+		require.NoError(t, err)
+		require.NotNil(t, details.EnvSpecificDetails)
+
+		native, err := details.EnvSpecificDetails.AsNativeEnvironmentDetails()
+		require.NoError(t, err)
+		assert.Equal(t, "npm ci", native.BuildCommand)
+		assert.Equal(t, "echo hello", native.StartCommand)
+	})
+
+	t.Run("empty optional fields are omitted", func(t *testing.T) {
+		cliInput := servicetypes.Service{
+			Name:          "my-service",
+			Type:          pointers.From("web_service"),
+			Repo:          pointers.From("https://github.com/org/repo"),
+			Runtime:       pointers.From("node"),
+			Branch:        pointers.From(""),
+			Image:         pointers.From(""),
+			EnvironmentID: pointers.From(""),
+			RootDirectory: pointers.From(""),
+		}
+		normalized := servicetypes.NormalizeServiceCreateCLIInput(cliInput)
+		body, err := BuildCreateRequest(normalized, "tea-abc123")
+		require.NoError(t, err)
+		require.Nil(t, body.Branch)
+		require.Nil(t, body.Image)
+		require.Nil(t, body.EnvironmentId)
+		require.Nil(t, body.RootDir)
+	})
+
+	t.Run("returns error for unsupported service type", func(t *testing.T) {
+		input := servicetypes.Service{
+			Name:    "my-service",
+			Type:    pointers.From("unsupported"),
+			Repo:    pointers.From("https://github.com/org/repo"),
+			Runtime: pointers.From("node"),
+		}
+
+		_, err := BuildCreateRequest(input, "tea-abc123")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "must be one of")
+	})
+}
