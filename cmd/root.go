@@ -1,6 +1,3 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -23,21 +20,12 @@ import (
 	"github.com/render-oss/cli/pkg/tui/views"
 )
 
-var welcomeMsg = lipgloss.NewStyle().Bold(true).Foreground(renderstyle.ColorFocus).
-	Render("Render CLI v" + cfg.Version)
+var longHelp = `Welcome! Use the Render CLI to manage your services, datastores, and environments directly from the command line. Trigger deploys, view logs, start psql/SSH sessions, and more.
 
-var longHelp = fmt.Sprintf(`%s
+The CLI's default interactive mode provides intuitive, menu-based navigation.
 
-Welcome! Use the Render CLI to manage your services, datastores, and
-environments directly from the command line. Trigger deploys, view logs,
-start psql/SSH sessions, and more.
-
-The CLI's default %s mode provides intuitive, menu-based navigation.
-
-To use in %s mode (such as in a script), you can set each command's --output
-option to either json or yaml for structured responses. We'll also detect if stdout
-is not a TTY and automatically switch to json output.
-`, welcomeMsg, renderstyle.Bold("interactive"), renderstyle.Bold("non-interactive"))
+To use in non-interactive mode (such as in a script), set each command's --output option to either json or yaml for structured responses. The CLI also detects non-TTY stdout and automatically switches to text output.
+`
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -249,17 +237,32 @@ func init() {
 	// will be global for your application.
 	rootCmd.AddGroup(AllGroups...)
 
+	// Add custom template functions
+	cobra.AddTemplateFunc("combinedFlagUsages", CombinedFlagUsages)
+	cobra.AddTemplateFunc("wrapText", wrapText)
+	cobra.AddTemplateFunc("cliVersion", cliVersion)
+	cobra.AddTemplateFunc("boldText", renderstyle.Bold)
+	cobra.AddTemplateFunc("formatExamples", formatExamples)
+	cobra.AddTemplateFunc("getUsageArgs", getUsageArgs)
+	cobra.AddTemplateFunc("hasVisibleGroupCommands", hasVisibleGroupCommands)
+	cobra.AddTemplateFunc("trimPeriod", trimTrailingPeriod)
+	cobra.AddTemplateFunc("groupHeader", groupHeaderText)
+
+	// Set custom help template
+	rootCmd.SetHelpTemplate(CustomHelpTemplate)
+
 	rootCmd.Version = cfg.Version
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "interactive, json, yaml, or text (auto: text in non-TTY contexts)")
-	rootCmd.PersistentFlags().Bool(command.ConfirmFlag, false, "set to skip confirmation prompts")
+	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "Output format: interactive, json, yaml, or text (auto: text in non-TTY contexts unless explicitly set)")
+	setAnnotationBestEffort(rootCmd.PersistentFlags(), "output", command.FlagPlaceholderAnnotation, []string{command.OutputPlaceholder})
+	rootCmd.PersistentFlags().Bool(command.ConfirmFlag, false, "Skip all confirmation prompts")
 
 	// Flags from the old CLI that we error with a helpful message
-	rootCmd.PersistentFlags().Bool("pretty-json", false, "use --output json instead")
+	rootCmd.PersistentFlags().Bool("pretty-json", false, "")
 	if err := rootCmd.PersistentFlags().MarkHidden("pretty-json"); err != nil {
 		panic(err)
 	}
-	rootCmd.PersistentFlags().Bool("json-record-per-line", false, "use --output json instead")
+	rootCmd.PersistentFlags().Bool("json-record-per-line", false, "")
 	if err := rootCmd.PersistentFlags().MarkHidden("json-record-per-line"); err != nil {
 		panic(err)
 	}

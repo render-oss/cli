@@ -27,11 +27,24 @@ import (
 
 var servicesCmd = &cobra.Command{
 	Use:     "services",
+	Short:   "List services and datastores for the active workspace",
+	Long:    "Lists all services and datastores for the active workspace. In interactive mode, you can view logs, restart services, trigger deploys, SSH into instances, and connect to PostgreSQL and Key Value datastores.",
 	Aliases: []string{"service"},
-	Short:   "Manage services and datastores",
-	Long: `Manage services and datastores for the active workspace.
-In interactive mode you can view logs, restart, deploy, SSH, and open PSQL sessions.`,
 	GroupID: GroupCore.ID,
+	Example: `  # List all services
+  render services
+
+  # Output as JSON
+  render services --output json
+
+  # Filter by environment
+  render services -e env-abc123
+
+  # Include preview environments
+  render services --include-previews
+
+  # Combine filters
+  render services -e env-abc123,env-def456 --include-previews --output json`,
 }
 
 func optionallyAddCommand(commands []views.PaletteCommand, command views.PaletteCommand, allowedTypes []string, resource resource.Resource) []views.PaletteCommand {
@@ -271,8 +284,9 @@ func init() {
 		return nil
 	}
 
-	servicesCmd.Flags().StringSliceP("environment-ids", "e", nil, "Comma separated list of environment ids to filter by")
-	servicesCmd.Flags().Bool("include-previews", false, "Whether to include preview environments when listing services")
+	servicesCmd.Flags().StringSliceP("environment-ids", "e", nil, "Filter services by environment IDs")
+	setAnnotationBestEffort(servicesCmd.Flags(), "environment-ids", command.FlagPlaceholderAnnotation, []string{placeholderEnvIDs})
+	servicesCmd.Flags().Bool("include-previews", false, "Include preview environments")
 
 	// Flags from the old CLI that we error with a helpful message
 	servicesCmd.Flags().String("service-id", "", "")

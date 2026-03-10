@@ -60,6 +60,8 @@ var (
 var (
 	Title        = lipgloss.NewStyle().Foreground(ColorInfo).Bold(true)
 	TitleBlock   = lipgloss.NewStyle().Background(ColorInfoBackground).Foreground(ColorInfo).Padding(0, 1)
+	GroupHeader  = lipgloss.NewStyle().Foreground(ColorWarningDeprioritized).Bold(true)
+	SubtleText   = lipgloss.NewStyle().Foreground(ColorDeprioritized)
 	Label        = lipgloss.NewStyle().Foreground(ColorFocus)
 	Status       = lipgloss.NewStyle().Bold(true)
 	CommandTitle = lipgloss.NewStyle().Foreground(ColorInfo).Bold(true)
