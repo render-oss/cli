@@ -141,6 +141,10 @@ export RENDER_API_KEY="your-api-key"
 
 - `pkg/tui/`: [See AGENTS.md](pkg/tui/AGENTS.md) for Bubble Tea patterns and examples
 
+## Style Guide
+
+All naming conventions, field formatting rules, and flag standards are defined in [STYLE.md](docs/STYLE.md). See the [Agent quick reference](docs/STYLE.md#agent-quick-reference) for the condensed spec used when creating or reviewing commands.
+
 ## Reference
 
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea) | [Cobra](https://github.com/spf13/cobra) | [Render CLI Docs](https://render.com/docs/cli)
