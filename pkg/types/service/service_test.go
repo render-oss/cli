@@ -260,6 +260,21 @@ func TestNormalizeAndValidateCreateInput(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "either repo or image is required")
 	})
+
+	t.Run("valid IPAllowList entry passes validation", func(t *testing.T) {
+		input := servicetypes.Service{
+			Name:         "my-service",
+			Type:         svcType(servicetypes.ServiceTypeWebService),
+			Repo:         pointers.From("https://github.com/org/repo"),
+			Runtime:      svcRuntime(servicetypes.ServiceRuntimeNode),
+			BuildCommand: pointers.From("npm ci"),
+			StartCommand: pointers.From("npm start"),
+			IPAllowList:  []string{"cidr=10.0.0.0/8,description=Internal"},
+		}
+		err := input.Validate(false)
+		require.NoError(t, err)
+	})
+
 }
 
 func svcType(value servicetypes.ServiceType) *servicetypes.ServiceType {

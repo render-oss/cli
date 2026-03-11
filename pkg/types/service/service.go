@@ -39,6 +39,15 @@ type Service struct {
 
 	AutoDeploy       *bool   `cli:"auto-deploy"`
 	PreDeployCommand *string `cli:"pre-deploy-command"`
+
+	BuildFilterPaths        []string            `cli:"build-filter-path"`
+	BuildFilterIgnoredPaths []string            `cli:"build-filter-ignored-path"`
+	NumInstances            *int                `cli:"num-instances"`
+	MaxShutdownDelay        *int                `cli:"max-shutdown-delay"`
+	Previews                *PreviewsGeneration `cli:"previews"`
+	MaintenanceMode         *bool               `cli:"maintenance-mode"`
+	MaintenanceModeURI      *string             `cli:"maintenance-mode-uri"`
+	IPAllowList             []string            `cli:"ip-allow-list"`
 }
 
 func (s Service) OptionalServiceType() (*ServiceType, error) {
@@ -87,6 +96,8 @@ func NormalizeServiceCreateCLIInput(input Service) Service {
 	input.EnvironmentID = types.OptionalNonZeroString(input.EnvironmentID)
 	input.RegistryCredential = types.OptionalNonZeroString(input.RegistryCredential)
 	input.PreDeployCommand = types.OptionalNonZeroString(input.PreDeployCommand)
+	input.MaintenanceModeURI = types.OptionalNonZeroString(input.MaintenanceModeURI)
+	input.Previews = types.OptionalAlias(input.Previews)
 	return input
 }
 
@@ -130,6 +141,22 @@ func (s Service) validateNormalized(isInteractive bool) error {
 
 	if s.RegistryCredential != nil && !s.SupportsRegistryCredentials() {
 		return errors.New("--registry-credential is only supported with --image or --runtime docker/image")
+	}
+
+	if s.Previews != nil {
+		if _, err := ParsePreviewsGeneration(string(*s.Previews)); err != nil {
+			return err
+		}
+	}
+
+	for _, entry := range s.IPAllowList {
+		if _, _, err := ParseIPAllowListEntry(entry); err != nil {
+			return err
+		}
+	}
+
+	if s.MaintenanceModeURI != nil && s.MaintenanceMode == nil {
+		return errors.New("cannot set --maintenance-mode-uri without --maintenance-mode")
 	}
 
 	if parsedType != nil && *parsedType == ServiceTypeCronJob {

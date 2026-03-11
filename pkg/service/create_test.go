@@ -271,21 +271,121 @@ func TestBuildCreateRequest(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "must be one of")
 	})
+
+	t.Run("maps extended web fields and build filter", func(t *testing.T) {
+		input := servicetypes.Service{
+			Name:                    "my-service",
+			Type:                    svcType(servicetypes.ServiceTypeWebService),
+			Repo:                    pointers.From("https://github.com/org/repo"),
+			Runtime:                 svcRuntime(servicetypes.ServiceRuntimeNode),
+			BuildFilterPaths:        []string{"src/", "lib/"},
+			BuildFilterIgnoredPaths: []string{"test/"},
+			NumInstances:            pointers.From(3),
+			MaxShutdownDelay:        pointers.From(45),
+			Previews:                pointers.From(servicetypes.PreviewsGenerationAutomatic),
+			MaintenanceMode:         pointers.From(true),
+			MaintenanceModeURI:      pointers.From("/maintenance.html"),
+			IPAllowList:             []string{"cidr=10.0.0.0/8,description=Internal"},
+		}
+
+		body, err := BuildCreateRequest(input, "tea-abc123")
+		require.NoError(t, err)
+		require.NotNil(t, body.BuildFilter)
+		require.Equal(t, []string{"src/", "lib/"}, body.BuildFilter.Paths)
+		require.Equal(t, []string{"test/"}, body.BuildFilter.IgnoredPaths)
+
+		details, err := body.ServiceDetails.AsWebServiceDetailsPOST()
+		require.NoError(t, err)
+		require.Equal(t, 3, pointers.ValueOrDefault(details.NumInstances, 0))
+		require.Equal(t, 45, pointers.ValueOrDefault(details.MaxShutdownDelaySeconds, 0))
+		require.NotNil(t, details.Previews)
+		require.Equal(t, client.PreviewsGeneration("automatic"), *details.Previews.Generation)
+		require.NotNil(t, details.MaintenanceMode)
+		require.Equal(t, true, details.MaintenanceMode.Enabled)
+		require.Equal(t, "/maintenance.html", details.MaintenanceMode.Uri)
+		require.NotNil(t, details.IpAllowList)
+		require.Len(t, *details.IpAllowList, 1)
+		require.Equal(t, "10.0.0.0/8", (*details.IpAllowList)[0].CidrBlock)
+		require.Equal(t, "Internal", (*details.IpAllowList)[0].Description)
+	})
+
+	t.Run("maps extended private service fields", func(t *testing.T) {
+		input := servicetypes.Service{
+			Name:             "my-private-service",
+			Type:             svcType(servicetypes.ServiceTypePrivateService),
+			Repo:             pointers.From("https://github.com/org/repo"),
+			Runtime:          svcRuntime(servicetypes.ServiceRuntimeNode),
+			NumInstances:     pointers.From(2),
+			MaxShutdownDelay: pointers.From(20),
+			Previews:         pointers.From(servicetypes.PreviewsGenerationManual),
+		}
+
+		body, err := BuildCreateRequest(input, "tea-abc123")
+		require.NoError(t, err)
+
+		details, err := body.ServiceDetails.AsPrivateServiceDetailsPOST()
+		require.NoError(t, err)
+		require.Equal(t, 2, pointers.ValueOrDefault(details.NumInstances, 0))
+		require.Equal(t, 20, pointers.ValueOrDefault(details.MaxShutdownDelaySeconds, 0))
+		require.NotNil(t, details.Previews)
+		require.Equal(t, client.PreviewsGeneration("manual"), *details.Previews.Generation)
+	})
+
+	t.Run("maps static site previews and ip allow list", func(t *testing.T) {
+		input := servicetypes.Service{
+			Name:             "my-static-site",
+			Type:             svcType(servicetypes.ServiceTypeStaticSite),
+			Repo:             pointers.From("https://github.com/org/site"),
+			BuildCommand:     pointers.From("npm run build"),
+			PublishDirectory: pointers.From("dist"),
+			Previews:         pointers.From(servicetypes.PreviewsGenerationOff),
+			IPAllowList:      []string{"cidr=2001:db8::/32,description=IPv6 range"},
+		}
+
+		body, err := BuildCreateRequest(input, "tea-abc123")
+		require.NoError(t, err)
+
+		details, err := body.ServiceDetails.AsStaticSiteDetailsPOST()
+		require.NoError(t, err)
+		require.NotNil(t, details.Previews)
+		require.Equal(t, client.PreviewsGeneration("off"), *details.Previews.Generation)
+		require.NotNil(t, details.IpAllowList)
+		require.Len(t, *details.IpAllowList, 1)
+		require.Equal(t, "2001:db8::/32", (*details.IpAllowList)[0].CidrBlock)
+		require.Equal(t, "IPv6 range", (*details.IpAllowList)[0].Description)
+	})
+
+	t.Run("returns error for invalid ip allow list format", func(t *testing.T) {
+		input := servicetypes.Service{
+			Name:        "my-service",
+			Type:        svcType(servicetypes.ServiceTypeWebService),
+			Repo:        pointers.From("https://github.com/org/repo"),
+			Runtime:     svcRuntime(servicetypes.ServiceRuntimeNode),
+			IPAllowList: []string{"malformed"},
+		}
+
+		_, err := BuildCreateRequest(input, "tea-abc123")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid --ip-allow-list")
+	})
 }
 
 func svcType(value servicetypes.ServiceType) *servicetypes.ServiceType {
-	return &value
+	v := value
+	return &v
 }
 
 func svcTypeRaw(value string) *servicetypes.ServiceType {
-	st := servicetypes.ServiceType(value)
-	return &st
+	v := servicetypes.ServiceType(value)
+	return &v
 }
 
 func svcRuntime(value servicetypes.ServiceRuntime) *servicetypes.ServiceRuntime {
-	return &value
+	v := value
+	return &v
 }
 
 func svcRegion(value types.Region) *types.Region {
-	return &value
+	v := value
+	return &v
 }

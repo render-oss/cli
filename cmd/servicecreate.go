@@ -87,6 +87,15 @@ func init() {
 	ServiceCreateCmd.Flags().String("registry-credential", "", "Registry credential")
 	ServiceCreateCmd.Flags().Bool("auto-deploy", true, "Enable auto-deploy")
 	ServiceCreateCmd.Flags().String("pre-deploy-command", "", "Pre-deploy command")
+	ServiceCreateCmd.Flags().StringArray("build-filter-path", nil, "Build filter path (can be specified multiple times)")
+	ServiceCreateCmd.Flags().StringArray("build-filter-ignored-path", nil, "Build filter ignored path (can be specified multiple times)")
+	ServiceCreateCmd.Flags().Int("num-instances", 0, "Number of instances")
+	ServiceCreateCmd.Flags().Int("max-shutdown-delay", 0, "Max shutdown delay in seconds")
+	previewsFlag := command.NewEnumInput(servicetypes.PreviewsGenerationValues(), false)
+	ServiceCreateCmd.Flags().Var(previewsFlag, "previews", "Preview generation mode")
+	ServiceCreateCmd.Flags().Bool("maintenance-mode", false, "Enable maintenance mode")
+	ServiceCreateCmd.Flags().String("maintenance-mode-uri", "", "Maintenance mode URI")
+	ServiceCreateCmd.Flags().StringArray("ip-allow-list", nil, "IP allow list entry in cidr=...,description=... format (can be specified multiple times)")
 }
 
 func createServiceNonInteractive(ctx context.Context, cliInput servicetypes.Service) (*client.Service, error) {

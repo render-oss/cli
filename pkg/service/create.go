@@ -60,6 +60,10 @@ func BuildCreateRequest(cliInput servicetypes.Service, ownerID string) (client.C
 		OwnerId: ownerID,
 		Type:    *typedServiceType,
 	}
+	buildFilter := buildFilterFromInputs(cliInput.BuildFilterPaths, cliInput.BuildFilterIgnoredPaths)
+	if buildFilter != nil {
+		body.BuildFilter = buildFilter
+	}
 
 	if cliInput.Repo != nil {
 		body.Repo = cliInput.Repo
@@ -143,14 +147,23 @@ func buildServiceDetails(
 		if err != nil {
 			return nil, err
 		}
+		ipAllowList, err := parseIPAllowListInputs(cliInput.IPAllowList)
+		if err != nil {
+			return nil, err
+		}
 
 		details := client.WebServiceDetailsPOST{
-			Runtime:            *runtime,
-			Plan:               plan,
-			Region:             region,
-			EnvSpecificDetails: envSpecificDetails,
-			HealthCheckPath:    cliInput.HealthCheckPath,
-			PreDeployCommand:   cliInput.PreDeployCommand,
+			Runtime:                 *runtime,
+			Plan:                    plan,
+			Region:                  region,
+			EnvSpecificDetails:      envSpecificDetails,
+			HealthCheckPath:         cliInput.HealthCheckPath,
+			PreDeployCommand:        cliInput.PreDeployCommand,
+			NumInstances:            cliInput.NumInstances,
+			MaxShutdownDelaySeconds: maxShutdownDelayFromInput(cliInput.MaxShutdownDelay),
+			Previews:                previewsFromInput(cliInput.Previews),
+			MaintenanceMode:         maintenanceModeFromInput(cliInput.MaintenanceMode, cliInput.MaintenanceModeURI),
+			IpAllowList:             ipAllowList,
 		}
 		if err := serviceDetails.FromWebServiceDetailsPOST(details); err != nil {
 			return nil, err
@@ -167,11 +180,14 @@ func buildServiceDetails(
 		}
 
 		details := client.PrivateServiceDetailsPOST{
-			Runtime:            *runtime,
-			Plan:               paidPlan(plan),
-			Region:             region,
-			EnvSpecificDetails: envSpecificDetails,
-			PreDeployCommand:   cliInput.PreDeployCommand,
+			Runtime:                 *runtime,
+			Plan:                    paidPlan(plan),
+			Region:                  region,
+			EnvSpecificDetails:      envSpecificDetails,
+			PreDeployCommand:        cliInput.PreDeployCommand,
+			NumInstances:            cliInput.NumInstances,
+			MaxShutdownDelaySeconds: maxShutdownDelayFromInput(cliInput.MaxShutdownDelay),
+			Previews:                previewsFromInput(cliInput.Previews),
 		}
 		if err := serviceDetails.FromPrivateServiceDetailsPOST(details); err != nil {
 			return nil, err
@@ -188,11 +204,14 @@ func buildServiceDetails(
 		}
 
 		details := client.BackgroundWorkerDetailsPOST{
-			Runtime:            *runtime,
-			Plan:               paidPlan(plan),
-			Region:             region,
-			EnvSpecificDetails: envSpecificDetails,
-			PreDeployCommand:   cliInput.PreDeployCommand,
+			Runtime:                 *runtime,
+			Plan:                    paidPlan(plan),
+			Region:                  region,
+			EnvSpecificDetails:      envSpecificDetails,
+			PreDeployCommand:        cliInput.PreDeployCommand,
+			NumInstances:            cliInput.NumInstances,
+			MaxShutdownDelaySeconds: maxShutdownDelayFromInput(cliInput.MaxShutdownDelay),
+			Previews:                previewsFromInput(cliInput.Previews),
 		}
 		if err := serviceDetails.FromBackgroundWorkerDetailsPOST(details); err != nil {
 			return nil, err
@@ -214,9 +233,15 @@ func buildServiceDetails(
 			return nil, err
 		}
 	case client.StaticSite:
+		ipAllowList, err := parseIPAllowListInputs(cliInput.IPAllowList)
+		if err != nil {
+			return nil, err
+		}
 		details := client.StaticSiteDetailsPOST{
 			BuildCommand: cliInput.BuildCommand,
 			PublishPath:  cliInput.PublishDirectory,
+			Previews:     previewsFromInput(cliInput.Previews),
+			IpAllowList:  ipAllowList,
 		}
 		if err := serviceDetails.FromStaticSiteDetailsPOST(details); err != nil {
 			return nil, err
@@ -333,4 +358,58 @@ func toClientPlan(value *string) *client.Plan {
 	}
 	typed := client.Plan(*value)
 	return &typed
+}
+
+func buildFilterFromInputs(paths []string, ignoredPaths []string) *client.BuildFilter {
+	if len(paths) == 0 && len(ignoredPaths) == 0 {
+		return nil
+	}
+	return &client.BuildFilter{
+		Paths:        append([]string(nil), paths...),
+		IgnoredPaths: append([]string(nil), ignoredPaths...),
+	}
+}
+
+func parseIPAllowListInputs(raw []string) (*[]client.CidrBlockAndDescription, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+	entries := make([]client.CidrBlockAndDescription, 0, len(raw))
+	for _, entry := range raw {
+		cidr, description, err := servicetypes.ParseIPAllowListEntry(entry)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, client.CidrBlockAndDescription{
+			CidrBlock:   cidr,
+			Description: description,
+		})
+	}
+	return &entries, nil
+}
+
+func previewsFromInput(previews *servicetypes.PreviewsGeneration) *client.Previews {
+	if previews == nil {
+		return nil
+	}
+	gen := client.PreviewsGeneration(*previews)
+	return &client.Previews{Generation: &gen}
+}
+
+func maxShutdownDelayFromInput(value *int) *client.MaxShutdownDelaySeconds {
+	if value == nil {
+		return nil
+	}
+	v := client.MaxShutdownDelaySeconds(*value)
+	return &v
+}
+
+func maintenanceModeFromInput(enabled *bool, uri *string) *client.MaintenanceMode {
+	if enabled == nil && uri == nil {
+		return nil
+	}
+	return &client.MaintenanceMode{
+		Enabled: pointers.ValueOrDefault(enabled, false),
+		Uri:     pointers.ValueOrDefault(uri, ""),
+	}
 }
