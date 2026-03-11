@@ -35,7 +35,7 @@ func init() {
 	servicesCmd.AddCommand(ServiceCreateCmd)
 
 	ServiceCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		var cliInput servicetypes.Service
+		var cliInput servicetypes.ServiceCreateInput
 		if err := command.ParseCommand(cmd, args, &cliInput); err != nil {
 			return fmt.Errorf("failed to parse command: %w", err)
 		}
@@ -98,7 +98,7 @@ func init() {
 	ServiceCreateCmd.Flags().StringArray("ip-allow-list", nil, "IP allow list entry in cidr=...,description=... format (can be specified multiple times)")
 }
 
-func createServiceNonInteractive(ctx context.Context, cliInput servicetypes.Service) (*client.Service, error) {
+func createServiceNonInteractive(ctx context.Context, cliInput servicetypes.ServiceCreateInput) (*client.Service, error) {
 	deps := dependencies.GetFromContext(ctx)
 	serviceRepo := deps.ServiceRepo()
 	registryService := deps.RegistryService()
@@ -136,7 +136,7 @@ func createServiceNonInteractive(ctx context.Context, cliInput servicetypes.Serv
 	return serviceRepo.CreateService(ctx, body)
 }
 
-func getConfigFromService(ctx context.Context, repo *service.Repo, input *servicetypes.Service) error {
+func getConfigFromService(ctx context.Context, repo *service.Repo, input *servicetypes.ServiceCreateInput) error {
 	serviceID, err := repo.ResolveServiceIDFromNameOrID(ctx, *input.From)
 	if err != nil {
 		return fmt.Errorf("failed to resolve source service %s: %w", *input.From, err)

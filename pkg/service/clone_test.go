@@ -26,7 +26,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				client.NativeEnvironmentDetails{BuildCommand: "npm ci", StartCommand: "npm run start"},
 			),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-repo",
 			From: pointers.From("srv-source"),
 		}
@@ -53,7 +53,7 @@ func TestCLIInputFromSource(t *testing.T) {
 			),
 			RegistryCredential: &client.RegistryCredentialSummary{Id: "rgc-123"},
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-image",
 			From: pointers.From("srv-source"),
 		}
@@ -89,7 +89,7 @@ func TestCLIInputFromSource(t *testing.T) {
 			Branch:         pointers.From("master"),
 			ServiceDetails: details,
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-docker-repo",
 			From: pointers.From("srv-source"),
 		}
@@ -113,7 +113,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				client.NativeEnvironmentDetails{BuildCommand: "pip install -r requirements.txt", StartCommand: "python worker.py"},
 			),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-worker",
 			From: pointers.From("srv-source"),
 		}
@@ -141,7 +141,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				"dist",
 			),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-static",
 			From: pointers.From("srv-source"),
 		}
@@ -162,7 +162,7 @@ func TestCLIInputFromSource(t *testing.T) {
 			Type:           client.CronJob,
 			ServiceDetails: mustCronJobDetails(t, "*/5 * * * *", "echo hello"),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-cron",
 			From: pointers.From("srv-source"),
 		}
@@ -180,7 +180,7 @@ func TestCLIInputFromSource(t *testing.T) {
 			Branch:         pointers.From("master"),
 			ServiceDetails: mustWebServiceDetails(t, client.ServiceRuntimeNode, client.NativeEnvironmentDetails{}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:    "clone-explicit",
 			From:    pointers.From("srv-source"),
 			Type:    svcType(servicetypes.ServiceTypePrivateService),
@@ -204,7 +204,7 @@ func TestCLIInputFromSource(t *testing.T) {
 			Branch:         pointers.From("master"),
 			ServiceDetails: mustWebServiceDetails(t, client.ServiceRuntimeNode, client.NativeEnvironmentDetails{}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:  "clone-explicit-image",
 			From:  pointers.From("srv-source"),
 			Image: pointers.From("docker.io/custom/image:latest"),
@@ -229,7 +229,7 @@ func TestCLIInputFromSource(t *testing.T) {
 			),
 			RegistryCredential: &client.RegistryCredentialSummary{Id: "rgc-123"},
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-explicit-repo",
 			From: pointers.From("srv-source"),
 			Repo: pointers.From("https://github.com/org/custom"),
@@ -250,7 +250,7 @@ func TestCLIInputFromSource(t *testing.T) {
 			Branch:         pointers.From("master"),
 			ServiceDetails: mustWebServiceDetails(t, client.ServiceRuntimeNode, client.NativeEnvironmentDetails{}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:  "clone-explicit-image",
 			From:  pointers.From("srv-source"),
 			Image: pointers.From("docker.io/custom/image:latest"),
@@ -275,7 +275,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				client.NativeEnvironmentDetails{},
 			),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-explicit-repo",
 			From: pointers.From("srv-source"),
 			Repo: pointers.From("https://github.com/org/custom"),
@@ -301,7 +301,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				client.NativeEnvironmentDetails{},
 			),
 		}
-		input := servicetypes.NormalizeServiceCreateCLIInput(servicetypes.Service{
+		input := servicetypes.NormalizeServiceCreateCLIInput(servicetypes.ServiceCreateInput{
 			Name: "clone-normalized",
 			From: pointers.From("srv-source"),
 		})
@@ -345,7 +345,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				},
 			}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-web-extended",
 			From: pointers.From("srv-source"),
 		}
@@ -385,7 +385,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				},
 			}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-static-extended",
 			From: pointers.From("srv-source"),
 		}
@@ -421,7 +421,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				Previews:                &client.Previews{Generation: &gen},
 			}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-worker-extended",
 			From: pointers.From("srv-source"),
 		}
@@ -462,7 +462,7 @@ func TestCLIInputFromSource(t *testing.T) {
 			Type:           client.CronJob,
 			ServiceDetails: serviceDetails,
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-cron-extended",
 			From: pointers.From("srv-source"),
 		}
@@ -491,7 +491,7 @@ func TestCLIInputFromSource(t *testing.T) {
 			RootDir:        ".",
 			ServiceDetails: mustWebServiceDetails(t, client.ServiceRuntimeNode, client.NativeEnvironmentDetails{}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-no-build-filter",
 			From: pointers.From("srv-source"),
 		}
@@ -514,7 +514,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				MaintenanceMode:    &client.MaintenanceMode{Enabled: false, Uri: ""},
 			}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name: "clone-maint-disabled",
 			From: pointers.From("srv-source"),
 		}
@@ -537,7 +537,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				client.NativeEnvironmentDetails{},
 			),
 		}
-		input := servicetypes.NormalizeServiceCreateCLIInput(servicetypes.Service{
+		input := servicetypes.NormalizeServiceCreateCLIInput(servicetypes.ServiceCreateInput{
 			Name: "clone-empty-defaults",
 			From: pointers.From("srv-source"),
 		})
@@ -566,7 +566,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				}),
 			}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:         "clone-override-instances",
 			From:         pointers.From("srv-source"),
 			NumInstances: pointers.From(1),
@@ -592,7 +592,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				}),
 			}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:             "clone-override-shutdown",
 			From:             pointers.From("srv-source"),
 			MaxShutdownDelay: pointers.From(30),
@@ -620,7 +620,7 @@ func TestCLIInputFromSource(t *testing.T) {
 			}),
 		}
 		manual := servicetypes.PreviewsGenerationManual
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:     "clone-override-previews",
 			From:     pointers.From("srv-source"),
 			Previews: &manual,
@@ -646,7 +646,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				}),
 			}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:            "clone-override-maint",
 			From:            pointers.From("srv-source"),
 			MaintenanceMode: pointers.From(false),
@@ -672,7 +672,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				}),
 			}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:               "clone-override-maint-uri",
 			From:               pointers.From("srv-source"),
 			MaintenanceModeURI: pointers.From("/custom-maint.html"),
@@ -695,7 +695,7 @@ func TestCLIInputFromSource(t *testing.T) {
 			},
 			ServiceDetails: mustWebServiceDetails(t, client.ServiceRuntimeNode, client.NativeEnvironmentDetails{}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:             "clone-override-build-paths",
 			From:             pointers.From("srv-source"),
 			BuildFilterPaths: []string{"custom/path/"},
@@ -718,7 +718,7 @@ func TestCLIInputFromSource(t *testing.T) {
 			},
 			ServiceDetails: mustWebServiceDetails(t, client.ServiceRuntimeNode, client.NativeEnvironmentDetails{}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:                    "clone-override-ignored-paths",
 			From:                    pointers.From("srv-source"),
 			BuildFilterIgnoredPaths: []string{"vendor/", "dist/"},
@@ -743,7 +743,7 @@ func TestCLIInputFromSource(t *testing.T) {
 				EnvSpecificDetails: mustEnvSpecific(t, client.NativeEnvironmentDetails{}),
 			}),
 		}
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:        "clone-override-ip-allowlist",
 			From:        pointers.From("srv-source"),
 			IPAllowList: []string{"cidr=192.168.1.0/24,description=Custom"},

@@ -10,7 +10,7 @@ import (
 )
 
 // BuildCreateRequest maps validated CLI input into the API create-service request body.
-func BuildCreateRequest(cliInput servicetypes.Service, ownerID string) (client.CreateServiceJSONRequestBody, error) {
+func BuildCreateRequest(cliInput servicetypes.ServiceCreateInput, ownerID string) (client.CreateServiceJSONRequestBody, error) {
 	serviceType, err := cliInput.OptionalServiceType()
 	if err != nil {
 		return client.CreateServiceJSONRequestBody{}, err
@@ -128,7 +128,7 @@ func parseEnvVarInputs(values []string) ([]client.EnvVarInput, error) {
 }
 
 func buildServiceDetails(
-	cliInput servicetypes.Service,
+	cliInput servicetypes.ServiceCreateInput,
 	serviceType client.ServiceType,
 	runtime *client.ServiceRuntime,
 	region *client.Region,

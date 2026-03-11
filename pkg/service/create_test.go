@@ -14,7 +14,7 @@ import (
 )
 
 func TestBuildCreateRequest_FromCLIInput(t *testing.T) {
-	input := servicetypes.Service{
+	input := servicetypes.ServiceCreateInput{
 		Name:         "my-service",
 		Type:         svcType(servicetypes.ServiceTypeWebService),
 		Repo:         pointers.From("https://github.com/org/repo"),
@@ -36,7 +36,7 @@ func TestBuildCreateRequest_FromCLIInput(t *testing.T) {
 }
 
 func TestBuildCreateRequest_FromCLIInput_DefaultRuntimeAndEnvVars(t *testing.T) {
-	input := servicetypes.Service{
+	input := servicetypes.ServiceCreateInput{
 		Name:    "my-image-service",
 		Type:    svcType(servicetypes.ServiceTypeWebService),
 		Image:   pointers.From("docker.io/org/app:latest"),
@@ -53,7 +53,7 @@ func TestBuildCreateRequest_FromCLIInput_DefaultRuntimeAndEnvVars(t *testing.T) 
 
 func TestBuildCreateRequest_FromCLIInput_WithNormalizedInputOmitsEmptyOptionals(t *testing.T) {
 	empty := ""
-	input := servicetypes.Service{
+	input := servicetypes.ServiceCreateInput{
 		Name:               "my-service",
 		Type:               svcType(servicetypes.ServiceTypeWebService),
 		Repo:               pointers.From("https://github.com/org/repo"),
@@ -87,7 +87,7 @@ func TestBuildCreateRequest_FromCLIInput_ParsesSecretFiles(t *testing.T) {
 	secretPath := filepath.Join(t.TempDir(), "config.txt")
 	require.NoError(t, os.WriteFile(secretPath, []byte("top-secret"), 0o600))
 
-	input := servicetypes.Service{
+	input := servicetypes.ServiceCreateInput{
 		Name:        "my-service",
 		Type:        svcType(servicetypes.ServiceTypeWebService),
 		Image:       pointers.From("docker.io/org/app:latest"),
@@ -102,8 +102,9 @@ func TestBuildCreateRequest_FromCLIInput_ParsesSecretFiles(t *testing.T) {
 }
 
 func TestBuildCreateRequest_FromCLIInput_SecretFileReadError(t *testing.T) {
-	input := servicetypes.Service{
-		Name:        "my-service",
+	input := servicetypes.ServiceCreateInput{
+		Name: "my-service",
+
 		Type:        svcType(servicetypes.ServiceTypeWebService),
 		Image:       pointers.From("docker.io/org/app:latest"),
 		SecretFiles: []string{"app-secret:/definitely/missing"},
@@ -116,7 +117,7 @@ func TestBuildCreateRequest_FromCLIInput_SecretFileReadError(t *testing.T) {
 
 func TestBuildCreateRequest(t *testing.T) {
 	t.Run("non-static service includes serviceDetails", func(t *testing.T) {
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:    "my-service",
 			Type:    svcType(servicetypes.ServiceTypeWebService),
 			Image:   pointers.From("nginx:latest"),
@@ -133,7 +134,7 @@ func TestBuildCreateRequest(t *testing.T) {
 	})
 
 	t.Run("static sites do not require runtime", func(t *testing.T) {
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:             "my-static-site",
 			Type:             svcType(servicetypes.ServiceTypeStaticSite),
 			Repo:             pointers.From("https://github.com/org/site"),
@@ -152,7 +153,7 @@ func TestBuildCreateRequest(t *testing.T) {
 	})
 
 	t.Run("explicit runtime is applied to serviceDetails", func(t *testing.T) {
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:    "my-service",
 			Type:    svcType(servicetypes.ServiceTypeWebService),
 			Image:   pointers.From("nginx:latest"),
@@ -169,7 +170,7 @@ func TestBuildCreateRequest(t *testing.T) {
 	})
 
 	t.Run("web service maps build and start commands to native env specific details", func(t *testing.T) {
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:         "my-service",
 			Type:         svcType(servicetypes.ServiceTypeWebService),
 			Repo:         pointers.From("https://github.com/org/repo"),
@@ -193,7 +194,7 @@ func TestBuildCreateRequest(t *testing.T) {
 	})
 
 	t.Run("web service with docker runtime maps registry credential to docker details", func(t *testing.T) {
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:               "my-service",
 			Type:               svcType(servicetypes.ServiceTypeWebService),
 			Repo:               pointers.From("https://github.com/org/repo"),
@@ -215,7 +216,7 @@ func TestBuildCreateRequest(t *testing.T) {
 	})
 
 	t.Run("cron job maps cron-command to native env specific start command", func(t *testing.T) {
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:         "my-cron",
 			Type:         svcType(servicetypes.ServiceTypeCronJob),
 			Repo:         pointers.From("https://github.com/org/repo"),
@@ -240,7 +241,7 @@ func TestBuildCreateRequest(t *testing.T) {
 	})
 
 	t.Run("empty optional fields are omitted", func(t *testing.T) {
-		cliInput := servicetypes.Service{
+		cliInput := servicetypes.ServiceCreateInput{
 			Name:          "my-service",
 			Type:          svcType(servicetypes.ServiceTypeWebService),
 			Repo:          pointers.From("https://github.com/org/repo"),
@@ -260,7 +261,7 @@ func TestBuildCreateRequest(t *testing.T) {
 	})
 
 	t.Run("returns error for unsupported service type", func(t *testing.T) {
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:    "my-service",
 			Type:    svcTypeRaw("unsupported"),
 			Repo:    pointers.From("https://github.com/org/repo"),
@@ -273,7 +274,7 @@ func TestBuildCreateRequest(t *testing.T) {
 	})
 
 	t.Run("maps extended web fields and build filter", func(t *testing.T) {
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:                    "my-service",
 			Type:                    svcType(servicetypes.ServiceTypeWebService),
 			Repo:                    pointers.From("https://github.com/org/repo"),
@@ -310,7 +311,7 @@ func TestBuildCreateRequest(t *testing.T) {
 	})
 
 	t.Run("maps extended private service fields", func(t *testing.T) {
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:             "my-private-service",
 			Type:             svcType(servicetypes.ServiceTypePrivateService),
 			Repo:             pointers.From("https://github.com/org/repo"),
@@ -332,7 +333,7 @@ func TestBuildCreateRequest(t *testing.T) {
 	})
 
 	t.Run("maps static site previews and ip allow list", func(t *testing.T) {
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:             "my-static-site",
 			Type:             svcType(servicetypes.ServiceTypeStaticSite),
 			Repo:             pointers.From("https://github.com/org/site"),
@@ -356,7 +357,7 @@ func TestBuildCreateRequest(t *testing.T) {
 	})
 
 	t.Run("returns error for invalid ip allow list format", func(t *testing.T) {
-		input := servicetypes.Service{
+		input := servicetypes.ServiceCreateInput{
 			Name:        "my-service",
 			Type:        svcType(servicetypes.ServiceTypeWebService),
 			Repo:        pointers.From("https://github.com/org/repo"),

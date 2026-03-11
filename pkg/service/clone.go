@@ -37,7 +37,7 @@ type sourceDefaults struct {
 }
 
 // ServiceFromAPI generates a Service type with values from an API response
-func ServiceFromAPI(input *servicetypes.Service, source *client.Service) {
+func ServiceFromAPI(input *servicetypes.ServiceCreateInput, source *client.Service) {
 	if input == nil || source == nil {
 		return
 	}
@@ -55,8 +55,8 @@ func ServiceFromAPI(input *servicetypes.Service, source *client.Service) {
 	applyIPAllowListDefaults(input, defaults)
 }
 
-func mapSourceDefaultsToServiceInput(defaults sourceDefaults) servicetypes.Service {
-	mapped := servicetypes.Service{
+func mapSourceDefaultsToServiceInput(defaults sourceDefaults) servicetypes.ServiceCreateInput {
+	mapped := servicetypes.ServiceCreateInput{
 		Type:                    pointers.From(defaults.serviceType),
 		RootDirectory:           defaults.rootDirectory,
 		EnvironmentID:           defaults.environmentID,
@@ -214,7 +214,7 @@ func extractCloneSourceDefaults(source *client.Service) sourceDefaults {
 	return defaults
 }
 
-func applyBaseDefaults(input *servicetypes.Service, defaults servicetypes.Service) {
+func applyBaseDefaults(input *servicetypes.ServiceCreateInput, defaults servicetypes.ServiceCreateInput) {
 	input.Type = withDefaultAlias(input.Type, defaults.Type)
 	input.RootDirectory = withDefault(input.RootDirectory, defaults.RootDirectory)
 	input.EnvironmentID = withDefault(input.EnvironmentID, defaults.EnvironmentID)
@@ -224,7 +224,7 @@ func applyBaseDefaults(input *servicetypes.Service, defaults servicetypes.Servic
 // - If image is explicitly provided, do not backfill repo/branch.
 // - If repo is explicitly provided, do not backfill image/registry.
 // - If neither is explicitly provided, prefer repo defaults first, then image fallback.
-func applySourceDefaults(input *servicetypes.Service, defaults servicetypes.Service) {
+func applySourceDefaults(input *servicetypes.ServiceCreateInput, defaults servicetypes.ServiceCreateInput) {
 	if input.Image == nil {
 		input.Repo = withDefault(input.Repo, defaults.Repo)
 		input.Branch = withDefault(input.Branch, defaults.Branch)
@@ -239,7 +239,7 @@ func applySourceDefaults(input *servicetypes.Service, defaults servicetypes.Serv
 	}
 }
 
-func applyRuntimeDefaults(input *servicetypes.Service, defaults servicetypes.Service) {
+func applyRuntimeDefaults(input *servicetypes.ServiceCreateInput, defaults servicetypes.ServiceCreateInput) {
 	if input.Image != nil {
 		input.Runtime = withDefaultAliasFromValue(input.Runtime, servicetypes.ServiceRuntimeImage)
 		return
@@ -255,7 +255,7 @@ func applyRuntimeDefaults(input *servicetypes.Service, defaults servicetypes.Ser
 	input.Runtime = withDefaultAlias(input.Runtime, defaults.Runtime)
 }
 
-func applyRegistryCredentialDefault(input *servicetypes.Service, defaults servicetypes.Service) {
+func applyRegistryCredentialDefault(input *servicetypes.ServiceCreateInput, defaults servicetypes.ServiceCreateInput) {
 	if !input.SupportsRegistryCredentials() {
 		return
 	}
@@ -263,12 +263,12 @@ func applyRegistryCredentialDefault(input *servicetypes.Service, defaults servic
 	input.RegistryCredential = withDefault(input.RegistryCredential, defaults.RegistryCredential)
 }
 
-func applyCronDefaults(input *servicetypes.Service, defaults servicetypes.Service) {
+func applyCronDefaults(input *servicetypes.ServiceCreateInput, defaults servicetypes.ServiceCreateInput) {
 	input.CronSchedule = withDefault(input.CronSchedule, defaults.CronSchedule)
 	input.CronCommand = withDefault(input.CronCommand, defaults.CronCommand)
 }
 
-func applyAdditionalCloneDefaults(input *servicetypes.Service, defaults servicetypes.Service) {
+func applyAdditionalCloneDefaults(input *servicetypes.ServiceCreateInput, defaults servicetypes.ServiceCreateInput) {
 	input.Region = withDefaultAlias(input.Region, defaults.Region)
 	input.Plan = withDefault(input.Plan, defaults.Plan)
 	input.BuildCommand = withDefault(input.BuildCommand, defaults.BuildCommand)
@@ -279,7 +279,7 @@ func applyAdditionalCloneDefaults(input *servicetypes.Service, defaults servicet
 	input.AutoDeploy = withDefaultBool(input.AutoDeploy, defaults.AutoDeploy)
 }
 
-func applyBuildFilterDefaults(input *servicetypes.Service, defaults servicetypes.Service) {
+func applyBuildFilterDefaults(input *servicetypes.ServiceCreateInput, defaults servicetypes.ServiceCreateInput) {
 	if len(input.BuildFilterPaths) == 0 && len(defaults.BuildFilterPaths) > 0 {
 		input.BuildFilterPaths = append([]string(nil), defaults.BuildFilterPaths...)
 	}
@@ -288,7 +288,7 @@ func applyBuildFilterDefaults(input *servicetypes.Service, defaults servicetypes
 	}
 }
 
-func applyServiceTypeDefaults(input *servicetypes.Service, defaults servicetypes.Service) {
+func applyServiceTypeDefaults(input *servicetypes.ServiceCreateInput, defaults servicetypes.ServiceCreateInput) {
 	input.NumInstances = withDefaultInt(input.NumInstances, defaults.NumInstances)
 	input.MaxShutdownDelay = withDefaultInt(input.MaxShutdownDelay, defaults.MaxShutdownDelay)
 	if input.Previews == nil && defaults.Previews != nil {
@@ -298,7 +298,7 @@ func applyServiceTypeDefaults(input *servicetypes.Service, defaults servicetypes
 	input.MaintenanceModeURI = withDefault(input.MaintenanceModeURI, defaults.MaintenanceModeURI)
 }
 
-func applyIPAllowListDefaults(input *servicetypes.Service, defaults servicetypes.Service) {
+func applyIPAllowListDefaults(input *servicetypes.ServiceCreateInput, defaults servicetypes.ServiceCreateInput) {
 	entries := defaults.IPAllowList
 	if len(input.IPAllowList) > 0 || len(entries) == 0 {
 		return
