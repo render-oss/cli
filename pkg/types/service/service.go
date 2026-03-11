@@ -9,18 +9,18 @@ import (
 
 // Service is the raw command input parsed from Cobra flags.
 type Service struct {
-	Name string  `cli:"name"`
-	Type *string `cli:"type"`
-	From *string `cli:"from"`
+	Name string       `cli:"name"`
+	Type *ServiceType `cli:"type"`
+	From *string      `cli:"from"`
 
 	Repo   *string `cli:"repo"`
 	Branch *string `cli:"branch"`
 	Image  *string `cli:"image"`
 
-	Region        *string `cli:"region"`
-	Plan          *string `cli:"plan"`
-	Runtime       *string `cli:"runtime"`
-	RootDirectory *string `cli:"root-directory"`
+	Region        *types.Region   `cli:"region"`
+	Plan          *string         `cli:"plan"`
+	Runtime       *ServiceRuntime `cli:"runtime"`
+	RootDirectory *string         `cli:"root-directory"`
 
 	BuildCommand *string `cli:"build-command"`
 	StartCommand *string `cli:"start-command"`
@@ -42,11 +42,11 @@ type Service struct {
 }
 
 func (s Service) OptionalServiceType() (*ServiceType, error) {
-	return types.ParseOptional(s.Type, ParseServiceType)
+	return OptionalServiceType(s.Type)
 }
 
 func (s Service) OptionalServiceRuntime() (*ServiceRuntime, error) {
-	return types.ParseOptional(s.Runtime, ParseServiceRuntime)
+	return OptionalServiceRuntime(s.Runtime)
 }
 
 func (s Service) OptionalRegion() (*types.Region, error) {
@@ -69,14 +69,14 @@ func (s Service) Validate(isInteractive bool) error {
 
 func NormalizeServiceCreateCLIInput(input Service) Service {
 	input.Name = strings.TrimSpace(input.Name)
-	input.Type = types.OptionalNonZeroString(input.Type)
+	input.Type = types.OptionalAlias(input.Type)
 	input.From = types.OptionalNonZeroString(input.From)
 	input.Repo = types.OptionalNonZeroString(input.Repo)
 	input.Branch = types.OptionalNonZeroString(input.Branch)
 	input.Image = types.OptionalNonZeroString(input.Image)
-	input.Region = types.OptionalNonZeroString(input.Region)
+	input.Region = types.OptionalAlias(input.Region)
 	input.Plan = types.OptionalNonZeroString(input.Plan)
-	input.Runtime = types.OptionalNonZeroString(input.Runtime)
+	input.Runtime = types.OptionalAlias(input.Runtime)
 	input.RootDirectory = types.OptionalNonZeroString(input.RootDirectory)
 	input.BuildCommand = types.OptionalNonZeroString(input.BuildCommand)
 	input.StartCommand = types.OptionalNonZeroString(input.StartCommand)

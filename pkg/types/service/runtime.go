@@ -3,6 +3,8 @@ package service
 import (
 	"fmt"
 	"strings"
+
+	types "github.com/render-oss/cli/pkg/types"
 )
 
 type ServiceRuntime string
@@ -46,6 +48,10 @@ func ParseServiceRuntime(value string) (ServiceRuntime, error) {
 	}
 
 	return "", fmt.Errorf("runtime must be one of: %s", strings.Join(ServiceRuntimeValues(), ", "))
+}
+
+func OptionalServiceRuntime[S ~string](value *S) (*ServiceRuntime, error) {
+	return types.ParseOptionalString(value, ParseServiceRuntime)
 }
 
 func (r ServiceRuntime) IsNative() bool {

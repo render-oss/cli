@@ -95,6 +95,36 @@ func TestParseCommand(t *testing.T) {
 		require.Equal(t, "bar", *v.Foo)
 	})
 
+	t.Run("unset pointer flag remains nil", func(t *testing.T) {
+		type testStruct struct {
+			Foo *bool `cli:"foo"`
+		}
+		var v testStruct
+		cmd := &cobra.Command{}
+		cmd.Flags().Bool("foo", true, "")
+		require.NoError(t, cmd.ParseFlags([]string{}))
+
+		err := command.ParseCommand(cmd, []string{}, &v)
+		require.NoError(t, err)
+		require.Nil(t, v.Foo)
+	})
+
+	t.Run("parse pointer alias type", func(t *testing.T) {
+		type myString string
+		type testStruct struct {
+			Foo *myString `cli:"foo"`
+		}
+		var v testStruct
+		cmd := &cobra.Command{}
+		cmd.Flags().String("foo", "", "")
+		require.NoError(t, cmd.ParseFlags([]string{"--foo", "bar"}))
+
+		err := command.ParseCommand(cmd, []string{}, &v)
+		require.NoError(t, err)
+		require.NotNil(t, v.Foo)
+		require.Equal(t, myString("bar"), *v.Foo)
+	})
+
 	t.Run("parse slice", func(t *testing.T) {
 		type testStruct struct {
 			Foo []string `cli:"foo"`

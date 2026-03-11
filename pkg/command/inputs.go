@@ -171,6 +171,50 @@ func getBoolValue(flags *pflag.FlagSet, args []string, tag string) (*bool, error
 	return &val, nil
 }
 
+func shouldSetPointerField(flags *pflag.FlagSet, cliTag string) bool {
+	return isArg(cliTag) || flags.Changed(cliTag)
+}
+
+func setStringPointerField(elemField reflect.Value, shouldSet bool, val *string) {
+	if !shouldSet || val == nil {
+		elemField.SetZero()
+		return
+	}
+	ptr := reflect.New(elemField.Type().Elem())
+	ptr.Elem().SetString(*val)
+	elemField.Set(ptr)
+}
+
+func setIntPointerField(elemField reflect.Value, shouldSet bool, val *int) {
+	if !shouldSet || val == nil {
+		elemField.SetZero()
+		return
+	}
+	ptr := reflect.New(elemField.Type().Elem())
+	ptr.Elem().SetInt(int64(*val))
+	elemField.Set(ptr)
+}
+
+func setFloat64PointerField(elemField reflect.Value, shouldSet bool, val *float64) {
+	if !shouldSet || val == nil {
+		elemField.SetZero()
+		return
+	}
+	ptr := reflect.New(elemField.Type().Elem())
+	ptr.Elem().SetFloat(*val)
+	elemField.Set(ptr)
+}
+
+func setBoolPointerField(elemField reflect.Value, shouldSet bool, val *bool) {
+	if !shouldSet || val == nil {
+		elemField.SetZero()
+		return
+	}
+	ptr := reflect.New(elemField.Type().Elem())
+	ptr.Elem().SetBool(*val)
+	elemField.Set(ptr)
+}
+
 func ParseCommandInteractiveOnly(cmd *cobra.Command, args []string, v any) error {
 	format := GetFormatFromContext(cmd.Context())
 	if !format.Interactive() {
@@ -221,25 +265,25 @@ func ParseCommand(cmd *cobra.Command, args []string, v any) error {
 				if err != nil {
 					return err
 				}
-				elemField.Set(reflect.ValueOf(val))
+				setStringPointerField(elemField, shouldSetPointerField(flags, cliTag), val)
 			case reflect.Int:
 				val, err := getIntValue(flags, args, cliTag)
 				if err != nil {
 					return err
 				}
-				elemField.Set(reflect.ValueOf(val))
+				setIntPointerField(elemField, shouldSetPointerField(flags, cliTag), val)
 			case reflect.Float64:
 				val, err := getFloat64Value(flags, args, cliTag)
 				if err != nil {
 					return err
 				}
-				elemField.Set(reflect.ValueOf(val))
+				setFloat64PointerField(elemField, shouldSetPointerField(flags, cliTag), val)
 			case reflect.Bool:
 				val, err := getBoolValue(flags, args, cliTag)
 				if err != nil {
 					return err
 				}
-				elemField.Set(reflect.ValueOf(val))
+				setBoolPointerField(elemField, shouldSetPointerField(flags, cliTag), val)
 			}
 		case reflect.Slice:
 			switch field.Type.Elem().Kind() {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/pointers"
-	"github.com/render-oss/cli/pkg/types"
+	types "github.com/render-oss/cli/pkg/types"
 	servicetypes "github.com/render-oss/cli/pkg/types/service"
 )
 
@@ -29,10 +29,10 @@ func BuildCreateRequest(cliInput servicetypes.Service, ownerID string) (client.C
 		return client.CreateServiceJSONRequestBody{}, err
 	}
 
-	typedServiceType := toTypedFromAlias[servicetypes.ServiceType, client.ServiceType](serviceType)
-	typedRuntime := toTypedFromAlias[servicetypes.ServiceRuntime, client.ServiceRuntime](runtime)
-	typedRegion := toTypedFromAlias[types.Region, client.Region](region)
-	typedPlan := toTypedFromAlias[string, client.Plan](cliInput.Plan)
+	typedServiceType := toClientType(serviceType)
+	typedRuntime := toClientRuntime(runtime)
+	typedRegion := toClientRegion(region)
+	typedPlan := toClientPlan(cliInput.Plan)
 
 	// When an image is provided without an explicit runtime, default to "image" runtime.
 	// This allows users to omit --runtime when using --image.
@@ -97,14 +97,6 @@ func BuildCreateRequest(cliInput servicetypes.Service, ownerID string) (client.C
 	body.ServiceDetails = serviceDetails
 
 	return body, nil
-}
-
-func toTypedFromAlias[S ~string, T ~string](value *S) *T {
-	if value == nil {
-		return nil
-	}
-	typed := T(*value)
-	return &typed
 }
 
 func parseEnvVarInputs(values []string) ([]client.EnvVarInput, error) {
@@ -309,4 +301,36 @@ func buildCronEnvSpecificDetails(buildCommand *string, cronCommand *string) (*cl
 	}
 
 	return envSpecificDetails, nil
+}
+
+func toClientType(value *servicetypes.ServiceType) *client.ServiceType {
+	if value == nil {
+		return nil
+	}
+	typed := client.ServiceType(*value)
+	return &typed
+}
+
+func toClientRuntime(value *servicetypes.ServiceRuntime) *client.ServiceRuntime {
+	if value == nil {
+		return nil
+	}
+	typed := client.ServiceRuntime(*value)
+	return &typed
+}
+
+func toClientRegion(value *types.Region) *client.Region {
+	if value == nil {
+		return nil
+	}
+	typed := client.Region(*value)
+	return &typed
+}
+
+func toClientPlan(value *string) *client.Plan {
+	if value == nil {
+		return nil
+	}
+	typed := client.Plan(*value)
+	return &typed
 }

@@ -15,21 +15,22 @@ func TestParseOptional(t *testing.T) {
 	}
 
 	t.Run("nil value returns nil", func(t *testing.T) {
-		parsed, err := types.ParseOptional(nil, upperParser)
+		var raw *string
+		parsed, err := types.ParseOptionalString(raw, upperParser)
 		require.NoError(t, err)
 		require.Nil(t, parsed)
 	})
 
 	t.Run("blank value returns nil", func(t *testing.T) {
 		raw := "   "
-		parsed, err := types.ParseOptional(&raw, upperParser)
+		parsed, err := types.ParseOptionalString(&raw, upperParser)
 		require.NoError(t, err)
 		require.Nil(t, parsed)
 	})
 
 	t.Run("non-empty value parses", func(t *testing.T) {
 		raw := "node"
-		parsed, err := types.ParseOptional(&raw, upperParser)
+		parsed, err := types.ParseOptionalString(&raw, upperParser)
 		require.NoError(t, err)
 		require.NotNil(t, parsed)
 		require.Equal(t, "NODE", *parsed)
@@ -37,11 +38,27 @@ func TestParseOptional(t *testing.T) {
 
 	t.Run("parser error is returned", func(t *testing.T) {
 		raw := "bad"
-		_, err := types.ParseOptional(&raw, func(string) (string, error) {
+		_, err := types.ParseOptionalString(&raw, func(string) (string, error) {
 			return "", errors.New("invalid value")
 		})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "invalid value")
+	})
+}
+
+func TestOptionalAlias(t *testing.T) {
+	t.Run("returns nil for blank values", func(t *testing.T) {
+		raw := "  "
+		parsed := types.OptionalAlias(&raw)
+		require.Nil(t, parsed)
+	})
+
+	t.Run("returns trimmed alias for non-empty values", func(t *testing.T) {
+		type alias string
+		raw := alias(" value ")
+		parsed := types.OptionalAlias(&raw)
+		require.NotNil(t, parsed)
+		require.Equal(t, alias("value"), *parsed)
 	})
 }
 

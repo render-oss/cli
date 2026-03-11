@@ -7,6 +7,7 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/pointers"
+	types "github.com/render-oss/cli/pkg/types"
 	servicetypes "github.com/render-oss/cli/pkg/types/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,10 +16,10 @@ import (
 func TestBuildCreateRequest_FromCLIInput(t *testing.T) {
 	input := servicetypes.Service{
 		Name:         "my-service",
-		Type:         pointers.From("web_service"),
+		Type:         svcType(servicetypes.ServiceTypeWebService),
 		Repo:         pointers.From("https://github.com/org/repo"),
-		Runtime:      pointers.From("node"),
-		Region:       pointers.From("oregon"),
+		Runtime:      svcRuntime(servicetypes.ServiceRuntimeNode),
+		Region:       svcRegion(types.RegionOregon),
 		BuildCommand: pointers.From("npm ci"),
 		StartCommand: pointers.From("npm run start"),
 	}
@@ -37,7 +38,7 @@ func TestBuildCreateRequest_FromCLIInput(t *testing.T) {
 func TestBuildCreateRequest_FromCLIInput_DefaultRuntimeAndEnvVars(t *testing.T) {
 	input := servicetypes.Service{
 		Name:    "my-image-service",
-		Type:    pointers.From("web_service"),
+		Type:    svcType(servicetypes.ServiceTypeWebService),
 		Image:   pointers.From("docker.io/org/app:latest"),
 		EnvVars: []string{"FOO=bar"},
 	}
@@ -54,12 +55,12 @@ func TestBuildCreateRequest_FromCLIInput_WithNormalizedInputOmitsEmptyOptionals(
 	empty := ""
 	input := servicetypes.Service{
 		Name:               "my-service",
-		Type:               pointers.From("web_service"),
+		Type:               svcType(servicetypes.ServiceTypeWebService),
 		Repo:               pointers.From("https://github.com/org/repo"),
 		Branch:             &empty,
 		Image:              &empty,
 		Plan:               &empty,
-		Runtime:            pointers.From("node"),
+		Runtime:            svcRuntime(servicetypes.ServiceRuntimeNode),
 		RootDirectory:      &empty,
 		BuildCommand:       &empty,
 		StartCommand:       &empty,
@@ -88,7 +89,7 @@ func TestBuildCreateRequest_FromCLIInput_ParsesSecretFiles(t *testing.T) {
 
 	input := servicetypes.Service{
 		Name:        "my-service",
-		Type:        pointers.From("web_service"),
+		Type:        svcType(servicetypes.ServiceTypeWebService),
 		Image:       pointers.From("docker.io/org/app:latest"),
 		SecretFiles: []string{"app-secret:" + secretPath},
 	}
@@ -103,7 +104,7 @@ func TestBuildCreateRequest_FromCLIInput_ParsesSecretFiles(t *testing.T) {
 func TestBuildCreateRequest_FromCLIInput_SecretFileReadError(t *testing.T) {
 	input := servicetypes.Service{
 		Name:        "my-service",
-		Type:        pointers.From("web_service"),
+		Type:        svcType(servicetypes.ServiceTypeWebService),
 		Image:       pointers.From("docker.io/org/app:latest"),
 		SecretFiles: []string{"app-secret:/definitely/missing"},
 	}
@@ -117,9 +118,9 @@ func TestBuildCreateRequest(t *testing.T) {
 	t.Run("non-static service includes serviceDetails", func(t *testing.T) {
 		input := servicetypes.Service{
 			Name:    "my-service",
-			Type:    pointers.From("web_service"),
+			Type:    svcType(servicetypes.ServiceTypeWebService),
 			Image:   pointers.From("nginx:latest"),
-			Runtime: pointers.From("image"),
+			Runtime: svcRuntime(servicetypes.ServiceRuntimeImage),
 		}
 
 		body, err := BuildCreateRequest(input, "tea-abc123")
@@ -134,7 +135,7 @@ func TestBuildCreateRequest(t *testing.T) {
 	t.Run("static sites do not require runtime", func(t *testing.T) {
 		input := servicetypes.Service{
 			Name:             "my-static-site",
-			Type:             pointers.From("static_site"),
+			Type:             svcType(servicetypes.ServiceTypeStaticSite),
 			Repo:             pointers.From("https://github.com/org/site"),
 			BuildCommand:     pointers.From("npm run build"),
 			PublishDirectory: pointers.From("dist"),
@@ -153,9 +154,9 @@ func TestBuildCreateRequest(t *testing.T) {
 	t.Run("explicit runtime is applied to serviceDetails", func(t *testing.T) {
 		input := servicetypes.Service{
 			Name:    "my-service",
-			Type:    pointers.From("web_service"),
+			Type:    svcType(servicetypes.ServiceTypeWebService),
 			Image:   pointers.From("nginx:latest"),
-			Runtime: pointers.From("node"),
+			Runtime: svcRuntime(servicetypes.ServiceRuntimeNode),
 		}
 
 		body, err := BuildCreateRequest(input, "tea-abc123")
@@ -170,9 +171,9 @@ func TestBuildCreateRequest(t *testing.T) {
 	t.Run("web service maps build and start commands to native env specific details", func(t *testing.T) {
 		input := servicetypes.Service{
 			Name:         "my-service",
-			Type:         pointers.From("web_service"),
+			Type:         svcType(servicetypes.ServiceTypeWebService),
 			Repo:         pointers.From("https://github.com/org/repo"),
-			Runtime:      pointers.From("node"),
+			Runtime:      svcRuntime(servicetypes.ServiceRuntimeNode),
 			BuildCommand: pointers.From("npm ci"),
 			StartCommand: pointers.From("npm run start"),
 		}
@@ -194,9 +195,9 @@ func TestBuildCreateRequest(t *testing.T) {
 	t.Run("web service with docker runtime maps registry credential to docker details", func(t *testing.T) {
 		input := servicetypes.Service{
 			Name:               "my-service",
-			Type:               pointers.From("web_service"),
+			Type:               svcType(servicetypes.ServiceTypeWebService),
 			Repo:               pointers.From("https://github.com/org/repo"),
-			Runtime:            pointers.From("docker"),
+			Runtime:            svcRuntime(servicetypes.ServiceRuntimeDocker),
 			RegistryCredential: pointers.From("rgc-123"),
 		}
 
@@ -216,9 +217,9 @@ func TestBuildCreateRequest(t *testing.T) {
 	t.Run("cron job maps cron-command to native env specific start command", func(t *testing.T) {
 		input := servicetypes.Service{
 			Name:         "my-cron",
-			Type:         pointers.From("cron_job"),
+			Type:         svcType(servicetypes.ServiceTypeCronJob),
 			Repo:         pointers.From("https://github.com/org/repo"),
-			Runtime:      pointers.From("ruby"),
+			Runtime:      svcRuntime(servicetypes.ServiceRuntimeRuby),
 			CronCommand:  pointers.From("echo hello"),
 			CronSchedule: pointers.From("*/5 * * * *"),
 			BuildCommand: pointers.From("npm ci"),
@@ -241,9 +242,9 @@ func TestBuildCreateRequest(t *testing.T) {
 	t.Run("empty optional fields are omitted", func(t *testing.T) {
 		cliInput := servicetypes.Service{
 			Name:          "my-service",
-			Type:          pointers.From("web_service"),
+			Type:          svcType(servicetypes.ServiceTypeWebService),
 			Repo:          pointers.From("https://github.com/org/repo"),
-			Runtime:       pointers.From("node"),
+			Runtime:       svcRuntime(servicetypes.ServiceRuntimeNode),
 			Branch:        pointers.From(""),
 			Image:         pointers.From(""),
 			EnvironmentID: pointers.From(""),
@@ -261,13 +262,30 @@ func TestBuildCreateRequest(t *testing.T) {
 	t.Run("returns error for unsupported service type", func(t *testing.T) {
 		input := servicetypes.Service{
 			Name:    "my-service",
-			Type:    pointers.From("unsupported"),
+			Type:    svcTypeRaw("unsupported"),
 			Repo:    pointers.From("https://github.com/org/repo"),
-			Runtime: pointers.From("node"),
+			Runtime: svcRuntime(servicetypes.ServiceRuntimeNode),
 		}
 
 		_, err := BuildCreateRequest(input, "tea-abc123")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "must be one of")
 	})
+}
+
+func svcType(value servicetypes.ServiceType) *servicetypes.ServiceType {
+	return &value
+}
+
+func svcTypeRaw(value string) *servicetypes.ServiceType {
+	st := servicetypes.ServiceType(value)
+	return &st
+}
+
+func svcRuntime(value servicetypes.ServiceRuntime) *servicetypes.ServiceRuntime {
+	return &value
+}
+
+func svcRegion(value types.Region) *types.Region {
+	return &value
 }

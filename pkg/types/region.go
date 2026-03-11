@@ -42,6 +42,6 @@ func ParseRegion(value string) (Region, error) {
 	return "", fmt.Errorf("region must be one of: %s", strings.Join(RegionValues(), ", "))
 }
 
-func OptionalRegion(value *string) (*Region, error) {
-	return ParseOptional(value, ParseRegion)
+func OptionalRegion[S ~string](value *S) (*Region, error) {
+	return ParseOptionalString(value, ParseRegion)
 }

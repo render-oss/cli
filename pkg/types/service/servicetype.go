@@ -3,6 +3,8 @@ package service
 import (
 	"fmt"
 	"strings"
+
+	types "github.com/render-oss/cli/pkg/types"
 )
 
 type ServiceType string
@@ -40,4 +42,8 @@ func ParseServiceType(value string) (ServiceType, error) {
 	}
 
 	return "", fmt.Errorf("type must be one of: %s", strings.Join(ServiceTypeValues(), ", "))
+}
+
+func OptionalServiceType[S ~string](value *S) (*ServiceType, error) {
+	return types.ParseOptionalString(value, ParseServiceType)
 }

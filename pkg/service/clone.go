@@ -75,7 +75,7 @@ func extractCloneSourceDefaults(source *client.Service) sourceDefaults {
 }
 
 func applyBaseDefaults(input *servicetypes.Service, defaults sourceDefaults) {
-	input.Type = withDefaultFromValue(input.Type, defaults.serviceType)
+	input.Type = withDefaultFromValue(input.Type, servicetypes.ServiceType(defaults.serviceType))
 	input.RootDirectory = withDefault(input.RootDirectory, defaults.rootDirectory)
 	input.EnvironmentID = withDefault(input.EnvironmentID, defaults.environmentID)
 }
@@ -112,7 +112,7 @@ func applyRuntimeDefaults(input *servicetypes.Service, defaults sourceDefaults) 
 		return
 	}
 
-	input.Runtime = withDefaultFromValue(input.Runtime, *defaults.runtime)
+	input.Runtime = withDefaultFromValue(input.Runtime, servicetypes.ServiceRuntime(*defaults.runtime))
 }
 
 func applyRegistryCredentialDefault(input *servicetypes.Service, defaults sourceDefaults) {
@@ -136,8 +136,11 @@ func withDefault(dst *string, src *string) *string {
 	return pointers.From(*src)
 }
 
-func withDefaultFromValue[S ~string](dst *string, src S) *string {
-	return withDefault(dst, pointers.From(string(src)))
+func withDefaultFromValue[T ~string](dst *T, src T) *T {
+	if dst != nil {
+		return dst
+	}
+	return pointers.From(src)
 }
 
 // RuntimeFromSourceService extracts runtime from a service when that service type has a runtime field.

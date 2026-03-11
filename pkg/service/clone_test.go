@@ -32,12 +32,12 @@ func TestCLIInputFromSource(t *testing.T) {
 
 		ServiceFromAPI(&input, source)
 
-		require.Equal(t, "web_service", *input.Type)
+		require.Equal(t, servicetypes.ServiceType("web_service"), *input.Type)
 		require.Equal(t, "https://github.com/renderinc/api", *input.Repo)
 		require.Equal(t, "master", *input.Branch)
 		require.Equal(t, "services/api", *input.RootDirectory)
 		require.Equal(t, "evm-123", *input.EnvironmentID)
-		require.Equal(t, "node", *input.Runtime)
+		require.Equal(t, servicetypes.ServiceRuntime("node"), *input.Runtime)
 	})
 
 	t.Run("hydrates image-backed defaults", func(t *testing.T) {
@@ -61,7 +61,7 @@ func TestCLIInputFromSource(t *testing.T) {
 
 		require.Equal(t, "docker.io/org/app:latest", *input.Image)
 		require.Equal(t, "rgc-123", *input.RegistryCredential)
-		require.Equal(t, "image", *input.Runtime)
+		require.Equal(t, servicetypes.ServiceRuntime("image"), *input.Runtime)
 	})
 
 	t.Run("hydrates docker runtime registry credential from docker details", func(t *testing.T) {
@@ -95,7 +95,7 @@ func TestCLIInputFromSource(t *testing.T) {
 
 		ServiceFromAPI(&input, source)
 
-		require.Equal(t, "docker", *input.Runtime)
+		require.Equal(t, servicetypes.ServiceRuntime("docker"), *input.Runtime)
 		require.Equal(t, "rgc-456", *input.RegistryCredential)
 	})
 
@@ -119,12 +119,12 @@ func TestCLIInputFromSource(t *testing.T) {
 
 		ServiceFromAPI(&input, source)
 
-		require.Equal(t, "background_worker", *input.Type)
+		require.Equal(t, servicetypes.ServiceType("background_worker"), *input.Type)
 		require.Equal(t, "https://github.com/renderinc/worker", *input.Repo)
 		require.Equal(t, "main", *input.Branch)
 		require.Equal(t, "workers/processor", *input.RootDirectory)
 		require.Equal(t, "evm-456", *input.EnvironmentID)
-		require.Equal(t, "python", *input.Runtime)
+		require.Equal(t, servicetypes.ServiceRuntime("python"), *input.Runtime)
 	})
 
 	t.Run("hydrates static site defaults", func(t *testing.T) {
@@ -147,7 +147,7 @@ func TestCLIInputFromSource(t *testing.T) {
 
 		ServiceFromAPI(&input, source)
 
-		require.Equal(t, "static_site", *input.Type)
+		require.Equal(t, servicetypes.ServiceType("static_site"), *input.Type)
 		require.Equal(t, "https://github.com/renderinc/docs", *input.Repo)
 		require.Equal(t, "main", *input.Branch)
 		require.Equal(t, "website", *input.RootDirectory)
@@ -182,18 +182,18 @@ func TestCLIInputFromSource(t *testing.T) {
 		input := servicetypes.Service{
 			Name:    "clone-explicit",
 			From:    pointers.From("srv-source"),
-			Type:    pointers.From("private_service"),
+			Type:    svcTypeRaw("private_service"),
 			Repo:    pointers.From("https://github.com/org/custom"),
 			Branch:  pointers.From("feature-x"),
-			Runtime: pointers.From("docker"),
+			Runtime: svcRuntime(servicetypes.ServiceRuntimeDocker),
 		}
 
 		ServiceFromAPI(&input, source)
 
-		require.Equal(t, "private_service", *input.Type)
+		require.Equal(t, servicetypes.ServiceType("private_service"), *input.Type)
 		require.Equal(t, "https://github.com/org/custom", *input.Repo)
 		require.Equal(t, "feature-x", *input.Branch)
-		require.Equal(t, "docker", *input.Runtime)
+		require.Equal(t, servicetypes.ServiceRuntime("docker"), *input.Runtime)
 	})
 
 	t.Run("does not copy repo defaults when image is explicitly provided", func(t *testing.T) {
@@ -214,7 +214,7 @@ func TestCLIInputFromSource(t *testing.T) {
 		require.Equal(t, "docker.io/custom/image:latest", *input.Image)
 		require.Nil(t, input.Repo)
 		require.Nil(t, input.Branch)
-		require.Equal(t, "image", *input.Runtime)
+		require.Equal(t, servicetypes.ServiceRuntime("image"), *input.Runtime)
 	})
 
 	t.Run("does not copy image defaults when repo is explicitly provided", func(t *testing.T) {
