@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"gopkg.in/yaml.v3"
 )
 
@@ -365,6 +366,11 @@ func copyFile(src, dst string) error {
 
 // InitGitRepo initializes a new git repository in dir.
 func InitGitRepo(dir string) error {
-	_, err := git.PlainInit(dir, false)
+	_, err := git.PlainInitWithOptions(dir, &git.PlainInitOptions{
+		InitOptions: git.InitOptions{
+			DefaultBranch: plumbing.Main,
+		},
+		Bare: false,
+	})
 	return err
 }

@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -323,4 +325,19 @@ buildCommand: test-install
 	got, err := os.ReadFile(filepath.Join(outDir, "main.py"))
 	require.NoError(t, err)
 	assert.Equal(t, expectedContent, string(got))
+}
+
+func TestInitGitRepoUsesMainAsDefaultBranch(t *testing.T) {
+	dir := t.TempDir()
+
+	err := InitGitRepo(dir)
+	require.NoError(t, err)
+
+	repo, err := git.PlainOpen(dir)
+	require.NoError(t, err)
+
+	head, err := repo.Reference(plumbing.HEAD, false)
+	require.NoError(t, err)
+	assert.Equal(t, plumbing.SymbolicReference, head.Type())
+	assert.Equal(t, plumbing.Main, head.Target())
 }
