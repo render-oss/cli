@@ -71,7 +71,7 @@ func (r *PrintStatusReporter) TaskRunning(taskRun *store.TaskRun) {
 
 func (r *PrintStatusReporter) TaskCompleted(taskRun *store.TaskRun) {
 	status := renderstyle.Status.Foreground(renderstyle.ColorOK).Render("Completed")
-	r.print(r.formatWithDuration("%s %s: %s", taskRun), r.taskLabel(taskRun), status, r.describeTaskRun(taskRun))
+	r.print(r.formatWithDuration("%s %s: %s output=%s", taskRun), r.taskLabel(taskRun), status, r.describeTaskRun(taskRun), formatTaskRunOutput(taskRun))
 }
 
 func (r *PrintStatusReporter) TaskFailed(taskRun *store.TaskRun) {
@@ -188,6 +188,26 @@ func formatTaskRunInput(taskRun *store.TaskRun) string {
 		return buf.String()
 	}
 	return string(taskRun.Input)
+}
+
+const maxOutputDisplayLen = 500
+
+func formatTaskRunOutput(taskRun *store.TaskRun) string {
+	if taskRun == nil || len(taskRun.Output) == 0 {
+		return "null"
+	}
+
+	var buf bytes.Buffer
+	if err := json.Compact(&buf, taskRun.Output); err != nil {
+		buf.Reset()
+		buf.Write(taskRun.Output)
+	}
+
+	s := buf.String()
+	if len(s) > maxOutputDisplayLen {
+		return s[:maxOutputDisplayLen] + "... (truncated)"
+	}
+	return s
 }
 
 func (r *PrintStatusReporter) formatWithDuration(format string, taskRun *store.TaskRun) string {

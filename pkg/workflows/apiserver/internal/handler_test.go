@@ -119,7 +119,7 @@ func TestListTaskRuns(t *testing.T) {
 		got := internal.ListTaskRuns(store, tasks[0].ID)
 
 		require.Equal(t, 1, len(got))
-		require.Equal(t, tasks[0].ID, got[0].TaskId)
+		require.Equal(t, tasks[0].ID, got[0].TaskRun.TaskId)
 	})
 
 	t.Run("by task name", func(t *testing.T) {
@@ -135,7 +135,7 @@ func TestListTaskRuns(t *testing.T) {
 		got := internal.ListTaskRuns(store, "test")
 
 		require.Equal(t, 1, len(got))
-		require.Equal(t, tasks[0].ID, got[0].TaskId)
+		require.Equal(t, tasks[0].ID, got[0].TaskRun.TaskId)
 	})
 
 	t.Run("all task runs when taskID is empty", func(t *testing.T) {
