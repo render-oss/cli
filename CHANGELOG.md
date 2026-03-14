@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.14.0] - 2026-03-13
+
+### Added
+
+- Support for IP allow list, previews, and additional service fields in `services create`
+- `workflows init` command for scaffolding new workflow projects from templates
+- Added local workflows task output to local task server logs
+
+### Changed
+- Reformatted CLI help output with new visual styles
+
+### Fixed
+- Fixed flag parsing to preserve user intent by treating unset flags as nil
+- Fixed local workflows task runs not being visible in interactive list
+
+## [2.13.0] - 2026-03-9
+
+### Added
+
+- `services create` command to create services via the CLI
+
 ## [2.12.0] - 2026-03-05
 
 ### Added
