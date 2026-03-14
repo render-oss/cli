@@ -356,7 +356,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 			form := huh.NewForm(
 				huh.NewGroup(
 					huh.NewSelect[string]().
-						Title("Initialize a new git repository?").
+						Title("Initialize a new Git repository?").
 						Description("(optional)").
 						Options(
 							huh.NewOption("Yes", "yes"),
@@ -428,7 +428,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 		steps = append(steps, SetupStep{
 			Label:       "Git repository initialized",
 			FailLabel:   "Git initialization failed",
-			ActiveLabel: "Initializing git repository...",
+			ActiveLabel: "Initializing Git repository...",
 			Run: func() error {
 				gitDir := filepath.Join(absDir, ".git")
 				if _, statErr := os.Stat(gitDir); !os.IsNotExist(statErr) {
@@ -462,7 +462,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 			command.Println(r.cmd, "  %s Dependencies installed", ok.Render("✓"))
 		}
 		if gitInitialized {
-			command.Println(r.cmd, "  %s Initialized git repository", ok.Render("✓"))
+			command.Println(r.cmd, "  %s Initialized Git repository", ok.Render("✓"))
 		}
 	}
 

@@ -213,7 +213,7 @@ func init() {
 	workflowInitCmd.Flags().String("template", "", "Template to scaffold (defaults to the repo's default template)")
 	workflowInitCmd.Flags().String("dir", "", "Output directory (default: workflows-demo)")
 	workflowInitCmd.Flags().Bool("install-deps", false, "Install dependencies after scaffolding")
-	workflowInitCmd.Flags().Bool("git", false, "Initialize a git repository")
+	workflowInitCmd.Flags().Bool("git", false, "Initialize a Git repository")
 	workflowInitCmd.Flags().Bool("install-agent-skill", false, "Install the Workflows agent skill for detected AI coding tools")
 
 	// --output doesn't apply to this command (output is always text/interactive)

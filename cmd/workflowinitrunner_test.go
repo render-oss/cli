@@ -243,6 +243,21 @@ func TestRunnerNonInteractive_GitInitErrorIsFatal(t *testing.T) {
 	assert.Contains(t, err.Error(), "git not installed")
 }
 
+func TestRunnerNonInteractive_GitSummaryUsesGitNaming(t *testing.T) {
+	runner, output := newNonInteractiveRunner(&mockInitDeps{})
+
+	dir := t.TempDir() + "/output"
+	err := runner.Run(context.Background(), WorkflowInitInput{
+		Language: "python",
+		Dir:      dir,
+		Git:      true,
+	})
+	require.NoError(t, err)
+
+	assert.Contains(t, output.String(), "Initialized Git repository")
+	assert.NotContains(t, output.String(), "Initialized git repository")
+}
+
 func TestRunnerNonInteractive_LocalRepoOverrideSkipsClone(t *testing.T) {
 	cloneCalled := false
 	deps := &mockInitDeps{

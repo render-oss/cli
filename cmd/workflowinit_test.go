@@ -107,3 +107,7 @@ func TestFormatNextSteps_InterpolatesDirPlaceholder(t *testing.T) {
 	assert.NotContains(t, out, "{{dir}}")
 	assert.Contains(t, out, "./my-workflows")
 }
+
+func TestWorkflowInitCmd_GitFlagUsesGitNaming(t *testing.T) {
+	assert.Equal(t, "Initialize a Git repository", workflowInitCmd.Flag("git").Usage)
+}
