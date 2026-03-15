@@ -6,17 +6,26 @@ func IsNonZeroString(s *string) bool {
 	return s != nil && *s != ""
 }
 
-func OptionalNonZeroString(value *string) *string {
-	if !IsNonZeroString(value) {
+// TrimOptionalString trims whitespace from a *string but preserves the pointer.
+func TrimOptionalString(value *string) *string {
+	if value == nil {
 		return nil
 	}
 	trimmed := strings.TrimSpace(*value)
-	if trimmed == "" {
-		return nil
-	}
 	return &trimmed
 }
 
+// OptionalNonZeroString trims whitespace and converts empty/whitespace strings to nil.
+func OptionalNonZeroString(value *string) *string {
+	trimmed := TrimOptionalString(value)
+	if trimmed == nil || *trimmed == "" {
+		return nil
+	}
+	return trimmed
+}
+
+// TrimmedNonEmpty trims whitespace from a plain string and reports if
+// the result is non-empty.
 func TrimmedNonEmpty(value string) (string, bool) {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
