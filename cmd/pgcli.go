@@ -54,13 +54,11 @@ func init() {
 	pgcliCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 		var input views.PSQLInput
-		err := command.ParseCommandInteractiveOnly(cmd, args, &input)
-		if err != nil {
-			return err
-		}
 
-		if cmd.ArgsLenAtDash() == 0 {
-			input.PostgresIDOrName = ""
+		input.Tool = views.PGCLI
+
+		if len(args) > 0 && cmd.ArgsLenAtDash() != 0 {
+			input.PostgresIDOrName = args[0]
 		}
 
 		if cmd.ArgsLenAtDash() >= 0 {
