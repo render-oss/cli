@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.15.0] - 2026-03-23
+
+### Added
+
+- `services update` command to update service configuration (name, branch, image, build/start commands, auto-deploy, and more)
+- Input validation for `postgres create` and `postgres update` commands
+
+### Changed
+
+- `workflows init` defaults the Git repository branch to `main`
+- `workflows init` now generates `.gitignore` and `.env.example` files when the template doesn't include them
+
+### Fixed
+
+- Fixed object ID validation accepting IDs with extra characters prepended (e.g., `xsrv-...`)
+
 ## [2.14.0] - 2026-03-13
 
 ### Added
