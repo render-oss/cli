@@ -306,6 +306,18 @@ func Scaffold(opts Options) (*Result, error) {
 		return nil, err
 	}
 
+	// Generate .gitignore if the template didn't provide one
+	createdFiles, err = writeIfNotExists(opts.Dir, ".gitignore", gitignoreContent(opts.Language), createdFiles)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create .gitignore: %w", err)
+	}
+
+	// Generate .env.example if the template didn't provide one
+	createdFiles, err = writeIfNotExists(opts.Dir, ".env.example", envExampleContent(), createdFiles)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create .env.example: %w", err)
+	}
+
 	// Support the old "additionalNextSteps" key as a fallback
 	nextSteps := meta.NextSteps
 	if len(nextSteps) == 0 && len(meta.LegacyNextSteps) > 0 {
@@ -362,6 +374,41 @@ func copyFile(src, dst string) error {
 
 	_, err = io.Copy(dstFile, srcFile)
 	return err
+}
+
+// writeIfNotExists writes content to a file in dir only if it doesn't already
+// exist (e.g. provided by the template). If written, the filename is appended
+// to files and the updated slice is returned.
+func writeIfNotExists(dir, name, content string, files []string) ([]string, error) {
+	destPath := filepath.Join(dir, name)
+	if _, err := os.Stat(destPath); err == nil {
+		return files, nil // already exists from template
+	}
+	if err := os.WriteFile(destPath, []byte(content), 0o644); err != nil {
+		return files, err
+	}
+	return append(files, name), nil
+}
+
+// gitignoreContent returns the .gitignore contents for the given language.
+func gitignoreContent(lang Language) string {
+	var b strings.Builder
+	b.WriteString("dist/\n")
+	b.WriteString(".env\n")
+	b.WriteString(".DS_Store\n")
+	switch lang {
+	case Python:
+		b.WriteString(".venv/\n")
+		b.WriteString("__pycache__/\n")
+	case TypeScript:
+		b.WriteString("node_modules/\n")
+	}
+	return b.String()
+}
+
+// envExampleContent returns the .env.example file contents.
+func envExampleContent() string {
+	return "RENDER_API_KEY=\n"
 }
 
 // InitGitRepo initializes a new git repository in dir.

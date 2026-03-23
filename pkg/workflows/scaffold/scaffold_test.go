@@ -194,10 +194,10 @@ nextSteps:
 	assert.Equal(t, "render-workflows main:app", result.RenderStartCommand)
 	require.Len(t, result.NextSteps, 1)
 
-	expectedFiles := []string{"README.md", "main.py", "requirements.txt"}
+	expectedFiles := []string{"README.md", "main.py", "requirements.txt", ".gitignore", ".env.example"}
 	require.Len(t, result.Files, len(expectedFiles))
-	for i, f := range expectedFiles {
-		assert.Equal(t, f, result.Files[i])
+	for _, f := range expectedFiles {
+		assert.Contains(t, result.Files, f)
 
 		info, err := os.Stat(filepath.Join(outDir, f))
 		require.NoError(t, err, "expected file %s to exist", f)
@@ -229,11 +229,10 @@ startCommand: npx tsx src/index.ts
 	assert.Equal(t, TypeScript, result.Language)
 	assert.Equal(t, "npx tsx src/index.ts", result.StartCommand)
 
-	// WalkDir produces sorted order: README.md, package.json, src/index.ts, tsconfig.json
-	expectedFiles := []string{"README.md", "package.json", "src/index.ts", "tsconfig.json"}
+	expectedFiles := []string{"README.md", "package.json", "src/index.ts", "tsconfig.json", ".gitignore", ".env.example"}
 	require.Len(t, result.Files, len(expectedFiles))
-	for i, f := range expectedFiles {
-		assert.Equal(t, f, result.Files[i])
+	for _, f := range expectedFiles {
+		assert.Contains(t, result.Files, f)
 
 		info, err := os.Stat(filepath.Join(outDir, f))
 		require.NoError(t, err, "expected file %s to exist", f)
@@ -325,6 +324,86 @@ buildCommand: test-install
 	got, err := os.ReadFile(filepath.Join(outDir, "main.py"))
 	require.NoError(t, err)
 	assert.Equal(t, expectedContent, string(got))
+}
+
+func TestScaffoldCreatesGitignore(t *testing.T) {
+	tests := []struct {
+		name   string
+		lang   Language
+		wantIn []string
+	}{
+		{"Python", Python, []string{"dist/", ".env", ".venv/", "__pycache__/"}},
+		{"TypeScript", TypeScript, []string{"dist/", ".env", "node_modules/"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			meta := "name: Test\nbuildCommand: test\n"
+			repoDir := setupFakeRepo(t, "test", meta, map[string]string{
+				"app.txt": "hello\n",
+			})
+
+			outDir := filepath.Join(t.TempDir(), "workflows")
+			_, err := Scaffold(Options{
+				Language:     tt.lang,
+				TemplateName: "test",
+				Dir:          outDir,
+				RepoDir:      repoDir,
+			})
+			require.NoError(t, err)
+
+			got, err := os.ReadFile(filepath.Join(outDir, ".gitignore"))
+			require.NoError(t, err)
+			for _, entry := range tt.wantIn {
+				assert.Contains(t, string(got), entry)
+			}
+		})
+	}
+}
+
+func TestScaffoldCreatesEnvExample(t *testing.T) {
+	meta := "name: Test\nbuildCommand: test\n"
+	repoDir := setupFakeRepo(t, "test", meta, map[string]string{
+		"app.txt": "hello\n",
+	})
+
+	outDir := filepath.Join(t.TempDir(), "workflows")
+	_, err := Scaffold(Options{
+		Language:     Python,
+		TemplateName: "test",
+		Dir:          outDir,
+		RepoDir:      repoDir,
+	})
+	require.NoError(t, err)
+
+	got, err := os.ReadFile(filepath.Join(outDir, ".env.example"))
+	require.NoError(t, err)
+	assert.Contains(t, string(got), "RENDER_API_KEY=")
+}
+
+func TestScaffoldDoesNotOverwriteTemplateFiles(t *testing.T) {
+	meta := "name: Test\nbuildCommand: test\n"
+	repoDir := setupFakeRepo(t, "test", meta, map[string]string{
+		"app.txt":      "hello\n",
+		".gitignore":   "custom-ignore\n",
+		".env.example": "CUSTOM_VAR=foo\n",
+	})
+
+	outDir := filepath.Join(t.TempDir(), "workflows")
+	_, err := Scaffold(Options{
+		Language:     Python,
+		TemplateName: "test",
+		Dir:          outDir,
+		RepoDir:      repoDir,
+	})
+	require.NoError(t, err)
+
+	gotGitignore, err := os.ReadFile(filepath.Join(outDir, ".gitignore"))
+	require.NoError(t, err)
+	assert.Equal(t, "custom-ignore\n", string(gotGitignore))
+
+	gotEnv, err := os.ReadFile(filepath.Join(outDir, ".env.example"))
+	require.NoError(t, err)
+	assert.Equal(t, "CUSTOM_VAR=foo\n", string(gotEnv))
 }
 
 func TestInitGitRepoUsesMainAsDefaultBranch(t *testing.T) {
