@@ -200,6 +200,18 @@ func TestParseCommand(t *testing.T) {
 			require.Error(t, err)
 		})
 	})
+	t.Run("undefined flags does not fail", func(t *testing.T) {
+		type testStruct struct {
+			Foo string `cli:"foo"`
+		}
+		var v testStruct
+		// command has no flags and args defined
+		cmd := &cobra.Command{}
+
+		err := command.ParseCommand(cmd, []string{}, &v)
+		require.NoError(t, err)
+
+	})
 }
 
 func TestInputToString(t *testing.T) {
