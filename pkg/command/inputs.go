@@ -58,11 +58,15 @@ func getStringValue(flags *pflag.FlagSet, args []string, tag string) (*string, e
 		}
 	}
 
-	if flag := flags.Lookup(tag); flag != nil {
-		if flag.Value.Type() == EnumType {
-			val := flag.Value.String()
-			return &val, nil
-		}
+	flag := flags.Lookup(tag)
+
+	if flag == nil {
+		return nil, nil
+	}
+
+	if flag.Value.Type() == EnumType {
+		val := flag.Value.String()
+		return &val, nil
 	}
 
 	val, err := flags.GetString(tag)
