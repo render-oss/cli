@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.1] - 2026-03-27
+
+### Fixed
+
+- Fixed CLI flag parsing to handle undefined flags gracefully instead of failing
+- Fixed a bug where workflow development mode was not properly filtering task runs
+
 ## [2.15.0] - 2026-03-23
 
 ### Added
