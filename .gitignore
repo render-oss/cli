@@ -1,5 +1,7 @@
 .idea
 *.iml
+# generated during release workflow
+release-notes.md
 # binaries for local testing
 render-cli
 render
