@@ -30,10 +30,23 @@ jobs:
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
+      - name: Extract release notes from CHANGELOG.md
+        id: release_notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if bin/extract-release-notes.sh "$VERSION" CHANGELOG.md > release-notes.md; then
+            printf '\n---\n**Full Changelog:** [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)\n' >> release-notes.md
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::No CHANGELOG.md entry found for ${VERSION}. Release will be created without notes."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@5742e2a039330cbb23ebf35f046f814d4c6ff811 # v5.1.0
         with:
-          args: release --clean
+          args: >-
+            release --clean
+            ${{ steps.release_notes.outputs.found == 'true' && '--release-notes=release-notes.md' || '' }}
         env:
           # GitHub sets the GITHUB_TOKEN secret automatically.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
