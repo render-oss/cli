@@ -174,8 +174,8 @@ func (h *ServerHandler) RunTask(w http.ResponseWriter, r *http.Request) {
 func (h *ServerHandler) ListTaskRuns(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	taskID := r.URL.Query().Get("taskId")
-	json.NewEncoder(w).Encode(internal.ListTaskRuns(h.taskStore, taskID))
+	taskName := r.URL.Query().Get("taskSlug")
+	json.NewEncoder(w).Encode(internal.ListTaskRuns(h.taskStore, taskName))
 }
 
 func (h *ServerHandler) GetTaskRun(w http.ResponseWriter, r *http.Request) {

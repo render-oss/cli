@@ -176,21 +176,21 @@ func (s *TaskStore) GetTasks() []*Task {
 	return tasks
 }
 
-func (s *TaskStore) GetTaskRuns(taskID string) []*TaskRun {
+func (s *TaskStore) GetTaskRuns(taskNameOrID string) []*TaskRun {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// Resolve taskID to task name, matching by ID first, then by name
 	var taskName string
 	for _, task := range s.tasks {
-		if task.ID == taskID {
+		if task.ID == taskNameOrID {
 			taskName = task.Name
 			break
 		}
 	}
 	if taskName == "" {
 		for _, task := range s.tasks {
-			if task.Name == taskID {
+			if task.Name == taskNameOrID {
 				taskName = task.Name
 				break
 			}
