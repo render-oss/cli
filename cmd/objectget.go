@@ -37,11 +37,9 @@ var objectGetCmd = &cobra.Command{
 	Short: "Download a file from object storage",
 	Long: `Download a file from object storage.
 
-If --file is not specified, the object content is written to stdout,
-which is useful for piping to other commands.
+If --file is not specified, the object content is written to stdout, which is useful for piping to other commands.
 
-In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true),
-files are read from the .render/objects/ directory.
+In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true), files are read from the .render/objects/ directory.
 
 Examples:
   render ea objects get my/object/key --file=/path/to/output.txt --region=oregon

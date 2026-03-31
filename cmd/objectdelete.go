@@ -39,11 +39,9 @@ var objectDeleteCmd = &cobra.Command{
 	Short: "Delete one or more objects from storage",
 	Long: `Delete one or more objects from storage.
 
-This operation is irreversible. By default, you will be prompted for confirmation
-unless you specify the --yes flag.
+This operation is irreversible. By default, you will be prompted for confirmation unless you specify the --yes flag.
 
-In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true),
-files are deleted from the .render/objects/ directory.
+In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true), files are deleted from the .render/objects/ directory.
 
 Examples:
   render ea objects delete my/object/key --region=oregon

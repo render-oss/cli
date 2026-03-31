@@ -39,11 +39,9 @@ var objectPutCmd = &cobra.Command{
 	Short: "Upload a file to object storage",
 	Long: `Upload a file to object storage.
 
-The key is the path/name under which the object will be stored. Keys can include
-path-like structures (e.g., "uploads/images/photo.jpg").
+The key is the path/name under which the object will be stored. Keys can include path-like structures (e.g., "uploads/images/photo.jpg").
 
-In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true),
-files are stored in the .render/objects/ directory.
+In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true), files are stored in the .render/objects/ directory.
 
 Examples:
   render ea objects put my/object/key --file=/path/to/file.txt --region=oregon

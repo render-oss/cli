@@ -37,8 +37,7 @@ var objectListCmd = &cobra.Command{
 
 Displays object keys, content types, sizes, and last modified timestamps.
 
-In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true),
-lists files from the .render/objects/ directory.
+In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true), lists files from the .render/objects/ directory.
 
 Examples:
   render ea objects list --region=oregon

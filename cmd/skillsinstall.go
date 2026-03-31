@@ -21,8 +21,7 @@ type SkillsInstallInput struct {
 var skillsInstallCmd = &cobra.Command{
 	Use:   "install",
 	Short: "Install Render skills to AI coding tools",
-	Long: `Install Render agent skills from https://github.com/render-oss/skills to
-detected AI coding tools.
+	Long: `Install Render agent skills from https://github.com/render-oss/skills to detected AI coding tools.
 
 Supported tools: Claude Code, Codex, OpenCode, Cursor.
 

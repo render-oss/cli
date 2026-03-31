@@ -11,9 +11,7 @@ import (
 var skillsListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List installed Render skills and detected tools",
-	Long: `Show which Render skills are currently installed and which AI coding tools
-they are installed to. This reads from local state only — no network
-access is required.
+	Long: `Show which Render skills are currently installed and which AI coding tools they are installed to. This reads from local state only — no network access is required.
 
 Use --scope to filter by installation scope (user or project).`,
 	SilenceUsage: true,

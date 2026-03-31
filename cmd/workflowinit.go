@@ -30,14 +30,9 @@ var workflowInitCmd = &cobra.Command{
 	Short: "Scaffold a new workflows project",
 	Long: `Scaffold a new workflows project with example tasks.
 
-Creates a working example project with task definitions, dependencies,
-and a README with instructions for local development and Client SDK
-integration.
+Creates a working example project with task definitions, dependencies, and a README with instructions for local development and Client SDK integration.
 
-In interactive mode you'll be prompted to select a language, template,
-output directory, and optional features. Use --confirm to skip all
-prompts and accept defaults, or pass individual flags to skip specific
-prompts.
+In interactive mode you'll be prompted to select a language, template, output directory, and optional features. Use --confirm to skip all prompts and accept defaults, or pass individual flags to skip specific prompts.
 
 Examples:
   render workflows init

@@ -11,11 +11,9 @@ import (
 var skillsUpdateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Update previously installed Render skills",
-	Long: `Re-install Render skills using the tool and skill selections saved by
-a previous "render skills install" run.
+	Long: `Re-install Render skills using the tool and skill selections saved by a previous "render skills install" run.
 
-This fetches the latest version of each selected skill from the skills
-repository, compares with installed versions, and updates any that have changed.
+This fetches the latest version of each selected skill from the skills repository, compares with installed versions, and updates any that have changed.
 
 Use --scope to update skills at a specific scope (user or project).`,
 	SilenceUsage: true,

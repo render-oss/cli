@@ -13,11 +13,9 @@ import (
 var skillsCmd = &cobra.Command{
 	Use:   "skills",
 	Short: "Manage Render agent skills for AI coding tools",
-	Long: `Install and manage Render agent skills for AI coding tools such as
-Claude Code, Codex, OpenCode, and Cursor.
+	Long: `Install and manage Render agent skills for AI coding tools such as Claude Code, Codex, OpenCode, and Cursor.
 
-Skills add deployment, debugging, and monitoring capabilities to your
-AI coding assistant.`,
+Skills add deployment, debugging, and monitoring capabilities to your AI coding assistant.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 		stack := tui.GetStackFromContext(ctx)

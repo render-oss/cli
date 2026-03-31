@@ -18,8 +18,8 @@ func WorkspaceSetCmd(deps flows.WorkspaceFlowDeps) *cobra.Command {
 		Short: "Set the CLI's active workspace",
 		Long: `Set the CLI's active workspace. All CLI commands run against the active workspace.
 
-	The active workspace is saved in a config file specified by the RENDER_CLI_CONFIG_PATH environment variable.
-	If unspecified, the config file is saved in $HOME/.render/cli.yaml.`,
+The active workspace is saved in a config file specified by the RENDER_CLI_CONFIG_PATH environment variable.
+If unspecified, the config file is saved in $HOME/.render/cli.yaml.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) >= 1 {
 				workspaceIDOrName := args[0]

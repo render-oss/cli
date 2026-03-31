@@ -38,12 +38,9 @@ var workflowDevCmd = &cobra.Command{
 	SilenceUsage: true,
 	Long: `Start a workflow service in development mode for local testing.
 
-This command runs your workflow service locally on port 8120, allowing you to list and run
-tasks without deploying to Render. Task runs and their logs are stored in memory, so you
-can query them after tasks complete.
+This command runs your workflow service locally on port 8120, allowing you to list and run tasks without deploying to Render. Task runs and their logs are stored in memory, so you can query them after tasks complete.
 
-The command will spawn a new subprocess with your specified command whenever it needs to
-run a task or list the defined tasks.
+The command will spawn a new subprocess with your specified command whenever it needs to run a task or list the defined tasks.
 
 To interact with the local task server:
   • Use the --local flag with other task commands (e.g., 'render workflows tasks list --local')

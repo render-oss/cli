@@ -18,9 +18,7 @@ func NewVersionListCmd(deps flows.WorkflowDeps) *cobra.Command {
 		Short: "List versions of a workflow",
 		Long: `List all versions of a workflow service.
 
-Each time you release a workflow service, Render creates a new workflow version. A version
-represents a specific snapshot of your workflow service code and its registered tasks at
-the time of release.
+Each time you release a workflow service, Render creates a new workflow version. A version represents a specific snapshot of your workflow service code and its registered tasks at the time of release.
 
 This command displays all versions for a workflow, showing:
   • Version ID

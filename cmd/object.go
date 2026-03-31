@@ -9,15 +9,11 @@ var objectCmd = &cobra.Command{
 	Short: "Manage object storage",
 	Long: `Manage object storage for your Render services.
 
-Object storage allows you to store and retrieve arbitrary data. Use these commands
-to list, upload, download, and delete objects.
+Object storage allows you to store and retrieve arbitrary data. Use these commands to list, upload, download, and delete objects.
 
-The --region flag specifies which region to use. Alternatively, set the
-RENDER_REGION environment variable. The --region flag takes precedence
-if both are provided.
+The --region flag specifies which region to use. Alternatively, set the RENDER_REGION environment variable. The --region flag takes precedence if both are provided.
 
-When using the --local flag, objects are stored in the .render/objects/ directory
-instead of cloud storage.
+When using the --local flag, objects are stored in the .render/objects/ directory instead of cloud storage.
 
 Available commands:
   list     - List objects in storage
