@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"slices"
+	"sort"
 
 	"github.com/render-oss/cli/pkg/client"
 	logclient "github.com/render-oss/cli/pkg/client/logs"
@@ -15,6 +16,10 @@ import (
 
 func ListTasks(store *store.TaskStore) []*client.TaskWithCursor {
 	tasks := store.GetTasks()
+
+	sort.Slice(tasks, func(i, j int) bool {
+		return tasks[i].ID < tasks[j].ID
+	})
 
 	taskList := make([]*client.TaskWithCursor, len(tasks))
 	for i, task := range tasks {
