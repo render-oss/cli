@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -80,6 +81,54 @@ type WorkflowInitRunner struct {
 	cmd         *cobra.Command
 }
 
+func truncateDisplayWidth(s string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return ""
+	}
+	if lipgloss.Width(s) <= maxWidth {
+		return s
+	}
+
+	const ellipsis = "…"
+	ellipsisWidth := lipgloss.Width(ellipsis)
+	if maxWidth <= ellipsisWidth {
+		return ellipsis
+	}
+
+	available := maxWidth - ellipsisWidth
+	var b strings.Builder
+	used := 0
+	for _, r := range s {
+		rw := lipgloss.Width(string(r))
+		if used+rw > available {
+			break
+		}
+		b.WriteRune(r)
+		used += rw
+	}
+
+	return b.String() + ellipsis
+}
+
+func expandHomePath(path string) (string, error) {
+	if path == "" || path[0] != '~' {
+		return path, nil
+	}
+	if path != "~" && len(path) > 1 && path[1] != '/' && path[1] != '\\' {
+		// Keep "~user/..." unchanged; we only support current-user home expansion.
+		return path, nil
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve home directory: %w", err)
+	}
+	if path == "~" {
+		return home, nil
+	}
+	return filepath.Join(home, path[2:]), nil
+}
+
 // prePrompt prints a blank line before an interactive prompt for visual spacing.
 func (r *WorkflowInitRunner) prePrompt() {
 	command.Println(r.cmd, "")
@@ -92,6 +141,14 @@ func (r *WorkflowInitRunner) postPrompt() {
 	if isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()) {
 		fmt.Fprintf(r.cmd.OutOrStdout(), "\033[A\033[2K")
 	}
+}
+
+func (r *WorkflowInitRunner) handlePromptError(err error) error {
+	if errors.Is(err, huh.ErrUserAborted) {
+		command.Println(r.cmd, "Setup canceled.")
+		return nil
+	}
+	return err
 }
 
 // Run executes the full init flow: resolve templates, prompt for options
@@ -126,7 +183,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 			),
 		)
 		if err := form.Run(); err != nil {
-			return err
+			return r.handlePromptError(err)
 		}
 		r.postPrompt()
 		input.Language = language
@@ -198,11 +255,27 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 			input.Template = templates[0].DirName
 		} else if r.interactive && !skipPrompts {
 			r.prePrompt()
+			const maxTemplateNameWidth = 20
+			const templateDescriptionGap = "   "
+			templateNameStyle := lipgloss.NewStyle().Bold(true)
+			maxTemplateLabelWidth := 0
+			for _, t := range templates {
+				name := truncateDisplayWidth(t.Name, maxTemplateNameWidth)
+				if w := lipgloss.Width(name); w > maxTemplateLabelWidth {
+					maxTemplateLabelWidth = w
+				}
+			}
+
 			var templateOptions []huh.Option[string]
 			for _, t := range templates {
-				label := t.Name
+				name := truncateDisplayWidth(t.Name, maxTemplateNameWidth)
+				label := templateNameStyle.Render(name)
 				if t.Description != "" {
-					label = fmt.Sprintf("%s — %s", t.Name, t.Description)
+					padding := ""
+					if pad := maxTemplateLabelWidth - lipgloss.Width(name); pad > 0 {
+						padding = strings.Repeat(" ", pad)
+					}
+					label = fmt.Sprintf("%s%s%s%s", label, padding, templateDescriptionGap, t.Description)
 				}
 				templateOptions = append(templateOptions, huh.NewOption(label, t.DirName))
 			}
@@ -217,7 +290,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 				),
 			)
 			if err := form.Run(); err != nil {
-				return err
+				return r.handlePromptError(err)
 			}
 			r.postPrompt()
 			input.Template = selected
@@ -264,17 +337,21 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 			form := huh.NewForm(
 				huh.NewGroup(
 					huh.NewInput().
-						Title("Where should we create your workflows project?").
+						Title("Specify a project directory (must be new or empty)").
 						Value(&dir),
 				),
 			)
 			if err := form.Run(); err != nil {
-				return err
+				return r.handlePromptError(err)
 			}
 			r.postPrompt()
 			input.Dir = dir
 
-			absDir, err := filepath.Abs(input.Dir)
+			expandedDir, err := expandHomePath(input.Dir)
+			if err != nil {
+				return err
+			}
+			absDir, err := filepath.Abs(expandedDir)
 			if err != nil {
 				return fmt.Errorf("failed to resolve path: %w", err)
 			}
@@ -298,7 +375,11 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 
 	input.Dir = strings.TrimPrefix(input.Dir, "./")
 
-	absDir, err := filepath.Abs(input.Dir)
+	expandedDir, err := expandHomePath(input.Dir)
+	if err != nil {
+		return err
+	}
+	absDir, err := filepath.Abs(expandedDir)
 	if err != nil {
 		return fmt.Errorf("failed to resolve path: %w", err)
 	}
@@ -319,7 +400,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 		form := huh.NewForm(
 			huh.NewGroup(
 				huh.NewSelect[string]().
-					Title("Install dependencies?").
+					Title("Install project dependencies?").
 					Description("(recommended)").
 					Options(
 						huh.NewOption("Yes", "yes"),
@@ -329,7 +410,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 			),
 		)
 		if err := form.Run(); err != nil {
-			return err
+			return r.handlePromptError(err)
 		}
 		r.postPrompt()
 		wantDeps = installDeps == "yes"
@@ -357,7 +438,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 				huh.NewGroup(
 					huh.NewSelect[string]().
 						Title("Initialize a new Git repository?").
-						Description("(optional)").
+						Description("(recommended)").
 						Options(
 							huh.NewOption("Yes", "yes"),
 							huh.NewOption("No", "no"),
@@ -366,7 +447,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 				),
 			)
 			if err := form.Run(); err != nil {
-				return err
+				return r.handlePromptError(err)
 			}
 			r.postPrompt()
 			wantGit = initGit == "yes"

@@ -34,7 +34,7 @@ func CancelJob(ctx context.Context, input JobCancelInput) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to cancel job: %w", err)
 	}
-	return fmt.Sprintf("Job %s successfully cancelled", input.JobID), nil
+	return fmt.Sprintf("Job %s successfully canceled", input.JobID), nil
 }
 
 func RequireConfirmationForCancelJob(ctx context.Context, input JobCancelInput) (string, error) {

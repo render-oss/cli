@@ -61,7 +61,7 @@ Examples:
 		// Prompt for confirmation unless --yes is specified or non-interactive
 		if !input.Yes && command.IsInteractive(cmd.Context()) {
 			if !confirmDelete(input.Keys) {
-				fmt.Println("Delete cancelled.")
+				fmt.Println("Delete canceled.")
 				return nil
 			}
 		}

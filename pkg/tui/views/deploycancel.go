@@ -33,7 +33,7 @@ func CancelDeploy(ctx context.Context, input DeployCancelInput) (string, error) 
 	if err != nil {
 		return "", fmt.Errorf("failed to cancel deploy: %w", err)
 	}
-	return fmt.Sprintf("Deploy %s successfully cancelled", input.DeployID), nil
+	return fmt.Sprintf("Deploy %s successfully canceled", input.DeployID), nil
 }
 
 func RequireConfirmationForCancelDeploy(ctx context.Context, input DeployCancelInput) (string, error) {

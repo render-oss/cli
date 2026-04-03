@@ -23,7 +23,7 @@ type WorkflowInitInput struct {
 	InstallAgentSkill bool   `cli:"install-agent-skill"`
 }
 
-const defaultDir = "workflows-demo"
+const defaultDir = "./workflows-demo"
 
 var workflowInitCmd = &cobra.Command{
 	Use:   "init",
@@ -206,7 +206,7 @@ func formatNextSteps(result *scaffold.Result, relDir string) string {
 func init() {
 	workflowInitCmd.Flags().String("language", "", "Language for the workflows project (python, node)")
 	workflowInitCmd.Flags().String("template", "", "Template to scaffold (defaults to the repo's default template)")
-	workflowInitCmd.Flags().String("dir", "", "Output directory (default: workflows-demo)")
+	workflowInitCmd.Flags().String("dir", "", "Output directory (default: ./workflows-demo)")
 	workflowInitCmd.Flags().Bool("install-deps", false, "Install dependencies after scaffolding")
 	workflowInitCmd.Flags().Bool("git", false, "Initialize a Git repository")
 	workflowInitCmd.Flags().Bool("install-agent-skill", false, "Install the Workflows agent skill for detected AI coding tools")
