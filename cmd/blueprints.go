@@ -6,8 +6,8 @@ import (
 
 var blueprintsCmd = &cobra.Command{
 	Use:     "blueprints",
-	Short:   "Manage blueprints",
-	Long:    `Manage blueprint files (render.yaml) including validation.`,
+	Short:   "Manage Blueprints",
+	Long:    `Manage Blueprint files (render.yaml) including validation.`,
 	GroupID: GroupManagement.ID,
 }
 

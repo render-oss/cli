@@ -20,7 +20,7 @@ import (
 var blueprintValidateCmd = &cobra.Command{
 	Use:   "validate [file]",
 	Short: "Validate a render.yaml file",
-	Long: `Validate a render.yaml blueprint file for errors before committing.
+	Long: `Validate a render.yaml Blueprint file for errors before committing.
 
 Validates:
   - YAML syntax
@@ -112,7 +112,7 @@ func runBlueprintValidate(ctx context.Context, cmd *cobra.Command, args []string
 		&body,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to validate blueprint: %w", err)
+		return fmt.Errorf("failed to validate Blueprint: %w", err)
 	}
 
 	if resp.StatusCode() != 200 {
