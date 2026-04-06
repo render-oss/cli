@@ -26,6 +26,8 @@ DESTINATION_FILES = [
 
 DESTINATION_FILES_EXCLUDE = [
   ".github/workflows/copybara-push.yaml",
+  ".github/workflows/cli-json-export.yaml",
+  "tools/generate-cli-json-export/**",
 ]
 
 DEFAULT_COMITTER = "Render Engineering <dev-public@render.com>"
