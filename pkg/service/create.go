@@ -147,7 +147,7 @@ func buildServiceDetails(
 		if err != nil {
 			return nil, err
 		}
-		ipAllowList, err := parseIPAllowListInputs(cliInput.IPAllowList)
+		ipAllowList, err := ParseIPAllowListInputs(cliInput.IPAllowList)
 		if err != nil {
 			return nil, err
 		}
@@ -233,7 +233,7 @@ func buildServiceDetails(
 			return nil, err
 		}
 	case client.StaticSite:
-		ipAllowList, err := parseIPAllowListInputs(cliInput.IPAllowList)
+		ipAllowList, err := ParseIPAllowListInputs(cliInput.IPAllowList)
 		if err != nil {
 			return nil, err
 		}
@@ -370,13 +370,13 @@ func buildFilterFromInputs(paths []string, ignoredPaths []string) *client.BuildF
 	}
 }
 
-func parseIPAllowListInputs(raw []string) (*[]client.CidrBlockAndDescription, error) {
+func ParseIPAllowListInputs(raw []string) (*[]client.CidrBlockAndDescription, error) {
 	if len(raw) == 0 {
 		return nil, nil
 	}
 	entries := make([]client.CidrBlockAndDescription, 0, len(raw))
 	for _, entry := range raw {
-		cidr, description, err := servicetypes.ParseIPAllowListEntry(entry)
+		cidr, description, err := types.ParseIPAllowListEntry(entry)
 		if err != nil {
 			return nil, err
 		}

@@ -312,7 +312,7 @@ func formatIPAllowListEntries(entries []client.CidrBlockAndDescription) []string
 	}
 	parsed := make([]string, 0, len(entries))
 	for _, entry := range entries {
-		parsed = append(parsed, servicetypes.FormatIPAllowListEntry(entry.CidrBlock, entry.Description))
+		parsed = append(parsed, types.FormatIPAllowListEntry(entry.CidrBlock, entry.Description))
 	}
 	return parsed
 }

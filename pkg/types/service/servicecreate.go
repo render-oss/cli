@@ -127,7 +127,7 @@ func (s ServiceCreateInput) validateNormalized(isInteractive bool) error {
 	}
 
 	for _, entry := range s.IPAllowList {
-		if _, _, err := ParseIPAllowListEntry(entry); err != nil {
+		if _, _, err := types.ParseIPAllowListEntry(entry); err != nil {
 			return err
 		}
 	}
