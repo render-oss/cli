@@ -5,6 +5,7 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/validate"
 )
 
 type Repo struct {
@@ -66,4 +67,47 @@ func (r *Repo) GetKeyValueConnectionInfo(ctx context.Context, id string) (*clien
 	}
 
 	return resp.JSON200, nil
+}
+
+func (r *Repo) CreateKeyValue(ctx context.Context, data client.CreateKeyValueJSONRequestBody) (*client.KeyValueDetail, error) {
+	if err := validate.WorkspaceMatches(data.OwnerId); err != nil {
+		return nil, err
+	}
+
+	resp, err := r.client.CreateKeyValueWithResponse(ctx, data)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+
+	return resp.JSON201, nil
+}
+
+func (r *Repo) UpdateKeyValue(ctx context.Context, id string, data client.UpdateKeyValueJSONRequestBody) (*client.KeyValueDetail, error) {
+	resp, err := r.client.UpdateKeyValueWithResponse(ctx, id, data)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+
+	return resp.JSON200, nil
+}
+
+func (r *Repo) DeleteKeyValue(ctx context.Context, id string) error {
+	resp, err := r.client.DeleteKeyValueWithResponse(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return err
+	}
+
+	return nil
 }
