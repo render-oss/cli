@@ -124,6 +124,7 @@ type Task struct {
 // TaskAttempt defines model for TaskAttempt.
 type TaskAttempt struct {
 	CompletedAt *time.Time    `json:"completedAt,omitempty"`
+	EnqueuedAt  *time.Time    `json:"enqueuedAt,omitempty"`
 	StartedAt   time.Time     `json:"startedAt"`
 	Status      TaskRunStatus `json:"status"`
 }
@@ -131,6 +132,7 @@ type TaskAttempt struct {
 // TaskAttemptDetails defines model for TaskAttemptDetails.
 type TaskAttemptDetails struct {
 	CompletedAt *time.Time `json:"completedAt,omitempty"`
+	EnqueuedAt  *time.Time `json:"enqueuedAt,omitempty"`
 
 	// Error Error message if the task attempt failed.
 	Error     *string        `json:"error,omitempty"`

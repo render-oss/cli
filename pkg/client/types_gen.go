@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	externalRef0 "github.com/render-oss/cli/pkg/client/autoscaling"
 	externalRef1 "github.com/render-oss/cli/pkg/client/blueprints"
 	externalRef2 "github.com/render-oss/cli/pkg/client/disks"
@@ -22,9 +23,10 @@ import (
 	externalRef9 "github.com/render-oss/cli/pkg/client/metrics"
 	externalRef10 "github.com/render-oss/cli/pkg/client/notifications"
 	externalRef11 "github.com/render-oss/cli/pkg/client/postgres"
-	externalRef12 "github.com/render-oss/cli/pkg/client/storage"
-	externalRef13 "github.com/render-oss/cli/pkg/client/webhooks"
-	externalRef14 "github.com/render-oss/cli/pkg/client/workflows"
+	externalRef12 "github.com/render-oss/cli/pkg/client/sandboxes"
+	externalRef13 "github.com/render-oss/cli/pkg/client/storage"
+	externalRef14 "github.com/render-oss/cli/pkg/client/webhooks"
+	externalRef15 "github.com/render-oss/cli/pkg/client/workflows"
 )
 
 const (
@@ -462,6 +464,11 @@ const (
 	ListPostgresParamsSuspendedSuspended    ListPostgresParamsSuspended = "suspended"
 )
 
+// Defines values for CreateSandboxParamsAccept.
+const (
+	CreateSandboxParamsAcceptTexteventStream CreateSandboxParamsAccept = "text/event-stream"
+)
+
 // Defines values for ListServicesParamsSuspended.
 const (
 	ListServicesParamsSuspendedNotSuspended ListServicesParamsSuspended = "not_suspended"
@@ -494,7 +501,7 @@ const (
 
 // Defines values for StreamTaskRunsEventsParamsAccept.
 const (
-	TexteventStream StreamTaskRunsEventsParamsAccept = "text/event-stream"
+	StreamTaskRunsEventsParamsAcceptTexteventStream StreamTaskRunsEventsParamsAccept = "text/event-stream"
 )
 
 // DeployMode Controls deployment behavior when triggering a deploy.
@@ -1841,6 +1848,12 @@ type RouteWithCursor struct {
 	Route  Route  `json:"route"`
 }
 
+// SandboxWithCursor A sandbox with a cursor
+type SandboxWithCursor struct {
+	Cursor  Cursor                `json:"cursor"`
+	Sandbox externalRef12.Sandbox `json:"sandbox"`
+}
+
 // SecretFile defines model for secretFile.
 type SecretFile struct {
 	Content string `json:"content"`
@@ -2081,13 +2094,13 @@ type SyncWithCursor struct {
 // TaskRunWithCursor defines model for taskRunWithCursor.
 type TaskRunWithCursor struct {
 	Cursor  Cursor                `json:"cursor"`
-	TaskRun externalRef14.TaskRun `json:"taskRun"`
+	TaskRun externalRef15.TaskRun `json:"taskRun"`
 }
 
 // TaskWithCursor defines model for taskWithCursor.
 type TaskWithCursor struct {
 	Cursor Cursor             `json:"cursor"`
-	Task   externalRef14.Task `json:"task"`
+	Task   externalRef15.Task `json:"task"`
 }
 
 // TeamMember defines model for teamMember.
@@ -2230,25 +2243,25 @@ type WebServiceDetailsPOST struct {
 // WebhookEventWithCursor defines model for webhookEventWithCursor.
 type WebhookEventWithCursor struct {
 	Cursor       Cursor                     `json:"cursor"`
-	WebhookEvent externalRef13.WebhookEvent `json:"webhookEvent"`
+	WebhookEvent externalRef14.WebhookEvent `json:"webhookEvent"`
 }
 
 // WebhookWithCursor defines model for webhookWithCursor.
 type WebhookWithCursor struct {
 	Cursor  Cursor                `json:"cursor"`
-	Webhook externalRef13.Webhook `json:"webhook"`
+	Webhook externalRef14.Webhook `json:"webhook"`
 }
 
 // WorkflowVersionWithCursor defines model for workflowVersionWithCursor.
 type WorkflowVersionWithCursor struct {
 	Cursor          Cursor                        `json:"cursor"`
-	WorkflowVersion externalRef14.WorkflowVersion `json:"workflowVersion"`
+	WorkflowVersion externalRef15.WorkflowVersion `json:"workflowVersion"`
 }
 
 // WorkflowWithCursor defines model for workflowWithCursor.
 type WorkflowWithCursor struct {
 	Cursor   Cursor                 `json:"cursor"`
-	Workflow externalRef14.Workflow `json:"workflow"`
+	Workflow externalRef15.Workflow `json:"workflow"`
 }
 
 // AuditLogLimitParam Defaults to 20
@@ -3397,6 +3410,33 @@ type UpdateRegistryCredentialJSONBody struct {
 	Username string                     `json:"username"`
 }
 
+// ListSandboxesParams defines parameters for ListSandboxes.
+type ListSandboxesParams struct {
+	// OwnerId The ID of the workspaces to return resources for
+	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
+
+	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Status Filter by sandbox status.
+	Status *[]externalRef12.SandboxStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// CreateSandboxParams defines parameters for CreateSandbox.
+type CreateSandboxParams struct {
+	// IdempotencyKey UUID v4 idempotency key to safely retry sandbox creation.
+	IdempotencyKey *openapi_types.UUID `json:"Idempotency-Key,omitempty"`
+
+	// Accept Must be `text/event-stream`.
+	Accept *CreateSandboxParamsAccept `json:"Accept,omitempty"`
+}
+
+// CreateSandboxParamsAccept defines parameters for CreateSandbox.
+type CreateSandboxParamsAccept string
+
 // ListServicesParams defines parameters for ListServices.
 type ListServicesParams struct {
 	// Name Filter by name
@@ -3687,19 +3727,19 @@ type ListTaskRunsParams struct {
 	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// TaskSlug An array of task slugs in the format workflow-slug/task-name. An optional version can be appended (workflow-slug/task-name:version). If no version is provided, the latest version is used.
-	TaskSlug *externalRef14.TaskSlugFilterParam `form:"taskSlug,omitempty" json:"taskSlug,omitempty"`
+	TaskSlug *externalRef15.TaskSlugFilterParam `form:"taskSlug,omitempty" json:"taskSlug,omitempty"`
 
 	// RootTaskRunId An array of root task run IDs to filter on
-	RootTaskRunId *externalRef14.RootTaskRunIDFilterParam `form:"rootTaskRunId,omitempty" json:"rootTaskRunId,omitempty"`
+	RootTaskRunId *externalRef15.RootTaskRunIDFilterParam `form:"rootTaskRunId,omitempty" json:"rootTaskRunId,omitempty"`
 
 	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// WorkflowVersionId An array of workflow version IDs
-	WorkflowVersionId *externalRef14.WorkflowVersionIDFilterParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`
+	WorkflowVersionId *externalRef15.WorkflowVersionIDFilterParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`
 
 	// WorkflowId An array of workflow IDs
-	WorkflowId *externalRef14.WorkflowIDFilterParam `form:"workflowId,omitempty" json:"workflowId,omitempty"`
+	WorkflowId *externalRef15.WorkflowIDFilterParam `form:"workflowId,omitempty" json:"workflowId,omitempty"`
 }
 
 // StreamTaskRunsEventsParams defines parameters for StreamTaskRunsEvents.
@@ -3726,13 +3766,13 @@ type ListTasksParams struct {
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// TaskSlug An array of task slugs in the format workflow-slug/task-name. An optional version can be appended (workflow-slug/task-name:version). If no version is provided, the latest version is used.
-	TaskSlug *externalRef14.TaskSlugFilterParam `form:"taskSlug,omitempty" json:"taskSlug,omitempty"`
+	TaskSlug *externalRef15.TaskSlugFilterParam `form:"taskSlug,omitempty" json:"taskSlug,omitempty"`
 
 	// WorkflowVersionId An array of workflow version IDs
-	WorkflowVersionId *externalRef14.WorkflowVersionIDFilterParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`
+	WorkflowVersionId *externalRef15.WorkflowVersionIDFilterParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`
 
 	// WorkflowId An array of workflow IDs
-	WorkflowId *externalRef14.WorkflowIDFilterParam `form:"workflowId,omitempty" json:"workflowId,omitempty"`
+	WorkflowId *externalRef15.WorkflowIDFilterParam `form:"workflowId,omitempty" json:"workflowId,omitempty"`
 }
 
 // ListWebhooksParams defines parameters for ListWebhooks.
@@ -3750,10 +3790,10 @@ type ListWebhooksParams struct {
 // ListWebhookEventsParams defines parameters for ListWebhookEvents.
 type ListWebhookEventsParams struct {
 	// SentBefore Filter events sent before this time (specified as an ISO 8601 timestamp)
-	SentBefore *externalRef13.SentBeforeParam `form:"sentBefore,omitempty" json:"sentBefore,omitempty"`
+	SentBefore *externalRef14.SentBeforeParam `form:"sentBefore,omitempty" json:"sentBefore,omitempty"`
 
 	// SentAfter Filter for resources sent after a certain time (specified as an ISO 8601 timestamp)
-	SentAfter *externalRef13.SentAfterParam `form:"sentAfter,omitempty" json:"sentAfter,omitempty"`
+	SentAfter *externalRef14.SentAfterParam `form:"sentAfter,omitempty" json:"sentAfter,omitempty"`
 
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
@@ -3862,7 +3902,7 @@ type PatchServiceNotificationOverridesJSONRequestBody = externalRef10.Notificati
 type PatchOwnerNotificationSettingsJSONRequestBody = externalRef10.NotificationSettingPATCH
 
 // PutObjectJSONRequestBody defines body for PutObject for application/json ContentType.
-type PutObjectJSONRequestBody = externalRef12.PutObjectInput
+type PutObjectJSONRequestBody = externalRef13.PutObjectInput
 
 // UpdateWorkspaceMemberJSONRequestBody defines body for UpdateWorkspaceMember for application/json ContentType.
 type UpdateWorkspaceMemberJSONRequestBody UpdateWorkspaceMemberJSONBody
@@ -3896,6 +3936,9 @@ type CreateRegistryCredentialJSONRequestBody CreateRegistryCredentialJSONBody
 
 // UpdateRegistryCredentialJSONRequestBody defines body for UpdateRegistryCredential for application/json ContentType.
 type UpdateRegistryCredentialJSONRequestBody UpdateRegistryCredentialJSONBody
+
+// CreateSandboxJSONRequestBody defines body for CreateSandbox for application/json ContentType.
+type CreateSandboxJSONRequestBody = externalRef12.SandboxPOST
 
 // CreateServiceJSONRequestBody defines body for CreateService for application/json ContentType.
 type CreateServiceJSONRequestBody = ServicePOST
@@ -3952,22 +3995,22 @@ type UpdateSecretFilesForServiceJSONRequestBody = UpdateSecretFilesForServiceJSO
 type AddOrUpdateSecretFileJSONRequestBody AddOrUpdateSecretFileJSONBody
 
 // CreateTaskJSONRequestBody defines body for CreateTask for application/json ContentType.
-type CreateTaskJSONRequestBody = externalRef14.RunTask
+type CreateTaskJSONRequestBody = externalRef15.RunTask
 
 // CreateWebhookJSONRequestBody defines body for CreateWebhook for application/json ContentType.
-type CreateWebhookJSONRequestBody = externalRef13.WebhookPOSTInput
+type CreateWebhookJSONRequestBody = externalRef14.WebhookPOSTInput
 
 // UpdateWebhookJSONRequestBody defines body for UpdateWebhook for application/json ContentType.
-type UpdateWebhookJSONRequestBody = externalRef13.WebhookPATCHInput
+type UpdateWebhookJSONRequestBody = externalRef14.WebhookPATCHInput
 
 // CreateWorkflowJSONRequestBody defines body for CreateWorkflow for application/json ContentType.
-type CreateWorkflowJSONRequestBody = externalRef14.WorkflowCreate
+type CreateWorkflowJSONRequestBody = externalRef15.WorkflowCreate
 
 // UpdateWorkflowJSONRequestBody defines body for UpdateWorkflow for application/json ContentType.
-type UpdateWorkflowJSONRequestBody = externalRef14.WorkflowUpdate
+type UpdateWorkflowJSONRequestBody = externalRef15.WorkflowUpdate
 
 // CreateWorkflowVersionJSONRequestBody defines body for CreateWorkflowVersion for application/json ContentType.
-type CreateWorkflowVersionJSONRequestBody = externalRef14.CreateVersion
+type CreateWorkflowVersionJSONRequestBody = externalRef15.CreateVersion
 
 // AsEnvVarValue returns the union data inside the AddUpdateEnvVarInput as a EnvVarValue
 func (t AddUpdateEnvVarInput) AsEnvVarValue() (EnvVarValue, error) {
