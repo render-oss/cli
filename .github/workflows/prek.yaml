@@ -29,6 +29,6 @@ jobs:
           go install mvdan.cc/sh/v3/cmd/shfmt@latest
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
-      - uses: j178/prek-action@v1
+      - uses: j178/prek-action@0bb87d7f00b0c99306c8bcb8b8beba1eb581c037  # v1 (v1.1.1)
         with:
           extra-args: '--all-files --verbose'
