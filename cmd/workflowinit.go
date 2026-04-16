@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -155,6 +156,36 @@ func formatNextSteps(result *scaffold.Result, relDir string) string {
 		}
 	}
 
+	placeholderStyle := lipgloss.NewStyle().
+		Foreground(renderstyle.ColorWarning).
+		Bold(true)
+
+	formatMultilineStep := func(n int, label string, cmdLines []string, hint string) {
+		styledLabel := lipgloss.NewStyle().Bold(true).Width(labelWidth).Render(label)
+		fmt.Fprintf(&b, "%s%s %s\n", outerIndent, info.Render(fmt.Sprintf("%d.", n)), styledLabel)
+		if len(cmdLines) > 0 {
+			fmt.Fprintf(&b, "%s%s %s\n", indent, dim.Render("$"), cmdStyle.Render(cmdLines[0]))
+			contIndent := indent + "  "
+			for _, line := range cmdLines[1:] {
+				// Highlight placeholders in a different color
+				if idx := strings.Index(line, "<"); idx >= 0 {
+					if end := strings.Index(line[idx:], ">"); end >= 0 {
+						placeholder := line[idx : idx+end+1]
+						styled := cmdStyle.Render(line[:idx]) +
+							placeholderStyle.Render(placeholder) +
+							cmdStyle.Render(line[idx+end+1:])
+						fmt.Fprintf(&b, "%s%s\n", contIndent, styled)
+						continue
+					}
+				}
+				fmt.Fprintf(&b, "%s%s\n", contIndent, cmdStyle.Render(line))
+			}
+		}
+		if hint != "" {
+			fmt.Fprintf(&b, "%s\n", strings.TrimRight(hintStyle.Render(hint), " \n"))
+		}
+	}
+
 	// Two interpolation modes:
 	// - plain: for command lines where shellWrap counts raw characters
 	// - styled: for labels/hints where lipgloss Width() handles ANSI correctly
@@ -185,7 +216,19 @@ func formatNextSteps(result *scaffold.Result, relDir string) string {
 		return s
 	}
 
-	for i, step := range result.NextSteps {
+	// Filter out the legacy template-defined deploy step. Templates still
+	// include it for compatibility with older CLI versions (up to 2.15.1), but
+	// now the CLI version renders its own deploy step below with a
+	// pre-populated `render workflows create` command.
+	templateSteps := make([]scaffold.NextStep, 0, len(result.NextSteps))
+	for _, step := range result.NextSteps {
+		if step.Label == "Deploy your workflow service to Render" {
+			continue
+		}
+		templateSteps = append(templateSteps, step)
+	}
+
+	for i, step := range templateSteps {
 		if i > 0 {
 			fmt.Fprintf(&b, "\n")
 		}
@@ -196,11 +239,49 @@ func formatNextSteps(result *scaffold.Result, relDir string) string {
 		)
 	}
 
+	// Git & deploy steps: always appended for all templates
+	if len(templateSteps) > 0 {
+		fmt.Fprintf(&b, "\n")
+	}
+
+	formatStep(len(templateSteps)+1, "Push your project repo to your Git provider", "", "Render can pull from GitHub, GitLab, or Bitbucket.")
+	fmt.Fprintf(&b, "\n")
+
+	name := filepath.Base(relDir)
+	deployCmd := buildDeployCommand(name, string(result.Language), result.RenderBuildCommand, result.RenderStartCommand)
+	formatMultilineStep(len(templateSteps)+2,
+		"Deploy your workflow on Render:",
+		deployCmd,
+		"Replace <your-repo-url> with your Git repository URL.",
+	)
+
 	// Call to action
+	fmt.Fprintf(&b, "\n")
 	fmt.Fprintf(&b, "%s%s\n", outerIndent, dim.Render("─────────────────────────────────────────────"))
 	fmt.Fprintf(&b, "%s%s\n", outerIndent, dim.Render("Visit our docs to learn more: https://render.com/docs/workflows"))
 
 	return b.String()
+}
+
+func buildGitCommand() []string {
+	return []string{
+		"Push your project repo to your Git provider",
+		"",
+		"Render can pull from GitHub, GitLab, or Bitbucket.",
+	}
+}
+
+// buildDeployCommand returns the lines of a multi-line `render workflows create`
+// command pre-populated with values from the scaffolded project.
+func buildDeployCommand(name, runtime, buildCmd, runCmd string) []string {
+	return []string{
+		"render workflows create \\",
+		fmt.Sprintf("  --name %q \\", name),
+		fmt.Sprintf("  --runtime %s \\", runtime),
+		fmt.Sprintf("  --build-command %q \\", buildCmd),
+		fmt.Sprintf("  --run-command %q \\", runCmd),
+		"  --repo <your-repo-url>",
+	}
 }
 
 func init() {
