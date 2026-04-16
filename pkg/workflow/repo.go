@@ -43,6 +43,19 @@ func (r *Repo) ListWorkflows(ctx context.Context, params *client.ListWorkflowsPa
 	return workflows, nil
 }
 
+func (r *Repo) CreateWorkflow(ctx context.Context, body client.CreateWorkflowJSONRequestBody) (*wfclient.Workflow, error) {
+	resp, err := r.client.CreateWorkflowWithResponse(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+
+	return resp.JSON201, nil
+}
+
 func (r *Repo) GetWorkflow(ctx context.Context, id string) (*wfclient.Workflow, error) {
 	resp, err := r.client.GetWorkflowWithResponse(ctx, id)
 	if err != nil {

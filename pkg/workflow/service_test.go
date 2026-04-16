@@ -27,6 +27,10 @@ func (m *mockWorkflowRepo) GetWorkflow(ctx context.Context, id string) (*wfclien
 	return m.getWorkflowFn(ctx, id)
 }
 
+func (m *mockWorkflowRepo) CreateWorkflow(ctx context.Context, body client.CreateWorkflowJSONRequestBody) (*wfclient.Workflow, error) {
+	return nil, nil
+}
+
 // mockProjectRepo implements projectRepository for testing.
 type mockProjectRepo struct {
 	listProjectsFn func(ctx context.Context) ([]*client.Project, error)

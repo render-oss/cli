@@ -13,6 +13,7 @@ import (
 type workflowRepository interface {
 	ListWorkflows(ctx context.Context, params *client.ListWorkflowsParams) ([]*wfclient.Workflow, error)
 	GetWorkflow(ctx context.Context, id string) (*wfclient.Workflow, error)
+	CreateWorkflow(ctx context.Context, body client.CreateWorkflowJSONRequestBody) (*wfclient.Workflow, error)
 }
 
 type projectRepository interface {

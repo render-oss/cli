@@ -3,14 +3,15 @@ package dependencies
 import "github.com/spf13/cobra"
 
 type WorkflowCommands struct {
-	VersionCmd        *cobra.Command
-	VersionListCmd    *cobra.Command
-	VersionReleaseCmd *cobra.Command
-	TaskListCmd       *cobra.Command
-	TaskStartCmd      *cobra.Command
-	RunListCmd        *cobra.Command
-	RunDetailsCmd     *cobra.Command
-	WorkflowListCmd   *cobra.Command
+	VersionCmd         *cobra.Command
+	VersionListCmd     *cobra.Command
+	VersionReleaseCmd  *cobra.Command
+	TaskListCmd        *cobra.Command
+	TaskStartCmd       *cobra.Command
+	RunListCmd         *cobra.Command
+	RunDetailsCmd      *cobra.Command
+	WorkflowListCmd    *cobra.Command
+	WorkflowCreateCmd  *cobra.Command
 }
 
 type LogsCommands struct {

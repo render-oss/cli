@@ -13,6 +13,13 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for AutoDeployTrigger.
+const (
+	ChecksPass AutoDeployTrigger = "checksPass"
+	Commit     AutoDeployTrigger = "commit"
+	Off        AutoDeployTrigger = "off"
+)
+
 // Defines values for Region.
 const (
 	Frankfurt Region = "frankfurt"
@@ -51,6 +58,9 @@ const (
 	Registering        WorkflowVersionStatus = "registering"
 	RegistrationFailed WorkflowVersionStatus = "registration_failed"
 )
+
+// AutoDeployTrigger Controls autodeploy behavior. "commit" deploys when a commit is pushed to the branch. "checksPass" waits for CI checks to pass before deploying. "off" disables autodeploy.
+type AutoDeployTrigger string
 
 // BuildConfig defines model for BuildConfig.
 type BuildConfig struct {
@@ -196,12 +206,14 @@ type TaskSlug = string
 
 // Workflow defines model for Workflow.
 type Workflow struct {
-	BuildConfig   BuildConfig `json:"buildConfig"`
-	CreatedAt     time.Time   `json:"createdAt"`
-	EnvironmentId *string     `json:"environmentId,omitempty"`
-	Id            string      `json:"id"`
-	Name          string      `json:"name"`
-	OwnerId       string      `json:"ownerId"`
+	// AutoDeployTrigger Controls autodeploy behavior. "commit" deploys when a commit is pushed to the branch. "checksPass" waits for CI checks to pass before deploying. "off" disables autodeploy.
+	AutoDeployTrigger *AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
+	BuildConfig       BuildConfig        `json:"buildConfig"`
+	CreatedAt         time.Time          `json:"createdAt"`
+	EnvironmentId     *string            `json:"environmentId,omitempty"`
+	Id                string             `json:"id"`
+	Name              string             `json:"name"`
+	OwnerId           string             `json:"ownerId"`
 
 	// Region Defaults to "oregon"
 	Region Region `json:"region"`
@@ -214,9 +226,11 @@ type Workflow struct {
 
 // WorkflowCreate defines model for WorkflowCreate.
 type WorkflowCreate struct {
-	BuildConfig BuildConfig `json:"buildConfig"`
-	Name        string      `json:"name"`
-	OwnerId     string      `json:"ownerId"`
+	// AutoDeployTrigger Controls autodeploy behavior. "commit" deploys when a commit is pushed to the branch. "checksPass" waits for CI checks to pass before deploying. "off" disables autodeploy.
+	AutoDeployTrigger *AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
+	BuildConfig       BuildConfig        `json:"buildConfig"`
+	Name              string             `json:"name"`
+	OwnerId           string             `json:"ownerId"`
 
 	// Region Defaults to "oregon"
 	Region Region `json:"region"`
@@ -227,8 +241,10 @@ type WorkflowCreate struct {
 
 // WorkflowUpdate defines model for WorkflowUpdate.
 type WorkflowUpdate struct {
-	BuildConfig *BuildConfig `json:"buildConfig,omitempty"`
-	Name        *string      `json:"name,omitempty"`
+	// AutoDeployTrigger Controls autodeploy behavior. "commit" deploys when a commit is pushed to the branch. "checksPass" waits for CI checks to pass before deploying. "off" disables autodeploy.
+	AutoDeployTrigger *AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
+	BuildConfig       *BuildConfig       `json:"buildConfig,omitempty"`
+	Name              *string            `json:"name,omitempty"`
 
 	// RunCommand The command to run the workflow
 	RunCommand *string `json:"runCommand,omitempty"`

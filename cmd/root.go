@@ -90,6 +90,9 @@ func setupWorkflowCommands(deps *dependencies.Dependencies) {
 	deps.Commands.Workflow.WorkflowListCmd = NewWorkflowListCmd(deps)
 	WorkflowsCmd.AddCommand(deps.Commands.Workflow.WorkflowListCmd)
 
+	deps.Commands.Workflow.WorkflowCreateCmd = WorkflowCreateCmd
+	WorkflowsCmd.AddCommand(deps.Commands.Workflow.WorkflowCreateCmd)
+
 	taskCmd.AddCommand(deps.Commands.Workflow.TaskListCmd)
 	taskCmd.AddCommand(deps.Commands.Workflow.TaskStartCmd)
 	runsCmd.AddCommand(deps.Commands.Workflow.RunListCmd)
