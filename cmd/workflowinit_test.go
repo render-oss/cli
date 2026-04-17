@@ -112,7 +112,7 @@ func TestFormatNextSteps_InterpolatesDirPlaceholder(t *testing.T) {
 }
 
 func TestWorkflowInitCmd_GitFlagUsesGitNaming(t *testing.T) {
-	assert.Equal(t, "Initialize a Git repository", workflowInitCmd.Flag("git").Usage)
+	assert.Contains(t, workflowInitCmd.Flag("git").Usage, "Initialize a Git repository")
 }
 
 // splitShellArgs splits a command string into args, handling double-quoted values.

@@ -157,6 +157,17 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 	// --confirm skips all interactive prompts, using flags/defaults for everything
 	skipPrompts := command.GetConfirmFromContext(ctx)
 
+	// In non-interactive or --confirm mode, default to installing deps and
+	// initializing git unless the user explicitly set the flags to false.
+	if !r.interactive || skipPrompts {
+		if !r.cmd.Flags().Changed("install-deps") {
+			input.InstallDeps = true
+		}
+		if !r.cmd.Flags().Changed("git") {
+			input.Git = true
+		}
+	}
+
 	if (!r.interactive || skipPrompts) && input.Language == "" {
 		return fmt.Errorf("--language is required when using --confirm or non-interactive mode")
 	}

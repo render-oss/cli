@@ -35,10 +35,12 @@ Creates a working example project with task definitions, dependencies, and a REA
 
 In interactive mode you'll be prompted to select a language, template, output directory, and optional features. Use --confirm to skip all prompts and accept defaults, or pass individual flags to skip specific prompts.
 
+With --confirm or non-interactive output (-o text/json/yaml), dependencies are installed and Git is initialized by default. Pass --install-deps=false or --git=false to opt out.
+
 Examples:
   render workflows init
   render workflows init --confirm --language python
-  render workflows init --language python --dir my-project --install-deps --git
+  render workflows init --confirm --language python --git=false
   render workflows init --language node --dir my-project`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -288,8 +290,8 @@ func init() {
 	workflowInitCmd.Flags().String("language", "", "Language for the workflows project (python, node)")
 	workflowInitCmd.Flags().String("template", "", "Template to scaffold (defaults to the repo's default template)")
 	workflowInitCmd.Flags().String("dir", "", "Output directory (default: ./workflows-demo)")
-	workflowInitCmd.Flags().Bool("install-deps", false, "Install dependencies after scaffolding")
-	workflowInitCmd.Flags().Bool("git", false, "Initialize a Git repository")
+	workflowInitCmd.Flags().Bool("install-deps", false, "Install dependencies after scaffolding (default true with --confirm)")
+	workflowInitCmd.Flags().Bool("git", false, "Initialize a Git repository (default true with --confirm)")
 	workflowInitCmd.Flags().Bool("install-agent-skill", false, "Install the Workflows agent skill for detected AI coding tools")
 
 	// --output doesn't apply to this command (output is always text/interactive)
