@@ -2,6 +2,7 @@ package tui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 )
 
 type FormAction[T any] struct {
@@ -41,10 +42,10 @@ func (fa *FormAction[T]) View() string {
 type FormWithAction[T any] struct {
 	done       bool
 	formAction FormAction[T]
-	huhForm    tea.Model
+	huhForm    *huh.Form
 }
 
-func NewFormWithAction[T any](action FormAction[T], form tea.Model) *FormWithAction[T] {
+func NewFormWithAction[T any](action FormAction[T], form *huh.Form) *FormWithAction[T] {
 	return &FormWithAction[T]{
 		formAction: action,
 		huhForm:    form,
@@ -58,6 +59,12 @@ func (df *FormWithAction[T]) Init() tea.Cmd {
 
 func (df *FormWithAction[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case StackSizeMsg:
+		// Forward dimensions to huh so it can scroll when the form is
+		// taller than the terminal. Without this, fields below the fold
+		// are unreachable.
+		df.huhForm = df.huhForm.WithWidth(msg.Width).WithHeight(msg.Height)
+		return df, nil
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
