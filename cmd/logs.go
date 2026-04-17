@@ -9,11 +9,11 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	lclient "github.com/render-oss/cli/pkg/client/logs"
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/logs"
-	"github.com/render-oss/cli/pkg/tui/flows"
-	"github.com/render-oss/cli/pkg/tui/views"
+	lclient "github.com/render-oss/cli/v2/pkg/client/logs"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/logs"
+	"github.com/render-oss/cli/v2/pkg/tui/flows"
+	"github.com/render-oss/cli/v2/pkg/tui/views"
 )
 
 func NewLogsCmd(deps flows.LogFlowDeps) *cobra.Command {

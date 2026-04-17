@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/render-oss/cli/pkg/pointers"
-	"github.com/render-oss/cli/pkg/workflows/taskserver"
+	"github.com/render-oss/cli/v2/pkg/pointers"
+	"github.com/render-oss/cli/v2/pkg/workflows/taskserver"
 )
 
 type Task struct {

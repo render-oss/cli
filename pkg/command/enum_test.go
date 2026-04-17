@@ -3,7 +3,7 @@ package command_test
 import (
 	"testing"
 
-	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/command"
 	"github.com/stretchr/testify/require"
 )
 

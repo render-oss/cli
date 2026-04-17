@@ -7,15 +7,15 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	workflows "github.com/render-oss/cli/pkg/client/workflows"
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/dashboard"
-	"github.com/render-oss/cli/pkg/pointers"
-	"github.com/render-oss/cli/pkg/resource"
-	"github.com/render-oss/cli/pkg/taskrun"
-	"github.com/render-oss/cli/pkg/tui"
-	"github.com/render-oss/cli/pkg/tui/views"
-	workflowviews "github.com/render-oss/cli/pkg/tui/views/workflows"
+	workflows "github.com/render-oss/cli/v2/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/dashboard"
+	"github.com/render-oss/cli/v2/pkg/pointers"
+	"github.com/render-oss/cli/v2/pkg/resource"
+	"github.com/render-oss/cli/v2/pkg/taskrun"
+	"github.com/render-oss/cli/v2/pkg/tui"
+	"github.com/render-oss/cli/v2/pkg/tui/views"
+	workflowviews "github.com/render-oss/cli/v2/pkg/tui/views/workflows"
 )
 
 type WorkflowDeps interface {

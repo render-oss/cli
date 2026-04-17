@@ -3,8 +3,8 @@ package version
 import (
 	"context"
 
-	"github.com/render-oss/cli/pkg/client"
-	wfclient "github.com/render-oss/cli/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/client"
+	wfclient "github.com/render-oss/cli/v2/pkg/client/workflows"
 )
 
 type Repo struct {

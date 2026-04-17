@@ -5,11 +5,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/skills"
-	renderstyle "github.com/render-oss/cli/pkg/style"
-	"github.com/render-oss/cli/pkg/tui"
-	"github.com/render-oss/cli/pkg/tui/views"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/skills"
+	renderstyle "github.com/render-oss/cli/v2/pkg/style"
+	"github.com/render-oss/cli/v2/pkg/tui"
+	"github.com/render-oss/cli/v2/pkg/tui/views"
 )
 
 var skillsRemoveCmd = &cobra.Command{

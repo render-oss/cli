@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/render-oss/cli/pkg/workflows/logs"
+	"github.com/render-oss/cli/v2/pkg/workflows/logs"
 	"github.com/stretchr/testify/require"
 )
 

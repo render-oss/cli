@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	types "github.com/render-oss/cli/pkg/types"
+	types "github.com/render-oss/cli/v2/pkg/types"
 )
 
 // KeyValueCreateInput is the raw command input parsed from Cobra flags for KV creation.

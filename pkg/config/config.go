@@ -8,7 +8,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/render-oss/cli/pkg/cfg"
+	"github.com/render-oss/cli/v2/pkg/cfg"
 )
 
 const currentVersion = 1

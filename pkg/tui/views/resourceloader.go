@@ -3,8 +3,8 @@ package views
 import (
 	"context"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/resource"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/resource"
 )
 
 type ListResourceInput struct {

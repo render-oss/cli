@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/render-oss/cli/pkg/workflows/store"
-	"github.com/render-oss/cli/pkg/workflows/taskserver"
+	"github.com/render-oss/cli/v2/pkg/workflows/store"
+	"github.com/render-oss/cli/v2/pkg/workflows/taskserver"
 )
 
 type TaskNotFoundError struct {

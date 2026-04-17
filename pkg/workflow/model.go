@@ -1,8 +1,8 @@
 package workflow
 
 import (
-	"github.com/render-oss/cli/pkg/client"
-	wfclient "github.com/render-oss/cli/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/client"
+	wfclient "github.com/render-oss/cli/v2/pkg/client/workflows"
 )
 
 const WorkflowType = "Workflow"

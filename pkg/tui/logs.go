@@ -10,8 +10,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/render-oss/cli/pkg/client"
-	lclient "github.com/render-oss/cli/pkg/client/logs"
+	"github.com/render-oss/cli/v2/pkg/client"
+	lclient "github.com/render-oss/cli/v2/pkg/client/logs"
 )
 
 type LogResult struct {

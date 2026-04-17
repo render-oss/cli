@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/tui"
-	"github.com/render-oss/cli/pkg/tui/views"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/tui"
+	"github.com/render-oss/cli/v2/pkg/tui/views"
 )
 
 func setupTestConfig(t *testing.T, content string) {

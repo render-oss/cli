@@ -11,14 +11,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
-	"github.com/render-oss/cli/pkg/client"
-	workflows "github.com/render-oss/cli/pkg/client/workflows"
-	"github.com/render-oss/cli/pkg/pointers"
-	"github.com/render-oss/cli/pkg/workflows/apiserver/internal"
-	"github.com/render-oss/cli/pkg/workflows/apiserver/internal/serversideevents"
-	"github.com/render-oss/cli/pkg/workflows/logs"
-	"github.com/render-oss/cli/pkg/workflows/orchestrator"
-	"github.com/render-oss/cli/pkg/workflows/store"
+	"github.com/render-oss/cli/v2/pkg/client"
+	workflows "github.com/render-oss/cli/v2/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/pointers"
+	"github.com/render-oss/cli/v2/pkg/workflows/apiserver/internal"
+	"github.com/render-oss/cli/v2/pkg/workflows/apiserver/internal/serversideevents"
+	"github.com/render-oss/cli/v2/pkg/workflows/logs"
+	"github.com/render-oss/cli/v2/pkg/workflows/orchestrator"
+	"github.com/render-oss/cli/v2/pkg/workflows/store"
 )
 
 type ServerHandler struct {

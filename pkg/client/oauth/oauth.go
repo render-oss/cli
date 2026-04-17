@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/render-oss/cli/pkg/cfg"
+	"github.com/render-oss/cli/v2/pkg/cfg"
 )
 
 const cliOauthClientID = "429024F5E608930E2A65EF92591A25CC"

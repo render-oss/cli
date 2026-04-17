@@ -10,17 +10,17 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/render-oss/cli/pkg/client/oauth"
+	"github.com/render-oss/cli/v2/pkg/client/oauth"
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/cfg"
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/client/version"
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/config"
-	"github.com/render-oss/cli/pkg/dashboard"
-	renderstyle "github.com/render-oss/cli/pkg/style"
-	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/v2/pkg/cfg"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/client/version"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/config"
+	"github.com/render-oss/cli/v2/pkg/dashboard"
+	renderstyle "github.com/render-oss/cli/v2/pkg/style"
+	"github.com/render-oss/cli/v2/pkg/tui"
 )
 
 type notLoggedInMsg struct{}

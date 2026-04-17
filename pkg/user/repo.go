@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 
-	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/client"
 )
 
 type Repo struct {

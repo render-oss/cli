@@ -9,12 +9,12 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/exp/teatest"
-	"github.com/render-oss/cli/cmd"
-	"github.com/render-oss/cli/pkg/client"
-	lclient "github.com/render-oss/cli/pkg/client/logs"
-	"github.com/render-oss/cli/pkg/tui"
-	"github.com/render-oss/cli/pkg/tui/testhelper"
-	"github.com/render-oss/cli/pkg/tui/views"
+	"github.com/render-oss/cli/v2/cmd"
+	"github.com/render-oss/cli/v2/pkg/client"
+	lclient "github.com/render-oss/cli/v2/pkg/client/logs"
+	"github.com/render-oss/cli/v2/pkg/tui"
+	"github.com/render-oss/cli/v2/pkg/tui/testhelper"
+	"github.com/render-oss/cli/v2/pkg/tui/views"
 	"github.com/stretchr/testify/require"
 )
 

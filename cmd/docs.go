@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/dashboard"
+	"github.com/render-oss/cli/v2/pkg/dashboard"
 )
 
 var docsCmd = &cobra.Command{

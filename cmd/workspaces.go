@@ -5,14 +5,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/config"
-	"github.com/render-oss/cli/pkg/owner"
-	"github.com/render-oss/cli/pkg/text"
-	"github.com/render-oss/cli/pkg/tui"
-	"github.com/render-oss/cli/pkg/tui/views"
-	"github.com/render-oss/cli/pkg/user"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/config"
+	"github.com/render-oss/cli/v2/pkg/owner"
+	"github.com/render-oss/cli/v2/pkg/text"
+	"github.com/render-oss/cli/v2/pkg/tui"
+	"github.com/render-oss/cli/v2/pkg/tui/views"
+	"github.com/render-oss/cli/v2/pkg/user"
 )
 
 var workspacesCmd = &cobra.Command{

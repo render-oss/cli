@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/render-oss/cli/pkg/client"
-	clientjob "github.com/render-oss/cli/pkg/client/jobs"
-	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/v2/pkg/client"
+	clientjob "github.com/render-oss/cli/v2/pkg/client/jobs"
+	"github.com/render-oss/cli/v2/pkg/pointers"
 )
 
 type Repo struct {

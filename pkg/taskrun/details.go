@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
-	wfclient "github.com/render-oss/cli/pkg/client/workflows"
-	"github.com/render-oss/cli/pkg/tui"
+	wfclient "github.com/render-oss/cli/v2/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/tui"
 )
 
 func TaskRunDetailsFormat(taskRun *wfclient.TaskRunDetails) []tui.KeyValue {

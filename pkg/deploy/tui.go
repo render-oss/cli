@@ -5,10 +5,10 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/pointers"
-	rstrings "github.com/render-oss/cli/pkg/strings"
-	"github.com/render-oss/cli/pkg/style"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/pointers"
+	rstrings "github.com/render-oss/cli/v2/pkg/strings"
+	"github.com/render-oss/cli/v2/pkg/style"
 )
 
 type ListItem struct {

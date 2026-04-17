@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/render-oss/cli/cmd"
-	"github.com/render-oss/cli/e2e/helpers"
+	"github.com/render-oss/cli/v2/cmd"
+	"github.com/render-oss/cli/v2/e2e/helpers"
 	"github.com/stretchr/testify/require"
 )
 

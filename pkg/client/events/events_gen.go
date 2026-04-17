@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
-	externalRef0 "github.com/render-oss/cli/pkg/client/autoscaling"
-	externalRef2 "github.com/render-oss/cli/pkg/client/disks"
-	externalRef4 "github.com/render-oss/cli/pkg/client/eventstatuses"
-	externalRef5 "github.com/render-oss/cli/pkg/client/eventtypes"
-	externalRef6 "github.com/render-oss/cli/pkg/client/jobs"
+	externalRef0 "github.com/render-oss/cli/v2/pkg/client/autoscaling"
+	externalRef2 "github.com/render-oss/cli/v2/pkg/client/disks"
+	externalRef4 "github.com/render-oss/cli/v2/pkg/client/eventstatuses"
+	externalRef5 "github.com/render-oss/cli/v2/pkg/client/eventtypes"
+	externalRef6 "github.com/render-oss/cli/v2/pkg/client/jobs"
 )
 
 // AutoscalingConfigChangedEvent defines model for autoscalingConfigChangedEvent.

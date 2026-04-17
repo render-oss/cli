@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/render-oss/cli/pkg/cfg"
-	"github.com/render-oss/cli/pkg/client/version"
+	"github.com/render-oss/cli/v2/pkg/cfg"
+	"github.com/render-oss/cli/v2/pkg/client/version"
 )
 
 func TestClient_NewVersionAvailable(t *testing.T) {

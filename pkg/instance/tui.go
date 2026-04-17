@@ -3,9 +3,9 @@ package instance
 import (
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/style"
-	"github.com/render-oss/cli/pkg/utils"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/style"
+	"github.com/render-oss/cli/v2/pkg/utils"
 )
 
 type ListItem struct {

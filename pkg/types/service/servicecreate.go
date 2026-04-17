@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	types "github.com/render-oss/cli/pkg/types"
+	types "github.com/render-oss/cli/v2/pkg/types"
 )
 
 // ServiceCreateInput is the raw command input parsed from Cobra flags for service creation.

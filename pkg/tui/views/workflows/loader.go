@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/render-oss/cli/pkg/client"
-	wfclient "github.com/render-oss/cli/pkg/client/workflows"
-	workflows "github.com/render-oss/cli/pkg/client/workflows"
-	"github.com/render-oss/cli/pkg/pointers"
-	"github.com/render-oss/cli/pkg/tasks"
-	"github.com/render-oss/cli/pkg/version"
-	"github.com/render-oss/cli/pkg/workflow"
-	"github.com/render-oss/cli/pkg/workflowversion"
+	"github.com/render-oss/cli/v2/pkg/client"
+	wfclient "github.com/render-oss/cli/v2/pkg/client/workflows"
+	workflows "github.com/render-oss/cli/v2/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/pointers"
+	"github.com/render-oss/cli/v2/pkg/tasks"
+	"github.com/render-oss/cli/v2/pkg/version"
+	"github.com/render-oss/cli/v2/pkg/workflow"
+	"github.com/render-oss/cli/v2/pkg/workflowversion"
 )
 
 // taskRepo defines the task operations the loader needs (unexported; used for testability).

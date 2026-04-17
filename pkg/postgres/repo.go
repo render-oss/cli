@@ -3,8 +3,8 @@ package postgres
 import (
 	"context"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/config"
 )
 
 type Repo struct {

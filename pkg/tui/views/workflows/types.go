@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/render-oss/cli/pkg/types"
+	"github.com/render-oss/cli/v2/pkg/types"
 )
 
 type TaskListInput struct {

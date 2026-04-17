@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/render-oss/cli/pkg/cfg"
-	"github.com/render-oss/cli/pkg/style"
+	"github.com/render-oss/cli/v2/pkg/cfg"
+	"github.com/render-oss/cli/v2/pkg/style"
 	"github.com/spf13/cobra"
 )
 

@@ -3,8 +3,8 @@ package keyvalue_test
 import (
 	"testing"
 
-	"github.com/render-oss/cli/pkg/pointers"
-	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
+	"github.com/render-oss/cli/v2/pkg/pointers"
+	kvtypes "github.com/render-oss/cli/v2/pkg/types/keyvalue"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -8,10 +8,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/cfg"
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/storage"
-	"github.com/render-oss/cli/pkg/text"
+	"github.com/render-oss/cli/v2/pkg/cfg"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/storage"
+	"github.com/render-oss/cli/v2/pkg/text"
 )
 
 type ObjectDeleteInput struct {

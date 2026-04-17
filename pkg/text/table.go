@@ -3,15 +3,15 @@ package text
 import (
 	"github.com/jedib0t/go-pretty/table"
 
-	"github.com/render-oss/cli/pkg/client"
-	clientjob "github.com/render-oss/cli/pkg/client/jobs"
-	wfclient "github.com/render-oss/cli/pkg/client/workflows"
-	"github.com/render-oss/cli/pkg/deploy"
-	"github.com/render-oss/cli/pkg/resource"
-	"github.com/render-oss/cli/pkg/task"
-	"github.com/render-oss/cli/pkg/taskrun"
-	"github.com/render-oss/cli/pkg/utils"
-	"github.com/render-oss/cli/pkg/version"
+	"github.com/render-oss/cli/v2/pkg/client"
+	clientjob "github.com/render-oss/cli/v2/pkg/client/jobs"
+	wfclient "github.com/render-oss/cli/v2/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/deploy"
+	"github.com/render-oss/cli/v2/pkg/resource"
+	"github.com/render-oss/cli/v2/pkg/task"
+	"github.com/render-oss/cli/v2/pkg/taskrun"
+	"github.com/render-oss/cli/v2/pkg/utils"
+	"github.com/render-oss/cli/v2/pkg/version"
 )
 
 func ResourceTable(v []resource.Resource) string {

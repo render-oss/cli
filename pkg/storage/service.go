@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/config"
 )
 
 // StorageService defines the interface for object storage operations

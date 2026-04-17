@@ -11,10 +11,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
-	bptypes "github.com/render-oss/cli/pkg/client/blueprints"
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/v2/pkg/client"
+	bptypes "github.com/render-oss/cli/v2/pkg/client/blueprints"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/config"
 )
 
 var blueprintValidateCmd = &cobra.Command{

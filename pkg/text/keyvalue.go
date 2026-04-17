@@ -1,7 +1,7 @@
 package text
 
 import (
-	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/client"
 )
 
 // KeyValueDetail formats a KV instance detail for text output.

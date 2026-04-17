@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/client"
 	"github.com/stretchr/testify/require"
 )
 

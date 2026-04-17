@@ -4,7 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	renderstyle "github.com/render-oss/cli/pkg/style"
+	renderstyle "github.com/render-oss/cli/v2/pkg/style"
 )
 
 type DetailsModel[T any] struct {

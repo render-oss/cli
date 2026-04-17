@@ -7,8 +7,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/render-oss/cli/pkg/proctree"
-	"github.com/render-oss/cli/pkg/workflows/logs"
+	"github.com/render-oss/cli/v2/pkg/proctree"
+	"github.com/render-oss/cli/v2/pkg/workflows/logs"
 )
 
 type Exec struct {

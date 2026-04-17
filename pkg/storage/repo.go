@@ -7,9 +7,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/render-oss/cli/pkg/client"
-	storageclient "github.com/render-oss/cli/pkg/client/storage"
-	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/v2/pkg/client"
+	storageclient "github.com/render-oss/cli/v2/pkg/client/storage"
+	"github.com/render-oss/cli/v2/pkg/pointers"
 )
 
 // Repo handles REST API calls for object storage
