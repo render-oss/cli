@@ -207,6 +207,30 @@ func TestRunnerNonInteractive_InstallDepsRewritesPipForPython(t *testing.T) {
 	assert.Contains(t, capturedInstallCmd, "pip install -r requirements.txt")
 }
 
+func TestRunnerNonInteractive_SkippedDepsSurfacesBuildCommand(t *testing.T) {
+	deps := &mockInitDeps{
+		scaffoldFn: func(opts scaffold.Options) (*scaffold.Result, error) {
+			return &scaffold.Result{
+				Dir:          opts.Dir,
+				Language:     opts.Language,
+				BuildCommand: "pip install -r requirements.txt",
+				StartCommand: "python main.py",
+			}, nil
+		},
+	}
+	runner, output := newNonInteractiveRunner(deps)
+	runner.cmd.Flags().Bool("install-deps", false, "")
+	require.NoError(t, runner.cmd.Flags().Set("install-deps", "false"))
+
+	dir := t.TempDir() + "/output"
+	err := runner.Run(context.Background(), WorkflowInitInput{
+		Language: "python",
+		Dir:      dir,
+	})
+	require.NoError(t, err)
+	assert.Contains(t, output.String(), "pip install -r requirements.txt")
+}
+
 func TestRunnerNonInteractive_InstallDepsErrorIsFatal(t *testing.T) {
 	deps := &mockInitDeps{
 		installDepsFn: func(ctx context.Context, dir string, installCmd string) error {

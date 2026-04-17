@@ -558,6 +558,17 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 		}
 	}
 
+	// Surface the install command when the user skipped dep install, so they
+	// can run it themselves later (e.g. if they answered "no" by accident).
+	// result.BuildCommand is only known after scaffolding.
+	if !wantDeps {
+		cmdStyle := lipgloss.NewStyle().Foreground(renderstyle.ColorInfo).Bold(true)
+		installCmd := scaffold.DepsInstallCommand(result.Language, result.BuildCommand)
+		command.Println(r.cmd, "")
+		command.Println(r.cmd, "  %s", dim.Render("To install dependencies later, run:"))
+		command.Println(r.cmd, "    %s %s", dim.Render("$"), cmdStyle.Render(installCmd))
+	}
+
 	// Agent skill installation (optional, before next steps)
 	if r.interactive && !skipPrompts {
 		promptSkillInstall(r.cmd)
