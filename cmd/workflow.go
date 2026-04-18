@@ -11,13 +11,13 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/gorilla/websocket"
-	"github.com/render-oss/cli/pkg/command"
-	renderstyle "github.com/render-oss/cli/pkg/style"
-	"github.com/render-oss/cli/pkg/workflows/apiserver"
-	logstore "github.com/render-oss/cli/pkg/workflows/logs"
-	"github.com/render-oss/cli/pkg/workflows/orchestrator"
-	"github.com/render-oss/cli/pkg/workflows/store"
-	"github.com/render-oss/cli/pkg/workflows/taskserver"
+	"github.com/render-oss/cli/v2/pkg/command"
+	renderstyle "github.com/render-oss/cli/v2/pkg/style"
+	"github.com/render-oss/cli/v2/pkg/workflows/apiserver"
+	logstore "github.com/render-oss/cli/v2/pkg/workflows/logs"
+	"github.com/render-oss/cli/v2/pkg/workflows/orchestrator"
+	"github.com/render-oss/cli/v2/pkg/workflows/store"
+	"github.com/render-oss/cli/v2/pkg/workflows/taskserver"
 	"github.com/spf13/cobra"
 )
 

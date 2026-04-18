@@ -3,11 +3,11 @@ package workflow
 import (
 	"context"
 
-	"github.com/render-oss/cli/pkg/client"
-	wfclient "github.com/render-oss/cli/pkg/client/workflows"
-	"github.com/render-oss/cli/pkg/environment"
-	"github.com/render-oss/cli/pkg/project"
-	"github.com/render-oss/cli/pkg/resource/util"
+	"github.com/render-oss/cli/v2/pkg/client"
+	wfclient "github.com/render-oss/cli/v2/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/environment"
+	"github.com/render-oss/cli/v2/pkg/project"
+	"github.com/render-oss/cli/v2/pkg/resource/util"
 )
 
 type workflowRepository interface {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/blang/semver/v4"
 
-	"github.com/render-oss/cli/pkg/cfg"
+	"github.com/render-oss/cli/v2/pkg/cfg"
 )
 
 type Client struct {

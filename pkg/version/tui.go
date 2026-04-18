@@ -3,9 +3,9 @@ package version
 import (
 	"github.com/charmbracelet/lipgloss"
 
-	wfclient "github.com/render-oss/cli/pkg/client/workflows"
-	"github.com/render-oss/cli/pkg/pointers"
-	"github.com/render-oss/cli/pkg/style"
+	wfclient "github.com/render-oss/cli/v2/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/pointers"
+	"github.com/render-oss/cli/v2/pkg/style"
 )
 
 type ListItem struct {

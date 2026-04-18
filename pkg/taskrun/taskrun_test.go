@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	wfclient "github.com/render-oss/cli/pkg/client/workflows"
-	"github.com/render-oss/cli/pkg/pointers"
+	wfclient "github.com/render-oss/cli/v2/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/pointers"
 )
 
 func TestTaskRunDetailsFormat(t *testing.T) {

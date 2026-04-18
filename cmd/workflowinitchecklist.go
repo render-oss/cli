@@ -11,8 +11,8 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/command"
-	renderstyle "github.com/render-oss/cli/pkg/style"
+	"github.com/render-oss/cli/v2/pkg/command"
+	renderstyle "github.com/render-oss/cli/v2/pkg/style"
 )
 
 // SetupStep is a named operation in the init pipeline.

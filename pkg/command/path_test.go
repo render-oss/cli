@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/command"
 )
 
 func TestExpandPath(t *testing.T) {

@@ -5,13 +5,13 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/environment"
-	"github.com/render-oss/cli/pkg/postgres"
-	postgrestui "github.com/render-oss/cli/pkg/postgres/tui"
-	"github.com/render-oss/cli/pkg/project"
-	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/environment"
+	"github.com/render-oss/cli/v2/pkg/postgres"
+	postgrestui "github.com/render-oss/cli/v2/pkg/postgres/tui"
+	"github.com/render-oss/cli/v2/pkg/project"
+	"github.com/render-oss/cli/v2/pkg/tui"
 )
 
 type PostgresList struct {

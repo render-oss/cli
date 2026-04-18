@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/render-oss/cli/pkg/config"
-	"github.com/render-oss/cli/pkg/tui/views"
+	"github.com/render-oss/cli/v2/pkg/config"
+	"github.com/render-oss/cli/v2/pkg/tui/views"
 	"github.com/stretchr/testify/require"
 )
 

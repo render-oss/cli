@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/render-oss/cli/cmd"
+	"github.com/render-oss/cli/v2/cmd"
 )
 
 func RunCommand(args []string) io.Reader {

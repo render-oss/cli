@@ -3,7 +3,7 @@ package cmd
 import "github.com/spf13/cobra"
 
 // When uncommenting init() below, add this import:
-//   "github.com/render-oss/cli/pkg/command"
+//   "github.com/render-oss/cli/v2/pkg/command"
 
 // CommandTemplateCmd is the canonical command template for new CLI commands.
 // Copy this file when starting a new command and then rename symbols/fields.

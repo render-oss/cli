@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/render-oss/cli/pkg/types"
+	"github.com/render-oss/cli/v2/pkg/types"
 	"github.com/stretchr/testify/require"
 )
 

@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/pointers"
-	types "github.com/render-oss/cli/pkg/types"
-	servicetypes "github.com/render-oss/cli/pkg/types/service"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/pointers"
+	types "github.com/render-oss/cli/v2/pkg/types"
+	servicetypes "github.com/render-oss/cli/v2/pkg/types/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

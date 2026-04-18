@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	renderstyle "github.com/render-oss/cli/pkg/style"
-	"github.com/render-oss/cli/pkg/workflows/store"
+	renderstyle "github.com/render-oss/cli/v2/pkg/style"
+	"github.com/render-oss/cli/v2/pkg/workflows/store"
 )
 
 type PrintFunc func(format string, args ...any)

@@ -1,7 +1,7 @@
 package workflowversion
 
 import (
-	wfclient "github.com/render-oss/cli/pkg/client/workflows"
+	wfclient "github.com/render-oss/cli/v2/pkg/client/workflows"
 )
 
 func IsComplete(status wfclient.WorkflowVersionStatus) bool {

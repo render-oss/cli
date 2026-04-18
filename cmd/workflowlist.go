@@ -5,12 +5,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/resource"
-	"github.com/render-oss/cli/pkg/text"
-	"github.com/render-oss/cli/pkg/tui/flows"
-	workflowviews "github.com/render-oss/cli/pkg/tui/views/workflows"
-	"github.com/render-oss/cli/pkg/workflow"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/resource"
+	"github.com/render-oss/cli/v2/pkg/text"
+	"github.com/render-oss/cli/v2/pkg/tui/flows"
+	workflowviews "github.com/render-oss/cli/v2/pkg/tui/views/workflows"
+	"github.com/render-oss/cli/v2/pkg/workflow"
 )
 
 func NewWorkflowListCmd(deps flows.WorkflowDeps) *cobra.Command {

@@ -9,7 +9,7 @@ package client
 import (
 	"time"
 
-	externalRef5 "github.com/render-oss/cli/pkg/client/eventtypes"
+	externalRef5 "github.com/render-oss/cli/v2/pkg/client/eventtypes"
 )
 
 // EventFilter The event types that will trigger the webhook. An empty list means all event types will trigger the webhook.

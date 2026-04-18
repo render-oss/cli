@@ -6,15 +6,15 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	btable "github.com/evertras/bubble-table/table"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/environment"
-	"github.com/render-oss/cli/pkg/pointers"
-	"github.com/render-oss/cli/pkg/project"
-	"github.com/render-oss/cli/pkg/resource"
-	resourcetui "github.com/render-oss/cli/pkg/resource/tui"
-	"github.com/render-oss/cli/pkg/service"
-	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/environment"
+	"github.com/render-oss/cli/v2/pkg/pointers"
+	"github.com/render-oss/cli/v2/pkg/project"
+	"github.com/render-oss/cli/v2/pkg/resource"
+	resourcetui "github.com/render-oss/cli/v2/pkg/resource/tui"
+	"github.com/render-oss/cli/v2/pkg/service"
+	"github.com/render-oss/cli/v2/pkg/tui"
 )
 
 type ServiceList struct {

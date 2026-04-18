@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/render-oss/cli/pkg/types"
+	"github.com/render-oss/cli/v2/pkg/types"
 )
 
 func TestDeployInput_Validate(t *testing.T) {

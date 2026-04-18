@@ -3,7 +3,7 @@ package layouts
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/v2/pkg/tui"
 )
 
 // SidebarLayout is a layout that renders a sidebar, content, and footer.

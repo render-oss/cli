@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/dependencies"
-	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/dependencies"
+	"github.com/render-oss/cli/v2/pkg/tui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/require"

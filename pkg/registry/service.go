@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/validate"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/validate"
 )
 
 type Service struct {

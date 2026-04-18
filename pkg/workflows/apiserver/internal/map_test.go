@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/render-oss/cli/pkg/client"
-	logClient "github.com/render-oss/cli/pkg/client/logs"
-	"github.com/render-oss/cli/pkg/pointers"
-	"github.com/render-oss/cli/pkg/workflows/apiserver/internal"
-	"github.com/render-oss/cli/pkg/workflows/logs"
+	"github.com/render-oss/cli/v2/pkg/client"
+	logClient "github.com/render-oss/cli/v2/pkg/client/logs"
+	"github.com/render-oss/cli/v2/pkg/pointers"
+	"github.com/render-oss/cli/v2/pkg/workflows/apiserver/internal"
+	"github.com/render-oss/cli/v2/pkg/workflows/logs"
 	"github.com/stretchr/testify/require"
 )
 

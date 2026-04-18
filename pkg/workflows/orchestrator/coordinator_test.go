@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/render-oss/cli/pkg/workflows/orchestrator"
-	"github.com/render-oss/cli/pkg/workflows/store"
-	"github.com/render-oss/cli/pkg/workflows/taskserver"
+	"github.com/render-oss/cli/v2/pkg/workflows/orchestrator"
+	"github.com/render-oss/cli/v2/pkg/workflows/store"
+	"github.com/render-oss/cli/v2/pkg/workflows/taskserver"
 	"github.com/stretchr/testify/require"
 )
 

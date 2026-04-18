@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	workflowclient "github.com/render-oss/cli/pkg/client/workflows"
-	"github.com/render-oss/cli/pkg/workflows/apiserver/internal"
-	"github.com/render-oss/cli/pkg/workflows/store"
-	"github.com/render-oss/cli/pkg/workflows/taskserver"
+	workflowclient "github.com/render-oss/cli/v2/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/workflows/apiserver/internal"
+	"github.com/render-oss/cli/v2/pkg/workflows/store"
+	"github.com/render-oss/cli/v2/pkg/workflows/taskserver"
 	"github.com/stretchr/testify/require"
 )
 

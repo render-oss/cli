@@ -3,10 +3,10 @@ package service
 import (
 	"context"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/environment"
-	"github.com/render-oss/cli/pkg/project"
-	"github.com/render-oss/cli/pkg/resource/util"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/environment"
+	"github.com/render-oss/cli/v2/pkg/project"
+	"github.com/render-oss/cli/v2/pkg/resource/util"
 )
 
 type Service struct {

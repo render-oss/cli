@@ -6,8 +6,8 @@ import (
 
 	"github.com/jedib0t/go-pretty/table"
 
-	"github.com/render-oss/cli/pkg/storage"
-	"github.com/render-oss/cli/pkg/utils"
+	"github.com/render-oss/cli/v2/pkg/storage"
+	"github.com/render-oss/cli/v2/pkg/utils"
 )
 
 // ObjectUpload formats an upload result for text output

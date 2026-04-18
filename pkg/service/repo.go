@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/config"
-	"github.com/render-oss/cli/pkg/pointers"
-	"github.com/render-oss/cli/pkg/validate"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/config"
+	"github.com/render-oss/cli/v2/pkg/pointers"
+	"github.com/render-oss/cli/v2/pkg/validate"
 )
 
 type Repo struct {

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/gorilla/websocket"
-	"github.com/render-oss/cli/pkg/workflows/apiserver/internal"
+	"github.com/render-oss/cli/v2/pkg/workflows/apiserver/internal"
 	"github.com/stretchr/testify/require"
 )
 

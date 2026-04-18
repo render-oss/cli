@@ -6,14 +6,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/config"
-	"github.com/render-oss/cli/pkg/dependencies"
-	"github.com/render-oss/cli/pkg/service"
-	"github.com/render-oss/cli/pkg/text"
-	"github.com/render-oss/cli/pkg/types"
-	servicetypes "github.com/render-oss/cli/pkg/types/service"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/config"
+	"github.com/render-oss/cli/v2/pkg/dependencies"
+	"github.com/render-oss/cli/v2/pkg/service"
+	"github.com/render-oss/cli/v2/pkg/text"
+	"github.com/render-oss/cli/v2/pkg/types"
+	servicetypes "github.com/render-oss/cli/v2/pkg/types/service"
 )
 
 var ServiceCreateCmd = &cobra.Command{

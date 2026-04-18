@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/render-oss/cli/pkg/client"
-	workflows "github.com/render-oss/cli/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/client"
+	workflows "github.com/render-oss/cli/v2/pkg/client/workflows"
 )
 
 func NewRepo(c *client.ClientWithResponses) *Repo {

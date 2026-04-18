@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	service "github.com/render-oss/cli/pkg/types/service"
+	service "github.com/render-oss/cli/v2/pkg/types/service"
 )
 
 func TestParsePreviewsGeneration(t *testing.T) {

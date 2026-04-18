@@ -7,10 +7,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/exp/teatest"
-	"github.com/render-oss/cli/cmd"
-	clientjob "github.com/render-oss/cli/pkg/client/jobs"
-	"github.com/render-oss/cli/pkg/tui/testhelper"
-	"github.com/render-oss/cli/pkg/tui/views"
+	"github.com/render-oss/cli/v2/cmd"
+	clientjob "github.com/render-oss/cli/v2/pkg/client/jobs"
+	"github.com/render-oss/cli/v2/pkg/tui/testhelper"
+	"github.com/render-oss/cli/v2/pkg/tui/views"
 	"github.com/stretchr/testify/require"
 )
 

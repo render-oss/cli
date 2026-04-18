@@ -7,9 +7,9 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 
-	workflows "github.com/render-oss/cli/pkg/client/workflows"
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/tui"
+	workflows "github.com/render-oss/cli/v2/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/tui"
 )
 
 type TaskRunView struct {

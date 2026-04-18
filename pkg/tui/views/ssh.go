@@ -10,12 +10,12 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/config"
-	"github.com/render-oss/cli/pkg/deploy"
-	"github.com/render-oss/cli/pkg/service"
-	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/v2/pkg/client"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/config"
+	"github.com/render-oss/cli/v2/pkg/deploy"
+	"github.com/render-oss/cli/v2/pkg/service"
+	"github.com/render-oss/cli/v2/pkg/tui"
 )
 
 type SSHInput struct {

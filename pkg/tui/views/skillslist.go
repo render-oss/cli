@@ -7,9 +7,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/render-oss/cli/pkg/skills"
-	renderstyle "github.com/render-oss/cli/pkg/style"
-	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/v2/pkg/skills"
+	renderstyle "github.com/render-oss/cli/v2/pkg/style"
+	"github.com/render-oss/cli/v2/pkg/tui"
 )
 
 // ── List step state machine ─────────────────────────────────────────────────

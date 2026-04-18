@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/render-oss/cli/pkg/client"
-	wfclient "github.com/render-oss/cli/pkg/client/workflows"
-	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/v2/pkg/client"
+	wfclient "github.com/render-oss/cli/v2/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/pointers"
 )
 
 // mockWorkflowRepo implements workflowRepository for testing.

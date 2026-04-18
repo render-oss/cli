@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/render-oss/cli/pkg/client"
-	wfclient "github.com/render-oss/cli/pkg/client/workflows"
+	"github.com/render-oss/cli/v2/pkg/client"
+	wfclient "github.com/render-oss/cli/v2/pkg/client/workflows"
 
-	"github.com/render-oss/cli/pkg/deploy"
+	"github.com/render-oss/cli/v2/pkg/deploy"
 )
 
 func FormatString(s string) string {

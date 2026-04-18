@@ -3,7 +3,7 @@ package service_test
 import (
 	"testing"
 
-	servicetypes "github.com/render-oss/cli/pkg/types/service"
+	servicetypes "github.com/render-oss/cli/v2/pkg/types/service"
 	"github.com/stretchr/testify/require"
 )
 

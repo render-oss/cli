@@ -3,7 +3,7 @@ package keyvalue
 import (
 	"errors"
 
-	types "github.com/render-oss/cli/pkg/types"
+	types "github.com/render-oss/cli/v2/pkg/types"
 )
 
 // KeyValueUpdateInput is the raw command input parsed from Cobra flags for KV update.

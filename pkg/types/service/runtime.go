@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	types "github.com/render-oss/cli/pkg/types"
+	types "github.com/render-oss/cli/v2/pkg/types"
 )
 
 type ServiceRuntime string

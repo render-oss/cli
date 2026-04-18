@@ -3,7 +3,7 @@ package postgres_test
 import (
 	"testing"
 
-	postgrestypes "github.com/render-oss/cli/pkg/types/postgres"
+	postgrestypes "github.com/render-oss/cli/v2/pkg/types/postgres"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

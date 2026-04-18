@@ -9,12 +9,12 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
-	clientjob "github.com/render-oss/cli/pkg/client/jobs"
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/job"
-	"github.com/render-oss/cli/pkg/pointers"
-	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/v2/pkg/client"
+	clientjob "github.com/render-oss/cli/v2/pkg/client/jobs"
+	"github.com/render-oss/cli/v2/pkg/command"
+	"github.com/render-oss/cli/v2/pkg/job"
+	"github.com/render-oss/cli/v2/pkg/pointers"
+	"github.com/render-oss/cli/v2/pkg/tui"
 )
 
 type JobCreateInput struct {
