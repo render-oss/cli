@@ -133,8 +133,8 @@ Examples:
 		dim := lipgloss.NewStyle().Foreground(renderstyle.ColorDeprioritized)
 
 		command.Println(cmd, "%s %s",
-			ok.Render("Workflow server listening on"),
-			renderstyle.Bold(fmt.Sprintf("http://localhost:%d", port)),
+			ok.Render("Workflow server listening on port"),
+			renderstyle.Bold(fmt.Sprintf("%d", port)),
 		)
 
 		logs.Start(ctx)
