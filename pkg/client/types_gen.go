@@ -469,6 +469,11 @@ const (
 	CreateSandboxParamsAcceptTexteventStream CreateSandboxParamsAccept = "text/event-stream"
 )
 
+// Defines values for StreamSandboxLogsParamsAccept.
+const (
+	StreamSandboxLogsParamsAcceptTexteventStream StreamSandboxLogsParamsAccept = "text/event-stream"
+)
+
 // Defines values for ListServicesParamsSuspended.
 const (
 	ListServicesParamsSuspendedNotSuspended ListServicesParamsSuspended = "not_suspended"
@@ -501,7 +506,7 @@ const (
 
 // Defines values for StreamTaskRunsEventsParamsAccept.
 const (
-	StreamTaskRunsEventsParamsAcceptTexteventStream StreamTaskRunsEventsParamsAccept = "text/event-stream"
+	TexteventStream StreamTaskRunsEventsParamsAccept = "text/event-stream"
 )
 
 // DeployMode Controls deployment behavior when triggering a deploy.
@@ -3436,6 +3441,45 @@ type CreateSandboxParams struct {
 
 // CreateSandboxParamsAccept defines parameters for CreateSandbox.
 type CreateSandboxParamsAccept string
+
+// DownloadSandboxFilesParams defines parameters for DownloadSandboxFiles.
+type DownloadSandboxFilesParams struct {
+	// Path Absolute path in the sandbox filesystem. For PUT archives, this is the extraction root.
+	Path string `form:"path" json:"path"`
+}
+
+// UploadSandboxFilesParams defines parameters for UploadSandboxFiles.
+type UploadSandboxFilesParams struct {
+	// Path Absolute path in the sandbox filesystem. For PUT archives, this is the extraction root.
+	Path string `form:"path" json:"path"`
+}
+
+// ListSandboxFilesParams defines parameters for ListSandboxFiles.
+type ListSandboxFilesParams struct {
+	// Path Absolute path to a directory in the sandbox.
+	Path string `form:"path" json:"path"`
+
+	// Depth How many levels of subdirectories to include. 1 = immediate children only. 0 = the entry itself.
+	Depth *int `form:"depth,omitempty" json:"depth,omitempty"`
+}
+
+// StreamSandboxLogsParams defines parameters for StreamSandboxLogs.
+type StreamSandboxLogsParams struct {
+	// Since ISO 8601 timestamp. Only emit events at or after this time.
+	Since *time.Time `form:"since,omitempty" json:"since,omitempty"`
+
+	// Follow If `false`, emit historical events and close immediately.
+	Follow *bool `form:"follow,omitempty" json:"follow,omitempty"`
+
+	// ExecId Filter `log` events to a single execution.
+	ExecId *string `form:"execId,omitempty" json:"execId,omitempty"`
+
+	// Accept Must be `text/event-stream`.
+	Accept *StreamSandboxLogsParamsAccept `json:"Accept,omitempty"`
+}
+
+// StreamSandboxLogsParamsAccept defines parameters for StreamSandboxLogs.
+type StreamSandboxLogsParamsAccept string
 
 // ListServicesParams defines parameters for ListServices.
 type ListServicesParams struct {

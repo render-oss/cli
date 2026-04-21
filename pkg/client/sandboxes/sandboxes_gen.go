@@ -7,7 +7,11 @@
 package client
 
 import (
+	"encoding/json"
+	"errors"
 	"time"
+
+	"github.com/oapi-codegen/runtime"
 )
 
 // Defines values for SandboxPlan.
@@ -15,6 +19,45 @@ const (
 	SandboxPlanN12gb SandboxPlan = "1-2gb"
 	SandboxPlanN24gb SandboxPlan = "2-4gb"
 	SandboxPlanN48gb SandboxPlan = "4-8gb"
+)
+
+// Defines values for SandboxExecExitType.
+const (
+	Exit SandboxExecExitType = "exit"
+)
+
+// Defines values for SandboxExecOutputType.
+const (
+	SandboxExecOutputTypeStderr SandboxExecOutputType = "stderr"
+	SandboxExecOutputTypeStdout SandboxExecOutputType = "stdout"
+)
+
+// Defines values for SandboxExecStartedType.
+const (
+	Started SandboxExecStartedType = "started"
+)
+
+// Defines values for SandboxFileEntryType.
+const (
+	Directory SandboxFileEntryType = "directory"
+	File      SandboxFileEntryType = "file"
+	Symlink   SandboxFileEntryType = "symlink"
+)
+
+// Defines values for SandboxLifecycleEventType.
+const (
+	SandboxLifecycleEventTypeCreating   SandboxLifecycleEventType = "creating"
+	SandboxLifecycleEventTypeErrored    SandboxLifecycleEventType = "errored"
+	SandboxLifecycleEventTypeResuming   SandboxLifecycleEventType = "resuming"
+	SandboxLifecycleEventTypeRunning    SandboxLifecycleEventType = "running"
+	SandboxLifecycleEventTypeSuspended  SandboxLifecycleEventType = "suspended"
+	SandboxLifecycleEventTypeTerminated SandboxLifecycleEventType = "terminated"
+)
+
+// Defines values for SandboxLogEventStream.
+const (
+	SandboxLogEventStreamStderr SandboxLogEventStream = "stderr"
+	SandboxLogEventStreamStdout SandboxLogEventStream = "stdout"
 )
 
 // Defines values for SandboxNetworkPolicyDefault.
@@ -38,10 +81,12 @@ const (
 
 // Defines values for SandboxStatus.
 const (
-	Creating   SandboxStatus = "creating"
-	Errored    SandboxStatus = "errored"
-	Running    SandboxStatus = "running"
-	Terminated SandboxStatus = "terminated"
+	SandboxStatusCreating   SandboxStatus = "creating"
+	SandboxStatusErrored    SandboxStatus = "errored"
+	SandboxStatusResuming   SandboxStatus = "resuming"
+	SandboxStatusRunning    SandboxStatus = "running"
+	SandboxStatusSuspended  SandboxStatus = "suspended"
+	SandboxStatusTerminated SandboxStatus = "terminated"
 )
 
 // Sandbox defines model for sandbox.
@@ -85,6 +130,14 @@ type Sandbox struct {
 // SandboxPlan Compute plan.
 type SandboxPlan string
 
+// SandboxDirectoryListing Directory listing response.
+type SandboxDirectoryListing struct {
+	Entries []SandboxFileEntry `json:"entries"`
+
+	// Path The absolute path that was listed.
+	Path string `json:"path"`
+}
+
 // SandboxError defines model for sandboxError.
 type SandboxError struct {
 	// Code Machine-readable error code.
@@ -94,8 +147,114 @@ type SandboxError struct {
 	Message string `json:"message"`
 }
 
+// SandboxExecExit Sent when the exec process exits. Server closes the connection after this message.
+type SandboxExecExit struct {
+	// Code Process exit code.
+	Code int                 `json:"code"`
+	Type SandboxExecExitType `json:"type"`
+}
+
+// SandboxExecExitType defines model for SandboxExecExit.Type.
+type SandboxExecExitType string
+
+// SandboxExecMessage Server-sent WebSocket message from an exec session.
+type SandboxExecMessage struct {
+	union json.RawMessage
+}
+
+// SandboxExecOutput A stdout or stderr chunk from an exec session.
+type SandboxExecOutput struct {
+	// Data Output chunk.
+	Data string                `json:"data"`
+	Type SandboxExecOutputType `json:"type"`
+}
+
+// SandboxExecOutputType defines model for SandboxExecOutput.Type.
+type SandboxExecOutputType string
+
+// SandboxExecRequest defines model for sandboxExecRequest.
+type SandboxExecRequest struct {
+	// Command Command to run. A string is passed to the shell; an array is exec'd directly.
+	Command SandboxExecRequest_Command `json:"command"`
+
+	// Detached If `true`, start the process and close the WebSocket immediately. Output streams via `GET /logs`.
+	Detached *bool `json:"detached,omitempty"`
+
+	// Env Additional environment variables for this execution.
+	Env *map[string]string `json:"env,omitempty"`
+
+	// Workdir Working directory. Defaults to `/` or the image default.
+	Workdir *string `json:"workdir,omitempty"`
+}
+
+// SandboxExecRequestCommand0 defines model for .
+type SandboxExecRequestCommand0 = string
+
+// SandboxExecRequestCommand1 defines model for .
+type SandboxExecRequestCommand1 = []string
+
+// SandboxExecRequest_Command Command to run. A string is passed to the shell; an array is exec'd directly.
+type SandboxExecRequest_Command struct {
+	union json.RawMessage
+}
+
+// SandboxExecStarted Sent when the exec session starts. Contains the stable execId.
+type SandboxExecStarted struct {
+	// ExecId Stable ID for this execution — use to correlate output in the logs stream.
+	ExecId string                 `json:"execId"`
+	Type   SandboxExecStartedType `json:"type"`
+}
+
+// SandboxExecStartedType defines model for SandboxExecStarted.Type.
+type SandboxExecStartedType string
+
+// SandboxFileEntry A file or directory entry in a sandbox filesystem listing.
+type SandboxFileEntry struct {
+	// ModifiedAt Last-modified timestamp.
+	ModifiedAt time.Time `json:"modifiedAt"`
+
+	// Name File or directory name (basename, not full path).
+	Name string `json:"name"`
+
+	// Size Size in bytes. 0 for directories and symlinks.
+	Size int `json:"size"`
+
+	// Target Symlink target path. Present only when type is `symlink`.
+	Target *string `json:"target,omitempty"`
+
+	// Type Entry type.
+	Type SandboxFileEntryType `json:"type"`
+}
+
+// SandboxFileEntryType Entry type.
+type SandboxFileEntryType string
+
 // SandboxId defines model for sandboxId.
 type SandboxId = string
+
+// SandboxLifecycleEvent A lifecycle event from the sandbox logs stream.
+type SandboxLifecycleEvent struct {
+	At   time.Time                 `json:"at"`
+	Type SandboxLifecycleEventType `json:"type"`
+}
+
+// SandboxLifecycleEventType defines model for SandboxLifecycleEvent.Type.
+type SandboxLifecycleEventType string
+
+// SandboxLogEvent A log event from the sandbox logs stream.
+type SandboxLogEvent struct {
+	At time.Time `json:"at"`
+
+	// Data Output chunk.
+	Data string `json:"data"`
+
+	// ExecId Groups output by command for the event timeline. Absent for system-level output (container startup, OOM, etc.).
+	ExecId *string               `json:"execId,omitempty"`
+	Stream SandboxLogEventStream `json:"stream"`
+}
+
+// SandboxLogEventStream defines model for SandboxLogEvent.Stream.
+type SandboxLogEventStream string
 
 // SandboxNetworkPolicy defines model for sandboxNetworkPolicy.
 type SandboxNetworkPolicy struct {
@@ -163,3 +322,184 @@ type SandboxPOSTPlan string
 
 // SandboxStatus defines model for sandboxStatus.
 type SandboxStatus string
+
+// AsSandboxExecStarted returns the union data inside the SandboxExecMessage as a SandboxExecStarted
+func (t SandboxExecMessage) AsSandboxExecStarted() (SandboxExecStarted, error) {
+	var body SandboxExecStarted
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSandboxExecStarted overwrites any union data inside the SandboxExecMessage as the provided SandboxExecStarted
+func (t *SandboxExecMessage) FromSandboxExecStarted(v SandboxExecStarted) error {
+	v.Type = "started"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSandboxExecStarted performs a merge with any union data inside the SandboxExecMessage, using the provided SandboxExecStarted
+func (t *SandboxExecMessage) MergeSandboxExecStarted(v SandboxExecStarted) error {
+	v.Type = "started"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSandboxExecOutput returns the union data inside the SandboxExecMessage as a SandboxExecOutput
+func (t SandboxExecMessage) AsSandboxExecOutput() (SandboxExecOutput, error) {
+	var body SandboxExecOutput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSandboxExecOutput overwrites any union data inside the SandboxExecMessage as the provided SandboxExecOutput
+func (t *SandboxExecMessage) FromSandboxExecOutput(v SandboxExecOutput) error {
+	v.Type = "stderr"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSandboxExecOutput performs a merge with any union data inside the SandboxExecMessage, using the provided SandboxExecOutput
+func (t *SandboxExecMessage) MergeSandboxExecOutput(v SandboxExecOutput) error {
+	v.Type = "stderr"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSandboxExecExit returns the union data inside the SandboxExecMessage as a SandboxExecExit
+func (t SandboxExecMessage) AsSandboxExecExit() (SandboxExecExit, error) {
+	var body SandboxExecExit
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSandboxExecExit overwrites any union data inside the SandboxExecMessage as the provided SandboxExecExit
+func (t *SandboxExecMessage) FromSandboxExecExit(v SandboxExecExit) error {
+	v.Type = "exit"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSandboxExecExit performs a merge with any union data inside the SandboxExecMessage, using the provided SandboxExecExit
+func (t *SandboxExecMessage) MergeSandboxExecExit(v SandboxExecExit) error {
+	v.Type = "exit"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t SandboxExecMessage) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t SandboxExecMessage) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "exit":
+		return t.AsSandboxExecExit()
+	case "started":
+		return t.AsSandboxExecStarted()
+	case "stderr":
+		return t.AsSandboxExecOutput()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t SandboxExecMessage) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *SandboxExecMessage) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsSandboxExecRequestCommand0 returns the union data inside the SandboxExecRequest_Command as a SandboxExecRequestCommand0
+func (t SandboxExecRequest_Command) AsSandboxExecRequestCommand0() (SandboxExecRequestCommand0, error) {
+	var body SandboxExecRequestCommand0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSandboxExecRequestCommand0 overwrites any union data inside the SandboxExecRequest_Command as the provided SandboxExecRequestCommand0
+func (t *SandboxExecRequest_Command) FromSandboxExecRequestCommand0(v SandboxExecRequestCommand0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSandboxExecRequestCommand0 performs a merge with any union data inside the SandboxExecRequest_Command, using the provided SandboxExecRequestCommand0
+func (t *SandboxExecRequest_Command) MergeSandboxExecRequestCommand0(v SandboxExecRequestCommand0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSandboxExecRequestCommand1 returns the union data inside the SandboxExecRequest_Command as a SandboxExecRequestCommand1
+func (t SandboxExecRequest_Command) AsSandboxExecRequestCommand1() (SandboxExecRequestCommand1, error) {
+	var body SandboxExecRequestCommand1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSandboxExecRequestCommand1 overwrites any union data inside the SandboxExecRequest_Command as the provided SandboxExecRequestCommand1
+func (t *SandboxExecRequest_Command) FromSandboxExecRequestCommand1(v SandboxExecRequestCommand1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSandboxExecRequestCommand1 performs a merge with any union data inside the SandboxExecRequest_Command, using the provided SandboxExecRequestCommand1
+func (t *SandboxExecRequest_Command) MergeSandboxExecRequestCommand1(v SandboxExecRequestCommand1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t SandboxExecRequest_Command) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *SandboxExecRequest_Command) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
