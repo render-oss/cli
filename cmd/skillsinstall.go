@@ -27,19 +27,29 @@ Supported tools: Claude Code, Codex, OpenCode, Cursor.
 
 Skills can be installed at two scopes:
   - user:    Install to ~/.{tool}/skills/ (default, current user only)
-  - project: Install to ./.{tool}/skills/ (committed to git, all collaborators)
+  - project: Install to ./.{tool}/skills/ (committed to Git, all collaborators)
 
-By default an interactive prompt lets you pick scope, tools, and skills.
-Use --scope, --tool, and --skill flags to skip the prompts (useful for CI).`,
+By default an interactive prompt lets you pick scope, tools, and skills. Use --scope, --tool, and --skill flags to skip the prompts (useful for CI).`,
+	Example: `  # Install skills interactively
+  render skills install
+
+  # Install for a specific tool and scope
+  render skills install --tool cursor --scope project
+
+  # Preview install changes
+  render skills install --dry-run`,
 	SilenceUsage: true,
 }
 
 func init() {
 	skillsCmd.AddCommand(skillsInstallCmd)
-	skillsInstallCmd.Flags().String("tool", "", "install to a specific tool only (claude, codex, opencode, cursor)")
-	skillsInstallCmd.Flags().StringSlice("skill", nil, "install specific skills only (e.g. --skill render-deploy --skill render-debug)")
-	skillsInstallCmd.Flags().Bool("dry-run", false, "show what would be installed without making changes")
-	skillsInstallCmd.Flags().String("scope", "", "installation scope: user (default) or project")
+	skillsInstallCmd.Flags().String("tool", "", "Install skills to a specific tool only (claude, codex, opencode, or cursor)")
+	skillsInstallCmd.Flags().StringSlice("skill", nil, "Install specific skills only (use --skill multiple times)")
+	skillsInstallCmd.Flags().Bool("dry-run", false, "Show what would be installed without making changes")
+	skillsInstallCmd.Flags().String("scope", "", "Set installation scope to user or project (defaults to user)")
+	setAnnotationBestEffort(skillsInstallCmd.Flags(), "tool", command.FlagPlaceholderAnnotation, []string{"TOOL"})
+	setAnnotationBestEffort(skillsInstallCmd.Flags(), "skill", command.FlagPlaceholderAnnotation, []string{"SKILL"})
+	setAnnotationBestEffort(skillsInstallCmd.Flags(), "scope", command.FlagPlaceholderAnnotation, []string{"SCOPE"})
 
 	skillsInstallCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input SkillsInstallInput

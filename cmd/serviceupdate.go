@@ -14,18 +14,17 @@ import (
 )
 
 var ServiceUpdateCmd = &cobra.Command{
-	Use:   "update [service]",
+	Use:   "update <service>",
 	Args:  cobra.ExactArgs(1),
-	Short: "Update a service",
-	Long: `Update a service on Render.
+	Short: "Update configuration for an existing service",
+	Long: `Update a service on Render. This command only runs in non-interactive modes.
 
-This command currently runs in non-interactive mode only.
-Provide all updates with flags.
-
-Examples:
+Provide configuration updates with flags.`,
+	Example: `  # Rename a service
   render services update my-service --name my-new-name --output json
-  render services update srv-abc123 --plan pro --output json
-`,
+
+  # Change a service plan
+  render services update srv-abc123 --plan pro --output json`,
 }
 
 func init() {
@@ -109,7 +108,7 @@ func init() {
 	ServiceUpdateCmd.Flags().String("maintenance-mode-uri", "", "Maintenance mode URI")
 
 	// IP allow list flag
-	ServiceUpdateCmd.Flags().StringArray("ip-allow-list", nil, "IP allow list entry in cidr=...,description=... format (can be specified multiple times)")
+	ServiceUpdateCmd.Flags().StringArray("ip-allow-list", nil, "IP allow list entry in cidr=..., description=... format (can be specified multiple times)")
 }
 
 func updateServiceNonInteractive(ctx context.Context, cliInput servicetypes.ServiceUpdateInput) (*client.Service, error) {

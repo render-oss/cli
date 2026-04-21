@@ -6,7 +6,12 @@ import (
 
 var versionCmd = &cobra.Command{
 	Use:   "versions",
-	Short: "Manage workflow versions",
+	Short: "List and release workflow versions",
+	Example: `  # List versions for a workflow
+  render workflows versions list wf-abc123
+
+  # Release a new workflow version
+  render workflows versions release wf-abc123`,
 }
 
 func init() {

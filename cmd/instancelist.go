@@ -19,6 +19,11 @@ var instanceListCmd = &cobra.Command{
 	Use:   "instances [serviceID]",
 	Short: "List instances for a service",
 	Args:  cobra.MaximumNArgs(1),
+	Example: `  # List instances for a service
+  render services instances srv-abc123
+
+  # Browse instances interactively
+  render services instances`,
 }
 
 func loadInstanceList(ctx context.Context, input views.InstanceListInput) ([]*client.ServiceInstance, error) {

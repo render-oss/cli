@@ -15,6 +15,8 @@ var deployCancelCmd = &cobra.Command{
 	Use:   "cancel <serviceID> <deployID>",
 	Short: "Cancel a running deploy",
 	Args:  cobra.ExactArgs(2),
+	Example: `  # Cancel a running deploy
+  render deploys cancel srv-abc123 dep-xyz789`,
 }
 
 var InteractiveDeployCancel = func(ctx context.Context, input views.DeployCancelInput, breadcrumb string) tea.Cmd {

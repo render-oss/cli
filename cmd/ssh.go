@@ -21,10 +21,19 @@ import (
 var sshCmd = &cobra.Command{
 	Use:   "ssh [serviceID|serviceName|instanceID]",
 	Short: "SSH into a service instance",
-	Long: `SSH into a service instance. You can specify the service ID, service name, or specific instance ID as an argument.
+	Long: `SSH into a service instance. This command only supports interactive mode.
 
-To pass arguments to ssh, use the following syntax: render ssh [serviceID|serviceName|instanceID] -- [ssh args]`,
+You can specify the service ID, service name, or specific instance ID as an argument. To pass arguments to ssh, use:
+  render ssh [serviceID|serviceName|instanceID] -- [ssh args]`,
 	GroupID: GroupSession.ID,
+	Example: `  # Open an SSH session for a service
+  render ssh srv-abc123
+
+  # Connect to an ephemeral instance
+  render ssh srv-abc123 --ephemeral
+
+  # Pass through ssh arguments
+  render ssh srv-abc123 -- -L 5432:localhost:5432`,
 }
 
 var InteractiveSSHView = func(ctx context.Context, input *views.SSHInput, breadcrumb string) tea.Cmd {
@@ -118,7 +127,7 @@ func getSSHTableOptions(ctx context.Context, breadcrumb string) []tui.CustomOpti
 func init() {
 	rootCmd.AddCommand(sshCmd)
 
-	sshCmd.Flags().BoolP("ephemeral", "e", false, "connect to ephemeral instance")
+	sshCmd.Flags().BoolP("ephemeral", "e", false, "Connect to an ephemeral instance")
 
 	sshCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()

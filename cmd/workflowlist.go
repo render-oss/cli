@@ -16,8 +16,10 @@ import (
 func NewWorkflowListCmd(deps flows.WorkflowDeps) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
-		Short: "List workflows",
+		Short: "List workflow services in your workspace",
 		Args:  cobra.NoArgs,
+		Example: `  # List workflows in the active workspace
+  render workflows list`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var input workflowviews.WorkflowInput
 			err := command.ParseCommand(cmd, args, &input)

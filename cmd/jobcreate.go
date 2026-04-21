@@ -21,6 +21,12 @@ var JobCreateCmd = &cobra.Command{
 	Use:   "create [serviceID]",
 	Short: "Create a new job for a service",
 	Args:  cobra.MaximumNArgs(1),
+	Example: `  # Create a job for a service
+  render jobs create srv-abc123 --start-command "bundle exec rake task"
+
+  # Create a job with a specific plan
+  # See https://render.com/docs/one-off-jobs for available job plans
+  render jobs create srv-abc123 --start-command "npm run worker" --plan-id plan-srv-006`,
 }
 
 var InteractiveJobCreate = func(ctx context.Context, input *views.JobCreateInput, breadcrumb string) tea.Cmd {
@@ -89,6 +95,8 @@ func init() {
 		return nil
 	}
 
-	JobCreateCmd.Flags().String("start-command", "", "The command to run for the job")
-	JobCreateCmd.Flags().String("plan-id", "", "The plan ID for the job (optional)")
+	JobCreateCmd.Flags().String("start-command", "", "Set the job start command")
+	JobCreateCmd.Flags().String("plan-id", "", "Set the plan ID for the job (Optional)")
+	setAnnotationBestEffort(JobCreateCmd.Flags(), "start-command", command.FlagPlaceholderAnnotation, []string{"COMMAND"})
+	setAnnotationBestEffort(JobCreateCmd.Flags(), "plan-id", command.FlagPlaceholderAnnotation, []string{"PLAN_ID"})
 }

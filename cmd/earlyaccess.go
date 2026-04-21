@@ -6,8 +6,10 @@ import (
 
 var EarlyAccessCmd = &cobra.Command{
 	Use:   "ea",
-	Short: "Early access commands",
+	Short: "Use early access commands",
 	Long:  `These commands are in early access and are subject to change.`,
+	Example: `  # List early access object storage resources
+  render ea objects list --region=oregon`,
 }
 
 func init() {

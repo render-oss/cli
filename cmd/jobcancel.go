@@ -15,6 +15,8 @@ var jobCancelCmd = &cobra.Command{
 	Use:   "cancel <serviceID> <jobID>",
 	Short: "Cancel a running job",
 	Args:  cobra.ExactArgs(2),
+	Example: `  # Cancel a running job
+  render jobs cancel srv-abc123 job-xyz789`,
 }
 
 var InteractiveJobCancel = func(ctx context.Context, input views.JobCancelInput, breadcrumb string) tea.Cmd {

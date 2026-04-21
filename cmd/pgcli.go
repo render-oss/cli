@@ -17,10 +17,17 @@ import (
 // pgcliCmd represents the pgcli command
 var pgcliCmd = &cobra.Command{
 	Use:   "pgcli [postgresID|postgresName]",
-	Short: "Open a pgcli session to a PostgreSQL database",
-	Long: `Open a pgcli session to a PostgreSQL database. Optionally pass the database id or name as an argument.
-To pass arguments to pgcli, use the following syntax: render pgcli [postgresID|postgresName] -- [pgcli args]`,
+	Short: "Open a pgcli session to a Render Postgres database instance",
+	Long: `Open a pgcli session to a Render Postgres database instance. This command only supports interactive mode.
+
+You can optionally pass a database ID or name as an argument. To pass arguments to pgcli, use:
+  render pgcli [postgresID|postgresName] -- [pgcli args]`,
 	GroupID: GroupSession.ID,
+	Example: `  # Open an interactive pgcli session
+  render pgcli pg-abc123
+
+  # Pass through pgcli arguments
+  render pgcli pg-abc123 -- --csv -q`,
 }
 
 func InteractivePGCLIView(ctx context.Context, input *views.PSQLInput) tea.Cmd {

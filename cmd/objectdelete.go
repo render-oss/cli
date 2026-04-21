@@ -35,20 +35,23 @@ func (i *ObjectDeleteInput) Validate(interactive bool) error {
 }
 
 var objectDeleteCmd = &cobra.Command{
-	Use:   "delete <key> [key...]",
+	Use:   "delete <key> [additionalKeys...]",
 	Short: "Delete one or more objects from storage",
-	Long: `Delete one or more objects from storage.
+	Long: `This operation is irreversible.
 
-This operation is irreversible. By default, you will be prompted for confirmation unless you specify the --yes flag.
+Delete one or more objects from storage.
 
-In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true), files are deleted from the .render/objects/ directory.
+By default, you will be prompted for confirmation unless you specify the --yes flag.
 
-Examples:
-  render ea objects delete my/object/key --region=oregon
-  render ea objects delete my/object/key --region=oregon --yes
-  render ea objects delete seed/file-00000.txt seed/file-00001.txt seed/file-00002.txt --region=oregon --yes
-  render ea objects delete test/file --region=oregon --local --yes
-`,
+In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true), files are deleted from the .render/objects/ directory.`,
+	Example: `  # Delete a single object
+  render ea objects delete assets/images/old-logo.png --region=oregon
+
+  # Delete multiple objects without confirmation
+  render ea objects delete tmp/import-001.json tmp/import-002.json --region=oregon --yes
+
+  # Delete from local object storage
+  render ea objects delete local-dev/fixtures/sample.json --region=oregon --local --yes`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var input ObjectDeleteInput

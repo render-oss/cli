@@ -13,6 +13,8 @@ import (
 var whoamiCmd = &cobra.Command{
 	Use:   "whoami",
 	Short: "Display information about the current user",
+	Example: `  # Show the currently authenticated user
+  render whoami`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runWhoami(cmd.Context())
 	},

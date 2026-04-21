@@ -9,9 +9,9 @@ import (
 
 // InstallInput holds the parameters for a skills install operation.
 type InstallInput struct {
-	// ToolFilter filters tools by name (optional, empty means all detected tools).
+	// ToolFilter filters tools by name (Optional, empty means all detected tools).
 	ToolFilter string
-	// SkillFilter specifies which skills to install by name or dir (optional, empty means all).
+	// SkillFilter specifies which skills to install by name or dir (Optional, empty means all).
 	SkillFilter []string
 	// DryRun if true, shows what would be installed without making changes.
 	DryRun bool
@@ -21,7 +21,7 @@ type InstallInput struct {
 	PreSelectedSkillNames []string
 	// Scope specifies where to install skills (user or project). Defaults to user.
 	Scope Scope
-	// RepoRoot is the git repository root (required for project scope).
+	// RepoRoot is the git repository root (Required for project scope).
 	RepoRoot string
 }
 

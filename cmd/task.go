@@ -18,33 +18,38 @@ import (
 
 var taskCmd = &cobra.Command{
 	Use:   "tasks",
-	Short: "Manage tasks",
+	Short: "List tasks and start task runs",
+	Example: `  # List tasks in a workflow version
+  render workflows tasks list wfv-1234
+
+  # Start a task run
+  render workflows tasks start my-task --input='["arg1"]'`,
 }
 
 func NewTaskStartCmd(deps flows.WorkflowDeps) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "start [task-slug] --input=<json>",
+		Use:   "start [taskSlug]",
 		Short: "Start a task run with the provided input",
-		Long: `Start a task with the provided input.
+		Long: `Start a task with the provided input. In non-interactive mode, provide input with --input or --input-file.
 
 You can specify the task by its workflow slug and task name (e.g., my-workflow/my-task)
 
 Input Format:
-The input should be a JSON array where each element is an argument to the task.
-For example, if your task takes two arguments, provide: ["arg1", "arg2"]
+The input should be a JSON array where each element is an argument to the task. For example, if your task takes two arguments, provide: ["arg1", "arg2"]
 
 You can provide input via:
   • --input with inline JSON
   • --input-file with a path to a JSON file
 
-In interactive mode, you will be prompted to select the task and provide the input.
-
-Examples:
+In interactive mode, you will be prompted to select the task and provide the input.`,
+		Example: `  # Start a task run with inline JSON input
   render workflows tasks start tsk-1234 --input='["arg1", "arg2"]'
-  render workflows tasks start my-workflow/my-task --input='[42, "hello"]'
+
+  # Start a task run with input from a file
   render workflows tasks start my-task --input-file=input.json
-  render workflows tasks start my-task --local --input='["test"]'
-`,
+
+  # Start a task run against local workflow development server
+  render workflows tasks start my-task --local --input='["test"]'`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			deps, local, err := getLocalDeps(cmd, deps)
@@ -94,17 +99,20 @@ Examples:
 
 	cmd.Flags().String(
 		"input", "",
-		"JSON array input to pass to the task (e.g., '[\"arg1\", \"arg2\"]')",
+		"Provide task input as a JSON array",
 	)
-	cmd.Flags().String("input-file", "", "File containing JSON input to pass to the task")
+	cmd.Flags().String("input-file", "", "Read task input from a JSON file path")
 	cmd.MarkFlagFilename("input-file")
+	setAnnotationBestEffort(cmd.Flags(), "input", command.FlagPlaceholderAnnotation, []string{"JSON"})
+	setAnnotationBestEffort(cmd.Flags(), "input-file", command.FlagPlaceholderAnnotation, []string{"PATH"})
 
 	return cmd
 }
 
 func init() {
-	taskCmd.PersistentFlags().Bool("local", false, "Run against the server spawned by the task dev command")
-	taskCmd.PersistentFlags().Int("port", defaultTaskAPIPort, "Port of the local task server (8120 when not specified)")
+	taskCmd.PersistentFlags().Bool("local", false, "Run against the local workflow development server")
+	taskCmd.PersistentFlags().Int("port", defaultTaskAPIPort, "Set the port of the local task server")
+	setAnnotationBestEffort(taskCmd.PersistentFlags(), "port", command.FlagPlaceholderAnnotation, []string{"PORT"})
 
 	WorkflowsCmd.AddCommand(taskCmd)
 }

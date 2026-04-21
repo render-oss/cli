@@ -41,14 +41,15 @@ var objectPutCmd = &cobra.Command{
 
 The key is the path/name under which the object will be stored. Keys can include path-like structures (e.g., "uploads/images/photo.jpg").
 
-In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true), files are stored in the .render/objects/ directory.
+In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true), files are stored in the .render/objects/ directory.`,
+	Example: `  # Upload a local file
+  render ea objects put backups/2026-04-15/users.ndjson --file=./exports/users.ndjson --region=oregon
 
-Examples:
-  render ea objects put my/object/key --file=/path/to/file.txt --region=oregon
-  render ea objects put uploads/data.json --file=./data.json --region=oregon
-  render ea objects put test/file --file=./test.txt --region=oregon --local
-  render ea objects put my/key --file=./file.txt --region=oregon -o json
-`,
+  # Upload with a relative file path
+  render ea objects put assets/images/logo.png --file=./public/logo.png --region=oregon
+
+  # Upload to local object storage
+  render ea objects put local-dev/fixtures/sample.json --file=./fixtures/sample.json --region=oregon --local`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var input ObjectPutInput
@@ -104,9 +105,10 @@ func uploadObject(cmd *cobra.Command, input ObjectPutInput) (*storage.UploadResu
 }
 
 func init() {
-	objectPutCmd.Flags().StringP("file", "f", "", "Path to the local file to upload (required)")
+	objectPutCmd.Flags().StringP("file", "f", "", "Path to the local file to upload (Required)")
 	objectPutCmd.MarkFlagRequired("file")
 	objectPutCmd.MarkFlagFilename("file")
+	setAnnotationBestEffort(objectPutCmd.Flags(), "file", command.FlagPlaceholderAnnotation, []string{"PATH"})
 
 	objectCmd.AddCommand(objectPutCmd)
 }

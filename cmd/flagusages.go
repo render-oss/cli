@@ -76,9 +76,9 @@ func formatDefaultAndDeprecation(flag *pflag.Flag) string {
 
 	if !isZeroDefaultValue(flag) {
 		if flag.Value.Type() == "string" {
-			parts += fmt.Sprintf(" (default %q)", flag.DefValue)
+			parts += fmt.Sprintf(" (default: %q)", flag.DefValue)
 		} else {
-			parts += fmt.Sprintf(" (default %s)", flag.DefValue)
+			parts += fmt.Sprintf(" (default: %s)", flag.DefValue)
 		}
 	}
 
@@ -127,6 +127,9 @@ func CombinedFlagUsages(localFlags, inheritedFlags *pflag.FlagSet) string {
 			}
 
 			varname, usage := pflag.UnquoteUsage(flag)
+			if flag.Name == "help" {
+				usage = "Show help for this command"
+			}
 
 			// Get descriptive type name
 			if varname != "" {

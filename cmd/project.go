@@ -16,10 +16,11 @@ import (
 
 var projectCmd = &cobra.Command{
 	Use:   "projects",
-	Short: "List projects",
-	Long: `List projects for the active workspace.
-In interactive mode you can view the environments for a project.`,
+	Short: "List projects in the active workspace",
+	Long: `Browse projects in the active workspace. In interactive mode, select a project to view its environments.`,
 	GroupID: GroupManagement.ID,
+	Example: `  # List projects in JSON
+  render projects --output json`,
 }
 
 var InteractiveProjectList = func(ctx context.Context) {

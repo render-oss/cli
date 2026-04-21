@@ -9,6 +9,8 @@ import (
 var docsCmd = &cobra.Command{
 	Use:   "docs",
 	Short: "Open the Render docs in your browser",
+	Example: `  # Open Render documentation
+  render docs`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return dashboard.Open("https://render.com/docs")
 	},

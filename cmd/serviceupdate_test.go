@@ -88,8 +88,8 @@ func TestServiceUpdateFlagsRegistration(t *testing.T) {
 }
 
 func TestServiceUpdateCommandStructure(t *testing.T) {
-	t.Run("command use string is update [service]", func(t *testing.T) {
-		require.Equal(t, "update [service]", ServiceUpdateCmd.Use)
+	t.Run("command use string is update <service>", func(t *testing.T) {
+		require.Equal(t, "update <service>", ServiceUpdateCmd.Use)
 	})
 
 	t.Run("command requires exactly 1 positional arg", func(t *testing.T) {

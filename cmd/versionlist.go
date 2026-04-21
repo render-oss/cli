@@ -25,12 +25,12 @@ This command displays all versions for a workflow, showing:
   • Creation timestamp
   • Associated tasks
 
-In interactive mode, you will be prompted to select a workflow if not provided.
-
-Examples:
+In interactive mode, you will be prompted to select a workflow if not provided.`,
+		Example: `  # List versions by workflow ID
   render workflows versions list wf-1234
-  render workflows versions list my-workflow-slug
-`,
+
+  # List versions by workflow slug
+  render workflows versions list my-workflow-slug`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var input workflowviews.VersionListInput

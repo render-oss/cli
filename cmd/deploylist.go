@@ -22,6 +22,11 @@ var deployListCmd = &cobra.Command{
 	Use:   "list [serviceID]",
 	Short: "List deploys for a service",
 	Args:  cobra.MaximumNArgs(1),
+	Example: `  # List deploys for a service
+  render deploys list srv-abc123
+
+  # Browse deploys interactively
+  render deploys list`,
 }
 
 var InteractiveDeployList = func(ctx context.Context, input views.DeployListInput, r resource.Resource, breadcrumb string) tea.Cmd {
@@ -87,7 +92,7 @@ func commandsForDeploy(deps *dependencies.Dependencies, dep *client.Deploy, serv
 		},
 		{
 			Name:        "dashboard",
-			Description: "Open Render Dashboard to the service's page",
+			Description: "Open the Render Dashboard to the service's page",
 			Action: func(ctx context.Context, args []string) tea.Cmd {
 				err := dashboard.OpenDeploy(serviceID, serviceType, dep.Id)
 				return command.AddErrToStack(ctx, servicesCmd, err)

@@ -8,7 +8,9 @@ import (
 
 var loginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "Login to Render using the dashboard",
+	Short: "Log in to Render using the Render Dashboard",
+	Example: `  # Authenticate with Render
+  render login`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return views.NonInteractiveLogin(cmd)
 	},

@@ -28,7 +28,7 @@ import (
 var servicesCmd = &cobra.Command{
 	Use:     "services",
 	Short:   "List services and datastores for the active workspace",
-	Long:    "Lists all services and datastores for the active workspace. In interactive mode, you can view logs, restart services, trigger deploys, SSH into instances, and connect to PostgreSQL and Key Value datastores.",
+	Long:    "Lists all services and datastores for the active workspace. In interactive mode, you can view logs, restart services, trigger deploys, SSH into instances, and connect to Render Postgres databases and Render Key Value instances.",
 	Aliases: []string{"service"},
 	GroupID: GroupCore.ID,
 	Example: `  # List all services
@@ -99,7 +99,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 			{
 				command: views.PaletteCommand{
 					Name:        "kv-cli",
-					Description: "Connect to the Key Value using either redis-cli or valkey-cli",
+					Description: "Connect to Render Key Value using either redis-cli or valkey-cli",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
 						return InteractiveKeyValueCLIView(ctx, &views.RedisCLIInput{RedisIDOrName: r.ID()})
 					},
@@ -109,7 +109,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 			{
 				command: views.PaletteCommand{
 					Name:        "psql",
-					Description: "Connect to the PostgreSQL database using psql",
+					Description: "Connect to the Render Postgres database using psql",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
 						return InteractivePSQLView(ctx, &views.PSQLInput{PostgresIDOrName: r.ID()})
 					},
@@ -119,7 +119,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 			{
 				command: views.PaletteCommand{
 					Name:        "pgcli",
-					Description: "Connect to the PostgreSQL database using pgcli",
+					Description: "Connect to the Render Postgres database using pgcli",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
 						return InteractivePGCLIView(ctx, &views.PSQLInput{PostgresIDOrName: r.ID()})
 					},
@@ -203,7 +203,7 @@ func selectResource(ctx context.Context) func(resource.Resource) []views.Palette
 			{
 				command: views.PaletteCommand{
 					Name:        "dashboard",
-					Description: "Open Render Dashboard to the service's page",
+					Description: "Open the Render Dashboard to the service's page",
 					Action: func(ctx context.Context, args []string) tea.Cmd {
 						err := dashboard.OpenResource(r.ID(), r.Type())
 						return command.AddErrToStack(ctx, servicesCmd, err)
@@ -284,7 +284,7 @@ func init() {
 		return nil
 	}
 
-	servicesCmd.Flags().StringSliceP("environment-ids", "e", nil, "Filter services by environment IDs")
+	servicesCmd.Flags().StringSliceP("environment-ids", "e", nil, "Filter services by comma-separated environment IDs")
 	setAnnotationBestEffort(servicesCmd.Flags(), "environment-ids", command.FlagPlaceholderAnnotation, []string{placeholderEnvIDs})
 	servicesCmd.Flags().Bool("include-previews", false, "Include preview environments")
 

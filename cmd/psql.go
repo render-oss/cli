@@ -19,9 +19,11 @@ import (
 // psqlCmd represents the psql command
 var psqlCmd = &cobra.Command{
 	Use:   "psql [postgresID|postgresName]",
-	Short: "Open a psql session to a PostgreSQL database",
-	Long: `Open a psql session to a PostgreSQL database. Optionally pass the database id or name as an argument.
-To pass arguments to psql, use the following syntax: render psql [postgresID|postgresName] -- [psql args]
+	Short: "Open a psql session to a Render Postgres database",
+	Long: `Open a psql session to a Render Postgres database.
+
+Optionally pass the database ID or name as an argument. To pass arguments to psql, use:
+  render psql [postgresID|postgresName] -- [psql args]
 
 For non-interactive usage, use the --command flag:
   render psql [postgresID|postgresName] -c "SELECT * FROM users;" -o text
@@ -29,6 +31,14 @@ For non-interactive usage, use the --command flag:
 Additional psql flags can be passed after --:
   render psql [postgresID|postgresName] -c "SELECT 1;" -o json -- --csv -q`,
 	GroupID: GroupSession.ID,
+	Example: `  # Open an interactive psql session
+  render psql pg-abc123
+
+  # Execute a SQL command in non-interactive mode
+  render psql pg-abc123 --command "SELECT * FROM users;" --output text
+
+  # Pass through psql arguments
+  render psql pg-abc123 -- --csv -q`,
 }
 
 func InteractivePSQLView(ctx context.Context, input *views.PSQLInput) tea.Cmd {
@@ -59,7 +69,8 @@ func getPsqlTableOptions(ctx context.Context, input *views.PSQLInput) []tui.Cust
 func init() {
 	rootCmd.AddCommand(psqlCmd)
 
-	psqlCmd.Flags().StringP("command", "c", "", "SQL command to execute (enables non-interactive mode)")
+	psqlCmd.Flags().StringP("command", "c", "", "Execute a SQL command in non-interactive mode")
+	setAnnotationBestEffort(psqlCmd.Flags(), "command", command.FlagPlaceholderAnnotation, []string{"SQL"})
 
 	psqlCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()

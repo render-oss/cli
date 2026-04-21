@@ -19,19 +19,22 @@ import (
 
 var blueprintValidateCmd = &cobra.Command{
 	Use:   "validate [file]",
-	Short: "Validate a render.yaml file",
-	Long: `Validate a render.yaml Blueprint file for errors before committing.
+	Short: "Validate a YAML file for a Blueprint",
+	Long: `Validate a Blueprint file for errors before committing.
 
 Validates:
   - YAML syntax
-  - Schema validation (required fields, types)
+  - Schema validation (Required fields, types)
   - Semantic validation (valid plans, regions, etc.)
-  - Conflict checking against existing resources
+  - Conflict checking against existing resources`,
+	Example: `  # Validate ./render.yaml
+  render blueprints validate
 
-Examples:
-  render blueprints validate                    # Validate ./render.yaml
-  render blueprints validate ./my-blueprint.yaml  # Validate specific file
-  render blueprints validate -o json            # Output as JSON`,
+  # Validate a specific Blueprint file
+  render blueprints validate ./my-blueprint.yaml
+
+  # Output validation results as JSON
+  render blueprints validate -o json`,
 	Args:         cobra.MaximumNArgs(1),
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -42,7 +45,8 @@ Examples:
 
 func init() {
 	blueprintsCmd.AddCommand(blueprintValidateCmd)
-	blueprintValidateCmd.Flags().StringP("workspace", "w", "", "Workspace ID to validate against (defaults to current workspace)")
+	blueprintValidateCmd.Flags().StringP("workspace", "w", "", "Validate against the specified workspace ID (defaults to current workspace)")
+	setAnnotationBestEffort(blueprintValidateCmd.Flags(), "workspace", command.FlagPlaceholderAnnotation, []string{"WORKSPACE_ID"})
 }
 
 func runBlueprintValidate(ctx context.Context, cmd *cobra.Command, args []string) error {

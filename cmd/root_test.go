@@ -204,7 +204,7 @@ func TestCombinedFlagUsagesIncludesDefaultValue(t *testing.T) {
 
 	got := CombinedFlagUsages(flags, nil)
 
-	require.Contains(t, got, `(default "interactive")`)
+	require.Contains(t, got, `(default: "interactive")`)
 }
 
 func TestCombinedFlagUsagesIncludesSingleSpaceStringDefault(t *testing.T) {
@@ -213,7 +213,7 @@ func TestCombinedFlagUsagesIncludesSingleSpaceStringDefault(t *testing.T) {
 
 	got := CombinedFlagUsages(flags, nil)
 
-	require.Contains(t, got, `(default " ")`)
+	require.Contains(t, got, `(default: " ")`)
 }
 
 func TestCombinedFlagUsagesIncludesDeprecationText(t *testing.T) {
@@ -234,9 +234,9 @@ func TestCombinedFlagUsagesIncludesZeroNumericAndDurationDefaults(t *testing.T) 
 	got := CombinedFlagUsages(flags, nil)
 
 	require.Contains(t, got, "--limit")
-	require.Contains(t, got, "(default 0)")
+	require.Contains(t, got, "(default: 0)")
 	require.Contains(t, got, "--timeout")
-	require.Contains(t, got, "(default 0s)")
+	require.Contains(t, got, "(default: 0s)")
 }
 
 func TestRootServicesHelpOmitsBoolNoArgSuffix(t *testing.T) {

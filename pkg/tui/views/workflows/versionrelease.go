@@ -42,7 +42,7 @@ func (v *VersionReleaseView) setupForm() tea.Cmd {
 
 	inputs = append(inputs, huh.NewInput().
 		Title("Commit ID").
-		Placeholder("Enter commit ID (optional)").
+		Placeholder("Enter commit ID (Optional)").
 		Value(v.input.CommitID))
 
 	versionForm := huh.NewForm(huh.NewGroup(inputs...))

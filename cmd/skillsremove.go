@@ -17,10 +17,17 @@ var skillsRemoveCmd = &cobra.Command{
 	Short: "Remove installed Render skills from AI coding tools",
 	Long: `Remove previously installed Render skills from detected AI coding tools.
 
-By default an interactive prompt lets you pick which skills to remove.
-Use --skill and --all flags to skip the prompts.
+By default an interactive prompt lets you pick which skills to remove. Use --skill and --all flags to skip the prompts.
 
 Use --scope to remove from a specific scope (user or project).`,
+	Example: `  # Remove skills interactively
+  render skills remove
+
+  # Remove specific skills
+  render skills remove --skill render-deploy --skill render-debug
+
+  # Remove all project-scoped skills
+  render skills remove --all --scope project`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		skillFilter, _ := cmd.Flags().GetStringSlice("skill")
@@ -58,10 +65,13 @@ Use --scope to remove from a specific scope (user or project).`,
 
 func init() {
 	skillsCmd.AddCommand(skillsRemoveCmd)
-	skillsRemoveCmd.Flags().StringSlice("skill", nil, "remove specific skills (e.g. --skill render-deploy --skill render-debug)")
-	skillsRemoveCmd.Flags().String("tool", "", "remove from a specific tool only (claude, codex, opencode, cursor)")
-	skillsRemoveCmd.Flags().Bool("all", false, "remove all installed Render skills")
-	skillsRemoveCmd.Flags().String("scope", "", "remove from specific scope: user or project")
+	skillsRemoveCmd.Flags().StringSlice("skill", nil, "Remove specific skills only (use --skill multiple times)")
+	skillsRemoveCmd.Flags().String("tool", "", "Remove skills from a specific tool only (claude, codex, opencode, or cursor)")
+	skillsRemoveCmd.Flags().Bool("all", false, "Remove all installed Render skills")
+	skillsRemoveCmd.Flags().String("scope", "", "Remove skills from the specified scope (user or project)")
+	setAnnotationBestEffort(skillsRemoveCmd.Flags(), "skill", command.FlagPlaceholderAnnotation, []string{"SKILL"})
+	setAnnotationBestEffort(skillsRemoveCmd.Flags(), "tool", command.FlagPlaceholderAnnotation, []string{"TOOL"})
+	setAnnotationBestEffort(skillsRemoveCmd.Flags(), "scope", command.FlagPlaceholderAnnotation, []string{"SCOPE"})
 }
 
 // nonInteractiveSkillsRemove runs the remove flow without prompts.

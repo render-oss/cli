@@ -14,6 +14,8 @@ import (
 var workspaceCurrentCmd = &cobra.Command{
 	Use:   "current",
 	Short: "Show the currently selected workspace",
+	Example: `  # Show the active workspace
+  render workspace current`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)
 

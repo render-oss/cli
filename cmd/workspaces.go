@@ -17,8 +17,10 @@ import (
 
 var workspacesCmd = &cobra.Command{
 	Use:     "workspaces",
-	Short:   "List workspaces",
+	Short:   "List workspaces available to your account",
 	GroupID: GroupCore.ID,
+	Example: `  # List workspaces available to the current user
+  render workspaces`,
 }
 
 func loadWorkspaces(ctx context.Context) ([]*client.Owner, error) {

@@ -28,19 +28,27 @@ const defaultDir = "./workflows-demo"
 
 var workflowInitCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Scaffold a new workflows project",
-	Long: `Scaffold a new workflows project with example tasks.
+	Short: "Scaffold a new Render Workflows project",
+	Long: `Scaffold a new Render Workflows project with example tasks.
 
 Creates a working example project with task definitions, dependencies, and a README with instructions for local development and Client SDK integration.
 
 In interactive mode you'll be prompted to select a language, template, output directory, and optional features. Use --confirm to skip all prompts and accept defaults, or pass individual flags to skip specific prompts.
 
-With --confirm or non-interactive output (-o text/json/yaml), dependencies are installed and Git is initialized by default. Pass --install-deps=false or --git=false to opt out.
-
-Examples:
+With --confirm or non-interactive output (-o text/json/yaml), dependencies are installed and Git is initialized by default. Pass --install-deps=false or --git=false to opt out.`,
+	Example: `  # Scaffold with default settings
   render workflows init
+
+  # Skip prompts and use Python
   render workflows init --confirm --language python
+
+  # Skip prompts and disable Git initialization
   render workflows init --confirm --language python --git=false
+
+  # Customize output directory and enable optional features
+  render workflows init --language python --dir my-project --install-deps --git
+
+  # Use Node.js with a custom directory
   render workflows init --language node --dir my-project`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -287,7 +295,7 @@ func buildDeployCommand(name, runtime, buildCmd, runCmd string) []string {
 }
 
 func init() {
-	workflowInitCmd.Flags().String("language", "", "Language for the workflows project (python, node)")
+	workflowInitCmd.Flags().String("language", "", "Language for the Render Workflows project (python, node)")
 	workflowInitCmd.Flags().String("template", "", "Template to scaffold (defaults to the repo's default template)")
 	workflowInitCmd.Flags().String("dir", "", "Output directory (default: ./workflows-demo)")
 	workflowInitCmd.Flags().Bool("install-deps", false, "Install dependencies after scaffolding (default true with --confirm)")

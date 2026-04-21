@@ -1,26 +1,31 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/spf13/cobra"
+)
 
 var runsCmd = &cobra.Command{
 	Use:   "runs",
-	Short: "View task runs",
+	Short: "List and inspect workflow task runs",
 	Long: `View task run executions.
 
-A task run represents a single execution of a task with specific input parameters.
-Use these commands to view task run history and inspect details.
+A task run represents a single execution of a task with specific input parameters. Use these commands to view task run history and inspect details.
 
-Available commands:
-  list     - List all runs for a task
-  show     - Show detailed information about a specific run
+To start a new task run, use:
+  render workflows tasks start`,
+	Example: `  # List task runs for a task
+  render workflows runs list tsk-1234
 
-To start a new task run, use 'render workflows tasks start'.
+  # Show details for a task run
+  render workflows runs show tr-1234
 `,
 }
 
 func init() {
-	runsCmd.PersistentFlags().Bool("local", false, "Run against the server spawned by the task dev command")
-	runsCmd.PersistentFlags().Int("port", defaultTaskAPIPort, "Port of the local task server (8120 when not specified)")
+	runsCmd.PersistentFlags().Bool("local", false, "Run against the local workflow development server")
+	runsCmd.PersistentFlags().Int("port", defaultTaskAPIPort, "Set the port of the local task server")
+	setAnnotationBestEffort(runsCmd.PersistentFlags(), "port", command.FlagPlaceholderAnnotation, []string{"PORT"})
 
 	WorkflowsCmd.AddCommand(runsCmd)
 }

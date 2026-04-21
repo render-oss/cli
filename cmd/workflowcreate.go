@@ -70,14 +70,14 @@ func init() {
 
 	WorkflowCreateCmd.Flags().String("name", "", "Workflow name. Required in non-interactive mode.")
 	WorkflowCreateCmd.Flags().String("repo", "", "Git repository URL. Required in non-interactive mode.")
-	WorkflowCreateCmd.Flags().String("branch", "", "Git branch (optional)")
+	WorkflowCreateCmd.Flags().String("branch", "", "Git branch (Optional)")
 	runtimeFlag := command.NewEnumInput(workflowRuntimeValues, false)
 	WorkflowCreateCmd.Flags().Var(runtimeFlag, "runtime", "Runtime (node, python, go, ruby, elixir). Required in non-interactive mode.")
 	WorkflowCreateCmd.Flags().String("build-command", "", "Build command. Required in non-interactive mode.")
 	WorkflowCreateCmd.Flags().String("run-command", "", "Command to run the workflow. Required in non-interactive mode.")
 	regionFlag := command.NewEnumInput(types.RegionValues(), false)
 	WorkflowCreateCmd.Flags().Var(regionFlag, "region", "Deployment region (default: oregon)")
-	WorkflowCreateCmd.Flags().String("root-directory", "", "Root directory in the repository (optional)")
+	WorkflowCreateCmd.Flags().String("root-directory", "", "Root directory in the repository (Optional)")
 	autoDeployFlag := command.NewEnumInput(workflowAutoDeployTriggerValues, false)
 	WorkflowCreateCmd.Flags().Var(autoDeployFlag, "auto-deploy-trigger", "Autodeploy behavior (commit, off, checksPass; default: commit)")
 }

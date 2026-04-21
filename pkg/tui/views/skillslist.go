@@ -35,7 +35,7 @@ type skillsListLoadedMsg struct {
 type SkillsListView struct {
 	step listStep
 
-	// Scope filter (optional)
+	// Scope filter (Optional)
 	scopeFilter skills.Scope
 
 	// Loaded data

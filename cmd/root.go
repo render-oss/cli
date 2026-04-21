@@ -33,6 +33,11 @@ var rootCmd = &cobra.Command{
 
 	Short: "Interact with resources on Render",
 	Long:  longHelp,
+	Example: `  # List services in the active workspace
+  render services
+
+  # Output services as JSON
+  render services --output json`,
 
 	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
@@ -256,7 +261,7 @@ func init() {
 
 	rootCmd.Version = cfg.Version
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "Output format: interactive, json, yaml, or text (auto: text in non-TTY contexts unless explicitly set)")
+	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "Set output format to interactive, json, yaml, or text. Auto-switches to text on non-TTY")
 	setAnnotationBestEffort(rootCmd.PersistentFlags(), "output", command.FlagPlaceholderAnnotation, []string{command.OutputPlaceholder})
 	rootCmd.PersistentFlags().Bool(command.ConfirmFlag, false, "Skip all confirmation prompts")
 

@@ -22,11 +22,18 @@ func NewLogsCmd(deps flows.LogFlowDeps) *cobra.Command {
 		Short: "View logs for services and datastores",
 		Long: `View logs for services and datastores.
 
-Use flags to filter logs by resource, instance, time, text, level, type, host, status code, method, or path.
-Unlike in the dashboard, you can view logs for multiple resources at once. Set --tail=true to stream new logs (currently only in interactive mode).
+Use flags to filter logs by resource, instance, time, text, level, type, host, status code, method, or path. Unlike in the Render Dashboard, you can view logs for multiple resources at once.
 
-In interactive mode you can update the filters and view logs in real time.`,
+In interactive mode you can update the filters and view logs in real time, or set --tail=true to stream new logs.`,
 		GroupID: GroupCore.ID,
+		Example: `  # Tail logs for a service
+  render logs --resources srv-abc123 --tail
+
+  # Query logs in a time range
+  render logs --resources srv-abc123 --start 2026-03-01T00:00:00Z --end 2026-03-01T01:00:00Z
+
+  # Output logs as JSON in non-interactive mode
+  render logs --resources srv-abc123 --output json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var input views.LogInput
 			err := command.ParseCommand(cmd, args, &input)
@@ -64,22 +71,37 @@ In interactive mode you can update the filters and view logs in real time.`,
 	startTimeFlag := command.NewTimeInput()
 	endTimeFlag := command.NewTimeInput()
 
-	logCmd.Flags().StringSliceP("resources", "r", []string{}, "A list of comma separated resource IDs to query. Required in non-interactive mode.")
-	logCmd.Flags().Var(startTimeFlag, "start", "The start time of the logs to query")
-	logCmd.Flags().Var(endTimeFlag, "end", "The end time of the logs to query")
-	logCmd.Flags().StringSlice("text", []string{}, "A list of comma separated strings to search for in the logs")
-	logCmd.Flags().Var(levelFlag, "level", "A list of comma separated log levels to query")
-	logCmd.Flags().Var(logTypeFlag, "type", "A list of comma separated log types to query")
-	logCmd.Flags().StringSlice("instance", []string{}, "A list of comma separated instance IDs to query")
-	logCmd.Flags().StringSlice("host", []string{}, "A list of comma separated hosts to query")
-	logCmd.Flags().StringSlice("status-code", []string{}, "A list of comma separated status codes to query")
-	logCmd.Flags().Var(methodTypeFlag, "method", "A list of comma separated HTTP methods to query")
-	logCmd.Flags().StringSlice("path", []string{}, "A list of comma separated paths to query")
-	logCmd.Flags().Int("limit", logs.DefaultLogLimit, "The maximum number of logs to return")
-	logCmd.Flags().Var(directionFlag, "direction", "The direction to query the logs. Can be 'forward' or 'backward'")
+	logCmd.Flags().StringSliceP("resources", "r", []string{}, "Filter logs by comma-separated resource IDs (Required in non-interactive mode)")
+	logCmd.Flags().Var(startTimeFlag, "start", "Filter logs at or after the specified start time")
+	logCmd.Flags().Var(endTimeFlag, "end", "Filter logs at or before the specified end time")
+	logCmd.Flags().StringSlice("text", []string{}, "Filter logs by comma-separated text values")
+	logCmd.Flags().Var(levelFlag, "level", "Filter logs by comma-separated log levels")
+	logCmd.Flags().Var(logTypeFlag, "type", "Filter logs by comma-separated log types")
+	logCmd.Flags().StringSlice("instance", []string{}, "Filter logs by comma-separated instance IDs")
+	logCmd.Flags().StringSlice("host", []string{}, "Filter logs by comma-separated host values")
+	logCmd.Flags().StringSlice("status-code", []string{}, "Filter logs by comma-separated status codes")
+	logCmd.Flags().Var(methodTypeFlag, "method", "Filter logs by comma-separated HTTP methods")
+	logCmd.Flags().StringSlice("path", []string{}, "Filter logs by comma-separated request paths")
+	logCmd.Flags().Int("limit", logs.DefaultLogLimit, "Limit the number of logs returned")
+	logCmd.Flags().Var(directionFlag, "direction", "Set log query direction (backward or forward)")
 	logCmd.Flags().Bool("tail", false, "Stream new logs")
-	logCmd.Flags().StringSlice("task-id", []string{}, "A list of comma separated task IDs to query")
-	logCmd.Flags().StringSlice("task-run-id", []string{}, "A list of comma separated task run IDs to query")
+	logCmd.Flags().StringSlice("task-id", []string{}, "Filter logs by comma-separated task IDs")
+	logCmd.Flags().StringSlice("task-run-id", []string{}, "Filter logs by comma-separated task run IDs")
+	setAnnotationBestEffort(logCmd.Flags(), "resources", command.FlagPlaceholderAnnotation, []string{"RESOURCE_IDS"})
+	setAnnotationBestEffort(logCmd.Flags(), "start", command.FlagPlaceholderAnnotation, []string{"TIME"})
+	setAnnotationBestEffort(logCmd.Flags(), "end", command.FlagPlaceholderAnnotation, []string{"TIME"})
+	setAnnotationBestEffort(logCmd.Flags(), "text", command.FlagPlaceholderAnnotation, []string{"QUERY_TEXT"})
+	setAnnotationBestEffort(logCmd.Flags(), "level", command.FlagPlaceholderAnnotation, []string{"LOG_LEVEL"})
+	setAnnotationBestEffort(logCmd.Flags(), "type", command.FlagPlaceholderAnnotation, []string{"LOG_TYPE"})
+	setAnnotationBestEffort(logCmd.Flags(), "instance", command.FlagPlaceholderAnnotation, []string{"INSTANCE_IDS"})
+	setAnnotationBestEffort(logCmd.Flags(), "host", command.FlagPlaceholderAnnotation, []string{"HOSTS"})
+	setAnnotationBestEffort(logCmd.Flags(), "status-code", command.FlagPlaceholderAnnotation, []string{"STATUS_CODES"})
+	setAnnotationBestEffort(logCmd.Flags(), "method", command.FlagPlaceholderAnnotation, []string{"HTTP_METHOD"})
+	setAnnotationBestEffort(logCmd.Flags(), "path", command.FlagPlaceholderAnnotation, []string{"PATHS"})
+	setAnnotationBestEffort(logCmd.Flags(), "limit", command.FlagPlaceholderAnnotation, []string{"COUNT"})
+	setAnnotationBestEffort(logCmd.Flags(), "direction", command.FlagPlaceholderAnnotation, []string{"LOG_DIRECTION"})
+	setAnnotationBestEffort(logCmd.Flags(), "task-id", command.FlagPlaceholderAnnotation, []string{"TASK_IDS"})
+	setAnnotationBestEffort(logCmd.Flags(), "task-run-id", command.FlagPlaceholderAnnotation, []string{"TASK_RUN_IDS"})
 
 	return logCmd
 }

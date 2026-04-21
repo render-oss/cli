@@ -17,10 +17,17 @@ import (
 // redisCLICmd represents the redisCLI command
 var redisCLICmd = &cobra.Command{
 	Use:   "kv-cli [keyValueID|keyValueName]",
-	Short: "Open a redis-cli or valkey-cli session to a Key Value instance",
-	Long: `Open a redis-cli or valkey-cli session to a Key Value instance. Optionally pass the key value id or name as an argument.
-To pass arguments to redis-cli or valkey-cli, use the following syntax: render kv-cli [keyValueID|keyValueName] -- [redis-cli args]`,
+	Short: "Open a session for a Render Key Value instance",
+	Long: `Open a redis-cli or valkey-cli session for a Render Key Value instance. This command only supports interactive mode.
+
+You can optionally pass the key value ID or name as an argument. To pass arguments to redis-cli or valkey-cli, use:
+  render kv-cli [keyValueID|keyValueName] -- [redis-cli args]`,
 	GroupID: GroupSession.ID,
+	Example: `  # Open an interactive kv-cli session
+  render kv-cli kv-abc123
+
+  # Pass through redis-cli arguments
+  render kv-cli kv-abc123 -- --scan`,
 }
 
 func InteractiveKeyValueCLIView(ctx context.Context, input *views.RedisCLIInput) tea.Cmd {

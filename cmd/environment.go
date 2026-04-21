@@ -18,10 +18,11 @@ import (
 var environmentCmd = &cobra.Command{
 	Use:   "environments <projectID>",
 	Args:  cobra.ExactArgs(1),
-	Short: "List environments",
-	Long: `List environments for a specified project in the active workspace.
-In interactive mode you can view each environment's individual services.`,
+	Short: "List project environments by project ID",
+	Long: `List environments for a specified project in the active workspace. In interactive mode you can view each environment's individual services.`,
 	GroupID: GroupManagement.ID,
+	Example: `  # List environments for a project
+  render environments prj-abc123`,
 }
 
 var InteractiveEnvironment = func(ctx context.Context, input views.EnvironmentInput, breadcrumb string) tea.Cmd {

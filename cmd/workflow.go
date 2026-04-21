@@ -25,18 +25,22 @@ const defaultTaskAPIPort = 8120
 
 var WorkflowsCmd = &cobra.Command{
 	Use:   "workflows",
-	Short: "Manage workflows",
-	Long: `Manage workflow services for the active workspace.
-
-List workflows, browse versions and tasks, start task runs, and trigger releases.`,
+	Short: "Manage Render Workflows in your workspace",
+	Long: `Manage workflow services for the active workspace. List workflows, browse versions and tasks, start task runs, and trigger releases.`,
 	GroupID: GroupCore.ID,
+	Example: `  # List workflows
+  render workflows list
+
+  # Start local workflow development server
+  render workflows dev -- "python main.py"`,
 }
 
 var workflowDevCmd = &cobra.Command{
 	Use:          "dev -- <command to start a workflow service>",
-	Short:        "Start a workflows service in development mode",
+	Short:        "Start a workflow service in development mode",
 	SilenceUsage: true,
 	Long: `Start a workflow service in development mode for local testing.
+Required input: -- <command to start a workflow service>
 
 This command runs your workflow service locally on port 8120, allowing you to list and run tasks without deploying to Render. Task runs and their logs are stored in memory, so you can query them after tasks complete.
 
@@ -48,14 +52,15 @@ To interact with the local task server:
 
 To use a different port:
   • Specify --port when starting the dev server
-  • Then use --port with other task commands, or set RENDER_LOCAL_DEV_URL in the SDK
-
-Examples:
+  • Then use --port with other task commands, or set RENDER_LOCAL_DEV_URL in the SDK`,
+	Example: `  # Start local workflow development server
   render workflows dev -- "python main.py"
+
+  # Start local workflow development server on a custom port
   render workflows dev --port 9000 -- "npm start"
-  render workflows tasks list --local
-  render workflows tasks start my-task --local --input='["arg1"]'
-	`,
+
+  # List local tasks from another terminal
+  render workflows tasks list --local`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 		var commandArgs []string
@@ -174,8 +179,9 @@ Examples:
 }
 
 func init() {
-	workflowDevCmd.Flags().Int("port", defaultTaskAPIPort, "Port of the local task server (8120 when not specified)")
+	workflowDevCmd.Flags().Int("port", defaultTaskAPIPort, "Set the port of the local task server")
 	workflowDevCmd.Flags().Bool("debug", false, "Print detailed workflow task execution events")
+	setAnnotationBestEffort(workflowDevCmd.Flags(), "port", command.FlagPlaceholderAnnotation, []string{"PORT"})
 
 	rootCmd.AddCommand(WorkflowsCmd)
 	WorkflowsCmd.AddCommand(workflowDevCmd)

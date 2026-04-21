@@ -496,7 +496,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 		},
 	})
 
-	// Step 2: Install dependencies (optional)
+	// Step 2: Install dependencies (Optional)
 	var depsCommand string // captures the command that was run, for display
 	if wantDeps {
 		steps = append(steps, SetupStep{
@@ -515,7 +515,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 		})
 	}
 
-	// Step 3: Git init (optional)
+	// Step 3: Git init (Optional)
 	if wantGit {
 		steps = append(steps, SetupStep{
 			Label:       "Git repository initialized",
@@ -569,7 +569,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 		command.Println(r.cmd, "    %s %s", dim.Render("$"), cmdStyle.Render(installCmd))
 	}
 
-	// Agent skill installation (optional, before next steps)
+	// Agent skill installation (Optional, before next steps)
 	if r.interactive && !skipPrompts {
 		promptSkillInstall(r.cmd)
 	} else if input.InstallAgentSkill {

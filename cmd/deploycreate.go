@@ -21,14 +21,27 @@ import (
 
 var deployCmd = &cobra.Command{
 	Use:     "deploys",
-	Short:   "Manage service deploys",
+	Short:   "List, create, and cancel deploys",
 	GroupID: GroupCore.ID,
+	Example: `  # List deploys for a service
+  render deploys list srv-abc123
+
+  # Trigger a deploy for a service
+  render deploys create srv-abc123`,
 }
 
 var deployCreateCmd = &cobra.Command{
 	Use:   "create [serviceID]",
-	Short: "Trigger a service deploy and tail logs",
+	Short: "Trigger a service deploy and stream logs in real time",
 	Args:  cobra.MaximumNArgs(1),
+	Example: `  # Trigger a deploy for a service
+  render deploys create srv-abc123
+
+  # Deploy a specific commit
+  render deploys create srv-abc123 --commit 0123abcd
+
+  # Wait until deploy completes
+  render deploys create srv-abc123 --wait`,
 }
 
 var InteractiveDeployCreate = func(ctx context.Context, input types.DeployInput, breadcrumb string) tea.Cmd {
@@ -89,9 +102,11 @@ func init() {
 	}
 
 	deployCreateCmd.Flags().Bool("clear-cache", false, "Clear build cache before deploying")
-	deployCreateCmd.Flags().String("commit", "", "The commit ID to deploy")
-	deployCreateCmd.Flags().String("image", "", "The Docker image URL to deploy")
-	deployCreateCmd.Flags().Bool("wait", false, "Wait for deploy to finish. Returns non-zero exit code if deploy fails")
+	deployCreateCmd.Flags().String("commit", "", "Deploy the specified commit ID")
+	deployCreateCmd.Flags().String("image", "", "Deploy the specified Docker image URL")
+	deployCreateCmd.Flags().Bool("wait", false, "Wait for deploy completion and exit non-zero if deploy fails")
+	setAnnotationBestEffort(deployCreateCmd.Flags(), "commit", command.FlagPlaceholderAnnotation, []string{"COMMIT_ID"})
+	setAnnotationBestEffort(deployCreateCmd.Flags(), "image", command.FlagPlaceholderAnnotation, []string{"IMAGE_URL"})
 
 	deployCmd.AddCommand(deployCreateCmd)
 	rootCmd.AddCommand(deployCmd)

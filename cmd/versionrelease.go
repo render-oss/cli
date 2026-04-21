@@ -19,8 +19,7 @@ func NewVersionReleaseCmd(deps flows.WorkflowDeps) *cobra.Command {
 		Short: "Release a new workflow version",
 		Long: `Release a new version of a workflow service.
 
-This command triggers a new release of your workflow service on Render. When you release,
-Render:
+This command triggers a new release of your workflow service on Render. With a new release, Render:
   1. Pulls the latest code from your repository (or a specific commit)
   2. Builds your workflow service
   3. Registers all tasks it finds in the service
@@ -28,21 +27,17 @@ Render:
 
 You can optionally specify a commit ID to release a specific version of your code.
 
-Flags:
-  --commit    Specify a commit ID to release (optional)
-  --wait      Wait for the release to complete before returning (optional)
-              Returns a non-zero exit code if the release fails
-
 In interactive mode, you will be prompted to:
   • Select a workflow if not provided
-  • Confirm the release
-
-Examples:
+  • Confirm the release`,
+		Example: `  # Release a new version
   render workflows versions release wf-1234
-  render workflows versions release my-workflow-slug
+
+  # Release from a specific commit
   render workflows versions release wf-1234 --commit abc123
-  render workflows versions release wf-1234 --wait
-`,
+
+  # Wait for release completion
+  render workflows versions release wf-1234 --wait`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var input workflowviews.VersionReleaseInput
@@ -69,8 +64,9 @@ Examples:
 		},
 	}
 
-	versionReleaseCmd.Flags().String("commit", "", "The commit ID to release")
-	versionReleaseCmd.Flags().Bool("wait", false, "Wait for release to finish. Returns non-zero exit code if release fails")
+	versionReleaseCmd.Flags().String("commit", "", "Release the specified commit ID")
+	versionReleaseCmd.Flags().Bool("wait", false, "Wait for release completion and exit non-zero if release fails")
+	setAnnotationBestEffort(versionReleaseCmd.Flags(), "commit", command.FlagPlaceholderAnnotation, []string{"COMMIT_ID"})
 	// optionally, image backed is not in scope for alpha, native env only
 	// versionReleaseCmd.Flags().String("image", "", "The Docker image URL to release")
 

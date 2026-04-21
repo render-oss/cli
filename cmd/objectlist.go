@@ -37,15 +37,15 @@ var objectListCmd = &cobra.Command{
 
 Displays object keys, content types, sizes, and last modified timestamps.
 
-In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true), lists files from the .render/objects/ directory.
-
-Examples:
+In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true), lists files from the .render/objects/ directory.`,
+	Example: `  # List objects in cloud storage
   render ea objects list --region=oregon
-  render ea objects list --region=oregon --limit=50
-  render ea objects list --region=oregon --local
-  render ea objects list --region=oregon -o json
-  render ea objects list --region=oregon -o text
-`,
+
+  # Limit number of objects returned
+  render ea objects list --region=oregon --limit=200
+
+  # List objects from local storage
+  render ea objects list --region=oregon --local`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var input ObjectListInput
 
@@ -94,7 +94,8 @@ func listObjects(cmd *cobra.Command, input ObjectListInput) ([]storage.ObjectInf
 }
 
 func init() {
-	objectListCmd.Flags().Int("limit", 100, "Maximum number of objects to return")
+	objectListCmd.Flags().Int("limit", 100, "Limit the number of objects returned")
+	setAnnotationBestEffort(objectListCmd.Flags(), "limit", command.FlagPlaceholderAnnotation, []string{"COUNT"})
 
 	objectCmd.AddCommand(objectListCmd)
 }

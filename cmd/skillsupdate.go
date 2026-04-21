@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/skills"
 	"github.com/render-oss/cli/pkg/tui"
 	"github.com/render-oss/cli/pkg/tui/views"
@@ -11,11 +12,19 @@ import (
 var skillsUpdateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Update previously installed Render skills",
-	Long: `Re-install Render skills using the tool and skill selections saved by a previous "render skills install" run.
+	Long: `Reinstall Render skills using the tool and skill selections saved by a previous "render skills install" run.
 
 This fetches the latest version of each selected skill from the skills repository, compares with installed versions, and updates any that have changed.
 
 Use --scope to update skills at a specific scope (user or project).`,
+	Example: `  # Update installed skills
+  render skills update
+
+  # Force reinstall all skills
+  render skills update --force
+
+  # Update project-scoped skills
+  render skills update --scope project`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		force, _ := cmd.Flags().GetBool("force")
@@ -45,6 +54,7 @@ Use --scope to update skills at a specific scope (user or project).`,
 
 func init() {
 	skillsCmd.AddCommand(skillsUpdateCmd)
-	skillsUpdateCmd.Flags().Bool("force", false, "reinstall all skills even if already up to date")
-	skillsUpdateCmd.Flags().String("scope", "", "update skills at specific scope: user or project")
+	skillsUpdateCmd.Flags().Bool("force", false, "Reinstall all skills even if already up to date")
+	skillsUpdateCmd.Flags().String("scope", "", "Update skills at the specified scope (user or project)")
+	setAnnotationBestEffort(skillsUpdateCmd.Flags(), "scope", command.FlagPlaceholderAnnotation, []string{"SCOPE"})
 }

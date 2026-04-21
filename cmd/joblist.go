@@ -22,6 +22,11 @@ var jobListCmd = &cobra.Command{
 	Use:   "list [serviceID]",
 	Short: "List jobs for a service",
 	Args:  cobra.MaximumNArgs(1),
+	Example: `  # List jobs for a service
+  render jobs list srv-abc123
+
+  # Browse jobs interactively
+  render jobs list`,
 }
 
 var InteractiveJobList = func(ctx context.Context, input views.JobListInput, breadcrumb string) tea.Cmd {

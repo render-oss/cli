@@ -15,10 +15,15 @@ import (
 )
 
 var restartCmd = &cobra.Command{
-	Use:     "restart [resourceID]",
-	Short:   "Restart a service",
+	Use:     "restart <resourceID>",
+	Short:   "Restart a service by resource ID",
 	Args:    cobra.ExactArgs(1),
 	GroupID: GroupCore.ID,
+	Example: `  # Restart a service
+  render restart srv-abc123
+
+  # Restart a service without confirmation prompts
+  render restart srv-abc123 --confirm`,
 }
 
 var InteractiveRestart = func(ctx context.Context, input views.RestartInput, breadcrumb string) tea.Cmd {

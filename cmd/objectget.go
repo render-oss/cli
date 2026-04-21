@@ -39,15 +39,15 @@ var objectGetCmd = &cobra.Command{
 
 If --file is not specified, the object content is written to stdout, which is useful for piping to other commands.
 
-In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true), files are read from the .render/objects/ directory.
+In local development mode (--local flag or RENDER_USE_LOCAL_DEV=true), files are read from the .render/objects/ directory.`,
+	Example: `  # Download an object to a file
+  render ea objects get backups/2026-04-15/users.ndjson --file=./downloads/users.ndjson --region=oregon
 
-Examples:
-  render ea objects get my/object/key --file=/path/to/output.txt --region=oregon
-  render ea objects get my/object/key --region=oregon > output.txt
-  render ea objects get my/object/key --region=oregon | jq .
-  render ea objects get uploads/data.json --file=./data.json --region=oregon
-  render ea objects get test/file --file=./output.txt --region=oregon --local
-`,
+  # Write object content to stdout
+  render ea objects get config/runtime/env.json --region=oregon
+
+  # Read from local object storage
+  render ea objects get local-dev/fixtures/sample.json --file=./tmp/sample.json --region=oregon --local`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var input ObjectGetInput

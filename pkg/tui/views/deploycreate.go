@@ -178,7 +178,7 @@ func (v *DeployCreateView) setupForm() tea.Cmd {
 
 		inputs = append(inputs, huh.NewInput().
 			Title("Image URL").
-			Placeholder("Enter Docker image URL (optional)").
+			Placeholder("Enter Docker image URL (Optional)").
 			Value(v.input.ImageURL))
 	} else {
 		if v.input.CommitID == nil {
@@ -187,7 +187,7 @@ func (v *DeployCreateView) setupForm() tea.Cmd {
 
 		inputs = append(inputs, huh.NewInput().
 			Title("Commit ID").
-			Placeholder("Enter commit ID (optional)").
+			Placeholder("Enter commit ID (Optional)").
 			Value(v.input.CommitID))
 	}
 
