@@ -15,6 +15,7 @@ import (
 	"github.com/render-oss/cli/pkg/tui/views"
 	wfviews "github.com/render-oss/cli/pkg/tui/views/workflows"
 	"github.com/render-oss/cli/pkg/types"
+	"github.com/render-oss/cli/pkg/utils"
 )
 
 var workflowRuntimeValues = []string{
@@ -43,6 +44,7 @@ In non-interactive mode, provide all required config with flags.
 Examples:
   render workflows create
   render workflows create --name my-workflow --repo https://github.com/org/repo --build-command "npm install" --runtime node --run-command "npm start" --region oregon -o json
+  render workflows create --repo . --name my-workflow --build-command "npm install" --runtime node --run-command "npm start"
 `,
 }
 
@@ -52,6 +54,14 @@ func init() {
 
 		if err := command.ParseCommand(cmd, args, &input); err != nil {
 			return fmt.Errorf("failed to parse input: %w", err)
+		}
+
+		if input.Repo != nil && *input.Repo != "" {
+			resolved, err := utils.ResolveLocalRepoURL(*input.Repo)
+			if err != nil {
+				return fmt.Errorf("--repo %q: %w", *input.Repo, err)
+			}
+			input.Repo = &resolved
 		}
 
 		if nonInteractive, err := command.NonInteractive(cmd, func() (*wfclient.Workflow, error) {
@@ -69,7 +79,7 @@ func init() {
 	}
 
 	WorkflowCreateCmd.Flags().String("name", "", "Workflow name. Required in non-interactive mode.")
-	WorkflowCreateCmd.Flags().String("repo", "", "Git repository URL. Required in non-interactive mode.")
+	WorkflowCreateCmd.Flags().String("repo", "", "Git repository URL, or a local directory path (e.g. '.') to resolve via the repo's origin remote. Required in non-interactive mode.")
 	WorkflowCreateCmd.Flags().String("branch", "", "Git branch (Optional)")
 	runtimeFlag := command.NewEnumInput(workflowRuntimeValues, false)
 	WorkflowCreateCmd.Flags().Var(runtimeFlag, "runtime", "Runtime (node, python, go, ruby, elixir). Required in non-interactive mode.")

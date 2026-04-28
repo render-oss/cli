@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -64,7 +65,7 @@ func TestFormatNextSteps_RendersAllSteps(t *testing.T) {
 		},
 	}
 
-	out := ansi.Strip(formatNextSteps(result, "./my-project"))
+	out := ansi.Strip(formatNextSteps(result, "./my-project", false))
 
 	assert.Contains(t, out, "1.")
 	assert.Contains(t, out, "2.")
@@ -88,7 +89,7 @@ func TestFormatNextSteps_InterpolatesPlaceholders(t *testing.T) {
 		},
 	}
 
-	out := ansi.Strip(formatNextSteps(result, "./app"))
+	out := ansi.Strip(formatNextSteps(result, "./app", false))
 
 	assert.NotContains(t, out, "{{buildCommand}}")
 	assert.NotContains(t, out, "{{startCommand}}")
@@ -105,7 +106,7 @@ func TestFormatNextSteps_InterpolatesDirPlaceholder(t *testing.T) {
 		},
 	}
 
-	out := ansi.Strip(formatNextSteps(result, "./my-workflows"))
+	out := ansi.Strip(formatNextSteps(result, "./my-workflows", false))
 
 	assert.NotContains(t, out, "{{dir}}")
 	assert.Contains(t, out, "./my-workflows")
@@ -178,7 +179,7 @@ func TestBuildDeployCommand_ParsesAgainstWorkflowCreateCmd(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lines := buildDeployCommand(tt.dir, tt.runtime, tt.buildCmd, tt.runCmd)
+			lines := buildDeployCommand(tt.dir, tt.runtime, tt.buildCmd, tt.runCmd, false)
 			cmdLine := reassembleCommand(lines)
 			cmdLine = strings.TrimPrefix(cmdLine, "render workflows create ")
 
@@ -216,7 +217,7 @@ func TestBuildDeployCommand_ParsesAgainstWorkflowCreateCmd(t *testing.T) {
 }
 
 func TestBuildDeployCommand_IncludesAllRequiredFlags(t *testing.T) {
-	lines := buildDeployCommand("test", "node", "npm install", "npm start")
+	lines := buildDeployCommand("test", "node", "npm install", "npm start", false)
 	combined := strings.Join(lines, " ")
 
 	for _, flag := range []string{"--name", "--runtime", "--build-command", "--run-command", "--repo"} {
@@ -232,12 +233,83 @@ func TestFormatNextSteps_IncludesDeployStep(t *testing.T) {
 		NextSteps:          []scaffold.NextStep{},
 	}
 
-	out := ansi.Strip(formatNextSteps(result, "my-workflow"))
+	out := ansi.Strip(formatNextSteps(result, "my-workflow", false))
 
 	assert.Contains(t, out, "render workflows create")
 	assert.Contains(t, out, "--name")
 	assert.Contains(t, out, "--runtime node")
 	assert.Contains(t, out, "<your-repo-url>")
+}
+
+func TestFormatNextSteps_UsesLocalRepoWhenGitInitialized(t *testing.T) {
+	result := &scaffold.Result{
+		Language:           scaffold.TypeScript,
+		RenderBuildCommand: "npm install",
+		RenderStartCommand: "npm start",
+		NextSteps:          []scaffold.NextStep{},
+	}
+
+	out := ansi.Strip(formatNextSteps(result, "my-workflow", true))
+
+	assert.Contains(t, out, "--repo .")
+	assert.NotContains(t, out, "<your-repo-url>")
+	assert.Contains(t, out, "my-workflow directory")
+}
+
+func TestBuildDeployCommand_LocalRepoFlag(t *testing.T) {
+	lines := buildDeployCommand("test", "node", "npm install", "npm start", true)
+	combined := strings.Join(lines, " ")
+	assert.Contains(t, combined, "--repo .")
+	assert.NotContains(t, combined, "<your-repo-url>")
+}
+
+func TestBuildDeployStep(t *testing.T) {
+	tests := []struct {
+		name           string
+		relDir         string
+		gitInitialized bool
+		wantRepoArg    string
+		wantHint       string
+		wantName       string
+	}{
+		{
+			name:           "placeholder URL when git not initialized",
+			relDir:         "./my-workflow",
+			gitInitialized: false,
+			wantRepoArg:    "--repo <your-repo-url>",
+			wantHint:       "Replace <your-repo-url> with your Git repository URL.",
+			wantName:       "my-workflow",
+		},
+		{
+			name:           "local repo when git initialized",
+			relDir:         "./my-workflow",
+			gitInitialized: true,
+			wantRepoArg:    "--repo .",
+			wantHint:       "Run this from the ./my-workflow directory after pushing to your Git provider.",
+			wantName:       "my-workflow",
+		},
+		{
+			name:           "derives name from basename of nested path",
+			relDir:         "./some/nested/project",
+			gitInitialized: true,
+			wantRepoArg:    "--repo .",
+			wantHint:       "Run this from the ./some/nested/project directory after pushing to your Git provider.",
+			wantName:       "project",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := buildDeployStep(tc.relDir, "node", "npm install", "npm start", tc.gitInitialized)
+
+			assert.Equal(t, "Deploy your workflow on Render:", got.Label)
+			assert.Equal(t, tc.wantHint, got.Hint)
+
+			combined := strings.Join(got.CmdLines, " ")
+			assert.Contains(t, combined, tc.wantRepoArg)
+			assert.Contains(t, combined, fmt.Sprintf("--name %q", tc.wantName))
+		})
+	}
 }
 
 func TestFormatNextSteps_SkipsLegacyDeployStep(t *testing.T) {
@@ -251,7 +323,7 @@ func TestFormatNextSteps_SkipsLegacyDeployStep(t *testing.T) {
 		},
 	}
 
-	out := ansi.Strip(formatNextSteps(result, "my-workflow"))
+	out := ansi.Strip(formatNextSteps(result, "my-workflow", false))
 
 	// Legacy step should be filtered out
 	assert.NotContains(t, out, "Deploy your workflow service to Render")

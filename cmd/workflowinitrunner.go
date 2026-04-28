@@ -18,6 +18,7 @@ import (
 
 	"github.com/render-oss/cli/pkg/command"
 	renderstyle "github.com/render-oss/cli/pkg/style"
+	"github.com/render-oss/cli/pkg/utils"
 	"github.com/render-oss/cli/pkg/workflows/scaffold"
 )
 
@@ -108,25 +109,6 @@ func truncateDisplayWidth(s string, maxWidth int) string {
 	}
 
 	return b.String() + ellipsis
-}
-
-func expandHomePath(path string) (string, error) {
-	if path == "" || path[0] != '~' {
-		return path, nil
-	}
-	if path != "~" && len(path) > 1 && path[1] != '/' && path[1] != '\\' {
-		// Keep "~user/..." unchanged; we only support current-user home expansion.
-		return path, nil
-	}
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to resolve home directory: %w", err)
-	}
-	if path == "~" {
-		return home, nil
-	}
-	return filepath.Join(home, path[2:]), nil
 }
 
 // prePrompt prints a blank line before an interactive prompt for visual spacing.
@@ -358,7 +340,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 			r.postPrompt()
 			input.Dir = dir
 
-			expandedDir, err := expandHomePath(input.Dir)
+			expandedDir, err := utils.ExpandHome(input.Dir)
 			if err != nil {
 				return err
 			}
@@ -386,7 +368,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 
 	input.Dir = strings.TrimPrefix(input.Dir, "./")
 
-	expandedDir, err := expandHomePath(input.Dir)
+	expandedDir, err := utils.ExpandHome(input.Dir)
 	if err != nil {
 		return err
 	}
@@ -580,7 +562,7 @@ func (r *WorkflowInitRunner) Run(ctx context.Context, input WorkflowInitInput) e
 	if r.interactive {
 		time.Sleep(400 * time.Millisecond)
 	}
-	command.Println(r.cmd, "%s", formatNextSteps(result, input.Dir))
+	command.Println(r.cmd, "%s", formatNextSteps(result, input.Dir, gitInitialized))
 
 	return nil
 }

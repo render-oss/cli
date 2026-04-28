@@ -119,7 +119,7 @@ func shellWrap(cmd string, width int, contIndent int) string {
 	return b.String()
 }
 
-func formatNextSteps(result *scaffold.Result, relDir string) string {
+func formatNextSteps(result *scaffold.Result, relDir string, gitInitialized bool) string {
 	dim := lipgloss.NewStyle().Foreground(renderstyle.ColorDeprioritized)
 	info := lipgloss.NewStyle().Foreground(renderstyle.ColorInfo)
 
@@ -257,13 +257,8 @@ func formatNextSteps(result *scaffold.Result, relDir string) string {
 	formatStep(len(templateSteps)+1, "Push your project repo to your Git provider", "", "Render can pull from GitHub, GitLab, or Bitbucket.")
 	fmt.Fprintf(&b, "\n")
 
-	name := filepath.Base(relDir)
-	deployCmd := buildDeployCommand(name, string(result.Language), result.RenderBuildCommand, result.RenderStartCommand)
-	formatMultilineStep(len(templateSteps)+2,
-		"Deploy your workflow on Render:",
-		deployCmd,
-		"Replace <your-repo-url> with your Git repository URL.",
-	)
+	deploy := buildDeployStep(relDir, string(result.Language), result.RenderBuildCommand, result.RenderStartCommand, gitInitialized)
+	formatMultilineStep(len(templateSteps)+2, deploy.Label, deploy.CmdLines, deploy.Hint)
 
 	// Call to action
 	fmt.Fprintf(&b, "\n")
@@ -273,24 +268,45 @@ func formatNextSteps(result *scaffold.Result, relDir string) string {
 	return b.String()
 }
 
-func buildGitCommand() []string {
-	return []string{
-		"Push your project repo to your Git provider",
-		"",
-		"Render can pull from GitHub, GitLab, or Bitbucket.",
+// deployStep bundles the label, command lines, and hint for the final
+// "Deploy your workflow on Render" step, so its content can be tested
+// without going through the styling/rendering path.
+type deployStep struct {
+	Label    string
+	CmdLines []string
+	Hint     string
+}
+
+// buildDeployStep assembles the deploy step.
+func buildDeployStep(relDir, runtime, buildCmd, runCmd string, gitInitialized bool) deployStep {
+	name := filepath.Base(relDir)
+	hint := "Replace <your-repo-url> with your Git repository URL."
+	if gitInitialized {
+		hint = fmt.Sprintf("Run this from the %s directory after pushing to your Git provider.", relDir)
+	}
+	return deployStep{
+		Label:    "Deploy your workflow on Render:",
+		CmdLines: buildDeployCommand(name, runtime, buildCmd, runCmd, gitInitialized),
+		Hint:     hint,
 	}
 }
 
 // buildDeployCommand returns the lines of a multi-line `render workflows create`
-// command pre-populated with values from the scaffolded project.
-func buildDeployCommand(name, runtime, buildCmd, runCmd string) []string {
+// command pre-populated with values from the scaffolded project. When
+// localRepo is true, the command emits `--repo .` to infer the URL from the
+// local git remote instead of a placeholder.
+func buildDeployCommand(name, runtime, buildCmd, runCmd string, localRepo bool) []string {
+	repoArg := "  --repo <your-repo-url>"
+	if localRepo {
+		repoArg = "  --repo ."
+	}
 	return []string{
 		"render workflows create \\",
 		fmt.Sprintf("  --name %q \\", name),
 		fmt.Sprintf("  --runtime %s \\", runtime),
 		fmt.Sprintf("  --build-command %q \\", buildCmd),
 		fmt.Sprintf("  --run-command %q \\", runCmd),
-		"  --repo <your-repo-url>",
+		repoArg,
 	}
 }
 
