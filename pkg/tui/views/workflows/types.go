@@ -3,8 +3,11 @@ package workflows
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/render-oss/cli/pkg/types"
+	"github.com/render-oss/cli/pkg/workflows/store"
 )
 
 type TaskListInput struct {
@@ -19,8 +22,15 @@ type TaskRunInput struct {
 	Input    string `cli:"input"`
 }
 
-type TaskRunDetailsInput struct {
+type TaskRunTargetInput struct {
 	TaskRunID string `cli:"arg:0"`
+}
+
+func (t TaskRunTargetInput) Validate(_ bool) error {
+	if !strings.HasPrefix(t.TaskRunID, store.TaskRunIDPrefix+"-") {
+		return fmt.Errorf("invalid task run ID %q: must start with %q", t.TaskRunID, store.TaskRunIDPrefix+"-")
+	}
+	return nil
 }
 
 type VersionListInput struct {

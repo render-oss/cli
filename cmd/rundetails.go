@@ -38,7 +38,7 @@ In interactive mode, you will be prompted to select a task run if not provided.`
 				return fmt.Errorf("failed to get local deps: %w", err)
 			}
 
-			var input workflowviews.TaskRunDetailsInput
+			var input workflowviews.TaskRunTargetInput
 			err = command.ParseCommand(cmd, args, &input)
 			if err != nil {
 				return fmt.Errorf("failed to parse command: %w", err)

@@ -54,6 +54,7 @@ func Start(handler *ServerHandler, port int) (*http.Server, error) {
 			r.Post("/", handler.RunTask)
 			r.Route("/{taskRunID}", func(r chi.Router) {
 				r.Get("/", handler.GetTaskRun)
+				r.Delete("/", handler.CancelTaskRun)
 			})
 			r.Get("/", handler.ListTaskRuns)
 			r.Route("/events", func(r chi.Router) {
@@ -176,6 +177,22 @@ func (h *ServerHandler) ListTaskRuns(w http.ResponseWriter, r *http.Request) {
 
 	taskName := r.URL.Query().Get("taskSlug")
 	json.NewEncoder(w).Encode(internal.ListTaskRuns(h.taskStore, taskName))
+}
+
+func (h *ServerHandler) CancelTaskRun(w http.ResponseWriter, r *http.Request) {
+	taskRunID := chi.URLParam(r, "taskRunID")
+
+	if err := h.coordinator.CancelTaskRun(taskRunID); err != nil {
+		if _, ok := err.(*orchestrator.TaskNotFoundError); ok {
+			handleError(w, err, http.StatusNotFound)
+			return
+		}
+
+		handleError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *ServerHandler) GetTaskRun(w http.ResponseWriter, r *http.Request) {

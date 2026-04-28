@@ -23,6 +23,7 @@ type taskRepo interface {
 	ListTasks(ctx context.Context, params *client.ListTasksParams) (client.Cursor, []*workflows.Task, error)
 	ListTaskRuns(ctx context.Context, params *client.ListTaskRunsParams) (client.Cursor, []*workflows.TaskRun, error)
 	GetTaskRunDetails(ctx context.Context, taskRunID string) (*workflows.TaskRunDetails, error)
+	CancelTaskRun(ctx context.Context, taskRunID string) error
 }
 
 // versionRepo defines the version operations the loader needs (unexported; used for testability).
@@ -324,6 +325,10 @@ func (w *WorkflowLoader) LoadAllTaskRuns(ctx context.Context, input TaskRunListI
 	return taskRuns, err
 }
 
-func (w *WorkflowLoader) LoadTaskRunDetails(ctx context.Context, input *TaskRunDetailsInput) (*workflows.TaskRunDetails, error) {
+func (w *WorkflowLoader) LoadTaskRunDetails(ctx context.Context, input *TaskRunTargetInput) (*workflows.TaskRunDetails, error) {
 	return w.taskRepo.GetTaskRunDetails(ctx, input.TaskRunID)
+}
+
+func (w *WorkflowLoader) CancelTaskRun(ctx context.Context, taskRunID string) error {
+	return w.taskRepo.CancelTaskRun(ctx, taskRunID)
 }

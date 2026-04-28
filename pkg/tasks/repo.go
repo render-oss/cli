@@ -96,6 +96,15 @@ func (r *Repo) ListTaskRuns(ctx context.Context, params *client.ListTaskRunsPara
 	return respOK[len(respOK)-1].Cursor, taskRuns, nil
 }
 
+func (r *Repo) CancelTaskRun(ctx context.Context, taskRunID string) error {
+	resp, err := r.client.CancelTaskRunWithResponse(ctx, taskRunID)
+	if err != nil {
+		return err
+	}
+
+	return client.ErrorFromResponse(resp)
+}
+
 func (r *Repo) GetTaskRunDetails(ctx context.Context, taskRunID string) (*workflows.TaskRunDetails, error) {
 	resp, err := r.client.GetTaskRunWithResponse(ctx, taskRunID)
 	if err != nil {

@@ -35,6 +35,7 @@ func (m *mockTaskRepo) ListTaskRuns(context.Context, *client.ListTaskRunsParams)
 func (m *mockTaskRepo) GetTaskRunDetails(context.Context, string) (*wfclient.TaskRunDetails, error) {
 	return nil, nil
 }
+func (m *mockTaskRepo) CancelTaskRun(context.Context, string) error { return nil }
 
 // mockVersionRepo implements versionRepo for testing.
 type mockVersionRepo struct {

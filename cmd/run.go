@@ -19,6 +19,9 @@ To start a new task run, use:
 
   # Show details for a task run
   render workflows runs show tr-1234
+
+  # Cancel a task run
+  render workflows runs cancel trn-1234
 `,
 }
 

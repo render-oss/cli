@@ -90,6 +90,7 @@ func setupWorkflowCommands(deps *dependencies.Dependencies) {
 	deps.Commands.Workflow.TaskStartCmd = NewTaskStartCmd(deps)
 	deps.Commands.Workflow.RunListCmd = NewRunListCmd(deps)
 	deps.Commands.Workflow.RunDetailsCmd = NewRunDetailsCmd(deps)
+	deps.Commands.Workflow.RunCancelCmd = NewRunCancelCmd(deps)
 	deps.Commands.Workflow.VersionListCmd = NewVersionListCmd(deps)
 	deps.Commands.Workflow.VersionReleaseCmd = NewVersionReleaseCmd(deps)
 	deps.Commands.Workflow.WorkflowListCmd = NewWorkflowListCmd(deps)
@@ -102,6 +103,7 @@ func setupWorkflowCommands(deps *dependencies.Dependencies) {
 	taskCmd.AddCommand(deps.Commands.Workflow.TaskStartCmd)
 	runsCmd.AddCommand(deps.Commands.Workflow.RunListCmd)
 	runsCmd.AddCommand(deps.Commands.Workflow.RunDetailsCmd)
+	runsCmd.AddCommand(deps.Commands.Workflow.RunCancelCmd)
 	versionCmd.AddCommand(deps.Commands.Workflow.VersionListCmd)
 	versionCmd.AddCommand(deps.Commands.Workflow.VersionReleaseCmd)
 }

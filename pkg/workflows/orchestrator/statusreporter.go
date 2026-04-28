@@ -85,6 +85,11 @@ func (r *PrintStatusReporter) TaskFailed(taskRun *store.TaskRun) {
 	r.print(r.formatWithDuration("%s %s: %s%s", taskRun), r.taskLabel(taskRun), status, r.describeTaskRun(taskRun), details)
 }
 
+func (r *PrintStatusReporter) TaskCancelled(taskRun *store.TaskRun) {
+	status := renderstyle.Status.Foreground(renderstyle.ColorWarning).Render("Cancelled")
+	r.print(r.formatWithDuration("%s %s: %s", taskRun), r.taskLabel(taskRun), status, r.describeTaskRun(taskRun))
+}
+
 func (r *PrintStatusReporter) TaskNotFound(taskSlug string) {
 	status := renderstyle.Status.Foreground(renderstyle.ColorError).Render("Not found")
 	r.print("Task %s: %s", status, taskSlug)

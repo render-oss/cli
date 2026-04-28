@@ -10,6 +10,7 @@ type WorkflowCommands struct {
 	TaskStartCmd       *cobra.Command
 	RunListCmd         *cobra.Command
 	RunDetailsCmd      *cobra.Command
+	RunCancelCmd       *cobra.Command
 	WorkflowListCmd    *cobra.Command
 	WorkflowCreateCmd  *cobra.Command
 }
@@ -70,4 +71,8 @@ func (c *Commands) WorkspaceSetCmd() *cobra.Command {
 
 func (c *Commands) RunDetailsCmd() *cobra.Command {
 	return c.Workflow.RunDetailsCmd
+}
+
+func (c *Commands) RunCancelCmd() *cobra.Command {
+	return c.Workflow.RunCancelCmd
 }

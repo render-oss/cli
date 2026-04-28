@@ -351,14 +351,14 @@ func (f *Workflow) runListPalette(ctx context.Context, taskRun *workflows.TaskRu
 				Name:        "results",
 				Description: "View task run results",
 				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return f.runDetails(ctx, &workflowviews.TaskRunDetailsInput{TaskRunID: taskRun.Id})
+					return f.runDetails(ctx, &workflowviews.TaskRunTargetInput{TaskRunID: taskRun.Id})
 				},
 			},
 		}),
 	)
 }
 
-func (f *Workflow) runDetails(ctx context.Context, input *workflowviews.TaskRunDetailsInput) tea.Cmd {
+func (f *Workflow) runDetails(ctx context.Context, input *workflowviews.TaskRunTargetInput) tea.Cmd {
 	return command.AddToStack(f.deps.Stack(), f.deps.RunDetailsCmd(), "Details", input, tui.NewDetailsModel[*workflows.TaskRunDetails](
 		"Task Run Details",
 		command.LoadCmd(ctx, f.deps.WorkflowLoader().LoadTaskRunDetails, input),
@@ -366,7 +366,7 @@ func (f *Workflow) runDetails(ctx context.Context, input *workflowviews.TaskRunD
 	))
 }
 
-func (f *Workflow) RunDetailsFlow(ctx context.Context, input *workflowviews.TaskRunDetailsInput) tea.Cmd {
+func (f *Workflow) RunDetailsFlow(ctx context.Context, input *workflowviews.TaskRunTargetInput) tea.Cmd {
 	if input.TaskRunID == "" {
 		return f.unspecifiedTask(ctx, func(t *workflows.Task) tea.Cmd {
 			return f.runList(ctx, &workflowviews.TaskRunListInput{TaskSlug: t.Id}, func(tr *workflows.TaskRun) tea.Cmd {

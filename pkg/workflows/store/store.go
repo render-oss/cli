@@ -41,6 +41,7 @@ const (
 	TaskRunStatusRunning  TaskRunStatus = "running"
 	TaskRunStatusComplete TaskRunStatus = "complete"
 	TaskRunStatusFailed   TaskRunStatus = "failed"
+	TaskRunStatusCanceled TaskRunStatus = "canceled"
 )
 
 type TaskStore struct {
@@ -139,6 +140,17 @@ func (s *TaskStore) CompleteTaskRun(taskRunID string, output []byte) (*TaskRun, 
 
 func (s *TaskStore) FailTaskRun(taskRunID string, errString string) (*TaskRun, error) {
 	taskRun, err := s.updateTaskRun(taskRunID, nil, &errString, TaskRunStatusFailed)
+	if err != nil {
+		return nil, err
+	}
+
+	s.sendResultsToChannels(taskRun)
+
+	return taskRun, nil
+}
+
+func (s *TaskStore) CancelTaskRun(taskRunID string) (*TaskRun, error) {
+	taskRun, err := s.updateTaskRun(taskRunID, nil, nil, TaskRunStatusCanceled)
 	if err != nil {
 		return nil, err
 	}

@@ -49,11 +49,11 @@ func TestGetTask(t *testing.T) {
 }
 
 type fakeRunner struct {
-	startTask func(ctx context.Context, taskName string, input []byte, parentTaskRunID *string) (*store.TaskRun, error)
+	startTask func(ctx context.Context, taskName string, input []byte, parent *store.TaskRun) (*store.TaskRun, error)
 }
 
-func (f *fakeRunner) StartTask(ctx context.Context, taskName string, input []byte, parentTaskRunID *string) (*store.TaskRun, error) {
-	return f.startTask(ctx, taskName, input, parentTaskRunID)
+func (f *fakeRunner) StartTask(ctx context.Context, taskName string, input []byte, parent *store.TaskRun) (*store.TaskRun, error) {
+	return f.startTask(ctx, taskName, input, parent)
 }
 
 func TestMapTaskRunAttemptsNotNull(t *testing.T) {

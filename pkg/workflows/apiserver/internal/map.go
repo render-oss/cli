@@ -2,6 +2,7 @@ package internal
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -31,7 +32,10 @@ func mapTaskRunStatus(status store.TaskRunStatus) workflowClient.TaskRunStatus {
 		return workflowClient.Completed
 	case store.TaskRunStatusFailed:
 		return workflowClient.Failed
+	case store.TaskRunStatusCanceled:
+		return workflowClient.Canceled
 	default:
+		fmt.Printf("unknown task run status %q; defaulting to Running", status)
 		return workflowClient.Running
 	}
 }
