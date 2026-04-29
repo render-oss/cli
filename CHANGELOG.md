@@ -25,6 +25,7 @@
 - Fixed form views flashing leftover form data during the loading transition
 - Fixed `Enter` submitting forms on first pass (now, advances between fields)
 - Fixed forms appearing blank when navigating back after submitting
+- Fixed workflow task logs getting cut off at start or end of task execution window
 
 ## [2.15.1] - 2026-03-27
 
