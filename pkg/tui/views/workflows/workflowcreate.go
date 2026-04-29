@@ -121,7 +121,7 @@ func NewWorkflowCreateView(
 					return command.LoadCmd(ctx, createWorkflow, createInput)()
 				},
 			),
-			huh.NewForm(huh.NewGroup(fields...)),
+			func() *huh.Form { return huh.NewForm(huh.NewGroup(fields...)) },
 		),
 	}
 }

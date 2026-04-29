@@ -38,7 +38,7 @@ func NewTaskRunView(
 					return command.LoadCmd(ctx, workflowLoader.CreateTaskRun, createTaskRunInput)()
 				},
 			),
-			huh.NewForm(huh.NewGroup(fields...)),
+			func() *huh.Form { return huh.NewForm(huh.NewGroup(fields...)) },
 		),
 	}
 }

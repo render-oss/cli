@@ -35,24 +35,24 @@ func NewVersionReleaseView(ctx context.Context, workflowLoader *WorkflowLoader, 
 }
 
 func (v *VersionReleaseView) setupForm() tea.Cmd {
-	var inputs []huh.Field
 	if v.input.CommitID == nil {
 		v.input.CommitID = pointers.From("")
 	}
 
-	inputs = append(inputs, huh.NewInput().
-		Title("Commit ID").
-		Placeholder("Enter commit ID (Optional)").
-		Value(v.input.CommitID))
-
-	versionForm := huh.NewForm(huh.NewGroup(inputs...))
+	buildForm := func() *huh.Form {
+		input := huh.NewInput().
+			Title("Commit ID").
+			Placeholder("Enter commit ID (Optional)").
+			Value(v.input.CommitID)
+		return huh.NewForm(huh.NewGroup(input))
+	}
 
 	action := tui.NewFormAction(
 		v.logCmd,
 		command.WrapInConfirm(command.LoadCmd(v.ctx, v.workflowLoader.ReleaseVersion, *v.input), v.workflowLoader.VersionReleaseConfirm(v.ctx, *v.input)),
 	)
 
-	v.formAction = tui.NewFormWithAction(action, versionForm)
+	v.formAction = tui.NewFormWithAction(action, buildForm)
 
 	return v.formAction.Init()
 }

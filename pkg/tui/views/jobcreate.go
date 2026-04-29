@@ -71,7 +71,7 @@ func NewJobCreateView(
 					return command.LoadCmd(ctx, createJob, createJobInput)()
 				},
 			),
-			huh.NewForm(huh.NewGroup(fields...)),
+			func() *huh.Form { return huh.NewForm(huh.NewGroup(fields...)) },
 		),
 	}
 }

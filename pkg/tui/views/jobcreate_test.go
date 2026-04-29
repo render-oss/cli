@@ -37,9 +37,13 @@ func TestJobCreate(t *testing.T) {
 
 	tm.Send(tea.WindowSizeMsg{Width: 80, Height: 80})
 
-	// Add start command
+	// Add start command, then walk through the rest of the fields by hitting
+	// Enter until huh submits naturally on the last field.
 	tm.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("echo 'hello world'")})
-	tm.Send(tea.KeyMsg{Type: tea.KeyEnter})
+	for i := 0; i < 5; i++ {
+		tm.Send(tea.KeyMsg{Type: tea.KeyEnter})
+		time.Sleep(20 * time.Millisecond)
+	}
 
 	require.Eventually(t, func() bool {
 		return createJobInput.StartCommand != nil && *createJobInput.StartCommand == "echo 'hello world'"

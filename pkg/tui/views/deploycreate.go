@@ -191,14 +191,14 @@ func (v *DeployCreateView) setupForm() tea.Cmd {
 			Value(v.input.CommitID))
 	}
 
-	deployForm := huh.NewForm(huh.NewGroup(inputs...))
+	buildForm := func() *huh.Form { return huh.NewForm(huh.NewGroup(inputs...)) }
 
 	action := tui.NewFormAction(
 		v.logCmd,
 		command.WrapInConfirm(command.LoadCmd(v.ctx, CreateDeploy, v.input), DeployCreateConfirm(v.ctx, v.input)),
 	)
 
-	v.formAction = tui.NewFormWithAction(action, deployForm)
+	v.formAction = tui.NewFormWithAction(action, buildForm)
 
 	return v.formAction.Init()
 }
