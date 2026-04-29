@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.16.0] - 2026-04-29
+
+### Added
+
+- `render workflows create` command to create new workflows from the CLI
+- `render workflows runs cancel` command to cancel a running task
+- `workflows create --repo` accepts a local directory path (e.g., `--repo .`)
+- `workflows init` prints the dependency install command when the user skips running it
+- `workflows init` next steps include a ready-to-copy `workflows create` command for deploying the scaffolded workflow
+
+### Changed
+
+- Aligned all commands with the new CLI style guide for consistent help text and output formatting
+- Cleaner spacing in `objects`, `skills`, `workflows`, and `tasks` list output
+- `workflows init` now installs dependencies and initializes a Git repo by default when run with `--confirm` or in non-interactive output (pass `--install-deps=false` or `--git=false` to opt out)
+- Style and language tweaks to `workflows init` prompts
+- Removed clickable URL from `workflows dev` startup output
+- Sorted task list output in the local `workflows dev` server
+
+### Fixed
+
+- Interactive forms (e.g. `services create`) now scroll in terminals shorter than the form
+- Fixed form views flashing leftover form data during the loading transition
+- Fixed `Enter` submitting forms on first pass (now, advances between fields)
+- Fixed forms appearing blank when navigating back after submitting
+
 ## [2.15.1] - 2026-03-27
 
 ### Fixed
