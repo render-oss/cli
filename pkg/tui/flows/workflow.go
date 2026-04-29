@@ -328,11 +328,13 @@ func (f *Workflow) runListPalette(ctx context.Context, taskRun *workflows.TaskRu
 					}
 					var startTime *command.TimeOrRelative
 					if taskRun.StartedAt != nil {
-						startTime = &command.TimeOrRelative{T: taskRun.StartedAt}
+						t := taskRun.StartedAt.Add(-5 * time.Second)
+						startTime = &command.TimeOrRelative{T: &t}
 					}
 					var endTime *command.TimeOrRelative
 					if taskRun.CompletedAt != nil {
-						endTime = &command.TimeOrRelative{T: taskRun.CompletedAt}
+						t := taskRun.CompletedAt.Add(5 * time.Second)
+						endTime = &command.TimeOrRelative{T: &t}
 					}
 					var tail bool
 					if taskRun.Status != workflows.Completed && taskRun.Status != workflows.Succeeded && taskRun.Status != workflows.Failed {
