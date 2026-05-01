@@ -11,16 +11,22 @@ import (
 	"github.com/render-oss/cli/pkg/cfg"
 )
 
-const currentVersion = 1
-const defaultDashboardURL = "https://dashboard.render.com"
+const (
+	currentVersion      = 1
+	defaultDashboardURL = "https://dashboard.render.com"
+)
 
 var defaultConfigPath string
 
-const configPathEnvKey = "RENDER_CLI_CONFIG_PATH"
-const workspaceEnvKey = "RENDER_WORKSPACE"
+const (
+	configPathEnvKey = "RENDER_CLI_CONFIG_PATH"
+	workspaceEnvKey  = "RENDER_WORKSPACE"
+)
 
-var ErrNoWorkspace = errors.New("no workspace set. Use `render workspace set` to set a workspace")
-var ErrLogin = errors.New("run `render login` to authenticate")
+var (
+	ErrNoWorkspace = errors.New("no workspace set. Use `render workspace set` to set a workspace")
+	ErrLogin       = errors.New("run `render login` to authenticate")
+)
 
 type Config struct {
 	Version       int    `yaml:"version"`
@@ -202,6 +208,30 @@ func getAPIConfig() (APIConfig, error) {
 	return cfg.APIConfig, nil
 }
 
+// DeleteConfig deleting the config file at ~/.render/cli.yaml (or the configured path if overridden)
+// Load handles a missing file gracefully, so subsequent calls behave as if starting fresh.
+// This does not affect credentials supplied via the RENDER_API_KEY environment variable.
+func DeleteConfig() error {
+	path, err := expandPath(getConfigPath())
+	if err != nil {
+		return err
+	}
+	err = os.Remove(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	return err
+}
+
+// HasOAuthConfig reports whether an OAuth token is stored in the config file.
+func HasOAuthConfig() (bool, error) {
+	cfg, err := Load()
+	if err != nil {
+		return false, err
+	}
+	return cfg.Key != "", nil
+}
+
 func SetAPIConfig(input APIConfig) error {
 	cfg, err := Load()
 	if err != nil {
@@ -222,7 +252,7 @@ func Load() (*Config, error) {
 	}
 
 	// Ignore the error if we can't chmod try to continue
-	_ = os.Chmod(filepath.Dir(path), 0755)
+	_ = os.Chmod(filepath.Dir(path), 0o755)
 
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -253,12 +283,12 @@ func (c *Config) Persist() error {
 	}
 
 	// Ignore the error if we can't chmod try to continue
-	_ = os.Chmod(filepath.Dir(path), 0755)
+	_ = os.Chmod(filepath.Dir(path), 0o755)
 
-	err = os.MkdirAll(filepath.Dir(path), 0755)
+	err = os.MkdirAll(filepath.Dir(path), 0o755)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0600)
+	return os.WriteFile(path, data, 0o600)
 }
