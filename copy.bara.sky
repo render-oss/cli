@@ -25,6 +25,7 @@ DESTINATION_FILES = [
 ]
 
 DESTINATION_FILES_EXCLUDE = [
+  ".github/CODEOWNERS",
   ".github/workflows/copybara-push.yaml",
   ".github/workflows/cli-json-export.yaml",
   "tools/generate-cli-json-export/**",
