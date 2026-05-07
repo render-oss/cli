@@ -17,6 +17,13 @@ type Repo struct {
 	client *client.ClientWithResponses
 }
 
+func (p *Repo) ListProjectsForWorkspace(ctx context.Context, workspaceID string) ([]*client.Project, error) {
+	params := &client.ListProjectsParams{
+		OwnerId: pointers.From([]string{workspaceID}),
+	}
+	return client.ListAll(ctx, params, p.listPage)
+}
+
 func (p *Repo) ListProjects(ctx context.Context) ([]*client.Project, error) {
 	params := &client.ListProjectsParams{}
 

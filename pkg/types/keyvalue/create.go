@@ -10,11 +10,24 @@ import (
 // KeyValueCreateInput is the raw command input parsed from Cobra flags for KV creation.
 type KeyValueCreateInput struct {
 	Name                string           `cli:"name"`
-	Plan                string           `cli:"plan"`
+	Plan                Plan             `cli:"plan"`
 	Region              *string          `cli:"region"`
-	EnvironmentIDOrName *string          `cli:"environment-id"`
-	MaxmemoryPolicy     *MaxmemoryPolicy `cli:"maxmemory-policy"`
+	ProjectIDOrName     *string          `cli:"project"`
+	EnvironmentIDOrName *string          `cli:"environment"`
+	MaxmemoryPolicy     *MaxmemoryPolicy `cli:"memory-policy"`
 	IPAllowList         []string         `cli:"ip-allow-list"`
+	WorkspaceIDOrName   string           `cli:"workspace"`
+}
+
+// KeyValueCreateRequestInput is the resolved, API-ready input for building a create-KV request.
+type KeyValueCreateRequestInput struct {
+	Name            string
+	OwnerID         string
+	Plan            Plan
+	Region          *string
+	EnvironmentID   *string
+	MaxmemoryPolicy *MaxmemoryPolicy
+	IPAllowList     []string
 }
 
 // NormalizeAndValidateCreateInput normalizes and validates CLI input for KV creation.
@@ -28,10 +41,16 @@ func NormalizeAndValidateCreateInput(input KeyValueCreateInput) (KeyValueCreateI
 
 func NormalizeCreateInput(input KeyValueCreateInput) KeyValueCreateInput {
 	input.Name = strings.TrimSpace(input.Name)
-	input.Plan = strings.TrimSpace(input.Plan)
+	input.Plan = Plan(strings.TrimSpace(string(input.Plan)))
+	input.WorkspaceIDOrName = strings.TrimSpace(input.WorkspaceIDOrName)
 	input.Region = types.OptionalNonZeroString(input.Region)
+	input.ProjectIDOrName = types.OptionalNonZeroString(input.ProjectIDOrName)
 	input.EnvironmentIDOrName = types.OptionalNonZeroString(input.EnvironmentIDOrName)
 	input.MaxmemoryPolicy = types.OptionalAlias(input.MaxmemoryPolicy)
+	if input.MaxmemoryPolicy != nil {
+		normalized := NormalizeMemoryPolicy(*input.MaxmemoryPolicy)
+		input.MaxmemoryPolicy = &normalized
+	}
 	return input
 }
 

@@ -38,6 +38,13 @@ func (e *CobraEnum) String() string {
 func (e *CobraEnum) Set(v string) error {
 	values := strings.Split(v, ",")
 
+	// Reset for single-select: Cobra does not reset pflag.Value implementations between
+	// Execute() calls on the same Command instance (affects tests and any future
+	// multi-command sessions).
+	if !e.isMultiSelect {
+		e.selectedIndexes = nil
+	}
+
 	for _, splitValue := range values {
 		for i, value := range e.values {
 			if strings.EqualFold(splitValue, value) {

@@ -7,6 +7,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestCobraEnum_Set_SingleSelectReplacesOnRepeat(t *testing.T) {
+	e := command.NewEnumInput([]string{"free", "starter", "pro"}, false)
+
+	require.NoError(t, e.Set("free"))
+	require.Equal(t, "free", e.String())
+
+	// Must replace, not append — Cobra does not reset pflag.Value implementations
+	// between Execute() calls on the same Command instance.
+	require.NoError(t, e.Set("starter"))
+	require.Equal(t, "starter", e.String())
+}
+
 func TestCobraEnum(t *testing.T) {
 	t.Run("single select", func(t *testing.T) {
 		t.Run("properties", func(t *testing.T) {
