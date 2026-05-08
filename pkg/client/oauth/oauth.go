@@ -116,6 +116,29 @@ func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (*Device
 	return &token, nil
 }
 
+func (c *Client) RevokeToken(ctx context.Context, accessToken string) error {
+	host := strings.TrimSuffix(c.host, "/")
+	req, err := http.NewRequest(http.MethodPost, host+"/oauth/revoke", http.NoBody)
+	if err != nil {
+		return err
+	}
+
+	req = req.WithContext(ctx)
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("revoke token failed with status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
 func (c *Client) postFor(ctx context.Context, path string, body any, v any) error {
 	bs, err := json.Marshal(body)
 	if err != nil {

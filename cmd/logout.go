@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"context"
+
 	"github.com/spf13/cobra"
 
 	"github.com/render-oss/cli/pkg/cfg"
+	"github.com/render-oss/cli/pkg/client/oauth"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/config"
 )
@@ -31,6 +34,18 @@ func newLogoutCmd() *cobra.Command {
 				command.Println(cmd, "This command cannot remove environment variable credentials.")
 				command.Println(cmd, "To revoke access, delete the API key from your Render Dashboard.")
 				return nil
+			}
+
+			apiCfg, err := config.OAuthConfig()
+			if err == nil {
+				ctx := cmd.Context()
+				if ctx == nil {
+					ctx = context.Background()
+				}
+				oauthClient := oauth.NewClient(apiCfg.Host)
+				if revokeErr := oauthClient.RevokeToken(ctx, apiCfg.Key); revokeErr != nil {
+					command.Println(cmd, "Warning: something went wrong revoking your CLI token. Your local credentials will be cleared, but you'll need to revoke your token in the Render dashboard: %s/settings#cli-tokens", config.DashboardURL())
+				}
 			}
 
 			if err := config.DeleteConfig(); err != nil {

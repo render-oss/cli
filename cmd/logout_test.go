@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"bytes"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -65,6 +67,34 @@ func TestLogoutSuccess(t *testing.T) {
 
 	_, statErr := os.Stat(configPath)
 	require.True(t, os.IsNotExist(statErr), "config file should be deleted after logout")
+}
+
+func TestLogoutRevokesTokenOnServer(t *testing.T) {
+	configPath := setupLogoutTest(t)
+
+	revokeCalled := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/oauth/revoke" {
+			revokeCalled = true
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	require.NoError(t, config.SetAPIConfig(config.APIConfig{
+		Key:  "rnd_test_revoke",
+		Host: srv.URL + "/",
+	}))
+
+	out, err := runLogout(t)
+	require.NoError(t, err)
+	require.Contains(t, out, "Successfully logged out")
+
+	_, statErr := os.Stat(configPath)
+	require.True(t, os.IsNotExist(statErr), "config file should be deleted after logout")
+	require.True(t, revokeCalled, "logout should call the revoke endpoint")
 }
 
 func TestLogoutBothEnvAndOAuth(t *testing.T) {

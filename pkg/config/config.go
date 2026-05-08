@@ -223,6 +223,12 @@ func DeleteConfig() error {
 	return err
 }
 
+// OAuthConfig returns the API config stored in the config file, ignoring any
+// credentials supplied via environment variables.
+func OAuthConfig() (APIConfig, error) {
+	return getAPIConfig()
+}
+
 // HasOAuthConfig reports whether an OAuth token is stored in the config file.
 func HasOAuthConfig() (bool, error) {
 	cfg, err := Load()
