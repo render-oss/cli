@@ -87,7 +87,7 @@ func isLocalCommand(cmd *cobra.Command) bool {
 
 func setupWorkflowCommands(deps *dependencies.Dependencies) {
 	deps.Commands.Workflow.TaskListCmd = NewTaskListCmd(deps)
-	deps.Commands.Workflow.TaskStartCmd = NewTaskStartCmd(deps)
+	deps.Commands.Workflow.RunStartCmd = NewRunStartCmd(deps)
 	deps.Commands.Workflow.RunListCmd = NewRunListCmd(deps)
 	deps.Commands.Workflow.RunDetailsCmd = NewRunDetailsCmd(deps)
 	deps.Commands.Workflow.RunCancelCmd = NewRunCancelCmd(deps)
@@ -100,10 +100,19 @@ func setupWorkflowCommands(deps *dependencies.Dependencies) {
 	WorkflowsCmd.AddCommand(deps.Commands.Workflow.WorkflowCreateCmd)
 
 	taskCmd.AddCommand(deps.Commands.Workflow.TaskListCmd)
-	taskCmd.AddCommand(deps.Commands.Workflow.TaskStartCmd)
-	runsCmd.AddCommand(deps.Commands.Workflow.RunListCmd)
-	runsCmd.AddCommand(deps.Commands.Workflow.RunDetailsCmd)
-	runsCmd.AddCommand(deps.Commands.Workflow.RunCancelCmd)
+	tasksRunsCmd.AddCommand(deps.Commands.Workflow.RunStartCmd)
+	tasksRunsCmd.AddCommand(deps.Commands.Workflow.RunListCmd)
+	tasksRunsCmd.AddCommand(deps.Commands.Workflow.RunDetailsCmd)
+	tasksRunsCmd.AddCommand(deps.Commands.Workflow.RunCancelCmd)
+
+	WorkflowsCmd.AddCommand(workflowStartShortcut(deps))
+	WorkflowsCmd.AddCommand(workflowCancelShortcut(deps))
+
+	taskCmd.AddCommand(deprecatedTaskStartCmd(deps))
+	runsCmd.AddCommand(deprecatedRunListCmd(deps))
+	runsCmd.AddCommand(deprecatedRunDetailsCmd(deps))
+	runsCmd.AddCommand(deprecatedRunCancelCmd(deps))
+
 	versionCmd.AddCommand(deps.Commands.Workflow.VersionListCmd)
 	versionCmd.AddCommand(deps.Commands.Workflow.VersionReleaseCmd)
 }

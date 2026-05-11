@@ -17,10 +17,13 @@ func NewRunCancelCmd(deps flows.WorkflowDeps) *cobra.Command {
 
 Use --local to cancel a task run in the local workflow development server.`,
 		Example: `  # Cancel a remote task run
-  render workflows runs cancel trn-abc123
+  render workflows tasks runs cancel trn-abc123
+
+  # Use the top-level shortcut
+  render workflows cancel trn-abc123
 
   # Cancel a task run in the local dev server
-  render workflows runs cancel --local trn-xyz789`,
+  render workflows tasks runs cancel --local trn-xyz789`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			deps, _, err := getLocalDeps(cmd, deps)

@@ -7,7 +7,7 @@ type WorkflowCommands struct {
 	VersionListCmd     *cobra.Command
 	VersionReleaseCmd  *cobra.Command
 	TaskListCmd        *cobra.Command
-	TaskStartCmd       *cobra.Command
+	RunStartCmd        *cobra.Command
 	RunListCmd         *cobra.Command
 	RunDetailsCmd      *cobra.Command
 	RunCancelCmd       *cobra.Command
@@ -50,7 +50,7 @@ func (c *Commands) ListTask() *cobra.Command {
 }
 
 func (c *Commands) StartTask() *cobra.Command {
-	return c.Workflow.TaskStartCmd
+	return c.Workflow.RunStartCmd
 }
 
 func (c *Commands) ListRuns() *cobra.Command {

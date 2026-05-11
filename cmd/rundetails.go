@@ -24,14 +24,14 @@ This command shows comprehensive information about a task run, including:
   • Start and completion timestamps
 
 The task run ID is returned when you execute a task with:
-  render workflows tasks start
+  render workflows tasks runs start
 
 In interactive mode, you will be prompted to select a task run if not provided.`,
 		Example: `  # Show details for a task run
-  render workflows runs show tr-1234
+  render workflows tasks runs show trn-1234
 
   # Show details from local workflow development server
-  render workflows runs show --local tr-5678`,
+  render workflows tasks runs show --local trn-5678`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			deps, local, err := getLocalDeps(cmd, deps)
 			if err != nil {

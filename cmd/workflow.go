@@ -160,7 +160,7 @@ To use a different port:
 		command.Println(cmd, "  %s", renderstyle.Bold(fmt.Sprintf("render workflows tasks list --local%s", portFlag)))
 		command.Println(cmd, "")
 		command.Println(cmd, "%s", dim.Render("To trigger a specific task directly:"))
-		command.Println(cmd, "  %s", renderstyle.Bold(fmt.Sprintf("render workflows tasks start <task-name> --local%s --input='[\"arg1\"]'", portFlag)))
+		command.Println(cmd, "  %s", renderstyle.Bold(fmt.Sprintf("render workflows start <task-name> --local%s --input='[\"arg1\"]'", portFlag)))
 		command.Println(cmd, "")
 
 		ready = true

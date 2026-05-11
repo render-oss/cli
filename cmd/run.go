@@ -6,23 +6,17 @@ import (
 )
 
 var runsCmd = &cobra.Command{
-	Use:   "runs",
-	Short: "List and inspect workflow task runs",
+	Use:        "runs",
+	Short:      "List and inspect workflow task runs",
+	Hidden:     true,
+	Deprecated: "use `render workflows tasks runs` instead.",
 	Long: `View task run executions.
 
 A task run represents a single execution of a task with specific input parameters. Use these commands to view task run history and inspect details.
 
-To start a new task run, use:
-  render workflows tasks start`,
-	Example: `  # List task runs for a task
-  render workflows runs list tsk-1234
-
-  # Show details for a task run
-  render workflows runs show tr-1234
-
-  # Cancel a task run
-  render workflows runs cancel trn-1234
-`,
+To start a new task run, use either:
+  render workflows start
+  render workflows tasks runs start`,
 }
 
 func init() {
