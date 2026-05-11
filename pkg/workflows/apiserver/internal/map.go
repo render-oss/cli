@@ -28,6 +28,8 @@ func mapTaskRunStatus(status store.TaskRunStatus) workflowClient.TaskRunStatus {
 	switch status {
 	case store.TaskRunStatusRunning:
 		return workflowClient.Running
+	case store.TaskRunStatusPending:
+		return workflowClient.Pending
 	case store.TaskRunStatusComplete:
 		return workflowClient.Completed
 	case store.TaskRunStatusFailed:
@@ -48,41 +50,63 @@ func parentTaskRunID(taskRun *store.TaskRun) string {
 }
 
 func mapTaskAttempt(taskRun *store.TaskRun) []workflowClient.TaskAttempt {
-	if taskRun.StartedAt == nil {
-		return []workflowClient.TaskAttempt{}
+	attempts := make([]workflowClient.TaskAttempt, 0, len(taskRun.Attempts)+1)
+
+	for _, a := range taskRun.Attempts {
+		attempt := workflowClient.TaskAttempt{
+			CompletedAt: a.CompletedAt,
+			Status:      mapTaskRunStatus(a.Status),
+		}
+		if a.StartedAt != nil {
+			attempt.StartedAt = *a.StartedAt
+		}
+		attempts = append(attempts, attempt)
 	}
 
-	return []workflowClient.TaskAttempt{
-		{
-			StartedAt:   *taskRun.StartedAt,
+	if taskRun.AttemptStartedAt != nil {
+		attempts = append(attempts, workflowClient.TaskAttempt{
+			StartedAt:   *taskRun.AttemptStartedAt,
 			CompletedAt: taskRun.CompletedAt,
 			Status:      mapTaskRunStatus(taskRun.Status),
-		},
+		})
 	}
+
+	return attempts
 }
 
 func mapTaskAttemptDetails(taskRun *store.TaskRun) []workflowClient.TaskAttemptDetails {
-	if taskRun.StartedAt == nil {
-		return []workflowClient.TaskAttemptDetails{}
-	}
+	details := make([]workflowClient.TaskAttemptDetails, 0, len(taskRun.Attempts)+1)
 
-	var results *workflowClient.TaskRunResult
-	if taskRun.Output != nil {
-		var r workflowClient.TaskRunResult
-		if json.Unmarshal(taskRun.Output, &r) == nil {
-			results = &r
+	for _, a := range taskRun.Attempts {
+		d := workflowClient.TaskAttemptDetails{
+			CompletedAt: a.CompletedAt,
+			Status:      mapTaskRunStatus(a.Status),
+			Error:       a.Error,
 		}
+		if a.StartedAt != nil {
+			d.StartedAt = *a.StartedAt
+		}
+		details = append(details, d)
 	}
 
-	return []workflowClient.TaskAttemptDetails{
-		{
-			StartedAt:   *taskRun.StartedAt,
+	if taskRun.AttemptStartedAt != nil {
+		var results *workflowClient.TaskRunResult
+		if taskRun.Output != nil {
+			var r workflowClient.TaskRunResult
+			if json.Unmarshal(taskRun.Output, &r) == nil {
+				results = &r
+			}
+		}
+		details = append(details, workflowClient.TaskAttemptDetails{
+			StartedAt:   *taskRun.AttemptStartedAt,
 			CompletedAt: taskRun.CompletedAt,
 			Status:      mapTaskRunStatus(taskRun.Status),
 			Error:       taskRun.Error,
 			Results:     results,
-		},
+		})
 	}
+
+	return details
 }
 
 func MapTaskRun(store *store.TaskStore, taskRun *store.TaskRun) *workflowClient.TaskRun {

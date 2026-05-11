@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/render-oss/cli/pkg/workflows/store"
 	"github.com/render-oss/cli/pkg/workflows/taskserver"
@@ -87,21 +88,32 @@ func (c *Coordinator) GetSubtaskResult(taskRunID string) (taskserver.PostGetSubt
 
 	var complete *taskserver.TaskComplete
 	var taskError *taskserver.TaskError
-	if taskRun.Status == store.TaskRunStatusComplete {
+
+	switch taskRun.Status {
+	case store.TaskRunStatusComplete:
 		complete = &taskserver.TaskComplete{
 			Output: taskRun.Output,
 		}
-	}
-	if taskRun.Status == store.TaskRunStatusFailed {
+	case store.TaskRunStatusFailed:
+		// If retries remain, the subtask hasn't truly finished from the parent's
+		// perspective — scheduleRetry will relaunch it. Tell the parent to keep
+		// waiting so it doesn't fail before the retry has a chance to run.
+		task := c.store.GetTaskByName(taskRun.TaskName)
+		if task != nil && task.RetryConfig.ShouldRetry(len(taskRun.Attempts)) {
+			return taskserver.PostGetSubtaskResult200JSONResponse{StillRunning: true}, nil
+		}
 		taskError = &taskserver.TaskError{
 			Details: *taskRun.Error,
 		}
 	}
 
 	return taskserver.PostGetSubtaskResult200JSONResponse{
-		Complete:     complete,
-		StillRunning: taskRun.Status == store.TaskRunStatusRunning,
-		Error:        taskError,
+		Complete: complete,
+		// Pending means the run is between retries (RetryTaskRun has been called
+		// but launchTask hasn't fired yet); still running from the parent's view.
+		StillRunning: taskRun.Status == store.TaskRunStatusRunning ||
+			taskRun.Status == store.TaskRunStatusPending,
+		Error: taskError,
 	}, nil
 }
 
@@ -138,27 +150,33 @@ func (c *Coordinator) StartTask(ctx context.Context, taskSlug string, input []by
 		return nil, &TaskNotFoundError{TaskSlug: taskSlug}
 	}
 
-	taskName := task.Name
+	var parentTaskRunID *string
+	if parent != nil {
+		parentTaskRunID = &parent.ID
+	}
+	taskRun := c.store.StartTaskRun(task.Name, input, parentTaskRunID)
+	return c.launchTask(taskRun)
+}
 
+// launchTask starts the process for a prepared task run and watches it.
+// The task run must already exist in the store (created by StartTaskRun or
+// reset by RetryTaskRun). The parent-active check uses taskRun.RootTaskRunID.
+func (c *Coordinator) launchTask(taskRun *store.TaskRun) (*store.TaskRun, error) {
 	socket, err := c.socketTracker.NewSocket()
 	if err != nil {
 		return nil, err
 	}
 
-	c.activeRunsMu.Lock()
-	var parentTaskRunID *string
-	if parent != nil {
-		// Subtasks are gated on the root task run being active
-		if _, ok := c.activeRuns[parent.RootTaskRunID]; !ok {
-			// If the root task run is not found, that implies it's been canceled
-			c.activeRunsMu.Unlock()
-			return nil, fmt.Errorf("root task run %s is not active (canceled or completed)", parent.RootTaskRunID)
-		}
-		parentTaskRunID = &parent.ID
-	}
-
 	runCtx, cancelRun := context.WithCancel(context.Background())
-	taskRun := c.store.StartTaskRun(taskName, input, parentTaskRunID)
+
+	c.activeRunsMu.Lock()
+	if taskRun.ParentTaskRunID != nil {
+		if _, ok := c.activeRuns[taskRun.RootTaskRunID]; !ok {
+			c.activeRunsMu.Unlock()
+			cancelRun()
+			return nil, fmt.Errorf("root task run %s is not active (canceled or completed)", taskRun.RootTaskRunID)
+		}
+	}
 	c.activeRuns[taskRun.ID] = &activeRunEntry{
 		cancel:        cancelRun,
 		rootTaskRunID: taskRun.RootTaskRunID,
@@ -168,11 +186,16 @@ func (c *Coordinator) StartTask(ctx context.Context, taskSlug string, input []by
 	c.statusReporter.TaskEnqueued(taskRun)
 
 	server := c.serverFactory.NewHandler(socket, taskserver.GetInput200JSONResponse{
-		TaskName: taskName,
-		Input:    input,
+		TaskName: taskRun.TaskName,
+		Input:    taskRun.Input,
 	}, c.GetSubtaskResult, c.StartSubtaskFunc(taskRun))
 
 	server.Start()
+
+	if _, err := c.store.MarkRunningTaskRun(taskRun.ID); err != nil {
+		fmt.Println("error marking task running", err)
+		return nil, err
+	}
 
 	cleanupFunc, processDone, err := c.sdkExec.StartService(runCtx, taskRun.ID, socket.Addr().String(), ModeRun)
 	if err != nil {
@@ -183,7 +206,6 @@ func (c *Coordinator) StartTask(ctx context.Context, taskSlug string, input []by
 		} else {
 			c.statusReporter.TaskFailed(updated)
 		}
-
 		c.activeRunsMu.Lock()
 		delete(c.activeRuns, taskRun.ID)
 		c.activeRunsMu.Unlock()
@@ -191,44 +213,82 @@ func (c *Coordinator) StartTask(ctx context.Context, taskSlug string, input []by
 	}
 
 	c.statusReporter.TaskRunning(taskRun)
+	go c.watchAttempt(cancelRun, taskRun, server, processDone, cleanupFunc)
+	return taskRun, nil
+}
 
-	go func() {
-		defer cleanupFunc()
-		defer func() {
-			c.activeRunsMu.Lock()
-			delete(c.activeRuns, taskRun.ID)
-			c.activeRunsMu.Unlock()
-			cancelRun()
-		}()
-
-		select {
-		case callback := <-server.Channels.PostCallback:
-			err := c.completeTask(callback.Body, taskRun.ID)
-			if err != nil {
-				fmt.Println("error completing task", err)
-			}
-		case err := <-processDone:
-			// If a cancellation callsite has already transitioned this task
-			// run to a terminal state, don't overwrite it with a failure.
-			// Cancelling runCtx kills the underlying process, which fires
-			// processDone in addition to runCtx.Done().
-			if tr := c.store.GetTaskRun(taskRun.ID); tr != nil && tr.Status != store.TaskRunStatusRunning {
-				return
-			}
-			errMsg := "start command exited before completing the task"
-			if err != nil {
-				errMsg = fmt.Sprintf("%s: %s", errMsg, err)
-			}
-			updated, failErr := c.store.FailTaskRun(taskRun.ID, errMsg)
-			if failErr != nil {
-				fmt.Println("error failing task", failErr)
-				return
-			}
-			c.statusReporter.TaskFailed(updated)
-		}
+// watchAttempt monitors a single attempt. Caller must run it in a goroutine.
+func (c *Coordinator) watchAttempt(
+	cancelRun context.CancelFunc,
+	taskRun *store.TaskRun,
+	server *taskserver.ServerHandler,
+	processDone <-chan error,
+	cleanupFunc CleanupFunc,
+) {
+	defer cleanupFunc()
+	defer func() {
+		c.activeRunsMu.Lock()
+		delete(c.activeRuns, taskRun.ID)
+		c.activeRunsMu.Unlock()
+		cancelRun()
 	}()
 
-	return taskRun, nil
+	select {
+	case callback := <-server.Channels.PostCallback:
+		if err := c.completeTask(callback.Body, taskRun.ID); err != nil {
+			fmt.Println("error completing task", err)
+		}
+	case err := <-processDone:
+		// If a cancellation callsite has already transitioned this task
+		// run to a terminal state, don't overwrite it with a failure.
+		// Cancelling runCtx kills the underlying process, which fires
+		// processDone in addition to runCtx.Done().
+		if tr := c.store.GetTaskRun(taskRun.ID); tr != nil && tr.Status != store.TaskRunStatusRunning {
+			return
+		}
+		errMsg := "start command exited before completing the task"
+		if err != nil {
+			errMsg = fmt.Sprintf("%s: %s", errMsg, err)
+		}
+		updated, failErr := c.store.FailTaskRun(taskRun.ID, errMsg)
+		if failErr != nil {
+			fmt.Println("error failing task", failErr)
+			return
+		}
+		c.statusReporter.TaskFailed(updated)
+		go c.scheduleRetry(updated)
+	}
+}
+
+// scheduleRetry checks whether the task's RetryConfig permits another attempt,
+// transitions the run back to pending, waits the configured backoff, then
+// retries the same task run in place. It runs in its own goroutine (caller does go).
+func (c *Coordinator) scheduleRetry(failedTaskRun *store.TaskRun) {
+	task := c.store.GetTaskByName(failedTaskRun.TaskName)
+	attemptCount := len(failedTaskRun.Attempts)
+
+	if task == nil || !task.RetryConfig.ShouldRetry(attemptCount) {
+		return
+	}
+
+	if _, err := c.store.RetryTaskRun(failedTaskRun.ID); err != nil {
+		return
+	}
+
+	select {
+	case <-time.After(task.RetryConfig.GetSleepDuration(attemptCount)):
+	case <-c.topLevelContext.Done():
+		return
+	}
+
+	// Check the task run state is still pending (could've been cancelled)
+	if tr := c.store.GetTaskRun(failedTaskRun.ID); tr == nil || tr.Status != store.TaskRunStatusPending {
+		return
+	}
+
+	if _, err := c.launchTask(failedTaskRun); err != nil {
+		fmt.Printf("failed to launch retry: %s\n", err)
+	}
 }
 
 func (c *Coordinator) PopulateTasks(ctx context.Context) ([]*store.Task, error) {
@@ -267,6 +327,12 @@ func (c *Coordinator) PopulateTasks(ctx context.Context) ([]*store.Task, error) 
 // CancelTaskRun cancels a root task run and all of its in-flight descendants.
 // Subtasks cannot be canceled directly; cancel the root and the cascade will
 // reach them.
+//
+// A root task run sitting in TaskRunStatusPending between retries has no
+// activeRuns entry (the previous attempt's entry was removed when it failed
+// and the next attempt hasn't launched yet). In that case we mark the run
+// canceled directly; scheduleRetry's post-sleep status check will see this
+// and skip the relaunch.
 func (c *Coordinator) CancelTaskRun(taskRunID string) error {
 	taskRun := c.store.GetTaskRun(taskRunID)
 	if taskRun == nil {
@@ -291,11 +357,17 @@ func (c *Coordinator) CancelTaskRun(taskRunID string) error {
 		delete(c.activeRuns, id)
 		canceled++
 	}
-
-	if canceled == 0 {
-		return fmt.Errorf("task run %s is not active", taskRunID)
+	if canceled > 0 {
+		return nil
 	}
-	return nil
+
+	// No live attempt; if the root is awaiting a retry, mark it canceled
+	// in the store so scheduleRetry's post-sleep check aborts the relaunch.
+	if tr := c.store.GetTaskRun(rootID); tr != nil && tr.Status == store.TaskRunStatusPending {
+		c.markCancelled(rootID)
+		return nil
+	}
+	return fmt.Errorf("task run %s is not active", taskRunID)
 }
 
 func (c *Coordinator) markCancelled(taskRunID string) {
@@ -325,6 +397,7 @@ func (c *Coordinator) completeTask(completeBody *taskserver.CallbackRequest, tas
 			return err
 		}
 		c.statusReporter.TaskFailed(updated)
+		go c.scheduleRetry(updated)
 	}
 
 	return nil

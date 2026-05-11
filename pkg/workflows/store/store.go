@@ -13,9 +13,17 @@ import (
 )
 
 type Task struct {
-	ID        string
-	Name      string
-	CreatedAt time.Time
+	ID          string
+	Name        string
+	CreatedAt   time.Time
+	RetryConfig *taskserver.RetryConfig
+}
+
+type TaskAttempt struct {
+	StartedAt   *time.Time
+	CompletedAt *time.Time
+	Status      TaskRunStatus
+	Error       *string
 }
 
 type TaskRun struct {
@@ -26,18 +34,26 @@ type TaskRun struct {
 	Status   TaskRunStatus
 	Error    *string
 
-	StartedAt   *time.Time
-	CompletedAt *time.Time
+	// StartedAt is when the run first began; it never changes once set.
+	StartedAt *time.Time
+	// AttemptStartedAt is when the current attempt began; reset on each retry.
+	AttemptStartedAt *time.Time
+	CompletedAt      *time.Time
 
 	ParentTaskRunID *string
 	// RootTaskRunID is the ID of the top-level task run that initiated this
 	// chain of subtasks. For root tasks, this equals ID.
 	RootTaskRunID string
+
+	// Attempts holds the history of previous (failed) attempts for this task
+	// run. The current attempt's state is represented by the top-level fields.
+	Attempts []TaskAttempt
 }
 
 type TaskRunStatus string
 
 const (
+	TaskRunStatusPending  TaskRunStatus = "pending"
 	TaskRunStatusRunning  TaskRunStatus = "running"
 	TaskRunStatusComplete TaskRunStatus = "complete"
 	TaskRunStatusFailed   TaskRunStatus = "failed"
@@ -63,14 +79,20 @@ func (s *TaskStore) SetTasks(tasks []taskserver.Task) {
 	newTasks := make(map[string]*Task)
 
 	for _, task := range tasks {
-		if _, ok := s.tasks[task.Name]; !ok {
+		var retryConfig *taskserver.RetryConfig
+		if task.Options != nil {
+			retryConfig = task.Options.Retry
+		}
+		if existing, ok := s.tasks[task.Name]; !ok {
 			newTasks[task.Name] = &Task{
-				ID:        NewTaskID(),
-				Name:      task.Name,
-				CreatedAt: time.Now(),
+				ID:          NewTaskID(),
+				Name:        task.Name,
+				CreatedAt:   time.Now(),
+				RetryConfig: retryConfig,
 			}
 		} else {
-			newTasks[task.Name] = s.tasks[task.Name]
+			existing.RetryConfig = retryConfig
+			newTasks[task.Name] = existing
 		}
 	}
 
@@ -92,13 +114,15 @@ func (s *TaskStore) StartTaskRun(taskName string, input []byte, parentTaskRunID 
 		}
 	}
 
+	now := time.Now()
 	taskRun := &TaskRun{
 		ID:       id,
 		TaskName: taskName,
 		Input:    input,
 		Status:   TaskRunStatusRunning,
 
-		StartedAt: pointers.From(time.Now()),
+		StartedAt:        &now,
+		AttemptStartedAt: &now,
 
 		ParentTaskRunID: parentTaskRunID,
 		RootTaskRunID:   rootTaskRunID,
@@ -145,6 +169,55 @@ func (s *TaskStore) FailTaskRun(taskRunID string, errString string) (*TaskRun, e
 	}
 
 	s.sendResultsToChannels(taskRun)
+
+	return taskRun, nil
+}
+
+// RetryTaskRun archives the current (failed) attempt into Attempts, resets
+// the per-attempt state, and transitions the task run to pending so it can
+// await its next attempt. StartedAt is preserved.
+func (s *TaskStore) RetryTaskRun(taskRunID string) (*TaskRun, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	taskRun := s.getTaskRun(taskRunID)
+	if taskRun == nil {
+		return nil, fmt.Errorf("task run not found")
+	}
+	if taskRun.Status != TaskRunStatusFailed {
+		return nil, fmt.Errorf("cannot retry task run in status %q", taskRun.Status)
+	}
+
+	taskRun.Attempts = append(taskRun.Attempts, TaskAttempt{
+		StartedAt:   taskRun.AttemptStartedAt,
+		CompletedAt: taskRun.CompletedAt,
+		Status:      taskRun.Status,
+		Error:       taskRun.Error,
+	})
+
+	taskRun.Status = TaskRunStatusPending
+	taskRun.Error = nil
+	taskRun.CompletedAt = nil
+	taskRun.Output = nil
+	taskRun.AttemptStartedAt = nil
+
+	return taskRun, nil
+}
+
+// MarkRunningTaskRun marks a pending task run as running for its next attempt and
+// captures the attempt's start time.
+func (s *TaskStore) MarkRunningTaskRun(taskRunID string) (*TaskRun, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	taskRun := s.getTaskRun(taskRunID)
+	if taskRun == nil {
+		return nil, fmt.Errorf("task run not found")
+	}
+
+	now := time.Now()
+	taskRun.Status = TaskRunStatusRunning
+	taskRun.AttemptStartedAt = &now
 
 	return taskRun, nil
 }

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/workflows/orchestrator"
 	"github.com/render-oss/cli/pkg/workflows/store"
 	"github.com/render-oss/cli/pkg/workflows/taskserver"
@@ -219,6 +220,107 @@ func TestStartTaskWithSubtask(t *testing.T) {
 	}, time.Second*2, time.Millisecond*10)
 }
 
+// TestSubtaskRetryKeepsParentAlive verifies that when a subtask fails but still
+// has retries remaining, GetSubtaskResult reports StillRunning rather than
+// surfacing the error to the parent. This prevents the parent from failing
+// before the retry has a chance to run.
+func TestSubtaskRetryKeepsParentAlive(t *testing.T) {
+	ctx := context.Background()
+	s := store.NewTaskStore()
+
+	retryConfig := &taskserver.RetryConfig{
+		MaxRetries:     pointers.From(2),
+		WaitDurationMs: pointers.From[int64](100),
+	}
+	tasks := []taskserver.Task{
+		{Name: "test-task"},
+		{
+			Name:    "test-subtask",
+			Options: &taskserver.TaskOptions{Retry: retryConfig},
+		},
+	}
+
+	postTasksChan := make(chan taskserver.PostRegisterTasksRequestObject, 1)
+	subtaskPostCallbackChan := make(chan taskserver.PostCallbackRequestObject)
+	subtaskPostTasksChan := make(chan taskserver.PostRegisterTasksRequestObject, 1)
+
+	socketTracker, err := orchestrator.NewSocketTracker(ctx)
+	require.NoError(t, err)
+
+	var startSubtaskFunc taskserver.StartSubtaskFunc
+	exec, runChan := controllableSdkExec()
+
+	coordinator := orchestrator.NewCoordinator(
+		ctx,
+		s,
+		exec,
+		socketTracker,
+		parentSubtaskFactory(tasks, postTasksChan, subtaskPostCallbackChan, subtaskPostTasksChan, &startSubtaskFunc),
+		&noopStatusReporter{},
+	)
+
+	parentTaskRun, err := coordinator.StartTask(ctx, "test-task", []byte{}, nil)
+	require.NoError(t, err)
+
+	// Consume the parent's run handle so subsequent reads get the subtask's.
+	<-runChan
+
+	require.Eventually(t, func() bool {
+		return startSubtaskFunc != nil
+	}, time.Second*2, time.Millisecond*10)
+
+	subtaskRunIDCh := make(chan string, 1)
+	go func() {
+		taskRun, err := startSubtaskFunc("test-subtask", []byte{})
+		require.NoError(t, err)
+		subtaskRunIDCh <- taskRun.(taskserver.PostRunSubtask200JSONResponse).TaskRunId
+	}()
+
+	var subtaskRunID string
+	select {
+	case subtaskRunID = <-subtaskRunIDCh:
+	case <-time.After(time.Second * 2):
+		t.Fatal("subtask did not start in time")
+	}
+
+	// Kill subtask attempt 1.
+	subtaskHandle1 := <-runChan
+	subtaskHandle1.done <- fmt.Errorf("exit status 1")
+
+	// During the retry wait the subtask is Pending; GetSubtaskResult must
+	// report StillRunning so the parent doesn't see the failure.
+	require.Eventually(t, func() bool {
+		return s.GetTaskRun(subtaskRunID).Status == store.TaskRunStatusPending
+	}, time.Millisecond*200, time.Millisecond*5)
+
+	result, err := coordinator.GetSubtaskResult(subtaskRunID)
+	require.NoError(t, err)
+	resp := result.(taskserver.PostGetSubtaskResult200JSONResponse)
+	require.True(t, resp.StillRunning, "GetSubtaskResult should report still-running during retry wait")
+	require.Nil(t, resp.Error, "GetSubtaskResult should not surface the failure during retry wait")
+
+	// Parent must still be alive — it should not have been marked failed.
+	require.Equal(t, store.TaskRunStatusRunning, s.GetTaskRun(parentTaskRun.ID).Status)
+
+	// Subtask retry launches; let it succeed via callback.
+	<-runChan // consume subtask attempt 2's handle
+
+	subtaskPostCallbackChan <- taskserver.PostCallbackRequestObject{
+		Body: &taskserver.CallbackRequest{
+			Complete: &taskserver.TaskComplete{Output: json.RawMessage(`"ok"`)},
+		},
+	}
+
+	// GetSubtaskResult should now return Complete.
+	require.Eventually(t, func() bool {
+		result, err := coordinator.GetSubtaskResult(subtaskRunID)
+		if err != nil {
+			return false
+		}
+		return result.(taskserver.PostGetSubtaskResult200JSONResponse).Complete != nil
+	}, time.Second*2, time.Millisecond*10)
+}
+
 func TestPopulateTasksProcessExits(t *testing.T) {
 	ctx := context.Background()
 
@@ -283,27 +385,11 @@ func TestCancelTaskRun(t *testing.T) {
 	socketTracker, err := orchestrator.NewSocketTracker(ctx)
 	require.NoError(t, err)
 
-	startCount := 0
+	exec, _ := controllableSdkExec()
 	coordinator := orchestrator.NewCoordinator(
 		ctx,
 		s,
-		&fakeSdkExec{
-			startService: func(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (func() error, <-chan error, error) {
-				startCount++
-				if startCount == 1 {
-					return func() error { return nil }, neverExits(), nil
-				}
-				// Mirror the real exec behaviour: when ctx is canceled the
-				// child process is killed and processDone fires with an
-				// error.
-				processDone := make(chan error, 1)
-				go func() {
-					<-ctx.Done()
-					processDone <- fmt.Errorf("signal: killed")
-				}()
-				return func() error { return nil }, processDone, nil
-			},
-		},
+		exec,
 		socketTracker,
 		&fakeServerFactory{
 			newHandler: func(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
@@ -336,24 +422,36 @@ func TestCancelTaskRun(t *testing.T) {
 		store.TaskRunStatusCanceled, tr.Status)
 }
 
-// cancellableSdkExec returns a fakeSdkExec that mirrors the real exec
-// behavior: registration runs never exit on their own, and run-mode
-// processes block until their context is canceled and then report a kill
-// error on processDone.
-func cancellableSdkExec() *fakeSdkExec {
-	return &fakeSdkExec{
+// runHandle exposes per-run controls for a fake exec process.
+type runHandle struct {
+	done chan error
+}
+
+// controllableSdkExec returns a fakeSdkExec where each run-mode start pushes
+// a runHandle onto the returned channel so tests can drive process exits
+// manually. It also mirrors real exec behavior by emitting "signal: killed"
+// when ctx is canceled — whichever event fires first wins. Tests that don't
+// care about manual exits can ignore the returned channel.
+func controllableSdkExec() (*fakeSdkExec, chan runHandle) {
+	runChan := make(chan runHandle, 16)
+	exec := &fakeSdkExec{
 		startService: func(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (func() error, <-chan error, error) {
 			if mode == orchestrator.ModeRegister {
 				return func() error { return nil }, neverExits(), nil
 			}
-			processDone := make(chan error, 1)
+			handle := runHandle{done: make(chan error, 1)}
 			go func() {
 				<-ctx.Done()
-				processDone <- fmt.Errorf("signal: killed")
+				select {
+				case handle.done <- fmt.Errorf("signal: killed"):
+				default:
+				}
 			}()
-			return func() error { return nil }, processDone, nil
+			runChan <- handle
+			return func() error { return nil }, handle.done, nil
 		},
 	}
+	return exec, runChan
 }
 
 // parentSubtaskFactory builds a fakeServerFactory configured with the
@@ -442,10 +540,11 @@ func startTaskWithSubtask(t *testing.T) *taskWithSubtaskHarness {
 
 	var startSubtaskFunc taskserver.StartSubtaskFunc
 
+	exec, _ := controllableSdkExec()
 	coordinator := orchestrator.NewCoordinator(
 		ctx,
 		s,
-		cancellableSdkExec(),
+		exec,
 		socketTracker,
 		parentSubtaskFactory(tasks, postTasksChan, subtaskPostCallbackChan, subtaskPostTasksChan, &startSubtaskFunc),
 		&noopStatusReporter{},
@@ -530,6 +629,267 @@ func TestCancelTaskRunRejectsSubtask(t *testing.T) {
 			sub.Status != store.TaskRunStatusRunning
 	}, time.Millisecond*200, time.Millisecond*20,
 		"rejected subtask cancel should not transition any task run out of running")
+}
+
+func TestRetryOnProcessExit(t *testing.T) {
+	ctx := context.Background()
+	s := store.NewTaskStore()
+
+	// Non-zero WaitDurationMs gives a window where the run is reliably observable
+	// in Pending status. With zero, the retry sleep returns immediately and the
+	// Pending state exists for microseconds — too brief for the assertion to catch.
+	//
+	// With Factor=1.5 the per-retry sleep is waitMs * 1.5^attemptCount, so:
+	//   retry 1 (attemptCount=0): 100ms
+	//   retry 2 (attemptCount=1): 100ms * 1.5 = 150ms
+	// We measure both elapsed waits below to verify exponential backoff is applied.
+	retryConfig := &taskserver.RetryConfig{
+		MaxRetries:     pointers.From(2),
+		WaitDurationMs: pointers.From[int64](100),
+		Factor:         pointers.From[float32](1.5),
+	}
+	tasks := []taskserver.Task{
+		{
+			Name: "test-task",
+			Options: &taskserver.TaskOptions{
+				Retry: retryConfig,
+			},
+		},
+	}
+
+	postTasksChan := make(chan taskserver.PostRegisterTasksRequestObject, 1)
+	postTasksChan <- taskserver.PostRegisterTasksRequestObject{
+		Body: &taskserver.PostRegisterTasksJSONRequestBody{
+			Tasks: tasks,
+		},
+	}
+
+	socketTracker, err := orchestrator.NewSocketTracker(ctx)
+	require.NoError(t, err)
+
+	exec, runChan := controllableSdkExec()
+	coordinator := orchestrator.NewCoordinator(
+		ctx,
+		s,
+		exec,
+		socketTracker,
+		&fakeServerFactory{
+			newHandler: func(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
+				return &taskserver.ServerHandler{
+					Socket: socket,
+					Input:  input,
+					Channels: taskserver.ServerChannels{
+						PostCallback: make(chan taskserver.PostCallbackRequestObject),
+						PostTasks:    postTasksChan,
+					},
+				}
+			},
+		},
+		&noopStatusReporter{},
+	)
+
+	// Start the task run (attempt 1 of 3).
+	taskRun, err := coordinator.StartTask(ctx, "test-task", []byte("input"), nil)
+	require.NoError(t, err)
+	require.Equal(t, store.TaskRunStatusRunning, s.GetTaskRun(taskRun.ID).Status)
+	require.Empty(t, s.GetTaskRun(taskRun.ID).Attempts, "first attempt should have no prior attempts")
+
+	// Kill attempt 1 → status should transition to pending during the wait,
+	// then to running for retry 1.
+	runHandle1 := <-runChan
+	kill1At := time.Now()
+	runHandle1.done <- fmt.Errorf("exit status 1")
+
+	require.Eventually(t, func() bool {
+		tr := s.GetTaskRun(taskRun.ID)
+		return tr.Status == store.TaskRunStatusPending && len(tr.Attempts) == 1
+	}, time.Millisecond*100, time.Millisecond*5, "task should be pending during retry wait")
+	require.Equal(t, store.TaskRunStatusFailed, s.GetTaskRun(taskRun.ID).Attempts[0].Status)
+
+	require.Eventually(t, func() bool {
+		tr := s.GetTaskRun(taskRun.ID)
+		return tr.Status == store.TaskRunStatusRunning && len(tr.Attempts) == 1
+	}, time.Second*2, time.Millisecond*10, "retry 1 should start running after wait")
+	retry1Wait := time.Since(kill1At)
+
+	// Kill attempt 2 → pending → running for retry 2.
+	runHandle2 := <-runChan
+	kill2At := time.Now()
+	runHandle2.done <- fmt.Errorf("exit status 1")
+
+	require.Eventually(t, func() bool {
+		tr := s.GetTaskRun(taskRun.ID)
+		return tr.Status == store.TaskRunStatusPending && len(tr.Attempts) == 2
+	}, time.Millisecond*100, time.Millisecond*5, "task should be pending during second retry wait")
+
+	require.Eventually(t, func() bool {
+		tr := s.GetTaskRun(taskRun.ID)
+		return tr.Status == store.TaskRunStatusRunning && len(tr.Attempts) == 2
+	}, time.Second*2, time.Millisecond*10, "retry 2 should start running after wait")
+	retry2Wait := time.Since(kill2At)
+
+	// Lower bounds confirm each wait actually happened. The differential check
+	// below confirms Factor was applied (vs both waits being delayed by some
+	// constant overhead).
+	expectedRetry1Min := retryConfig.GetSleepDuration(0)
+	expectedRetry2Min := retryConfig.GetSleepDuration(1)
+	require.GreaterOrEqual(t, retry1Wait, expectedRetry1Min,
+		"retry 1 should wait at least %s", expectedRetry1Min)
+	require.GreaterOrEqual(t, retry2Wait, expectedRetry2Min,
+		"retry 2 should wait at least %s", expectedRetry2Min)
+	require.Greater(t, retry2Wait, retry1Wait+time.Millisecond*20,
+		"retry 2 wait (%s) should be longer than retry 1 wait (%s) due to exponential backoff",
+		retry2Wait, retry1Wait)
+
+	// Kill attempt 3 — MaxRetries is 2, so no further retry should occur.
+	runHandle3 := <-runChan
+	runHandle3.done <- fmt.Errorf("exit status 1")
+
+	require.Eventually(t, func() bool {
+		return s.GetTaskRun(taskRun.ID).Status == store.TaskRunStatusFailed
+	}, time.Second*2, time.Millisecond*10)
+
+	// Still exactly one task run; no new runs created.
+	require.Len(t, s.GetTaskRuns("test-task"), 1, "should not create new task runs on retry")
+	require.Len(t, s.GetTaskRun(taskRun.ID).Attempts, 2, "two attempts archived, third is current")
+}
+
+func TestCancelTaskRunDuringRetryWait(t *testing.T) {
+	ctx := context.Background()
+	s := store.NewTaskStore()
+
+	// Long enough wait that we can reliably observe and cancel during it.
+	retryConfig := &taskserver.RetryConfig{
+		MaxRetries:     pointers.From(2),
+		WaitDurationMs: pointers.From[int64](500),
+		Factor:         pointers.From[float32](1.0),
+	}
+	tasks := []taskserver.Task{
+		{
+			Name:    "test-task",
+			Options: &taskserver.TaskOptions{Retry: retryConfig},
+		},
+	}
+
+	postTasksChan := make(chan taskserver.PostRegisterTasksRequestObject, 1)
+	postTasksChan <- taskserver.PostRegisterTasksRequestObject{
+		Body: &taskserver.PostRegisterTasksJSONRequestBody{Tasks: tasks},
+	}
+
+	socketTracker, err := orchestrator.NewSocketTracker(ctx)
+	require.NoError(t, err)
+
+	exec, runChan := controllableSdkExec()
+	coordinator := orchestrator.NewCoordinator(
+		ctx, s, exec, socketTracker,
+		&fakeServerFactory{
+			newHandler: func(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
+				return &taskserver.ServerHandler{
+					Socket: socket,
+					Input:  input,
+					Channels: taskserver.ServerChannels{
+						PostCallback: make(chan taskserver.PostCallbackRequestObject),
+						PostTasks:    postTasksChan,
+					},
+				}
+			},
+		},
+		&noopStatusReporter{},
+	)
+
+	taskRun, err := coordinator.StartTask(ctx, "test-task", []byte("input"), nil)
+	require.NoError(t, err)
+
+	// Kill attempt 1 → run should enter pending while it waits to retry.
+	runHandle1 := <-runChan
+	runHandle1.done <- fmt.Errorf("exit status 1")
+
+	require.Eventually(t, func() bool {
+		return s.GetTaskRun(taskRun.ID).Status == store.TaskRunStatusPending
+	}, time.Millisecond*200, time.Millisecond*5,
+		"task should be pending during retry wait")
+
+	// While the run is in the retry-wait window it must still be cancelable.
+	require.NoError(t, coordinator.CancelTaskRun(taskRun.ID),
+		"canceling during retry wait should succeed")
+
+	require.Eventually(t, func() bool {
+		return s.GetTaskRun(taskRun.ID).Status == store.TaskRunStatusCanceled
+	}, time.Second*1, time.Millisecond*5,
+		"canceled run should reach canceled status")
+
+	// No further retry attempt should be launched. Wait past the original
+	// backoff to confirm the timer didn't fire a relaunch.
+	require.Never(t, func() bool {
+		select {
+		case <-runChan:
+			return true
+		default:
+			return false
+		}
+	}, time.Millisecond*800, time.Millisecond*50,
+		"no retry should launch after cancellation")
+
+	// Subsequent cancel attempts should report the run is no longer active.
+	require.Error(t, coordinator.CancelTaskRun(taskRun.ID),
+		"canceling an already-canceled run should error")
+}
+
+func TestNoRetryWithoutConfig(t *testing.T) {
+	ctx := context.Background()
+	s := store.NewTaskStore()
+
+	tasks := []taskserver.Task{{Name: "test-task"}} // no RetryConfig
+
+	postTasksChan := make(chan taskserver.PostRegisterTasksRequestObject, 1)
+	postTasksChan <- taskserver.PostRegisterTasksRequestObject{
+		Body: &taskserver.PostRegisterTasksJSONRequestBody{Tasks: tasks},
+	}
+
+	socketTracker, err := orchestrator.NewSocketTracker(ctx)
+	require.NoError(t, err)
+
+	processDone := make(chan error, 1)
+	coordinator := orchestrator.NewCoordinator(
+		ctx,
+		s,
+		&fakeSdkExec{
+			startService: func(ctx context.Context, taskRunID string, socket string, mode orchestrator.Mode) (func() error, <-chan error, error) {
+				if mode == orchestrator.ModeRegister {
+					return func() error { return nil }, neverExits(), nil
+				}
+				return func() error { return nil }, processDone, nil
+			},
+		},
+		socketTracker,
+		&fakeServerFactory{
+			newHandler: func(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
+				return &taskserver.ServerHandler{
+					Socket: socket,
+					Input:  input,
+					Channels: taskserver.ServerChannels{
+						PostCallback: make(chan taskserver.PostCallbackRequestObject),
+						PostTasks:    postTasksChan,
+					},
+				}
+			},
+		},
+		&noopStatusReporter{},
+	)
+
+	taskRun, err := coordinator.StartTask(ctx, "test-task", []byte{}, nil)
+	require.NoError(t, err)
+
+	processDone <- fmt.Errorf("exit status 1")
+
+	require.Eventually(t, func() bool {
+		return s.GetTaskRun(taskRun.ID).Status == store.TaskRunStatusFailed
+	}, time.Second*2, time.Millisecond*10)
+
+	require.Never(t, func() bool {
+		tr := s.GetTaskRun(taskRun.ID)
+		return tr.Status == store.TaskRunStatusRunning
+	}, time.Millisecond*200, time.Millisecond*20, "no retry should occur without RetryConfig")
 }
 
 func TestStartTaskProcessExits(t *testing.T) {
