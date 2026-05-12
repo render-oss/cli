@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 
+	huhspinner "github.com/charmbracelet/huh/spinner"
 	"github.com/spf13/cobra"
 
 	"github.com/render-oss/cli/pkg/cfg"
@@ -36,20 +37,41 @@ func newLogoutCmd() *cobra.Command {
 				return nil
 			}
 
-			apiCfg, err := config.OAuthConfig()
-			if err == nil {
-				ctx := cmd.Context()
-				if ctx == nil {
-					ctx = context.Background()
-				}
-				oauthClient := oauth.NewClient(apiCfg.Host)
-				if revokeErr := oauthClient.RevokeToken(ctx, apiCfg.Key); revokeErr != nil {
-					command.Println(cmd, "Warning: something went wrong revoking your CLI token. Your local credentials will be cleared, but you'll need to revoke your token in the Render dashboard: %s/settings#cli-tokens", config.DashboardURL())
-				}
+			ctx := cmd.Context()
+			if ctx == nil {
+				ctx = context.Background()
 			}
 
-			if err := config.DeleteConfig(); err != nil {
+			var revokeErr error
+			logoutAction := func(ctx context.Context) error {
+				apiCfg, err := config.OAuthConfig()
+				if err == nil {
+					oauthClient := oauth.NewClient(apiCfg.Host)
+					revokeErr = oauthClient.RevokeToken(ctx, apiCfg.Key)
+				}
+
+				return config.DeleteConfig()
+			}
+
+			if command.IsInteractive(ctx) {
+				err = huhspinner.New().
+					Title("Logging out...").
+					Output(cmd.ErrOrStderr()).
+					ActionWithErr(logoutAction).
+					Run()
+			} else {
+				err = logoutAction(ctx)
+			}
+			if err != nil {
 				return err
+			}
+
+			if revokeErr != nil {
+				command.Println(cmd, "Warning: something went wrong revoking your CLI token. Your local credentials have been cleared, but you'll need to revoke your token in the Render dashboard: %s/settings#cli-tokens", config.DashboardURL())
+				if hasEnvKey {
+					command.Println(cmd, "Note: RENDER_API_KEY is still set in your environment.")
+				}
+				return nil
 			}
 
 			if hasEnvKey {

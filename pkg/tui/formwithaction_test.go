@@ -154,7 +154,7 @@ func TestFormWithAction_PreservesValuesOnReInit(t *testing.T) {
 // Without ClearScreen, leftover lines could persist briefly during the
 // form-to-loading transition.
 //
-// We verify by looking for the EraseEntireDisplay ANSI sequence emitted by the
+// We verify by looking for the EraseEntireScreen ANSI sequence emitted by the
 // bubble tea renderer when it processes a clearScreenMsg, which only happens
 // via tea.ClearScreen in this flow. Using the ansi package's constant (rather
 // than a hard-coded escape) means we follow the renderer's source of truth
@@ -172,6 +172,6 @@ func TestFormWithAction_ClearsScreenOnSubmit(t *testing.T) {
 	h.tm.Send(tea.KeyMsg{Type: tea.KeyEnter})
 
 	teatest.WaitFor(t, h.tm.Output(), func(b []byte) bool {
-		return bytes.Contains(b, []byte(ansi.EraseEntireDisplay))
+		return bytes.Contains(b, []byte(ansi.EraseEntireScreen))
 	}, waitOpts...)
 }
