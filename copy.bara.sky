@@ -8,6 +8,7 @@ DESTINATION_FILES = [
   "bin/**",
   "cmd/**",
   "e2e/**",
+  "internal/**",
   "pkg/**",
   ".gitignore",
   ".golangci.yml",
