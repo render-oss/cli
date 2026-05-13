@@ -5,7 +5,6 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/config"
-	"github.com/render-oss/cli/pkg/validate"
 )
 
 type Repo struct {
@@ -69,11 +68,14 @@ func (r *Repo) GetKeyValueConnectionInfo(ctx context.Context, id string) (*clien
 	return resp.JSON200, nil
 }
 
+// CreateKeyValue creates a Key Value instance via the Render API.
+//
+// Unlike the service repo, this method does not call validate.WorkspaceMatches
+// on data.OwnerId. The cmd/kvcreate flow accepts a --workspace flag that may
+// intentionally differ from the active workspace, and that check would block
+// the override. Callers are responsible for resolving the correct OwnerId
+// (e.g. validating workspace/project/environment consistency) before calling.
 func (r *Repo) CreateKeyValue(ctx context.Context, data client.CreateKeyValueJSONRequestBody) (*client.KeyValueDetail, error) {
-	if err := validate.WorkspaceMatches(data.OwnerId); err != nil {
-		return nil, err
-	}
-
 	resp, err := r.client.CreateKeyValueWithResponse(ctx, data)
 	if err != nil {
 		return nil, err

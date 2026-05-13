@@ -21,6 +21,23 @@ func IsServiceID(s string) bool {
 	return IsObjectID("srv", s)
 }
 
+// IsWorkspaceID checks if the string is a valid workspace owner ID. Workspaces
+// are represented by owner IDs, so both team IDs (tea-) and user IDs (usr-) are
+// accepted.
+func IsWorkspaceID(s string) bool {
+	return IsObjectID("tea", s) || IsObjectID("usr", s)
+}
+
+// IsProjectID checks if the string is a valid project ID (prj-[a-z0-9]{20}).
+func IsProjectID(s string) bool {
+	return IsObjectID("prj", s)
+}
+
+// IsEnvironmentID checks if the string is a valid environment ID (evm-[a-z0-9]{20}).
+func IsEnvironmentID(s string) bool {
+	return IsObjectID("evm", s)
+}
+
 // IsServiceInstanceID checks if the string is a valid service instance ID (srv-[a-z0-9]{20}-[a-z0-9]+)
 func IsServiceInstanceID(s string) bool {
 	var instanceIDRegex = regexp.MustCompile(`^srv-[a-z0-9]{20}-[a-z0-9]+$`)

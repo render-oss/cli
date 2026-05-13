@@ -24,6 +24,26 @@ func (p *Repo) ListProjectsForWorkspace(ctx context.Context, workspaceID string)
 	return client.ListAll(ctx, params, p.listPage)
 }
 
+// ListProjectsByName fetches every accessible project whose name matches the
+// given filter (server-side, case-sensitive). If workspaceID is provided, the
+// API request also scopes the lookup to that owner.
+func (p *Repo) ListProjectsByName(ctx context.Context, name string, workspaceID string) ([]*client.Project, error) {
+	params := &client.ListProjectsParams{
+		Name: pointers.From([]string{name}),
+	}
+	if workspaceID != "" {
+		params.OwnerId = pointers.From([]string{workspaceID})
+	}
+	return client.ListAll(ctx, params, p.listPage)
+}
+
+// ListAllAccessibleProjects fetches every project the caller can see across
+// all workspaces. Used to gather project IDs for an unscoped environment
+// lookup.
+func (p *Repo) ListAllAccessibleProjects(ctx context.Context) ([]*client.Project, error) {
+	return client.ListAll(ctx, &client.ListProjectsParams{}, p.listPage)
+}
+
 func (p *Repo) ListProjects(ctx context.Context) ([]*client.Project, error) {
 	params := &client.ListProjectsParams{}
 

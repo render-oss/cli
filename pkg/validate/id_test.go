@@ -64,6 +64,70 @@ func TestIsServiceID(t *testing.T) {
 	}
 }
 
+func TestIsWorkspaceID(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{"valid team owner ID", "tea-12345678901234567890", true},
+		{"valid user owner ID", "usr-12345678901234567890", true},
+		{"project ID rejected", "prj-12345678901234567890", false},
+		{"correct prefix but xid too short rejected", "tea-short-name", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := validate.IsWorkspaceID(tc.input)
+			if got != tc.expected {
+				t.Errorf("IsWorkspaceID(%q) = %v, want %v", tc.input, got, tc.expected)
+			}
+		})
+	}
+}
+
+func TestIsProjectID(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{"valid project ID", "prj-12345678901234567890", true},
+		{"workspace ID rejected", "tea-12345678901234567890", false},
+		{"correct prefix but xid too short rejected", "prj-short-name", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := validate.IsProjectID(tc.input)
+			if got != tc.expected {
+				t.Errorf("IsProjectID(%q) = %v, want %v", tc.input, got, tc.expected)
+			}
+		})
+	}
+}
+
+func TestIsEnvironmentID(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{"valid environment ID", "evm-12345678901234567890", true},
+		{"env var prefix rejected", "env-12345678901234567890", false},
+		{"correct prefix but xid too short rejected", "evm-short-name", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := validate.IsEnvironmentID(tc.input)
+			if got != tc.expected {
+				t.Errorf("IsEnvironmentID(%q) = %v, want %v", tc.input, got, tc.expected)
+			}
+		})
+	}
+}
+
 func TestIsServiceInstanceID(t *testing.T) {
 	tests := []struct {
 		name     string

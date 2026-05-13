@@ -3,6 +3,7 @@ package keyvalue_test
 import (
 	"testing"
 
+	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/pointers"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 	"github.com/stretchr/testify/assert"
@@ -25,11 +26,12 @@ func TestNormalizeAndValidateCreateInput(t *testing.T) {
 	})
 
 	t.Run("Valid input with name, plan, and optional fields passes validation", func(t *testing.T) {
+		environmentID := testids.EnvironmentID("optional")
 		input := kvtypes.KeyValueCreateInput{
 			Name:                "my-kv",
 			Plan:                kvtypes.PlanPro,
 			Region:              pointers.From("oregon"),
-			EnvironmentIDOrName: pointers.From("env-123"),
+			EnvironmentIDOrName: pointers.From(environmentID),
 			MaxmemoryPolicy:     pointers.From(kvtypes.MaxmemoryPolicyAllkeysLru),
 		}
 		got, err := kvtypes.NormalizeAndValidateCreateInput(input)
@@ -37,7 +39,7 @@ func TestNormalizeAndValidateCreateInput(t *testing.T) {
 		assert.Equal(t, "my-kv", got.Name)
 		assert.Equal(t, kvtypes.PlanPro, got.Plan)
 		assert.Equal(t, pointers.From("oregon"), got.Region)
-		assert.Equal(t, pointers.From("env-123"), got.EnvironmentIDOrName)
+		assert.Equal(t, pointers.From(environmentID), got.EnvironmentIDOrName)
 		assert.Equal(t, pointers.From(kvtypes.MaxmemoryPolicyAllkeysLru), got.MaxmemoryPolicy)
 	})
 
@@ -125,18 +127,19 @@ func TestNormalizeAndValidateCreateInput(t *testing.T) {
 	})
 
 	t.Run("Optional fields with valid values are preserved", func(t *testing.T) {
+		environmentID := testids.EnvironmentID("preserved")
 		input := kvtypes.KeyValueCreateInput{
 			Name:                "my-kv",
 			Plan:                kvtypes.PlanStarter,
 			Region:              pointers.From(" oregon "),
-			EnvironmentIDOrName: pointers.From(" env-456 "),
+			EnvironmentIDOrName: pointers.From(" " + environmentID + " "),
 			MaxmemoryPolicy:     pointers.From(kvtypes.MaxmemoryPolicy(" noeviction ")),
 		}
 		got, err := kvtypes.NormalizeAndValidateCreateInput(input)
 		require.NoError(t, err)
 		// OptionalNonZeroString should trim whitespace but preserve non-empty values
 		assert.Equal(t, pointers.From("oregon"), got.Region)
-		assert.Equal(t, pointers.From("env-456"), got.EnvironmentIDOrName)
+		assert.Equal(t, pointers.From(environmentID), got.EnvironmentIDOrName)
 		assert.Equal(t, pointers.From(kvtypes.MaxmemoryPolicyNoeviction), got.MaxmemoryPolicy)
 	})
 

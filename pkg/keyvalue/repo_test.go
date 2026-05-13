@@ -4,32 +4,31 @@ import (
 	"context"
 	"testing"
 
+	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/pkg/client"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateKeyValue_CallsWorkspaceValidation(t *testing.T) {
-	t.Skip()
-	//skipping to clear failing tests for now. THis shouldn't be making http requests to example.com
-	t.Run("rejects when workspace does not match ownerID", func(t *testing.T) {
-		// Set up workspace to a specific value
-		t.Setenv("RENDER_WORKSPACE", "tea-workspace-abc123")
+func TestCreateKeyValue_DoesNotOverrideOwnerIDWithActiveWorkspace(t *testing.T) {
+	t.Setenv("RENDER_WORKSPACE", "tea-active-workspace")
 
-		// Create a mock client
-		c, err := client.NewClientWithResponses("http://example.com")
-		require.NoError(t, err)
-		repo := NewRepo(c)
+	server := renderapi.NewServer(t)
+	server.Owners.Add(renderapi.NewOwner(client.Owner{
+		Id:   "tea-target-workspace",
+		Name: "Target Workspace",
+	}))
 
-		// Try to create KV with a different ownerID
-		data := client.CreateKeyValueJSONRequestBody{
-			Name:    "my-kv",
-			OwnerId: "tea-different-workspace",
-			Plan:    client.KeyValuePlan("starter"),
-		}
+	c, err := client.NewClientWithResponses(server.URL())
+	require.NoError(t, err)
+	repo := NewRepo(c)
 
-		_, err = repo.CreateKeyValue(context.Background(), data)
-		require.Error(t, err)
-		// The error should indicate workspace mismatch
-		require.Contains(t, err.Error(), "does not match the workspace")
+	kv, err := repo.CreateKeyValue(context.Background(), client.CreateKeyValueJSONRequestBody{
+		Name:    "my-kv",
+		OwnerId: "tea-target-workspace",
+		Plan:    client.KeyValuePlanFree,
 	})
+
+	require.NoError(t, err)
+	assert.Equal(t, "tea-target-workspace", kv.Owner.Id)
 }

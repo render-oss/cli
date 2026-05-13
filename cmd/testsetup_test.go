@@ -43,20 +43,47 @@ func ensureCLISetup() {
 	})
 }
 
-// executeCommand runs an arbitrary CLI command against the fake server with no workspace configured.
-func executeCommand(t *testing.T, server *renderapi.Server, args ...string) (CommandResult, error) {
+func newTestConfigPath(t *testing.T) string {
 	t.Helper()
-	ensureCLISetup()
-
 	tmpCfg, err := os.CreateTemp("", "render-test-config-*.yaml")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = os.Remove(tmpCfg.Name()) })
 	_ = tmpCfg.Close()
+	return tmpCfg.Name()
+}
 
-	t.Setenv("RENDER_CLI_CONFIG_PATH", tmpCfg.Name())
-	t.Setenv("RENDER_HOST", server.URL())
-	t.Setenv("RENDER_API_KEY", "test-api-key")
-	t.Setenv("RENDER_WORKSPACE", "")
+// commandSession runs multiple CLI invocations in one test against the same fake
+// Render API server and config file. Use it when one command must establish
+// persisted CLI state, such as `workspace set`, before another command runs.
+type commandSession struct {
+	t          *testing.T
+	server     *renderapi.Server
+	configPath string
+}
+
+func newCommandSession(t *testing.T, server *renderapi.Server) *commandSession {
+	t.Helper()
+	return &commandSession{
+		t:          t,
+		server:     server,
+		configPath: newTestConfigPath(t),
+	}
+}
+
+// executeCommand runs an arbitrary CLI command against the fake server with no workspace configured.
+func executeCommand(t *testing.T, server *renderapi.Server, args ...string) (CommandResult, error) {
+	return newCommandSession(t, server).execute(args...)
+}
+
+// execute runs a CLI command using this session's shared config file.
+func (s *commandSession) execute(args ...string) (CommandResult, error) {
+	s.t.Helper()
+	ensureCLISetup()
+
+	s.t.Setenv("RENDER_CLI_CONFIG_PATH", s.configPath)
+	s.t.Setenv("RENDER_HOST", s.server.URL())
+	s.t.Setenv("RENDER_API_KEY", "test-api-key")
+	s.t.Setenv("RENDER_WORKSPACE", "")
 
 	var stdout, stderr bytes.Buffer
 	rootCmdMu.Lock()

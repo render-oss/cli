@@ -3,6 +3,7 @@ package keyvalue_test
 import (
 	"testing"
 
+	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/keyvalue"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
@@ -99,7 +100,7 @@ func TestBuildCreateRequest_MissingRequiredFields(t *testing.T) {
 func TestBuildCreateRequest_OptionalFields(t *testing.T) {
 	region := "virginia"
 	policy := kvtypes.MaxmemoryPolicyAllkeysLru
-	envID := "env-abc123"
+	envID := testids.EnvironmentID("optional")
 	input := kvtypes.KeyValueCreateRequestInput{
 		Name:            "my-kv",
 		OwnerID:         "tea-owner-abc",
@@ -116,7 +117,7 @@ func TestBuildCreateRequest_OptionalFields(t *testing.T) {
 	require.NotNil(t, body.MaxmemoryPolicy)
 	assert.Equal(t, client.AllkeysLru, *body.MaxmemoryPolicy)
 	require.NotNil(t, body.EnvironmentId)
-	assert.Equal(t, "env-abc123", *body.EnvironmentId)
+	assert.Equal(t, envID, *body.EnvironmentId)
 }
 
 func TestBuildCreateRequest_CommonPlanValues(t *testing.T) {

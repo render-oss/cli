@@ -5,13 +5,34 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/rs/xid"
 )
+
+// queryListValues returns all values for key, splitting each occurrence on
+// commas. URL.Query already preserves repeated params such as ?k=a&k=b as
+// multiple values, so this handles both ?k=a&k=b and ?k=a,b.
+func queryListValues(r *http.Request, key string) []string {
+	raw := r.URL.Query()[key]
+	if len(raw) == 0 {
+		return nil
+	}
+	var out []string
+	for _, v := range raw {
+		for part := range strings.SplitSeq(v, ",") {
+			if part != "" {
+				out = append(out, part)
+			}
+		}
+	}
+	return out
+}
 
 // writeJSON encodes v as JSON and writes it with the given status code.
 // Returns HTTP 500 if encoding fails (shouldn't happen with these types).
@@ -69,7 +90,7 @@ func (kv *KVResource) nextError() (int, bool) {
 // NewOwner returns an Owner with sensible defaults for any zero-value fields.
 func NewOwner(o client.Owner) client.Owner {
 	if o.Id == "" {
-		o.Id = "tea-" + xid.New().String()
+		o.Id = testids.RandomWorkspaceID()
 	}
 	if o.Name == "" {
 		o.Name = "My Team"
@@ -80,21 +101,32 @@ func NewOwner(o client.Owner) client.Owner {
 	return o
 }
 
+// ProjectAttrs defines the fields callers can specify when creating a fake project.
+type ProjectAttrs struct {
+	Id      string
+	Name    string
+	OwnerId string
+}
+
 // NewProject returns a Project with sensible defaults for any zero-value fields.
-func NewProject(p client.Project) client.Project {
-	if p.Id == "" {
-		p.Id = "prj-" + xid.New().String()
+func NewProject(attrs ProjectAttrs) client.Project {
+	if attrs.Id == "" {
+		attrs.Id = testids.RandomProjectID()
 	}
-	if p.Name == "" {
-		p.Name = "My Project"
+	if attrs.Name == "" {
+		attrs.Name = "My Project"
 	}
-	return p
+	return client.Project{
+		Id:    attrs.Id,
+		Name:  attrs.Name,
+		Owner: client.Owner{Id: attrs.OwnerId},
+	}
 }
 
 // NewEnvironment returns an Environment with sensible defaults for any zero-value fields.
 func NewEnvironment(e client.Environment) client.Environment {
 	if e.Id == "" {
-		e.Id = "env-" + xid.New().String()
+		e.Id = testids.RandomEnvironmentID()
 	}
 	if e.Name == "" {
 		e.Name = "My Environment"
@@ -143,6 +175,18 @@ type Server struct {
 	Projects     *Resource[client.Project]
 	Environments *Resource[client.Environment]
 	KV           *KVResource
+}
+
+// ownerByID returns the Owner with the given ID from the seeded owners. The
+// boolean reports whether a match was found; the Owner is only meaningful when
+// the boolean is true.
+func (s *Server) ownerByID(id string) (client.Owner, bool) {
+	for _, o := range s.Owners.Instances {
+		if o.Id == id {
+			return o, true
+		}
+	}
+	return client.Owner{}, false
 }
 
 // URL returns the base URL of the fake server.
@@ -220,7 +264,7 @@ func NewServer(t *testing.T) *Server {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
-	// GET /projects — list projects (supports ?name= filter)
+	// GET /projects — list projects (supports ?ownerId= and ?name= filters)
 	mux.HandleFunc("/projects", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
 		if r.Method != http.MethodGet {
@@ -228,9 +272,18 @@ func NewServer(t *testing.T) *Server {
 			return
 		}
 		result := s.Projects.Instances
+		if ownerIDs := queryListValues(r, "ownerId"); len(ownerIDs) > 0 {
+			var filtered []client.Project
+			for _, p := range result {
+				if slices.Contains(ownerIDs, p.Owner.Id) {
+					filtered = append(filtered, p)
+				}
+			}
+			result = filtered
+		}
 		if name := r.URL.Query().Get("name"); name != "" {
 			var filtered []client.Project
-			for _, p := range s.Projects.Instances {
+			for _, p := range result {
 				if p.Name == name {
 					filtered = append(filtered, p)
 				}
@@ -239,7 +292,14 @@ func NewServer(t *testing.T) *Server {
 		}
 		wrapped := make([]client.ProjectWithCursor, len(result))
 		for i := range result {
-			wrapped[i] = client.ProjectWithCursor{Project: result[i]}
+			p := result[i]
+			owner, ok := s.ownerByID(p.Owner.Id)
+			if !ok {
+				http.Error(w, "fake server: project owner not seeded: "+p.Owner.Id, http.StatusInternalServerError)
+				return
+			}
+			p.Owner = owner
+			wrapped[i] = client.ProjectWithCursor{Project: p}
 		}
 		writeJSON(w, http.StatusOK, wrapped)
 	})
@@ -254,6 +314,12 @@ func NewServer(t *testing.T) *Server {
 		id := strings.TrimPrefix(r.URL.Path, "/projects/")
 		for _, p := range s.Projects.Instances {
 			if p.Id == id {
+				owner, ok := s.ownerByID(p.Owner.Id)
+				if !ok {
+					http.Error(w, "fake server: project owner not seeded: "+p.Owner.Id, http.StatusInternalServerError)
+					return
+				}
+				p.Owner = owner
 				writeJSON(w, http.StatusOK, p)
 				return
 			}
@@ -269,13 +335,11 @@ func NewServer(t *testing.T) *Server {
 			return
 		}
 		result := s.Environments.Instances
-		if projectIDs := r.URL.Query()["projectId"]; len(projectIDs) > 0 {
+		if projectIDs := queryListValues(r, "projectId"); len(projectIDs) > 0 {
 			var filtered []client.Environment
 			for _, e := range result {
-				for _, pid := range projectIDs {
-					if e.ProjectId == pid {
-						filtered = append(filtered, e)
-					}
+				if slices.Contains(projectIDs, e.ProjectId) {
+					filtered = append(filtered, e)
 				}
 			}
 			result = filtered
@@ -349,6 +413,11 @@ func NewServer(t *testing.T) *Server {
 			maxmemoryPolicy = &mp
 		}
 
+		ipAllowList := []client.CidrBlockAndDescription{}
+		if body.IpAllowList != nil {
+			ipAllowList = *body.IpAllowList
+		}
+
 		kv := &client.KeyValueDetail{
 			Id:            fmt.Sprintf("kv-%s", xid.New().String()),
 			Name:          body.Name,
@@ -357,7 +426,7 @@ func NewServer(t *testing.T) *Server {
 			Owner:         owner,
 			Status:        client.DatabaseStatusAvailable,
 			EnvironmentId: body.EnvironmentId,
-			IpAllowList:   []client.CidrBlockAndDescription{},
+			IpAllowList:   ipAllowList,
 			CreatedAt:     time.Now(),
 			UpdatedAt:     time.Now(),
 		}
