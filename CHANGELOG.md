@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.17.0] - 2026-05-13
+
+### Added
+
+- `render logout` command to revoke the stored OAuth token and clear local CLI credentials/settings
+
+### Changed
+
+- Local `workflows dev` now retries failed task runs according to task retry configuration
+- Nest workflow task-run commands under `workflows tasks runs`, with `workflows start` and `workflows cancel` shortcuts for common operations
+- Previous workflow task-run commands remain available as hidden deprecated aliases
+
 ## [2.16.0] - 2026-04-29
 
 ### Added
