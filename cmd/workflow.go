@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/render-oss/cli/pkg/command"
 	renderstyle "github.com/render-oss/cli/pkg/style"
+	"github.com/render-oss/cli/pkg/utils"
 	"github.com/render-oss/cli/pkg/workflows/apiserver"
 	logstore "github.com/render-oss/cli/pkg/workflows/logs"
 	"github.com/render-oss/cli/pkg/workflows/orchestrator"
@@ -20,6 +21,8 @@ import (
 	"github.com/render-oss/cli/pkg/workflows/taskserver"
 	"github.com/spf13/cobra"
 )
+
+const defaultEnvFile = ".env"
 
 const defaultTaskAPIPort = 8120
 
@@ -52,12 +55,20 @@ To interact with the local task server:
 
 To use a different port:
   • Specify --port when starting the dev server
-  • Then use --port with other task commands, or set RENDER_LOCAL_DEV_URL in the SDK`,
+  • Then use --port with other task commands, or set RENDER_LOCAL_DEV_URL in the SDK
+
+Environment variables:
+  • A .env file in the current directory is loaded automatically if present
+  • Use --env-file to load one or more specific files (later files override earlier ones)
+  • Loaded values override variables inherited from the parent shell`,
 	Example: `  # Start local workflow development server
   render workflows dev -- "python main.py"
 
   # Start local workflow development server on a custom port
   render workflows dev --port 9000 -- "npm start"
+
+  # Load environment variables from custom files
+  render workflows dev --env-file .env --env-file .env.local -- "python main.py"
 
   # List local tasks from another terminal
   render workflows tasks list --local`,
@@ -81,6 +92,16 @@ To use a different port:
 		if err != nil {
 			return fmt.Errorf("failed to get port flag: %w", err)
 		}
+
+		envFiles, err := cmd.Flags().GetStringSlice("env-file")
+		if err != nil {
+			return fmt.Errorf("failed to get env-file flag: %w", err)
+		}
+		envVars, loadedEnvFiles, err := utils.LoadEnvFiles(envFiles, cmd.Flags().Changed("env-file"))
+		if err != nil {
+			return err
+		}
+		extraEnv := utils.EnvMapToKVStrings(envVars)
 
 		socketTracker, err := orchestrator.NewSocketTracker(ctx)
 		if err != nil {
@@ -112,7 +133,7 @@ To use a different port:
 		coordinator := orchestrator.NewCoordinator(
 			ctx,
 			store,
-			orchestrator.NewExec(logs, debugMode, commandArgs[0], commandArgs[1:]...),
+			orchestrator.NewExec(logs, debugMode, commandArgs[0], extraEnv, commandArgs[1:]...),
 			socketTracker,
 			taskServerFactory,
 			statusReporter,
@@ -141,6 +162,13 @@ To use a different port:
 			ok.Render("Workflow server listening on port"),
 			renderstyle.Bold(fmt.Sprintf("%d", port)),
 		)
+
+		if len(loadedEnvFiles) > 0 {
+			command.Println(cmd, "%s %s",
+				dim.Render("Loaded environment variables from"),
+				renderstyle.Bold(strings.Join(loadedEnvFiles, ", ")),
+			)
+		}
 
 		logs.Start(ctx)
 
@@ -181,7 +209,9 @@ To use a different port:
 func init() {
 	workflowDevCmd.Flags().Int("port", defaultTaskAPIPort, "Set the port of the local task server")
 	workflowDevCmd.Flags().Bool("debug", false, "Print detailed workflow task execution events")
+	workflowDevCmd.Flags().StringSlice("env-file", []string{defaultEnvFile}, "Path to an env file to load into the workflow subprocess. Repeat to load multiple files (later files override earlier ones).")
 	setAnnotationBestEffort(workflowDevCmd.Flags(), "port", command.FlagPlaceholderAnnotation, []string{"PORT"})
+	setAnnotationBestEffort(workflowDevCmd.Flags(), "env-file", command.FlagPlaceholderAnnotation, []string{"PATH"})
 
 	rootCmd.AddCommand(WorkflowsCmd)
 	WorkflowsCmd.AddCommand(workflowDevCmd)

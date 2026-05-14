@@ -115,7 +115,8 @@ func BuildCreateRequest(input kvtypes.KeyValueCreateRequestInput) (client.Create
 	}
 
 	if input.Region != nil {
-		body.Region = input.Region
+		r := client.Region(*input.Region)
+		body.Region = &r
 	}
 
 	if input.MaxmemoryPolicy != nil {

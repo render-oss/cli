@@ -41,10 +41,17 @@ var WorkflowCreateCmd = &cobra.Command{
 In interactive mode, a form guides you through the required fields.
 In non-interactive mode, provide all required config with flags.
 
+Environment variables (non-interactive only for now):
+  • Pass individual vars with --env-var KEY=VALUE (repeatable).
+  • Load from one or more .env files with --env-file PATH (repeatable). Every
+    listed file must exist.
+  • Inline --env-var values override values from --env-file.
+
 Examples:
   render workflows create
   render workflows create --name my-workflow --repo https://github.com/org/repo --build-command "npm install" --runtime node --run-command "npm start" --region oregon -o json
   render workflows create --repo . --name my-workflow --build-command "npm install" --runtime node --run-command "npm start"
+  render workflows create --repo . --name my-workflow --build-command "pip install -r requirements.txt" --runtime python --run-command ".venv/bin/python main.py" --env-file .env.production --env-var LOG_LEVEL=debug
 `,
 }
 
@@ -63,6 +70,19 @@ func init() {
 			}
 			input.Repo = &resolved
 		}
+
+		envFiles, err := cmd.Flags().GetStringSlice("env-file")
+		if err != nil {
+			return fmt.Errorf("failed to get --env-file: %w", err)
+		}
+		fileVars, _, err := utils.LoadEnvFiles(envFiles, true)
+		if err != nil {
+			return err
+		}
+		// File values come first; inline --env-var values (already on
+		// input.EnvVars) appear after so they win on duplicate keys when
+		// resolveEnvVars merges them in order.
+		input.EnvVars = append(utils.EnvMapToKVStrings(fileVars), input.EnvVars...)
 
 		if nonInteractive, err := command.NonInteractive(cmd, func() (*wfclient.Workflow, error) {
 			return wfviews.CreateWorkflow(cmd.Context(), input)
@@ -90,6 +110,10 @@ func init() {
 	WorkflowCreateCmd.Flags().String("root-directory", "", "Root directory in the repository (Optional)")
 	autoDeployFlag := command.NewEnumInput(workflowAutoDeployTriggerValues, false)
 	WorkflowCreateCmd.Flags().Var(autoDeployFlag, "auto-deploy-trigger", "Autodeploy behavior (commit, off, checksPass; default: commit)")
+	WorkflowCreateCmd.Flags().StringArray("env-var", nil, "Set environment variables in KEY=VALUE format (can be specified multiple times). Inline values override values loaded from --env-file.")
+	WorkflowCreateCmd.Flags().StringSlice("env-file", nil, "Path to an env file to load. Repeat to load multiple files (later files override earlier ones). Every listed file must exist.")
+	setAnnotationBestEffort(WorkflowCreateCmd.Flags(), "env-var", command.FlagPlaceholderAnnotation, []string{"KEY_VALUE"})
+	setAnnotationBestEffort(WorkflowCreateCmd.Flags(), "env-file", command.FlagPlaceholderAnnotation, []string{"PATH"})
 }
 
 func interactiveWorkflowCreate(cmd *cobra.Command, input *wfviews.WorkflowCreateInput) tea.Cmd {

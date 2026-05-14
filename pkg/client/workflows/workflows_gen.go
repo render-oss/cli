@@ -1,5 +1,5 @@
 // This file has been generated from our REST API schema. Do not edit it manually
-// For more details, see the readme at https://github.com/renderinc/public-api-schema
+// For more details, see public-api-schema/README.md.
 
 // Package client provides primitives to interact with the openapi HTTP API.
 //
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	externalRef4 "github.com/render-oss/cli/pkg/client/envvar"
 )
 
 // Defines values for AutoDeployTrigger.
@@ -227,10 +228,11 @@ type Workflow struct {
 // WorkflowCreate defines model for WorkflowCreate.
 type WorkflowCreate struct {
 	// AutoDeployTrigger Controls autodeploy behavior. "commit" deploys when a commit is pushed to the branch. "checksPass" waits for CI checks to pass before deploying. "off" disables autodeploy.
-	AutoDeployTrigger *AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
-	BuildConfig       BuildConfig        `json:"buildConfig"`
-	Name              string             `json:"name"`
-	OwnerId           string             `json:"ownerId"`
+	AutoDeployTrigger *AutoDeployTrigger             `json:"autoDeployTrigger,omitempty"`
+	BuildConfig       BuildConfig                    `json:"buildConfig"`
+	EnvVars           *externalRef4.EnvVarInputArray `json:"envVars,omitempty"`
+	Name              string                         `json:"name"`
+	OwnerId           string                         `json:"ownerId"`
 
 	// Region Defaults to "oregon"
 	Region Region `json:"region"`

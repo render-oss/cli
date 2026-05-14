@@ -20,6 +20,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/jedib0t/go-pretty v4.3.0+incompatible
+	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-isatty v0.0.20
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/rs/xid v1.6.0

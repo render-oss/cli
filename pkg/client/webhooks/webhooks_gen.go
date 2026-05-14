@@ -1,5 +1,5 @@
 // This file has been generated from our REST API schema. Do not edit it manually
-// For more details, see the readme at https://github.com/renderinc/public-api-schema
+// For more details, see public-api-schema/README.md.
 
 // Package client provides primitives to interact with the openapi HTTP API.
 //
@@ -9,11 +9,11 @@ package client
 import (
 	"time"
 
-	externalRef5 "github.com/render-oss/cli/pkg/client/eventtypes"
+	externalRef7 "github.com/render-oss/cli/pkg/client/eventtypes"
 )
 
 // EventFilter The event types that will trigger the webhook. An empty list means all event types will trigger the webhook.
-type EventFilter = []externalRef5.EventType
+type EventFilter = []externalRef7.EventType
 
 // Webhook defines model for webhook.
 type Webhook struct {
@@ -34,7 +34,7 @@ type WebhookEvent struct {
 
 	// EventId the id of the event that triggered the webhook
 	EventId   string                 `json:"eventId"`
-	EventType externalRef5.EventType `json:"eventType"`
+	EventType externalRef7.EventType `json:"eventType"`
 
 	// Id the id of the webhook event
 	Id           string    `json:"id"`

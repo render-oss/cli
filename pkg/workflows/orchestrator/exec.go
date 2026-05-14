@@ -16,6 +16,11 @@ type Exec struct {
 	command   string
 	args      []string
 	debug     bool
+	// extraEnv holds additional KEY=VALUE pairs (e.g. loaded from .env files)
+	// to merge into each subprocess's environment. They override values
+	// inherited from the parent process but are themselves overridden by
+	// the SDK-managed vars set in StartService.
+	extraEnv []string
 }
 
 type Mode string
@@ -32,18 +37,20 @@ const (
 
 type CleanupFunc func() error
 
-func NewExec(logsStore *logs.LogStore, debug bool, command string, args ...string) *Exec {
+func NewExec(logsStore *logs.LogStore, debug bool, command string, extraEnv []string, args ...string) *Exec {
 	return &Exec{
 		logsStore: logsStore,
 		command:   command,
 		args:      args,
 		debug:     debug,
+		extraEnv:  extraEnv,
 	}
 }
 
 func (e *Exec) StartService(ctx context.Context, taskRunID string, socketPath string, mode Mode) (CleanupFunc, <-chan error, error) {
 	cmd := exec.CommandContext(ctx, e.command, e.args...)
-	cmd.Env = append(os.Environ(), fmt.Sprintf(SocketPathEnv+"=%s", socketPath), fmt.Sprintf(ModeEnv+"=%s", mode))
+	cmd.Env = append(os.Environ(), e.extraEnv...)
+	cmd.Env = append(cmd.Env, fmt.Sprintf(SocketPathEnv+"=%s", socketPath), fmt.Sprintf(ModeEnv+"=%s", mode))
 
 	stdoutWriter := io.Writer(os.Stdout)
 	stderrWriter := io.Writer(os.Stderr)

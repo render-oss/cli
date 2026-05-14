@@ -1,5 +1,5 @@
 // This file has been generated from our REST API schema. Do not edit it manually
-// For more details, see the readme at https://github.com/renderinc/public-api-schema
+// For more details, see public-api-schema/README.md.
 
 // Package client provides primitives to interact with the openapi HTTP API.
 //
@@ -11,17 +11,17 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
-	externalRef0 "github.com/render-oss/cli/pkg/client/autoscaling"
-	externalRef2 "github.com/render-oss/cli/pkg/client/disks"
-	externalRef4 "github.com/render-oss/cli/pkg/client/eventstatuses"
-	externalRef5 "github.com/render-oss/cli/pkg/client/eventtypes"
-	externalRef6 "github.com/render-oss/cli/pkg/client/jobs"
+	externalRef1 "github.com/render-oss/cli/pkg/client/autoscaling"
+	externalRef3 "github.com/render-oss/cli/pkg/client/disks"
+	externalRef6 "github.com/render-oss/cli/pkg/client/eventstatuses"
+	externalRef7 "github.com/render-oss/cli/pkg/client/eventtypes"
+	externalRef8 "github.com/render-oss/cli/pkg/client/jobs"
 )
 
 // AutoscalingConfigChangedEvent defines model for autoscalingConfigChangedEvent.
 type AutoscalingConfigChangedEvent struct {
-	FromConfig *externalRef0.AutoscalingConfig `json:"fromConfig,omitempty"`
-	ToConfig   externalRef0.AutoscalingConfig  `json:"toConfig"`
+	FromConfig *externalRef1.AutoscalingConfig `json:"fromConfig,omitempty"`
+	ToConfig   externalRef1.AutoscalingConfig  `json:"toConfig"`
 }
 
 // AutoscalingEndedEvent defines model for autoscalingEndedEvent.
@@ -95,7 +95,7 @@ type BuildDeployTrigger struct {
 // BuildEndedEvent defines model for buildEndedEvent.
 type BuildEndedEvent struct {
 	BuildId     string                   `json:"buildId"`
-	BuildStatus externalRef4.EventStatus `json:"buildStatus"`
+	BuildStatus externalRef6.EventStatus `json:"buildStatus"`
 	Reason      BuildDeployEndReason     `json:"reason"`
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Status int `json:"status"`
@@ -120,7 +120,7 @@ type CommitIgnoredEvent struct {
 type CronJobRunEndedEvent struct {
 	CronJobRunId string                        `json:"cronJobRunId"`
 	Reason       *FailureReason                `json:"reason,omitempty"`
-	Status       externalRef4.CronJobRunStatus `json:"status"`
+	Status       externalRef6.CronJobRunStatus `json:"status"`
 
 	// User User who triggered the action
 	User *User `json:"user,omitempty"`
@@ -134,7 +134,7 @@ type CronJobRunStartedEvent struct {
 // DeployEndedEvent defines model for deployEndedEvent.
 type DeployEndedEvent struct {
 	DeployId     string                   `json:"deployId"`
-	DeployStatus externalRef4.EventStatus `json:"deployStatus"`
+	DeployStatus externalRef6.EventStatus `json:"deployStatus"`
 	Reason       BuildDeployEndReason     `json:"reason"`
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Status int `json:"status"`
@@ -148,18 +148,18 @@ type DeployStartedEvent struct {
 
 // DiskCreatedEvent defines model for diskCreatedEvent.
 type DiskCreatedEvent struct {
-	DiskId externalRef2.DiskId `json:"diskId"`
+	DiskId externalRef3.DiskId `json:"diskId"`
 	SizeGB int                 `json:"sizeGB"`
 }
 
 // DiskDeletedEvent defines model for diskDeletedEvent.
 type DiskDeletedEvent struct {
-	DiskId externalRef2.DiskId `json:"diskId"`
+	DiskId externalRef3.DiskId `json:"diskId"`
 }
 
 // DiskUpdatedEvent defines model for diskUpdatedEvent.
 type DiskUpdatedEvent struct {
-	DiskId     externalRef2.DiskId `json:"diskId"`
+	DiskId     externalRef3.DiskId `json:"diskId"`
 	FromSizeGB int                 `json:"fromSizeGB"`
 	ToSizeGB   int                 `json:"toSizeGB"`
 }
@@ -197,7 +197,7 @@ type Event struct {
 	Id        EventId                `json:"id"`
 	ServiceId string                 `json:"serviceId"`
 	Timestamp time.Time              `json:"timestamp"`
-	Type      externalRef5.EventType `json:"type"`
+	Type      externalRef7.EventType `json:"type"`
 }
 
 // EventDetails defines model for eventDetails.
@@ -249,9 +249,9 @@ type InstanceId = string
 
 // JobRunEndedEvent defines model for jobRunEndedEvent.
 type JobRunEndedEvent struct {
-	JobId  externalRef6.JobId     `json:"jobId"`
+	JobId  externalRef8.JobId     `json:"jobId"`
 	Reason *FailureReason         `json:"reason,omitempty"`
-	Status externalRef6.JobStatus `json:"status"`
+	Status externalRef8.JobStatus `json:"status"`
 }
 
 // KeyValueAvailableEvent defines model for keyValueAvailableEvent.
@@ -414,7 +414,7 @@ type PostgresUpgradeSucceededEvent struct {
 type PreDeployEndedEvent struct {
 	DeployCommandExecutionId string                   `json:"deployCommandExecutionId"`
 	DeployId                 string                   `json:"deployId"`
-	PreDeployStatus          externalRef4.EventStatus `json:"preDeployStatus"`
+	PreDeployStatus          externalRef6.EventStatus `json:"preDeployStatus"`
 	Reason                   BuildDeployEndReason     `json:"reason"`
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Status int `json:"status"`
@@ -449,7 +449,7 @@ type ServiceEvent struct {
 	Id        EventId                       `json:"id"`
 	ServiceId string                        `json:"serviceId"`
 	Timestamp time.Time                     `json:"timestamp"`
-	Type      externalRef5.ServiceEventType `json:"type"`
+	Type      externalRef7.ServiceEventType `json:"type"`
 }
 
 // ServiceEventDetails defines model for serviceEventDetails.

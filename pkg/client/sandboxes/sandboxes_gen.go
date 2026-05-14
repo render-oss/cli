@@ -1,5 +1,5 @@
 // This file has been generated from our REST API schema. Do not edit it manually
-// For more details, see the readme at https://github.com/renderinc/public-api-schema
+// For more details, see public-api-schema/README.md.
 
 // Package client provides primitives to interact with the openapi HTTP API.
 //
@@ -12,13 +12,6 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
-)
-
-// Defines values for SandboxPlan.
-const (
-	SandboxPlanN12gb SandboxPlan = "1-2gb"
-	SandboxPlanN24gb SandboxPlan = "2-4gb"
-	SandboxPlanN48gb SandboxPlan = "4-8gb"
 )
 
 // Defines values for SandboxExecExitType.
@@ -62,21 +55,15 @@ const (
 
 // Defines values for SandboxNetworkPolicyDefault.
 const (
-	SandboxNetworkPolicyDefaultAllow SandboxNetworkPolicyDefault = "allow"
-	SandboxNetworkPolicyDefaultDeny  SandboxNetworkPolicyDefault = "deny"
+	AllowAll SandboxNetworkPolicyDefault = "allow-all"
+	DenyAll  SandboxNetworkPolicyDefault = "deny-all"
 )
 
-// Defines values for SandboxNetworkPolicyRuleAction.
+// Defines values for SandboxPlan.
 const (
-	SandboxNetworkPolicyRuleActionAllow SandboxNetworkPolicyRuleAction = "allow"
-	SandboxNetworkPolicyRuleActionDeny  SandboxNetworkPolicyRuleAction = "deny"
-)
-
-// Defines values for SandboxPOSTPlan.
-const (
-	SandboxPOSTPlanN12gb SandboxPOSTPlan = "1-2gb"
-	SandboxPOSTPlanN24gb SandboxPOSTPlan = "2-4gb"
-	SandboxPOSTPlanN48gb SandboxPOSTPlan = "4-8gb"
+	Pro      SandboxPlan = "pro"
+	Standard SandboxPlan = "standard"
+	Starter  SandboxPlan = "starter"
 )
 
 // Defines values for SandboxStatus.
@@ -91,44 +78,23 @@ const (
 
 // Sandbox defines model for sandbox.
 type Sandbox struct {
-	// Base Render base image used, or null if a custom image is specified.
-	Base      *string   `json:"base"`
-	CreatedAt time.Time `json:"createdAt"`
-
-	// Env Inline environment variables. Secret values are redacted.
-	Env map[string]string `json:"env"`
-
-	// EnvGroup Attached environment group name or ID, or null.
-	EnvGroup *string       `json:"envGroup"`
-	Error    *SandboxError `json:"error,omitempty"`
-	Id       SandboxId     `json:"id"`
-
-	// IdleTimeout Seconds of inactivity before automatic lifecycle action.
-	IdleTimeout int `json:"idleTimeout"`
-
-	// Image OCI image reference, or null if using a Render base image.
-	Image         *string              `json:"image"`
+	CreatedAt     time.Time            `json:"createdAt"`
+	Id            SandboxId            `json:"id"`
 	NetworkPolicy SandboxNetworkPolicy `json:"networkPolicy"`
 
-	// Plan Compute plan.
+	// Plan Compute plan. Sizing matches Workflow plans of the same name.
 	Plan SandboxPlan `json:"plan"`
 
 	// Region Region the sandbox is running in.
 	Region string        `json:"region"`
 	Status SandboxStatus `json:"status"`
 
-	// Tags Key-value metadata for filtering and cost tracking.
-	Tags map[string]string `json:"tags"`
-
 	// TerminatedAt When the sandbox was terminated, or null.
 	TerminatedAt *time.Time `json:"terminatedAt"`
 
-	// Timeout Maximum sandbox lifetime in seconds.
-	Timeout int `json:"timeout"`
+	// TimeoutSeconds Maximum sandbox lifetime in seconds.
+	TimeoutSeconds int `json:"timeoutSeconds"`
 }
-
-// SandboxPlan Compute plan.
-type SandboxPlan string
 
 // SandboxDirectoryListing Directory listing response.
 type SandboxDirectoryListing struct {
@@ -136,15 +102,6 @@ type SandboxDirectoryListing struct {
 
 	// Path The absolute path that was listed.
 	Path string `json:"path"`
-}
-
-// SandboxError defines model for sandboxError.
-type SandboxError struct {
-	// Code Machine-readable error code.
-	Code string `json:"code"`
-
-	// Message Human-readable description. For `setup-failed`, includes the failing command and stderr.
-	Message string `json:"message"`
 }
 
 // SandboxExecExit Sent when the exec process exits. Server closes the connection after this message.
@@ -258,67 +215,30 @@ type SandboxLogEventStream string
 
 // SandboxNetworkPolicy defines model for sandboxNetworkPolicy.
 type SandboxNetworkPolicy struct {
-	// Default Default action when no rule matches.
+	// Default Default action for outbound traffic.
 	Default SandboxNetworkPolicyDefault `json:"default"`
-
-	// Rules Rules evaluated against outbound traffic. Explicit `deny` always beats explicit
-	// `allow` regardless of rule order.
-	Rules []SandboxNetworkPolicyRule `json:"rules"`
 }
 
-// SandboxNetworkPolicyDefault Default action when no rule matches.
+// SandboxNetworkPolicyDefault Default action for outbound traffic.
 type SandboxNetworkPolicyDefault string
-
-// SandboxNetworkPolicyRule defines model for sandboxNetworkPolicyRule.
-type SandboxNetworkPolicyRule struct {
-	Action SandboxNetworkPolicyRuleAction `json:"action"`
-
-	// Cidr CIDR block to match outbound traffic against.
-	Cidr string `json:"cidr"`
-}
-
-// SandboxNetworkPolicyRuleAction defines model for SandboxNetworkPolicyRule.Action.
-type SandboxNetworkPolicyRuleAction string
 
 // SandboxPOST defines model for sandboxPOST.
 type SandboxPOST struct {
-	// Base Render base image: `render/sandbox-python` or `render/sandbox-node`.
-	Base *string `json:"base,omitempty"`
-
-	// Env Inline env vars. Merged with env group; inline wins on conflict.
-	Env *map[string]string `json:"env,omitempty"`
-
-	// EnvGroup Render environment group name or ID. Variables injected at runtime.
-	EnvGroup *string `json:"envGroup,omitempty"`
-
-	// Files Seed files. Keys are absolute paths, values are file contents. Written after `setup` completes.
-	Files *map[string]string `json:"files,omitempty"`
-
-	// IdleTimeout Seconds of inactivity before the sandbox is suspended.
-	IdleTimeout *int `json:"idleTimeout,omitempty"`
-
-	// Image Docker/OCI image reference. Overrides `base`.
-	Image         *string               `json:"image,omitempty"`
 	NetworkPolicy *SandboxNetworkPolicy `json:"networkPolicy,omitempty"`
 
-	// Plan Compute plan.
-	Plan *SandboxPOSTPlan `json:"plan,omitempty"`
+	// OwnerId The ID of the workspace the sandbox belongs to.
+	OwnerId string       `json:"ownerId"`
+	Plan    *SandboxPlan `json:"plan,omitempty"`
 
 	// Region Render region. Defaults to the workspace default.
 	Region *string `json:"region,omitempty"`
 
-	// Setup Shell commands run sequentially after boot, before the sandbox is marked ready.
-	Setup *[]string `json:"setup,omitempty"`
-
-	// Tags Key-value metadata for filtering and cost tracking.
-	Tags *map[string]string `json:"tags,omitempty"`
-
-	// Timeout Maximum sandbox lifetime in seconds. Sandbox is terminated when reached.
-	Timeout *int `json:"timeout,omitempty"`
+	// TimeoutSeconds Maximum sandbox lifetime in seconds. Sandbox is terminated when reached.
+	TimeoutSeconds *int `json:"timeoutSeconds,omitempty"`
 }
 
-// SandboxPOSTPlan Compute plan.
-type SandboxPOSTPlan string
+// SandboxPlan Compute plan. Sizing matches Workflow plans of the same name.
+type SandboxPlan string
 
 // SandboxStatus defines model for sandboxStatus.
 type SandboxStatus string
@@ -360,7 +280,7 @@ func (t SandboxExecMessage) AsSandboxExecOutput() (SandboxExecOutput, error) {
 
 // FromSandboxExecOutput overwrites any union data inside the SandboxExecMessage as the provided SandboxExecOutput
 func (t *SandboxExecMessage) FromSandboxExecOutput(v SandboxExecOutput) error {
-	v.Type = "stderr"
+	v.Type = "stdout"
 	b, err := json.Marshal(v)
 	t.union = b
 	return err
@@ -368,7 +288,7 @@ func (t *SandboxExecMessage) FromSandboxExecOutput(v SandboxExecOutput) error {
 
 // MergeSandboxExecOutput performs a merge with any union data inside the SandboxExecMessage, using the provided SandboxExecOutput
 func (t *SandboxExecMessage) MergeSandboxExecOutput(v SandboxExecOutput) error {
-	v.Type = "stderr"
+	v.Type = "stdout"
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -425,7 +345,7 @@ func (t SandboxExecMessage) ValueByDiscriminator() (interface{}, error) {
 		return t.AsSandboxExecExit()
 	case "started":
 		return t.AsSandboxExecStarted()
-	case "stderr":
+	case "stdout":
 		return t.AsSandboxExecOutput()
 	default:
 		return nil, errors.New("unknown discriminator value: " + discriminator)

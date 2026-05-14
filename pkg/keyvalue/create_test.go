@@ -113,7 +113,7 @@ func TestBuildCreateRequest_OptionalFields(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, client.KeyValuePlan(kvtypes.PlanPro), body.Plan)
 	require.NotNil(t, body.Region)
-	assert.Equal(t, "virginia", *body.Region)
+	assert.Equal(t, client.Region("virginia"), *body.Region)
 	require.NotNil(t, body.MaxmemoryPolicy)
 	assert.Equal(t, client.AllkeysLru, *body.MaxmemoryPolicy)
 	require.NotNil(t, body.EnvironmentId)

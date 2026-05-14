@@ -1,5 +1,5 @@
 // This file has been generated from our REST API schema. Do not edit it manually
-// For more details, see the readme at https://github.com/renderinc/public-api-schema
+// For more details, see public-api-schema/README.md.
 
 // Package client provides primitives to interact with the openapi HTTP API.
 //
