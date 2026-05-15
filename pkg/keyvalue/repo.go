@@ -2,10 +2,17 @@ package keyvalue
 
 import (
 	"context"
+	"errors"
+	"net/http"
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/config"
 )
+
+// ErrKeyValueNotFound is returned by Repo.GetKeyValue when the API responds
+// with a 404, so callers can distinguish "this ID doesn't exist" from other
+// failure modes (auth, network, 5xx) without parsing error messages.
+var ErrKeyValueNotFound = errors.New("key value not found")
 
 type Repo struct {
 	client *client.ClientWithResponses
@@ -46,6 +53,10 @@ func (r *Repo) GetKeyValue(ctx context.Context, id string) (*client.KeyValueDeta
 	resp, err := r.client.RetrieveKeyValueWithResponse(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.StatusCode() == http.StatusNotFound {
+		return nil, ErrKeyValueNotFound
 	}
 
 	if err := client.ErrorFromResponse(resp); err != nil {

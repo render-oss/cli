@@ -46,6 +46,16 @@ func RandomEnvironmentID() string {
 	return EnvironmentID(xid.New().String())
 }
 
+// KeyValueID returns a syntactically valid Key Value ID for tests.
+func KeyValueID(label string) string {
+	return objectID("red", label)
+}
+
+// RandomKeyValueID returns a syntactically valid Key Value ID for tests.
+func RandomKeyValueID() string {
+	return KeyValueID(xid.New().String())
+}
+
 // objectID returns a deterministic test ID in Render object ID form:
 //
 //	objectID("prj", "Project A!") == "prj-projecta000000000000"

@@ -38,6 +38,11 @@ func IsEnvironmentID(s string) bool {
 	return IsObjectID("evm", s)
 }
 
+// IsKeyValueID checks if the string is a valid Key Value ID (red-[a-z0-9]{20}).
+func IsKeyValueID(s string) bool {
+	return IsObjectID("red", s)
+}
+
 // IsServiceInstanceID checks if the string is a valid service instance ID (srv-[a-z0-9]{20}-[a-z0-9]+)
 func IsServiceInstanceID(s string) bool {
 	var instanceIDRegex = regexp.MustCompile(`^srv-[a-z0-9]{20}-[a-z0-9]+$`)

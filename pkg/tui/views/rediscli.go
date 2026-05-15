@@ -12,6 +12,7 @@ import (
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/validate"
 )
 
 type KeyValCLITool string
@@ -84,7 +85,7 @@ func handleRedisCLIError(err error) error {
 func getConnectionInfoFromIDOrName(ctx context.Context, c *client.ClientWithResponses, idOrName string) (*client.KeyValueConnectionInfo, error) {
 	kvRepo := keyvalue.NewRepo(c)
 
-	if matchesKeyValueId(idOrName) {
+	if validate.IsKeyValueID(idOrName) {
 		// We can't easily disambiguate between an ID and a name (since technically a name could be
 		// a valid ID), so we'll prefer the ID if it's valid.
 		connectionInfo, err := kvRepo.GetKeyValueConnectionInfo(ctx, idOrName)

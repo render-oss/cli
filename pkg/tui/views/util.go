@@ -1,6 +1,10 @@
 package views
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/render-oss/cli/pkg/validate"
+)
 
 func matchesServiceId(id string) bool {
 	return strings.HasPrefix(id, "srv-") && len(id) == 24
@@ -8,10 +12,6 @@ func matchesServiceId(id string) bool {
 
 func matchesPostgresId(id string) bool {
 	return strings.HasPrefix(id, "dpg-") && (len(id) == 24 || len(id) == 26)
-}
-
-func matchesKeyValueId(id string) bool {
-	return strings.HasPrefix(id, "red-") && len(id) == 24
 }
 
 func matchesCronJobId(id string) bool {
@@ -31,5 +31,5 @@ func matchesWorkflowId(id string) bool {
 }
 
 func matchesResourceId(id string) bool {
-	return matchesServiceId(id) || matchesPostgresId(id) || matchesKeyValueId(id) || matchesCronJobId(id) || matchesJobId(id) || matchesWorkflowId(id)
+	return matchesServiceId(id) || matchesPostgresId(id) || validate.IsKeyValueID(id) || matchesCronJobId(id) || matchesJobId(id) || matchesWorkflowId(id)
 }

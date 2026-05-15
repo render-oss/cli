@@ -12,7 +12,6 @@ import (
 
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
-	"github.com/rs/xid"
 )
 
 // queryListValues returns all values for key, splitting each occurrence on
@@ -140,7 +139,7 @@ func NewKV(kv *client.KeyValueDetail) *client.KeyValueDetail {
 		kv = &client.KeyValueDetail{}
 	}
 	if kv.Id == "" {
-		kv.Id = fmt.Sprintf("kv-%s", xid.New().String())
+		kv.Id = testids.RandomKeyValueID()
 	}
 	if kv.Name == "" {
 		kv.Name = "my-kv"
@@ -377,65 +376,120 @@ func NewServer(t *testing.T) *Server {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
-	// POST /key-value — create KV store
+	// /key-value — POST creates, GET lists (optionally filtered by ?name=)
 	mux.HandleFunc("/key-value", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
-		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		var body client.CreateKeyValueJSONRequestBody
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		if status, hasError := s.KV.nextError(); hasError {
-			w.WriteHeader(status)
-			return
-		}
-
-		var owner client.Owner
-		for _, o := range s.Owners.Instances {
-			if o.Id == body.OwnerId {
-				owner = o
-				break
+		switch r.Method {
+		case http.MethodGet:
+			name := r.URL.Query().Get("name")
+			envIDs := r.URL.Query()["environmentId"]
+			result := make([]client.KeyValueWithCursor, 0, len(s.KV.Instances))
+			for i, kv := range s.KV.Instances {
+				if name != "" && kv.Name != name {
+					continue
+				}
+				if len(envIDs) > 0 {
+					if kv.EnvironmentId == nil || !slices.Contains(envIDs, *kv.EnvironmentId) {
+						continue
+					}
+				}
+				result = append(result, client.KeyValueWithCursor{
+					Cursor: client.Cursor(fmt.Sprintf("c%d", i)),
+					KeyValue: client.KeyValue{
+						Id:            kv.Id,
+						Name:          kv.Name,
+						EnvironmentId: kv.EnvironmentId,
+					},
+				})
 			}
-		}
+			writeJSON(w, http.StatusOK, result)
+		case http.MethodPost:
+			var body client.CreateKeyValueJSONRequestBody
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			if status, hasError := s.KV.nextError(); hasError {
+				w.WriteHeader(status)
+				return
+			}
 
-		region := client.Oregon
-		if body.Region != nil {
-			region = client.Region(*body.Region)
-		}
+			var owner client.Owner
+			for _, o := range s.Owners.Instances {
+				if o.Id == body.OwnerId {
+					owner = o
+					break
+				}
+			}
 
-		var maxmemoryPolicy *string
-		if body.MaxmemoryPolicy != nil {
-			mp := string(*body.MaxmemoryPolicy)
-			maxmemoryPolicy = &mp
-		}
+			region := client.Oregon
+			if body.Region != nil {
+				region = client.Region(*body.Region)
+			}
 
-		ipAllowList := []client.CidrBlockAndDescription{}
-		if body.IpAllowList != nil {
-			ipAllowList = *body.IpAllowList
-		}
+			var maxmemoryPolicy *string
+			if body.MaxmemoryPolicy != nil {
+				mp := string(*body.MaxmemoryPolicy)
+				maxmemoryPolicy = &mp
+			}
 
-		kv := &client.KeyValueDetail{
-			Id:            fmt.Sprintf("kv-%s", xid.New().String()),
-			Name:          body.Name,
-			Plan:          body.Plan,
-			Region:        region,
-			Owner:         owner,
-			Status:        client.DatabaseStatusAvailable,
-			EnvironmentId: body.EnvironmentId,
-			IpAllowList:   ipAllowList,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		}
-		if maxmemoryPolicy != nil {
-			kv.Options = client.KeyValueOptions{MaxmemoryPolicy: maxmemoryPolicy}
-		}
-		s.KV.Instances = append(s.KV.Instances, kv)
+			ipAllowList := []client.CidrBlockAndDescription{}
+			if body.IpAllowList != nil {
+				ipAllowList = *body.IpAllowList
+			}
 
-		writeJSON(w, http.StatusCreated, kv)
+			kv := &client.KeyValueDetail{
+				Id:            testids.RandomKeyValueID(),
+				Name:          body.Name,
+				Plan:          body.Plan,
+				Region:        region,
+				Owner:         owner,
+				Status:        client.DatabaseStatusAvailable,
+				EnvironmentId: body.EnvironmentId,
+				IpAllowList:   ipAllowList,
+				CreatedAt:     time.Now(),
+				UpdatedAt:     time.Now(),
+			}
+			if maxmemoryPolicy != nil {
+				kv.Options = client.KeyValueOptions{MaxmemoryPolicy: maxmemoryPolicy}
+			}
+			s.KV.Instances = append(s.KV.Instances, kv)
+
+			writeJSON(w, http.StatusCreated, kv)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
+
+	// /key-value/{id} — GET retrieves, DELETE removes
+	mux.HandleFunc("/key-value/", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		id := strings.TrimPrefix(r.URL.Path, "/key-value/")
+		switch r.Method {
+		case http.MethodGet:
+			if status, hasError := s.KV.nextError(); hasError {
+				w.WriteHeader(status)
+				return
+			}
+			for _, kv := range s.KV.Instances {
+				if kv.Id == id {
+					writeJSON(w, http.StatusOK, kv)
+					return
+				}
+			}
+			w.WriteHeader(http.StatusNotFound)
+		case http.MethodDelete:
+			for i, kv := range s.KV.Instances {
+				if kv.Id == id {
+					s.KV.Instances = slices.Delete(s.KV.Instances, i, i+1)
+					w.WriteHeader(http.StatusNoContent)
+					return
+				}
+			}
+			w.WriteHeader(http.StatusNotFound)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
 	})
 
 	s.server = httptest.NewServer(mux)
