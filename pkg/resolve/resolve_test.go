@@ -340,3 +340,41 @@ func TestResolverResolveScope_AmbiguousEnvironmentNameErrors(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "multiple environments")
 }
+
+func TestResolverResolveEnvironment_ByID_ReturnsFullEnvironment(t *testing.T) {
+	server := renderapi.NewServer(t)
+	projectID := testids.ProjectID("project")
+	environmentID := testids.EnvironmentID("production")
+	seedOwner(server, "tea-project-owner")
+	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
+		Id:      projectID,
+		Name:    "My Project",
+		OwnerId: "tea-project-owner",
+	}))
+	server.Environments.Add(renderapi.NewEnvironment(client.Environment{
+		Id:        environmentID,
+		Name:      "production",
+		ProjectId: projectID,
+	}))
+	resolver := newTestResolver(t, server)
+
+	env, err := resolver.ResolveEnvironment(context.Background(), environmentID)
+
+	require.NoError(t, err)
+	require.NotNil(t, env)
+	assert.Equal(t, environmentID, env.Id)
+	assert.Equal(t, "production", env.Name)
+	assert.Equal(t, projectID, env.ProjectId)
+}
+
+func TestResolverResolveEnvironment_PropagatesResolveScopeErrors(t *testing.T) {
+	// Defers to ResolveScope; a missing environment surfaces the same error.
+	server := renderapi.NewServer(t)
+	seedOwner(server, "tea-project-owner")
+	resolver := newTestResolver(t, server)
+
+	env, err := resolver.ResolveEnvironment(context.Background(), "does-not-exist")
+
+	require.Error(t, err)
+	assert.Nil(t, env)
+}

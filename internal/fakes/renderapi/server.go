@@ -520,6 +520,39 @@ func NewServer(t *testing.T) *Server {
 				}
 			}
 			w.WriteHeader(http.StatusNotFound)
+		case http.MethodPatch:
+			if status, hasError := s.KV.nextError(); hasError {
+				w.WriteHeader(status)
+				return
+			}
+			var body client.KeyValuePATCHInput
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			idx := slices.IndexFunc(s.KV.Instances, func(kv *client.KeyValueDetail) bool {
+				return kv.Id == id
+			})
+			if idx == -1 {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			kv := s.KV.Instances[idx]
+			if body.Name != nil {
+				kv.Name = *body.Name
+			}
+			if body.Plan != nil {
+				kv.Plan = *body.Plan
+			}
+			if body.MaxmemoryPolicy != nil {
+				mp := string(*body.MaxmemoryPolicy)
+				kv.Options = client.KeyValueOptions{MaxmemoryPolicy: &mp}
+			}
+			if body.IpAllowList != nil {
+				kv.IpAllowList = *body.IpAllowList
+			}
+			kv.UpdatedAt = time.Now()
+			writeJSON(w, http.StatusOK, kv)
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}

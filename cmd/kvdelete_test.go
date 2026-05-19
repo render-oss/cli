@@ -46,28 +46,6 @@ func resetKVDeleteFlags() {
 	})
 }
 
-// seedKV adds a KV instance with the given name and a random valid ID,
-// returning the seeded detail for assertions.
-func seedKV(server *renderapi.Server, name string) *client.KeyValueDetail {
-	kv := renderapi.NewKV(&client.KeyValueDetail{
-		Name:  name,
-		Owner: client.Owner{Id: ACTIVE_WORKSPACE_ID},
-	})
-	server.KV.Instances = append(server.KV.Instances, kv)
-	return kv
-}
-
-// seedKVInEnv adds a KV instance scoped to a specific environment.
-func seedKVInEnv(server *renderapi.Server, name, envID string) *client.KeyValueDetail {
-	kv := renderapi.NewKV(&client.KeyValueDetail{
-		Name:          name,
-		Owner:         client.Owner{Id: ACTIVE_WORKSPACE_ID},
-		EnvironmentId: &envID,
-	})
-	server.KV.Instances = append(server.KV.Instances, kv)
-	return kv
-}
-
 func TestKVDelete_PreviewByID_DoesNotDelete(t *testing.T) {
 	server := renderapi.NewServer(t)
 	kv := seedKV(server, "my-cache")

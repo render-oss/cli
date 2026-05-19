@@ -116,6 +116,20 @@ func (r *Resolver) ResolveScope(ctx context.Context, input ScopeInput) (*Scope, 
 	return scope, nil
 }
 
+// ResolveEnvironment is a convenience wrapper around ResolveScope for callers
+// that have only an environment selector and want the full *client.Environment
+// (with Name, Id, ProjectId, etc.) for downstream use such as scoping a
+// resource lookup or building user-facing error messages. Ancestor resolution
+// matches ResolveScope. Callers decide whether to invoke this — pass a real
+// selector or skip the call entirely.
+func (r *Resolver) ResolveEnvironment(ctx context.Context, envIDOrName string) (*client.Environment, error) {
+	scope, err := r.ResolveScope(ctx, ScopeInput{EnvironmentIDOrName: &envIDOrName})
+	if err != nil {
+		return nil, err
+	}
+	return scope.Environment, nil
+}
+
 // ResolveWorkspaceID resolves an optional workspace ID or name to an owner ID.
 // If idOrName is empty, it returns the configured workspace ID.
 func (r *Resolver) ResolveWorkspaceID(ctx context.Context, idOrName string) (string, error) {

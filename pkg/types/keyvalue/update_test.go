@@ -190,4 +190,45 @@ func TestNormalizeAndValidateUpdateInput(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "--ip-allow-list")
 	})
+
+	t.Run("ClearIPAllowList alone satisfies at-least-one-field requirement", func(t *testing.T) {
+		input := kvtypes.KeyValueUpdateInput{
+			ClearIPAllowList: true,
+		}
+		got, err := kvtypes.NormalizeAndValidateUpdateInput(input)
+		require.NoError(t, err)
+		assert.True(t, got.ClearIPAllowList)
+		assert.Empty(t, got.IPAllowList)
+	})
+
+	t.Run("IPAllowList and ClearIPAllowList together returns mutex error", func(t *testing.T) {
+		input := kvtypes.KeyValueUpdateInput{
+			IPAllowList:      []string{"cidr=10.0.0.0/8"},
+			ClearIPAllowList: true,
+		}
+		_, err := kvtypes.NormalizeAndValidateUpdateInput(input)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "--ip-allow-list")
+		assert.Contains(t, err.Error(), "--clear-ip-allow-list")
+	})
+
+	t.Run("Target fields alone do not satisfy at-least-one-mutating-field requirement", func(t *testing.T) {
+		input := kvtypes.KeyValueUpdateInput{
+			IDOrName:            "red-abc123def456ghi789jkl0",
+			EnvironmentIDOrName: pointers.From("production"),
+		}
+		_, err := kvtypes.NormalizeAndValidateUpdateInput(input)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "at least one field must be provided for update")
+	})
+
+	t.Run("EnvironmentIDOrName normalized via OptionalNonZeroString", func(t *testing.T) {
+		input := kvtypes.KeyValueUpdateInput{
+			Name:                pointers.From("ok"),
+			EnvironmentIDOrName: pointers.From("   "),
+		}
+		got, err := kvtypes.NormalizeAndValidateUpdateInput(input)
+		require.NoError(t, err)
+		assert.Nil(t, got.EnvironmentIDOrName, "whitespace-only environment should normalize to nil")
+	})
 }

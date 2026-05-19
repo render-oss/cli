@@ -61,9 +61,16 @@ func init() {
 		confirm := command.GetConfirmFromContext(cmd.Context())
 
 		loadData := func() (*keyvalue.DeleteResult, error) {
-			env, err := resolveDeleteEnvironment(cmd, input.EnvironmentIDOrName)
-			if err != nil {
-				return nil, err
+			var env *client.Environment
+			if input.EnvironmentIDOrName != nil {
+				c, err := client.NewDefaultClient()
+				if err != nil {
+					return nil, err
+				}
+				env, err = resolve.New(c).ResolveEnvironment(cmd.Context(), *input.EnvironmentIDOrName)
+				if err != nil {
+					return nil, err
+				}
 			}
 			kv, err := keyvalue.Resolve(cmd.Context(), input.IDOrName, env)
 			if err != nil {
@@ -82,26 +89,6 @@ func init() {
 	}
 
 	kvCmd.AddCommand(kvDeleteCmd)
-}
-
-// resolveDeleteEnvironment turns an optional --environment selector into a
-// concrete *client.Environment used to scope the KV lookup. Returning nil
-// (with no error) means no environment was requested.
-func resolveDeleteEnvironment(cmd *cobra.Command, envIDOrName *string) (*client.Environment, error) {
-	if envIDOrName == nil {
-		return nil, nil
-	}
-	c, err := client.NewDefaultClient()
-	if err != nil {
-		return nil, err
-	}
-	scope, err := resolve.New(c).ResolveScope(cmd.Context(), resolve.ScopeInput{
-		EnvironmentIDOrName: envIDOrName,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return scope.Environment, nil
 }
 
 func formatTextOutput(r *keyvalue.DeleteResult) string {

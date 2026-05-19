@@ -13,8 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var ACTIVE_WORKSPACE_ID = testids.WorkspaceID("active")
-
 // executeKVCreate runs `render ea kv create <extraArgs>` against the fake server.
 // It seeds and selects a default workspace before running the create command.
 // Pass --workspace explicitly in extraArgs for tests that exercise the workspace flag.
