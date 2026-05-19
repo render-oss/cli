@@ -165,11 +165,23 @@ func NewKV(kv *client.KeyValueDetail) *client.KeyValueDetail {
 	return kv
 }
 
+// NewUser returns a User with sensible defaults for any zero-value fields.
+func NewUser(u client.User) client.User {
+	if u.Email == "" {
+		u.Email = "user@example.com"
+	}
+	if u.Name == "" {
+		u.Name = "Test User"
+	}
+	return u
+}
+
 // Server is a fake Render API HTTP server for command-level tests.
 // All HTTP plumbing is internal — tests seed state via Add() methods and assert against resource Instances.
 type Server struct {
 	server       *httptest.Server
 	Requests     []RecordedRequest
+	CurrentUser  *client.User
 	Owners       *Resource[client.Owner]
 	Projects     *Resource[client.Project]
 	Environments *Resource[client.Environment]
@@ -191,6 +203,12 @@ func (s *Server) ownerByID(id string) (client.Owner, bool) {
 // URL returns the base URL of the fake server.
 func (s *Server) URL() string {
 	return s.server.URL
+}
+
+// SetCurrentUser seeds the user returned by GET /users and returns it.
+func (s *Server) SetCurrentUser(u client.User) client.User {
+	s.CurrentUser = &u
+	return u
 }
 
 // HasRequest returns true if any recorded request matches the given method and URI substring.
@@ -220,6 +238,21 @@ func NewServer(t *testing.T) *Server {
 	record := func(r *http.Request) {
 		s.Requests = append(s.Requests, RecordedRequest{Method: r.Method, URI: r.URL.RequestURI()})
 	}
+
+	// GET /users - retrieve the authenticated user.
+	mux.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if s.CurrentUser == nil {
+			message := "unauthorized"
+			writeJSON(w, http.StatusUnauthorized, client.Error{Message: &message})
+			return
+		}
+		writeJSON(w, http.StatusOK, s.CurrentUser)
+	})
 
 	// GET /owners — list workspaces (supports ?name= filter)
 	mux.HandleFunc("/owners", func(w http.ResponseWriter, r *http.Request) {

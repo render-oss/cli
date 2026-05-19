@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"time"
 
@@ -21,6 +20,7 @@ import (
 	"github.com/render-oss/cli/pkg/dashboard"
 	renderstyle "github.com/render-oss/cli/pkg/style"
 	"github.com/render-oss/cli/pkg/tui"
+	"github.com/render-oss/cli/pkg/user"
 )
 
 type notLoggedInMsg struct{}
@@ -198,13 +198,8 @@ func isAlreadyLoggedIn(ctx context.Context) bool {
 		return false
 	}
 
-	workspace, err := config.WorkspaceID()
-	if err != nil {
-		return false
-	}
-
-	resp, err := c.RetrieveOwner(ctx, workspace)
-	return err == nil && resp.StatusCode == http.StatusOK
+	currentUser, err := user.NewRepo(c).CurrentUser(ctx)
+	return err == nil && currentUser != nil
 }
 
 func dashboardAuthURL(dg *oauth.DeviceGrant) (*url.URL, error) {
