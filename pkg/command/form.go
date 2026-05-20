@@ -1,7 +1,9 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -319,9 +321,52 @@ func StructFromFormValues(formValues FormValues, v any) error {
 	return nil
 }
 
+// preferredEditor returns $EDITOR if set, otherwise vi. vi is the fallback
+// because nano's "File Name to Write:" prompt on save is unexpected for users
+// who just want to edit and confirm.
+func preferredEditor() string {
+	if editor := os.Getenv("EDITOR"); editor != "" {
+		return editor
+	}
+	return "vi"
+}
+
+type textareaConfig struct {
+	lines int
+	ext   string
+}
+
+// textareaConfigFromStruct reads cli-lines and cli-ext struct tags in a single
+// pass and returns a map from cli flag name to textarea config.
+func textareaConfigFromStruct(v any) map[string]textareaConfig {
+	configs := make(map[string]textareaConfig)
+	vtype := reflect.TypeOf(v).Elem()
+	for i := 0; i < vtype.NumField(); i++ {
+		field := vtype.Field(i)
+		cliTag := field.Tag.Get("cli")
+		linesStr := field.Tag.Get("cli-lines")
+		ext := field.Tag.Get("cli-ext")
+		if linesStr == "" && ext == "" {
+			continue
+		}
+		cfg := configs[cliTag]
+		if linesStr != "" {
+			if n, err := strconv.Atoi(linesStr); err == nil {
+				cfg.lines = n
+			}
+		}
+		if ext != "" {
+			cfg.ext = ext
+		}
+		configs[cliTag] = cfg
+	}
+	return configs
+}
+
 func HuhFormFields(cmd *cobra.Command, v any) ([]huh.Field, FormValues) {
 	huhFieldMap := make(map[string]huh.Field)
 	formValues := FormValuesFromStruct(v)
+	textareaConfigs := textareaConfigFromStruct(v)
 
 	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
 		// If the flag is not in the form values, skip it
@@ -370,6 +415,26 @@ func HuhFormFields(cmd *cobra.Command, v any) ([]huh.Field, FormValues) {
 				Value((*string)(timeValue)).
 				Placeholder(fmt.Sprintf("Relative time or %s", time.RFC3339)).
 				SuggestionsFunc(func() []string { return TimeSuggestion(timeValue.String()) }, timeValue)
+		} else if cfg, ok := textareaConfigs[flag.Name]; ok && cfg.lines > 0 {
+			strValue := NewStringFormValue(value.String())
+			formValues[flag.Name] = strValue
+
+			field := huh.NewText().Key(flag.Name).Title(flag.Name).Description(wrappedDescription).Value((*string)(strValue)).Lines(cfg.lines).CharLimit(0)
+			editor := preferredEditor()
+			if cfg.ext != "" {
+				if cfg.ext == "json" {
+					field = field.Validate(func(s string) error {
+						if s != "" && !json.Valid([]byte(s)) {
+							return fmt.Errorf("input must be valid JSON")
+						}
+						return nil
+					})
+				}
+				field = field.Editor(editor).EditorExtension(cfg.ext)
+			} else {
+				field = field.Editor(editor)
+			}
+			huhFieldMap[flag.Name] = field
 		} else {
 			strValue := NewStringFormValue(value.String())
 			formValues[flag.Name] = strValue

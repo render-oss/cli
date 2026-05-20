@@ -5,12 +5,15 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
 	workflows "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/tui"
 )
+
+var inputHintStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#4d4d4d")).Italic(true)
 
 type TaskRunView struct {
 	formAction *tui.FormWithAction[*workflows.TaskRun]
@@ -52,5 +55,10 @@ func (v *TaskRunView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (v *TaskRunView) View() string {
-	return v.formAction.View()
+	base := v.formAction.View()
+	if base == "" {
+		return base
+	}
+	hint := inputHintStyle.Render("ctrl+j  newline  ·  enter  confirm  ·  ctrl+e  open in editor")
+	return base + "\n" + hint
 }

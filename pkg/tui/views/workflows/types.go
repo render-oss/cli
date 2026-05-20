@@ -19,7 +19,7 @@ type TaskListInput struct {
 
 type TaskRunInput struct {
 	TaskSlug string `cli:"arg:0"`
-	Input    string `cli:"input"`
+	Input    string `cli:"input" cli-lines:"15" cli-ext:"json"`
 }
 
 type TaskRunTargetInput struct {
