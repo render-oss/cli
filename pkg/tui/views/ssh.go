@@ -44,19 +44,21 @@ func handleSSHError(err error) error {
 	}
 }
 
-// createEphemeralShell creates an ephemeral shell pod for the given service.
-// This must be called before SSH'ing into an ephemeral shell.
-func createEphemeralShell(ctx context.Context, serviceID string) error {
+// createEphemeralShell creates an ephemeral shell pod for the given service
+// and returns the ephemeral shell id from the API response (empty string if
+// the response did not include one). This must be called before SSH'ing into
+// an ephemeral shell.
+func createEphemeralShell(ctx context.Context, serviceID string) (string, error) {
 	apiCfg, err := config.DefaultAPIConfig()
 	if err != nil {
-		return fmt.Errorf("failed to get API config: %w", err)
+		return "", fmt.Errorf("failed to get API config: %w", err)
 	}
 
 	url := fmt.Sprintf("%sservices/%s/ephemeral-shell", apiCfg.Host, serviceID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(nil))
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header = client.AddHeaders(req.Header, apiCfg.Key)
@@ -64,7 +66,7 @@ func createEphemeralShell(ctx context.Context, serviceID string) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to create ephemeral shell: %w", err)
+		return "", fmt.Errorf("failed to create ephemeral shell: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -76,12 +78,16 @@ func createEphemeralShell(ctx context.Context, serviceID string) error {
 			Message string `json:"message"`
 		}
 		if json.Unmarshal(body, &apiErr) == nil && apiErr.Message != "" {
-			return fmt.Errorf("failed to create ephemeral shell: %s", apiErr.Message)
+			return "", fmt.Errorf("failed to create ephemeral shell: %s", apiErr.Message)
 		}
-		return fmt.Errorf("failed to create ephemeral shell: received status %d", resp.StatusCode)
+		return "", fmt.Errorf("failed to create ephemeral shell: received status %d", resp.StatusCode)
 	}
 
-	return nil
+	var result struct {
+		ID string `json:"id"`
+	}
+	_ = json.Unmarshal(body, &result)
+	return result.ID, nil
 }
 
 func getServiceFromIDOrName(ctx context.Context, c *client.ClientWithResponses, idOrName string) (*client.Service, error) {
@@ -181,17 +187,23 @@ func loadDataSSH(ctx context.Context, in *SSHInput) (*exec.Cmd, error) {
 
 	if in.Ephemeral {
 		// Create the ephemeral shell pod first
-		if err := createEphemeralShell(ctx, serviceInfo.Id); err != nil {
+		shellID, err := createEphemeralShell(ctx, serviceInfo.Id)
+		if err != nil {
 			return nil, tui.UserFacingError{
 				Title:   "Failed to create ephemeral shell",
 				Message: err.Error(),
 			}
 		}
 
-		// Format: ephemeral.{service-id}@{ssh-host}
+		// New format: {shell-id}.{service-id}@{ssh-host}
+		// Fallback (older API with no shell id): ephemeral.{service-id}@{ssh-host}
+		userPart := "ephemeral." + serviceInfo.Id
+		if shellID != "" {
+			userPart = shellID + "." + serviceInfo.Id
+		}
 		parts := strings.SplitN(finalSSHAddress, "@", 2)
 		if len(parts) == 2 {
-			finalSSHAddress = "ephemeral." + serviceInfo.Id + "@" + parts[1]
+			finalSSHAddress = userPart + "@" + parts[1]
 		}
 	}
 
