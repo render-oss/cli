@@ -197,7 +197,7 @@ func (rs *Service) ListResources(ctx context.Context, params ResourceParams) ([]
 }
 
 func (rs *Service) GetResource(ctx context.Context, id string) (Resource, error) {
-	if strings.HasPrefix(id, serverResourceIDPrefix) {
+	if strings.HasPrefix(id, serverResourceIDPrefix) || strings.HasPrefix(id, cronjobResourceIDPrefix) {
 		return rs.serviceService.GetService(ctx, id)
 	}
 
