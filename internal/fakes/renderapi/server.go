@@ -538,6 +538,44 @@ func NewServer(t *testing.T) *Server {
 		writeJSON(w, http.StatusOK, kv)
 	})
 
+	// POST /key-value/{id}/suspend — suspend a KV instance
+	mux.HandleFunc("POST /key-value/{id}/suspend", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.KV.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		id := r.PathValue("id")
+		for _, kv := range s.KV.Instances {
+			if kv.Id == id {
+				kv.Status = client.DatabaseStatusSuspended
+				kv.UpdatedAt = time.Now()
+				w.WriteHeader(http.StatusAccepted)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	// POST /key-value/{id}/resume — resume a suspended KV instance
+	mux.HandleFunc("POST /key-value/{id}/resume", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.KV.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		id := r.PathValue("id")
+		for _, kv := range s.KV.Instances {
+			if kv.Id == id {
+				kv.Status = client.DatabaseStatusAvailable
+				kv.UpdatedAt = time.Now()
+				w.WriteHeader(http.StatusAccepted)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+
 	// GET /key-value/{id}/connection-info — retrieve connection strings for a KV instance
 	mux.HandleFunc("GET /key-value/{id}/connection-info", func(w http.ResponseWriter, r *http.Request) {
 		record(r)

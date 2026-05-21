@@ -124,3 +124,29 @@ func (r *Repo) DeleteKeyValue(ctx context.Context, id string) error {
 
 	return nil
 }
+
+func (r *Repo) SuspendKeyValue(ctx context.Context, id string) error {
+	resp, err := r.client.SuspendKeyValueWithResponse(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Repo) ResumeKeyValue(ctx context.Context, id string) error {
+	resp, err := r.client.ResumeKeyValueWithResponse(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return err
+	}
+
+	return nil
+}
