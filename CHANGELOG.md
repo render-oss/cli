@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.18.0] - 2026-05-21
+
+### Added
+
+- `render ea kv` commands to create, get, list, update, delete, suspend, and resume Key Values. Key Value itself is generally available. We will promote `kv` out of the `ea` namespace once we stabilize the interface.
+- `workflows dev` loads environment variables from a `.env` file in the current directory by default, and supports `--env-file` (repeatable) to load specific files
+- Workflow task input field now expands to 15 lines, supports opening in `$EDITOR` via `ctrl+e`, and validates JSON before submission
+
+### Changed
+
+- `render ssh --ephemeral` uses the per-shell id returned by the API as the SSH username, supporting single-use ephemeral shells
+
+### Fixed
+
+- Fixed users being prompted to log in again when authenticated but no active workspace was set
+
 ## [2.17.0] - 2026-05-13
 
 ### Added
