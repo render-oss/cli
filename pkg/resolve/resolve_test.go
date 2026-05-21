@@ -378,3 +378,48 @@ func TestResolverResolveEnvironment_PropagatesResolveScopeErrors(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, env)
 }
+
+func TestResolverResolveScopeInActiveWorkspace_NarrowsProjectAndEnvironmentNames(t *testing.T) {
+	t.Setenv("RENDER_WORKSPACE", "tea-active")
+
+	server := renderapi.NewServer(t)
+	seedOwner(server, "tea-active")
+	seedOwner(server, "tea-other")
+	activeProjectID := testids.ProjectID("active")
+	otherProjectID := testids.ProjectID("other")
+	activeEnvironmentID := testids.EnvironmentID("active")
+	otherEnvironmentID := testids.EnvironmentID("other")
+	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
+		Id:      activeProjectID,
+		Name:    "Duplicated Name",
+		OwnerId: "tea-active",
+	}))
+	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
+		Id:      otherProjectID,
+		Name:    "Duplicated Name",
+		OwnerId: "tea-other",
+	}))
+	server.Environments.Add(renderapi.NewEnvironment(client.Environment{
+		Id:        activeEnvironmentID,
+		Name:      "production",
+		ProjectId: activeProjectID,
+	}))
+	server.Environments.Add(renderapi.NewEnvironment(client.Environment{
+		Id:        otherEnvironmentID,
+		Name:      "production",
+		ProjectId: otherProjectID,
+	}))
+	resolver := newTestResolver(t, server)
+
+	scope, err := resolver.ResolveScopeInActiveWorkspace(context.Background(), ActiveWorkspaceScopeInput{
+		ProjectIDOrName:     stringPtr("Duplicated Name"),
+		EnvironmentIDOrName: stringPtr("production"),
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, "tea-active", scope.WorkspaceID)
+	require.NotNil(t, scope.Project)
+	assert.Equal(t, activeProjectID, scope.Project.Id)
+	require.NotNil(t, scope.Environment)
+	assert.Equal(t, activeEnvironmentID, scope.Environment.Id)
+}

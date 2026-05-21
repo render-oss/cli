@@ -255,12 +255,8 @@ func NewServer(t *testing.T) *Server {
 	})
 
 	// GET /owners — list workspaces (supports ?name= filter)
-	mux.HandleFunc("/owners", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /owners", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
 		result := s.Owners.Instances
 		if name := r.URL.Query().Get("name"); name != "" {
 			var filtered []client.Owner
@@ -280,13 +276,9 @@ func NewServer(t *testing.T) *Server {
 	})
 
 	// GET /owners/{id} — retrieve workspace by ID
-	mux.HandleFunc("/owners/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /owners/{id}", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		id := strings.TrimPrefix(r.URL.Path, "/owners/")
+		id := r.PathValue("id")
 		for _, o := range s.Owners.Instances {
 			if o.Id == id {
 				writeJSON(w, http.StatusOK, o)
@@ -297,12 +289,8 @@ func NewServer(t *testing.T) *Server {
 	})
 
 	// GET /projects — list projects (supports ?ownerId= and ?name= filters)
-	mux.HandleFunc("/projects", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /projects", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
 		result := s.Projects.Instances
 		if ownerIDs := queryListValues(r, "ownerId"); len(ownerIDs) > 0 {
 			var filtered []client.Project
@@ -337,13 +325,9 @@ func NewServer(t *testing.T) *Server {
 	})
 
 	// GET /projects/{id} — retrieve project by ID
-	mux.HandleFunc("/projects/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /projects/{id}", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		id := strings.TrimPrefix(r.URL.Path, "/projects/")
+		id := r.PathValue("id")
 		for _, p := range s.Projects.Instances {
 			if p.Id == id {
 				owner, ok := s.ownerByID(p.Owner.Id)
@@ -360,12 +344,8 @@ func NewServer(t *testing.T) *Server {
 	})
 
 	// GET /environments — list environments (supports ?projectId= and ?name= filters)
-	mux.HandleFunc("/environments", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /environments", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
 		result := s.Environments.Instances
 		if projectIDs := queryListValues(r, "projectId"); len(projectIDs) > 0 {
 			var filtered []client.Environment
@@ -393,13 +373,9 @@ func NewServer(t *testing.T) *Server {
 	})
 
 	// GET /environments/{id} — retrieve environment by ID
-	mux.HandleFunc("/environments/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /environments/{id}", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		id := strings.TrimPrefix(r.URL.Path, "/environments/")
+		id := r.PathValue("id")
 		for _, e := range s.Environments.Instances {
 			if e.Id == id {
 				writeJSON(w, http.StatusOK, e)
@@ -409,153 +385,174 @@ func NewServer(t *testing.T) *Server {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
-	// /key-value — POST creates, GET lists (optionally filtered by ?name=)
-	mux.HandleFunc("/key-value", func(w http.ResponseWriter, r *http.Request) {
+	// GET /key-value — list KV instances (supports ?name= and ?environmentId= filters)
+	mux.HandleFunc("GET /key-value", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
-		switch r.Method {
-		case http.MethodGet:
-			name := r.URL.Query().Get("name")
-			envIDs := r.URL.Query()["environmentId"]
-			result := make([]client.KeyValueWithCursor, 0, len(s.KV.Instances))
-			for i, kv := range s.KV.Instances {
-				if name != "" && kv.Name != name {
+		name := r.URL.Query().Get("name")
+		envIDs := queryListValues(r, "environmentId")
+		result := make([]client.KeyValueWithCursor, 0, len(s.KV.Instances))
+		for i, kv := range s.KV.Instances {
+			if name != "" && kv.Name != name {
+				continue
+			}
+			if len(envIDs) > 0 {
+				if kv.EnvironmentId == nil || !slices.Contains(envIDs, *kv.EnvironmentId) {
 					continue
 				}
-				if len(envIDs) > 0 {
-					if kv.EnvironmentId == nil || !slices.Contains(envIDs, *kv.EnvironmentId) {
-						continue
-					}
-				}
-				result = append(result, client.KeyValueWithCursor{
-					Cursor: client.Cursor(fmt.Sprintf("c%d", i)),
-					KeyValue: client.KeyValue{
-						Id:            kv.Id,
-						Name:          kv.Name,
-						EnvironmentId: kv.EnvironmentId,
-					},
-				})
 			}
-			writeJSON(w, http.StatusOK, result)
-		case http.MethodPost:
-			var body client.CreateKeyValueJSONRequestBody
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			if status, hasError := s.KV.nextError(); hasError {
-				w.WriteHeader(status)
-				return
-			}
-
-			var owner client.Owner
-			for _, o := range s.Owners.Instances {
-				if o.Id == body.OwnerId {
-					owner = o
-					break
-				}
-			}
-
-			region := client.Oregon
-			if body.Region != nil {
-				region = client.Region(*body.Region)
-			}
-
-			var maxmemoryPolicy *string
-			if body.MaxmemoryPolicy != nil {
-				mp := string(*body.MaxmemoryPolicy)
-				maxmemoryPolicy = &mp
-			}
-
-			ipAllowList := []client.CidrBlockAndDescription{}
-			if body.IpAllowList != nil {
-				ipAllowList = *body.IpAllowList
-			}
-
-			kv := &client.KeyValueDetail{
-				Id:            testids.RandomKeyValueID(),
-				Name:          body.Name,
-				Plan:          body.Plan,
-				Region:        region,
-				Owner:         owner,
-				Status:        client.DatabaseStatusAvailable,
-				EnvironmentId: body.EnvironmentId,
-				IpAllowList:   ipAllowList,
-				CreatedAt:     time.Now(),
-				UpdatedAt:     time.Now(),
-			}
-			if maxmemoryPolicy != nil {
-				kv.Options = client.KeyValueOptions{MaxmemoryPolicy: maxmemoryPolicy}
-			}
-			s.KV.Instances = append(s.KV.Instances, kv)
-
-			writeJSON(w, http.StatusCreated, kv)
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			result = append(result, client.KeyValueWithCursor{
+				Cursor: client.Cursor(fmt.Sprintf("c%d", i)),
+				KeyValue: client.KeyValue{
+					Id:            kv.Id,
+					Name:          kv.Name,
+					EnvironmentId: kv.EnvironmentId,
+				},
+			})
 		}
+		writeJSON(w, http.StatusOK, result)
 	})
 
-	// /key-value/{id} — GET retrieves, DELETE removes
-	mux.HandleFunc("/key-value/", func(w http.ResponseWriter, r *http.Request) {
+	// POST /key-value — create a KV instance
+	mux.HandleFunc("POST /key-value", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
-		id := strings.TrimPrefix(r.URL.Path, "/key-value/")
-		switch r.Method {
-		case http.MethodGet:
-			if status, hasError := s.KV.nextError(); hasError {
-				w.WriteHeader(status)
-				return
-			}
-			for _, kv := range s.KV.Instances {
-				if kv.Id == id {
-					writeJSON(w, http.StatusOK, kv)
-					return
-				}
-			}
-			w.WriteHeader(http.StatusNotFound)
-		case http.MethodDelete:
-			for i, kv := range s.KV.Instances {
-				if kv.Id == id {
-					s.KV.Instances = slices.Delete(s.KV.Instances, i, i+1)
-					w.WriteHeader(http.StatusNoContent)
-					return
-				}
-			}
-			w.WriteHeader(http.StatusNotFound)
-		case http.MethodPatch:
-			if status, hasError := s.KV.nextError(); hasError {
-				w.WriteHeader(status)
-				return
-			}
-			var body client.KeyValuePATCHInput
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			idx := slices.IndexFunc(s.KV.Instances, func(kv *client.KeyValueDetail) bool {
-				return kv.Id == id
-			})
-			if idx == -1 {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-			kv := s.KV.Instances[idx]
-			if body.Name != nil {
-				kv.Name = *body.Name
-			}
-			if body.Plan != nil {
-				kv.Plan = *body.Plan
-			}
-			if body.MaxmemoryPolicy != nil {
-				mp := string(*body.MaxmemoryPolicy)
-				kv.Options = client.KeyValueOptions{MaxmemoryPolicy: &mp}
-			}
-			if body.IpAllowList != nil {
-				kv.IpAllowList = *body.IpAllowList
-			}
-			kv.UpdatedAt = time.Now()
-			writeJSON(w, http.StatusOK, kv)
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+		var body client.CreateKeyValueJSONRequestBody
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
+		if status, hasError := s.KV.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+
+		var owner client.Owner
+		for _, o := range s.Owners.Instances {
+			if o.Id == body.OwnerId {
+				owner = o
+				break
+			}
+		}
+
+		region := client.Oregon
+		if body.Region != nil {
+			region = client.Region(*body.Region)
+		}
+
+		var maxmemoryPolicy *string
+		if body.MaxmemoryPolicy != nil {
+			mp := string(*body.MaxmemoryPolicy)
+			maxmemoryPolicy = &mp
+		}
+
+		ipAllowList := []client.CidrBlockAndDescription{}
+		if body.IpAllowList != nil {
+			ipAllowList = *body.IpAllowList
+		}
+
+		kv := &client.KeyValueDetail{
+			Id:            testids.RandomKeyValueID(),
+			Name:          body.Name,
+			Plan:          body.Plan,
+			Region:        region,
+			Owner:         owner,
+			Status:        client.DatabaseStatusAvailable,
+			EnvironmentId: body.EnvironmentId,
+			IpAllowList:   ipAllowList,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		}
+		if maxmemoryPolicy != nil {
+			kv.Options = client.KeyValueOptions{MaxmemoryPolicy: maxmemoryPolicy}
+		}
+		s.KV.Instances = append(s.KV.Instances, kv)
+
+		writeJSON(w, http.StatusCreated, kv)
+	})
+
+	// GET /key-value/{id} — retrieve a KV instance
+	mux.HandleFunc("GET /key-value/{id}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		id := r.PathValue("id")
+		if status, hasError := s.KV.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		for _, kv := range s.KV.Instances {
+			if kv.Id == id {
+				writeJSON(w, http.StatusOK, kv)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	// DELETE /key-value/{id} — delete a KV instance
+	mux.HandleFunc("DELETE /key-value/{id}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		id := r.PathValue("id")
+		for i, kv := range s.KV.Instances {
+			if kv.Id == id {
+				s.KV.Instances = slices.Delete(s.KV.Instances, i, i+1)
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	// PATCH /key-value/{id} — update a KV instance
+	mux.HandleFunc("PATCH /key-value/{id}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.KV.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		id := r.PathValue("id")
+		var body client.KeyValuePATCHInput
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		idx := slices.IndexFunc(s.KV.Instances, func(kv *client.KeyValueDetail) bool {
+			return kv.Id == id
+		})
+		if idx == -1 {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		kv := s.KV.Instances[idx]
+		if body.Name != nil {
+			kv.Name = *body.Name
+		}
+		if body.Plan != nil {
+			kv.Plan = *body.Plan
+		}
+		if body.MaxmemoryPolicy != nil {
+			mp := string(*body.MaxmemoryPolicy)
+			kv.Options = client.KeyValueOptions{MaxmemoryPolicy: &mp}
+		}
+		if body.IpAllowList != nil {
+			kv.IpAllowList = *body.IpAllowList
+		}
+		kv.UpdatedAt = time.Now()
+		writeJSON(w, http.StatusOK, kv)
+	})
+
+	// GET /key-value/{id}/connection-info — retrieve connection strings for a KV instance
+	mux.HandleFunc("GET /key-value/{id}/connection-info", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		id := r.PathValue("id")
+		for _, kv := range s.KV.Instances {
+			if kv.Id == id {
+				writeJSON(w, http.StatusOK, &client.KeyValueConnectionInfo{
+					CliCommand:               "redis-cli -h fake-host -p 6379",
+					InternalConnectionString: "redis://fake-internal",
+					ExternalConnectionString: "rediss://fake-external",
+				})
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
 	})
 
 	s.server = httptest.NewServer(mux)

@@ -27,6 +27,13 @@ type ScopeInput struct {
 	EnvironmentIDOrName *string
 }
 
+// ActiveWorkspaceScopeInput contains optional CLI resource selectors that
+// should be resolved within the configured active workspace.
+type ActiveWorkspaceScopeInput struct {
+	ProjectIDOrName     *string
+	EnvironmentIDOrName *string
+}
+
 // Scope is the resolved workspace, project, and environment context implied by
 // a command's resource selectors.
 type Scope struct {
@@ -128,6 +135,22 @@ func (r *Resolver) ResolveEnvironment(ctx context.Context, envIDOrName string) (
 		return nil, err
 	}
 	return scope.Environment, nil
+}
+
+// ResolveScopeInActiveWorkspace is like ResolveScope but constrains all
+// supplied project and environment selectors to the configured active
+// workspace. Use this when the command's primary resources are active-workspace
+// scoped and project/environment inputs should only narrow within that scope.
+func (r *Resolver) ResolveScopeInActiveWorkspace(ctx context.Context, input ActiveWorkspaceScopeInput) (*Scope, error) {
+	workspaceID, err := config.WorkspaceID()
+	if err != nil {
+		return nil, err
+	}
+	return r.ResolveScope(ctx, ScopeInput{
+		WorkspaceIDOrName:   workspaceID,
+		ProjectIDOrName:     input.ProjectIDOrName,
+		EnvironmentIDOrName: input.EnvironmentIDOrName,
+	})
 }
 
 // ResolveWorkspaceID resolves an optional workspace ID or name to an owner ID.

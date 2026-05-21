@@ -72,7 +72,7 @@ func init() {
 					return nil, err
 				}
 			}
-			kv, err := keyvalue.Resolve(cmd.Context(), input.IDOrName, env)
+			kv, err := keyvalue.Resolve(cmd.Context(), input.IDOrName, nil, env)
 			if err != nil {
 				return nil, err
 			}
