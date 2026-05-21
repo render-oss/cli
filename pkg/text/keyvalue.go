@@ -4,8 +4,28 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jedib0t/go-pretty/table"
+
 	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/keyvalue"
 )
+
+func KeyValueTable(v []*keyvalue.Model) string {
+	t := newTable()
+	t.AppendHeader(table.Row{"Name", "Project", "Environment", "Plan", "Region", "Status", "ID"})
+	for _, m := range v {
+		t.AppendRow(table.Row{
+			m.Name(),
+			m.ProjectName(),
+			m.EnvironmentName(),
+			string(m.KeyValue.Plan),
+			string(m.KeyValue.Region),
+			string(m.KeyValue.Status),
+			m.ID(),
+		})
+	}
+	return FormatString(t.Render())
+}
 
 // KeyValueDetail formats a KV instance detail for text output.
 // Does NOT include an action prefix (e.g., "Created" or "Updated") — callers should prepend
