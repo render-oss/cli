@@ -4,6 +4,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"regexp"
 	"testing"
 	"time"
@@ -196,6 +197,92 @@ func runRootPersistentPreRun(t *testing.T, input runRootPersistentPreRunInput) r
 
 func outputPointer(output command.Output) *command.Output {
 	return &output
+}
+
+func TestRootPersistentPreRunSuppressesUsageForRuntimeErrors(t *testing.T) {
+	root, out := newRootCommandForUsageTests()
+	runtimeErr := errors.New("network request failed")
+	root.AddCommand(&cobra.Command{
+		Use:  "login",
+		Args: cobra.NoArgs,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return runtimeErr
+		},
+	})
+	root.SetArgs([]string{"login"})
+
+	err := root.Execute()
+
+	require.ErrorIs(t, err, runtimeErr)
+	output := stripANSI(out.String())
+	require.Contains(t, output, "Error: network request failed")
+	require.NotContains(t, output, "Usage:")
+	require.NotContains(t, output, "render login [flags]")
+}
+
+func TestRootArgumentErrorsStillPrintUsage(t *testing.T) {
+	root, out := newRootCommandForUsageTests()
+	root.AddCommand(&cobra.Command{
+		Use:  "login <token>",
+		Args: cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return nil
+		},
+	})
+	root.SetArgs([]string{"login"})
+
+	err := root.Execute()
+
+	require.Error(t, err)
+	output := stripANSI(out.String())
+	require.Contains(t, output, "Error: accepts 1 arg(s), received 0")
+	require.Contains(t, output, "Usage:")
+	require.Contains(t, output, "render login <token> [flags]")
+}
+
+func TestRootDeprecatedFlagErrorsStillPrintUsage(t *testing.T) {
+	root, out := newRootCommandForUsageTests()
+	root.PersistentFlags().Bool("pretty-json", false, "")
+	root.AddCommand(&cobra.Command{
+		Use:  "login",
+		Args: cobra.NoArgs,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return nil
+		},
+	})
+	root.SetArgs([]string{"login", "--pretty-json"})
+
+	err := root.Execute()
+
+	require.EqualError(t, err, "use `--output json` instead of `--pretty-json`")
+	output := stripANSI(out.String())
+	require.Contains(t, output, "Error: use `--output json` instead of `--pretty-json`")
+	require.Contains(t, output, "Usage:")
+	require.Contains(t, output, "render login [flags]")
+}
+
+func newRootCommandForUsageTests() (*cobra.Command, *bytes.Buffer) {
+	deps := dependencies.New(nil)
+	deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
+		return command.RuntimeSignals{
+			StdinTTY:  true,
+			StdoutTTY: false,
+			StderrTTY: true,
+		}, nil
+	}
+
+	root := &cobra.Command{
+		Use:               "render",
+		PersistentPreRunE: rootPersistentPreRun(deps),
+	}
+	root.PersistentFlags().StringP("output", "o", "interactive", "interactive, json, yaml, or text")
+	root.PersistentFlags().Bool(command.ConfirmFlag, false, "set to skip confirmation prompts")
+
+	var out bytes.Buffer
+	root.SetOut(&out)
+	root.SetErr(&out)
+
+	return root, &out
 }
 
 func TestCombinedFlagUsagesIncludesDefaultValue(t *testing.T) {

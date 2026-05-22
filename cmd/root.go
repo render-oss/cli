@@ -164,6 +164,10 @@ func rootPersistentPreRun(deps *dependencies.Dependencies) func(cmd *cobra.Comma
 			return err
 		}
 
+		// Cobra has already parsed flags/args and selected the command by this point.
+		// Suppress usage for errors that happen during command execution.
+		cmd.SilenceUsage = true
+
 		confirmFlag, err := cmd.Flags().GetBool(command.ConfirmFlag)
 		if err != nil {
 			panic(err)

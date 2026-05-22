@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 )
 
@@ -88,10 +89,18 @@ func (s *commandSession) execute(args ...string) (CommandResult, error) {
 	var stdout, stderr bytes.Buffer
 	rootCmdMu.Lock()
 	defer rootCmdMu.Unlock()
+	resetCommandSilenceUsage(rootCmd)
 	rootCmd.SetOut(&stdout)
 	rootCmd.SetErr(&stderr)
 	rootCmd.SetArgs(args)
 
 	execErr := rootCmd.Execute()
 	return CommandResult{Stdout: stdout.String(), Stderr: stderr.String()}, execErr
+}
+
+func resetCommandSilenceUsage(cmd *cobra.Command) {
+	cmd.SilenceUsage = false
+	for _, child := range cmd.Commands() {
+		resetCommandSilenceUsage(child)
+	}
 }
