@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/render-oss/cli/pkg/cfg"
 	"github.com/render-oss/cli/pkg/client"
@@ -234,15 +236,51 @@ func printVersionWithUpdateCheck() {
 	}
 }
 
+// isRootVersionRequest reports whether --version / -v appears among the
+// root-level arguments, before the first subcommand token. It uses rootFlags to
+// skip values consumed by global flags such as `-o text`.
+func isRootVersionRequest(args []string, rootFlags *pflag.FlagSet) bool {
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--version" || arg == "-v" || strings.HasPrefix(arg, "--version=") {
+			return true
+		}
+		if !strings.HasPrefix(arg, "-") || arg == "--" {
+			return false
+		}
+		if strings.Contains(arg, "=") {
+			continue
+		}
+
+		var flag *pflag.Flag
+		if strings.HasPrefix(arg, "--") {
+			flag = rootFlags.Lookup(strings.TrimPrefix(arg, "--"))
+		} else {
+			short := strings.TrimPrefix(arg, "-")
+			if len(short) != 1 {
+				return false
+			}
+			flag = rootFlags.ShorthandLookup(short)
+		}
+		if flag == nil {
+			return false
+		}
+		if flag.Value.Type() != "bool" && flag.NoOptDefVal == "" {
+			i++
+		}
+	}
+	return false
+}
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	// Check if version flag is explicitly requested before Cobra handles it
-	for _, arg := range os.Args[1:] {
-		if arg == "--version" || arg == "-v" {
-			printVersionWithUpdateCheck()
-			return
-		}
+	// Check if version flag is explicitly requested before Cobra handles it.
+	// Only treat --version / -v as the CLI's global version flag when it
+	// appears before a subcommand; otherwise let subcommands own their flags.
+	if isRootVersionRequest(os.Args[1:], rootCmd.PersistentFlags()) {
+		printVersionWithUpdateCheck()
+		return
 	}
 
 	if err := SetupCommands(); err != nil {

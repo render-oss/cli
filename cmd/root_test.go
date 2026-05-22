@@ -450,6 +450,35 @@ func TestSetAnnotationBestEffort(t *testing.T) {
 	})
 }
 
+func TestIsRootVersionRequest(t *testing.T) {
+	flags := pflag.NewFlagSet("root", pflag.ContinueOnError)
+	flags.StringP("output", "o", "interactive", "")
+	flags.Bool(command.ConfirmFlag, false, "")
+
+	tests := []struct {
+		name string
+		args []string
+		want bool
+	}{
+		{"empty args", nil, false},
+		{"no version", []string{"services", "list"}, false},
+		{"bare --version", []string{"--version"}, true},
+		{"bare -v", []string{"-v"}, true},
+		{"version after global -o flag", []string{"-o", "text", "--version"}, true},
+		{"version after --output= flag", []string{"--output=text", "--version"}, true},
+		{"version after --confirm bool flag", []string{"--confirm", "--version"}, true},
+		{"version after subcommand should not match", []string{"ea", "pg", "create", "--version", "17"}, false},
+		{"output alone", []string{"--output=text"}, false},
+		{"version flag form via equals", []string{"--version=true"}, true},
+		{"multi-char single-dash arg falls through to cobra", []string{"-output", "text", "--version"}, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, isRootVersionRequest(tc.args, flags))
+		})
+	}
+}
+
 func stripANSI(input string) string {
 	ansiEscapePattern := regexp.MustCompile(`\x1b\[[0-9;]*m`)
 	return ansiEscapePattern.ReplaceAllString(input, "")
