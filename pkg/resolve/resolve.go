@@ -59,12 +59,21 @@ func (s *Scope) EnvironmentID() *string {
 	return &s.Environment.Id
 }
 
-func New(c *client.ClientWithResponses) *Resolver {
+// New builds a Resolver from existing repos. Prefer this so callers can share
+// cached repo instances from a dependency container instead of constructing a
+// parallel set of repos for the same HTTP client.
+func New(ownerRepo *owner.Repo, projectRepo *project.Repo, environmentRepo *environment.Repo) *Resolver {
 	return &Resolver{
-		ownerRepo:       owner.NewRepo(c),
-		projectRepo:     project.NewRepo(c),
-		environmentRepo: environment.NewRepo(c),
+		ownerRepo:       ownerRepo,
+		projectRepo:     projectRepo,
+		environmentRepo: environmentRepo,
 	}
+}
+
+// NewFromClient builds a Resolver with repos backed by the given HTTP client.
+// Prefer New when a dependency container or shared repos are already available.
+func NewFromClient(c *client.ClientWithResponses) *Resolver {
+	return New(owner.NewRepo(c), project.NewRepo(c), environment.NewRepo(c))
 }
 
 // ResolveScope resolves explicitly supplied resources and their ancestors.

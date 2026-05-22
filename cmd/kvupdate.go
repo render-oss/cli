@@ -103,7 +103,7 @@ Example: --ip-allow-list "cidr=203.0.113.5/32,description=office"`
 					if err != nil {
 						return nil, err
 					}
-					env, err = resolve.New(c).ResolveEnvironment(cmd.Context(), *input.EnvironmentIDOrName)
+					env, err = resolve.NewFromClient(c).ResolveEnvironment(cmd.Context(), *input.EnvironmentIDOrName)
 					if err != nil {
 						return nil, err
 					}

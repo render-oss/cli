@@ -23,7 +23,7 @@ func Create(ctx context.Context, input kvtypes.KeyValueCreateInput) (*client.Key
 	if err != nil {
 		return nil, err
 	}
-	resolver := resolve.New(c)
+	resolver := resolve.NewFromClient(c)
 
 	if input.Name == "" {
 		input.Name = petname.Generate(2, "-")

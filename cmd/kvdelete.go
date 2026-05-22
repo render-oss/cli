@@ -67,7 +67,7 @@ func init() {
 				if err != nil {
 					return nil, err
 				}
-				env, err = resolve.New(c).ResolveEnvironment(cmd.Context(), *input.EnvironmentIDOrName)
+				env, err = resolve.NewFromClient(c).ResolveEnvironment(cmd.Context(), *input.EnvironmentIDOrName)
 				if err != nil {
 					return nil, err
 				}

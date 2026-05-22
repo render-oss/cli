@@ -70,7 +70,7 @@ func init() {
 				if err != nil {
 					return nil, err
 				}
-				scope, err := resolve.New(c).ResolveScopeInActiveWorkspace(cmd.Context(), resolve.ActiveWorkspaceScopeInput{
+				scope, err := resolve.NewFromClient(c).ResolveScopeInActiveWorkspace(cmd.Context(), resolve.ActiveWorkspaceScopeInput{
 					ProjectIDOrName:     input.ProjectIDOrName,
 					EnvironmentIDOrName: input.EnvironmentIDOrName,
 				})

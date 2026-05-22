@@ -14,6 +14,7 @@ import (
 	"github.com/render-oss/cli/pkg/postgres"
 	"github.com/render-oss/cli/pkg/project"
 	"github.com/render-oss/cli/pkg/registry"
+	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/tasks"
@@ -53,6 +54,7 @@ type cachedDependencies struct {
 	userRepo            cache[*user.Repo]
 	ownerRepo           cache[*owner.Repo]
 	deployRepo          cache[*deploy.Repo]
+	resolver            cache[*resolve.Resolver]
 	serviceService      cache[*service.Service]
 	postgresService     cache[*postgres.Service]
 	keyValueService     cache[*keyvalue.Service]
@@ -155,6 +157,12 @@ func (d *Dependencies) UserRepo() *user.Repo {
 func (d *Dependencies) OwnerRepo() *owner.Repo {
 	return d.cache.ownerRepo.Get(func() *owner.Repo {
 		return owner.NewRepo(d.client)
+	})
+}
+
+func (d *Dependencies) Resolver() *resolve.Resolver {
+	return d.cache.resolver.Get(func() *resolve.Resolver {
+		return resolve.New(d.OwnerRepo(), d.ProjectRepo(), d.EnvironmentRepo())
 	})
 }
 

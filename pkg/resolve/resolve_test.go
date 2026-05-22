@@ -20,7 +20,7 @@ func newTestResolver(t *testing.T, server *renderapi.Server) *Resolver {
 
 	c, err := client.NewClientWithResponses(server.URL())
 	require.NoError(t, err)
-	return New(c)
+	return NewFromClient(c)
 }
 
 func seedOwner(server *renderapi.Server, id string) {

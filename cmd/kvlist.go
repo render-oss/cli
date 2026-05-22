@@ -87,7 +87,7 @@ func resolveListEnvIDs(cmd *cobra.Command, input kvtypes.KeyValueListInput) ([]s
 	if err != nil {
 		return nil, false, err
 	}
-	scope, err := resolve.New(c).ResolveScopeInActiveWorkspace(cmd.Context(), resolve.ActiveWorkspaceScopeInput{
+	scope, err := resolve.NewFromClient(c).ResolveScopeInActiveWorkspace(cmd.Context(), resolve.ActiveWorkspaceScopeInput{
 		ProjectIDOrName:     input.ProjectIDOrName,
 		EnvironmentIDOrName: input.EnvironmentIDOrName,
 	})

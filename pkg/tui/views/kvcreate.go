@@ -128,7 +128,7 @@ func RunKeyValueCreate(cmd *cobra.Command, input *kvtypes.KeyValueCreateInput) (
 		owners:   owner.NewRepo(c),
 		projects: project.NewRepo(c),
 		envs:     environment.NewRepo(c),
-		resolver: resolve.New(c),
+		resolver: resolve.NewFromClient(c),
 	}
 
 	// Resolve any pre-supplied scope so the wizard skips matching steps.
