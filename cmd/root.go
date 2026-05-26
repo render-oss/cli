@@ -29,53 +29,76 @@ The CLI's default interactive mode provides intuitive, menu-based navigation.
 To use in non-interactive mode (such as in a script), set each command's --output option to either json or yaml for structured responses. The CLI also detects non-TTY stdout and automatically switches to text output.
 `
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use: "render",
+// rootCmd represents the base command when called without any subcommands.
+var rootCmd = newRootCmd()
 
-	Short: "Interact with resources on Render",
-	Long:  longHelp,
-	Example: `  # List services in the active workspace
+func newRootCmd() *cobra.Command {
+	root := &cobra.Command{
+		Use:   "render",
+		Short: "Interact with resources on Render",
+		Long:  longHelp,
+		Example: `  # List services in the active workspace
   render services
 
   # Output services as JSON
   render services --output json`,
 
-	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
-		ctx := cmd.Context()
-		deps := dependencies.GetFromContext(ctx)
+		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+			ctx := cmd.Context()
+			deps := dependencies.GetFromContext(ctx)
 
-		output := command.GetFormatFromContext(ctx)
-		if output.Interactive() {
-			stack := tui.GetStackFromContext(ctx)
-			if stack.IsEmpty() {
+			output := command.GetFormatFromContext(ctx)
+			if output.Interactive() {
+				stack := tui.GetStackFromContext(ctx)
+				if stack.IsEmpty() {
+					return nil
+				}
+
+				var m tea.Model = stack
+
+				local := isLocalCommand(cmd)
+
+				if !local && cmd.Name() != deps.Commands.WorkspaceSetCmd().Name() {
+					if !config.IsWorkspaceSet() {
+						m = tui.NewConfigWrapper(m, "Set Workspace", views.NewWorkspaceView(ctx, views.ListWorkspaceInput{}))
+					}
+				}
+
+				if !local && cmd.Name() != loginCmd.Name() {
+					m = tui.NewConfigWrapper(m, "Login", views.NewLoginView(ctx))
+				}
+
+				p := tea.NewProgram(m, tea.WithAltScreen())
+				_, err := p.Run()
+				if err != nil {
+					panic(fmt.Sprintf("Failed to initialize interface. Use -o to specify a non-interactive output mode: %v", err))
+				}
 				return nil
 			}
 
-			var m tea.Model = stack
-
-			local := isLocalCommand(cmd)
-
-			if !local && cmd.Name() != deps.Commands.WorkspaceSetCmd().Name() {
-				if !config.IsWorkspaceSet() {
-					m = tui.NewConfigWrapper(m, "Set Workspace", views.NewWorkspaceView(ctx, views.ListWorkspaceInput{}))
-				}
-			}
-
-			if !local && cmd.Name() != loginCmd.Name() {
-				m = tui.NewConfigWrapper(m, "Login", views.NewLoginView(ctx))
-			}
-
-			p := tea.NewProgram(m, tea.WithAltScreen())
-			_, err := p.Run()
-			if err != nil {
-				panic(fmt.Sprintf("Failed to initialize interface. Use -o to specify a non-interactive output mode: %v", err))
-			}
 			return nil
-		}
+		},
+	}
 
-		return nil
-	},
+	root.AddGroup(AllGroups...)
+	root.SetHelpTemplate(CustomHelpTemplate)
+	root.Version = cfg.Version
+	root.CompletionOptions.DisableDefaultCmd = true
+	root.PersistentFlags().StringP("output", "o", "interactive", "Set output format to interactive, json, yaml, or text. Auto-switches to text on non-TTY")
+	setAnnotationBestEffort(root.PersistentFlags(), "output", command.FlagPlaceholderAnnotation, []string{command.OutputPlaceholder})
+	root.PersistentFlags().Bool(command.ConfirmFlag, false, "Skip all confirmation prompts")
+
+	// Flags from the old CLI that we error with a helpful message.
+	root.PersistentFlags().Bool("pretty-json", false, "")
+	if err := root.PersistentFlags().MarkHidden("pretty-json"); err != nil {
+		panic(err)
+	}
+	root.PersistentFlags().Bool("json-record-per-line", false, "")
+	if err := root.PersistentFlags().MarkHidden("json-record-per-line"); err != nil {
+		panic(err)
+	}
+
+	return root
 }
 
 func isLocalCommand(cmd *cobra.Command) bool {
@@ -149,13 +172,13 @@ func SetupCommands() error {
 	setupWorkflowCommands(deps)
 	setupLogCommands(deps)
 	setupWorkspaceCommands(deps)
-	setupRootCmdPersistentRun(deps)
+	setupRootCmdPersistentRun(rootCmd, deps)
 
 	return nil
 }
 
-func setupRootCmdPersistentRun(deps *dependencies.Dependencies) {
-	rootCmd.PersistentPreRunE = rootPersistentPreRun(deps)
+func setupRootCmdPersistentRun(root *cobra.Command, deps *dependencies.Dependencies) {
+	root.PersistentPreRunE = rootPersistentPreRun(deps)
 }
 
 func rootPersistentPreRun(deps *dependencies.Dependencies) func(cmd *cobra.Command, args []string) error {
@@ -293,12 +316,8 @@ func Execute() {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-	rootCmd.AddGroup(AllGroups...)
-
-	// Add custom template functions
+	// Template functions are global to cobra. Help template registration is
+	// per-command and lives in newRootCmd.
 	cobra.AddTemplateFunc("combinedFlagUsages", CombinedFlagUsages)
 	cobra.AddTemplateFunc("wrapText", wrapText)
 	cobra.AddTemplateFunc("cliVersion", cliVersion)
@@ -308,25 +327,6 @@ func init() {
 	cobra.AddTemplateFunc("hasVisibleGroupCommands", hasVisibleGroupCommands)
 	cobra.AddTemplateFunc("trimPeriod", trimTrailingPeriod)
 	cobra.AddTemplateFunc("groupHeader", groupHeaderText)
-
-	// Set custom help template
-	rootCmd.SetHelpTemplate(CustomHelpTemplate)
-
-	rootCmd.Version = cfg.Version
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.PersistentFlags().StringP("output", "o", "interactive", "Set output format to interactive, json, yaml, or text. Auto-switches to text on non-TTY")
-	setAnnotationBestEffort(rootCmd.PersistentFlags(), "output", command.FlagPlaceholderAnnotation, []string{command.OutputPlaceholder})
-	rootCmd.PersistentFlags().Bool(command.ConfirmFlag, false, "Skip all confirmation prompts")
-
-	// Flags from the old CLI that we error with a helpful message
-	rootCmd.PersistentFlags().Bool("pretty-json", false, "")
-	if err := rootCmd.PersistentFlags().MarkHidden("pretty-json"); err != nil {
-		panic(err)
-	}
-	rootCmd.PersistentFlags().Bool("json-record-per-line", false, "")
-	if err := rootCmd.PersistentFlags().MarkHidden("json-record-per-line"); err != nil {
-		panic(err)
-	}
 }
 
 // checkForDeprecatedFlagUsage checks for usage of deprecated flags and returns an error with the new flag if found.
