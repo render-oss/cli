@@ -19,7 +19,7 @@ const defaultPlan = pgclient.Free
 // Default Postgres major version when --version is not supplied. Server-side
 // validation is the source of truth for which versions are accepted; bump this
 // when we want new databases to default to a newer version.
-const defaultPostgresVersion = 18
+const DefaultPostgresVersion = 18
 
 // CreateRequestInput is the resolved input to BuildCreateRequest.
 // All client-side defaults have been applied and the scope has been resolved to an owner
@@ -54,7 +54,7 @@ func buildRequestInput(in pgtypes.CreatePostgresInput, ownerID string, environme
 	if plan == "" {
 		plan = string(defaultPlan)
 	}
-	version := defaultPostgresVersion
+	version := DefaultPostgresVersion
 	if in.Version != nil {
 		version = *in.Version
 	}

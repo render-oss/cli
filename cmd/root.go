@@ -154,6 +154,10 @@ func setupWorkspaceCommands(deps *dependencies.Dependencies) {
 	workspaceCmd.AddCommand(deps.Commands.Workspace.WorkspaceSetCmd)
 }
 
+func setupPGCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
+	earlyAccess.AddCommand(newPgCmd(newPgCreateCmd(deps)))
+}
+
 func SetupCommands() error {
 	c, err := client.NewDefaultClient()
 	if err != nil {
@@ -172,6 +176,7 @@ func SetupCommands() error {
 	setupWorkflowCommands(deps)
 	setupLogCommands(deps)
 	setupWorkspaceCommands(deps)
+	setupPGCommands(EarlyAccessCmd, deps)
 	setupRootCmdPersistentRun(rootCmd, deps)
 
 	return nil

@@ -4,12 +4,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var EarlyAccessCmd = &cobra.Command{
-	Use:   "ea",
-	Short: "Use early access commands",
-	Long:  `These commands are in early access and are subject to change.`,
-	Example: `  # List early access object storage resources
+var EarlyAccessCmd = newEarlyAccessCmd()
+
+func newEarlyAccessCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "ea",
+		Short: "Use early access commands",
+		Long:  `These commands are in early access and are subject to change.`,
+		Example: `  # List early access object storage resources
   render ea objects list --region=oregon`,
+	}
 }
 
 func init() {
