@@ -3,41 +3,43 @@ package postgres
 import (
 	"fmt"
 	"strings"
+
+	"github.com/render-oss/cli/pkg/types"
 )
 
-// MinPostgresVersion is the oldest PostgreSQL major version the CLI accepts.
-// Versions above this are passed through to the API without further validation.
-const MinPostgresVersion = 11
-
+// CreatePostgresInput is the raw command input parsed from Cobra flags for
+// `render ea pg create`. Every field is optional: a user can run the command
+// with no flags and get a working database. Defaults are filled in
+// client-side (name, plan, version, disk size) and server-side
+// (region, db name, db user, etc.).
 type CreatePostgresInput struct {
 	Name                string   `cli:"name"`
 	Plan                string   `cli:"plan"`
-	Version             int      `cli:"version"`
+	Version             *int     `cli:"version"`
 	Region              *string  `cli:"region"`
+	WorkspaceIDOrName   string   `cli:"workspace"`
+	ProjectIDOrName     *string  `cli:"project"`
+	EnvironmentIDOrName *string  `cli:"environment"`
 	DatabaseName        *string  `cli:"database-name"`
 	DatabaseUser        *string  `cli:"database-user"`
-	EnvironmentIDOrName *string  `cli:"environment-id"`
 	HighAvailability    *bool    `cli:"high-availability"`
 	DiskSizeGB          *int     `cli:"disk-size-gb"`
 	DiskAutoscaling     *bool    `cli:"disk-autoscaling"`
 	DatadogAPIKey       *string  `cli:"datadog-api-key"`
 	DatadogSite         *string  `cli:"datadog-site"`
+	IPAllowList         []string `cli:"ip-allow-list"`
 	ParameterOverrides  []string `cli:"parameter-override"`
 	ReadReplicas        []string `cli:"read-replica"`
 }
 
 func (c CreatePostgresInput) Validate(interactive bool) error {
-	if c.Name == "" {
-		return fmt.Errorf("--name is required")
+	if err := ValidateDiskSizeGB(c.DiskSizeGB); err != nil {
+		return err
 	}
-	if c.Plan == "" {
-		return fmt.Errorf("--plan is required")
-	}
-	if c.Version == 0 {
-		return fmt.Errorf("--version is required")
-	}
-	if c.Version < MinPostgresVersion {
-		return fmt.Errorf("invalid --version %d: must be >= %d", c.Version, MinPostgresVersion)
+	for _, entry := range c.IPAllowList {
+		if _, _, err := types.ParseIPAllowListEntry(entry); err != nil {
+			return err
+		}
 	}
 	for _, po := range c.ParameterOverrides {
 		if _, _, ok := strings.Cut(po, "="); !ok {
@@ -45,4 +47,20 @@ func (c CreatePostgresInput) Validate(interactive bool) error {
 		}
 	}
 	return nil
+}
+
+// ValidateDiskSizeGB enforces the API rule: 1 GB or any multiple of 5 GB.
+// A nil pointer is valid and means "let the server pick".
+func ValidateDiskSizeGB(size *int) error {
+	if size == nil {
+		return nil
+	}
+	v := *size
+	if v == 1 {
+		return nil
+	}
+	if v >= 5 && v%5 == 0 {
+		return nil
+	}
+	return fmt.Errorf("invalid --disk-size-gb %d: must be 1 or a multiple of 5", v)
 }

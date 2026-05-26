@@ -10,8 +10,10 @@ import (
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/environment"
 	"github.com/render-oss/cli/pkg/keyvalue"
+	"github.com/render-oss/cli/pkg/owner"
 	"github.com/render-oss/cli/pkg/postgres"
 	"github.com/render-oss/cli/pkg/project"
+	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/tui"
@@ -29,6 +31,7 @@ func RestartResource(ctx context.Context, input RestartInput) (string, error) {
 	}
 
 	serviceRepo := service.NewRepo(c)
+	ownerRepo := owner.NewRepo(c)
 	environmentRepo := environment.NewRepo(c)
 	projectRepo := project.NewRepo(c)
 	postgresRepo := postgres.NewRepo(c)
@@ -36,7 +39,8 @@ func RestartResource(ctx context.Context, input RestartInput) (string, error) {
 	workflowRepo := workflow.NewRepo(c)
 
 	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
-	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo)
+	resolver := resolve.New(ownerRepo, projectRepo, environmentRepo)
+	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo, resolver)
 	keyValueService := keyvalue.NewService(keyValueRepo, environmentRepo, projectRepo)
 	workflowService := workflow.NewService(workflowRepo, environmentRepo, projectRepo)
 

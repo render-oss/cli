@@ -84,3 +84,20 @@ func (r *Repo) RestartPostgresDatabase(ctx context.Context, id string) error {
 
 	return client.ErrorFromResponse(resp)
 }
+
+// CreatePostgres creates a Postgres instance via the Render API.
+//
+// Callers may intentionally target a workspace that differs from the active workspace,
+// so callers are responsible for resolving the correct OwnerId before calling.
+func (r *Repo) CreatePostgres(ctx context.Context, data client.CreatePostgresJSONRequestBody) (*client.PostgresDetail, error) {
+	resp, err := r.client.CreatePostgresWithResponse(ctx, data)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+
+	return resp.JSON201, nil
+}

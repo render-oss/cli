@@ -16,6 +16,7 @@ func TestResourceIDsAreValid(t *testing.T) {
 		{"user", UserID("target user"), validate.IsWorkspaceID},
 		{"project", ProjectID("my project"), validate.IsProjectID},
 		{"environment", EnvironmentID("production"), validate.IsEnvironmentID},
+		{"postgres", PostgresID("appdb"), validate.IsPostgresID},
 	}
 
 	for _, tc := range tests {
@@ -46,6 +47,7 @@ func TestRandomResourceIDsAreValidAndUnique(t *testing.T) {
 		{"user", RandomUserID(), RandomUserID(), validate.IsWorkspaceID},
 		{"project", RandomProjectID(), RandomProjectID(), validate.IsProjectID},
 		{"environment", RandomEnvironmentID(), RandomEnvironmentID(), validate.IsEnvironmentID},
+		{"postgres", RandomPostgresID(), RandomPostgresID(), validate.IsPostgresID},
 	}
 
 	for _, tc := range tests {

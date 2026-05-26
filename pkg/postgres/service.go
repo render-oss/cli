@@ -6,20 +6,24 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/environment"
 	"github.com/render-oss/cli/pkg/project"
+	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/resource/util"
+	pgtypes "github.com/render-oss/cli/pkg/types/postgres"
 )
 
 type Service struct {
 	repo            *Repo
 	environmentRepo *environment.Repo
 	projectRepo     *project.Repo
+	resolver        *resolve.Resolver
 }
 
-func NewService(repo *Repo, environmentRepo *environment.Repo, projectRepo *project.Repo) *Service {
+func NewService(repo *Repo, environmentRepo *environment.Repo, projectRepo *project.Repo, resolver *resolve.Resolver) *Service {
 	return &Service{
 		repo:            repo,
 		environmentRepo: environmentRepo,
 		projectRepo:     projectRepo,
+		resolver:        resolver,
 	}
 }
 
@@ -65,6 +69,35 @@ func (s *Service) GetPostgres(ctx context.Context, id string) (*Model, error) {
 
 func (s *Service) RestartPostgresDatabase(ctx context.Context, id string) error {
 	return s.repo.RestartPostgresDatabase(ctx, id)
+}
+
+// Create applies defaults, resolves workspace/project/environment scope,
+// and calls the Postgres create endpoint. The non-interactive flag path
+// and (eventually) the interactive wizard both go through here.
+func (s *Service) Create(ctx context.Context, input pgtypes.CreatePostgresInput) (*client.PostgresDetail, error) {
+	scope, err := s.resolver.ResolveScope(ctx, resolve.ScopeInput{
+		WorkspaceIDOrName:   input.WorkspaceIDOrName,
+		ProjectIDOrName:     input.ProjectIDOrName,
+		EnvironmentIDOrName: input.EnvironmentIDOrName,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	environmentID := scope.EnvironmentID()
+	if environmentID == nil && input.ProjectIDOrName != nil {
+		environmentID, err = s.resolver.ResolveEnvironmentID(ctx, scope.Project, nil, scope.WorkspaceID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	body, err := BuildCreateRequest(buildRequestInput(input, scope.WorkspaceID, environmentID))
+	if err != nil {
+		return nil, err
+	}
+
+	return s.repo.CreatePostgres(ctx, body)
 }
 
 func (s *Service) hydratePostgresModel(ctx context.Context, postgres *client.Postgres, projects []*client.Project) (*Model, error) {

@@ -43,6 +43,11 @@ func IsKeyValueID(s string) bool {
 	return IsObjectID("red", s)
 }
 
+// IsPostgresID checks if the string is a valid Postgres ID (dpg-[a-z0-9]{20}).
+func IsPostgresID(s string) bool {
+	return IsObjectID("dpg", s)
+}
+
 // IsServiceInstanceID checks if the string is a valid service instance ID (srv-[a-z0-9]{20}-[a-z0-9]+)
 func IsServiceInstanceID(s string) bool {
 	var instanceIDRegex = regexp.MustCompile(`^srv-[a-z0-9]{20}-[a-z0-9]+$`)

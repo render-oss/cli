@@ -12,6 +12,7 @@ import (
 
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/pointers"
 )
 
 // queryListValues returns all values for key, splitting each occurrence on
@@ -83,6 +84,28 @@ func (kv *KVResource) nextError() (int, bool) {
 	}
 	status := kv.errorQueue[0]
 	kv.errorQueue = kv.errorQueue[1:]
+	return status, true
+}
+
+// PostgresResource holds Postgres state and error injection for the fake server.
+// Tests can assert against Instances.
+type PostgresResource struct {
+	Resource[*client.PostgresDetail]
+	errorQueue []int
+}
+
+// RespondWith queues an HTTP status code to return on the next Postgres
+// operation handled by the fake server. The queue is drained in FIFO order.
+func (pg *PostgresResource) RespondWith(status int) {
+	pg.errorQueue = append(pg.errorQueue, status)
+}
+
+func (pg *PostgresResource) nextError() (int, bool) {
+	if len(pg.errorQueue) == 0 {
+		return 0, false
+	}
+	status := pg.errorQueue[0]
+	pg.errorQueue = pg.errorQueue[1:]
 	return status, true
 }
 
@@ -186,6 +209,7 @@ type Server struct {
 	Projects     *Resource[client.Project]
 	Environments *Resource[client.Environment]
 	KV           *KVResource
+	Postgres     *PostgresResource
 }
 
 // ownerByID returns the Owner with the given ID from the seeded owners. The
@@ -231,6 +255,7 @@ func NewServer(t *testing.T) *Server {
 		Projects:     &Resource[client.Project]{},
 		Environments: &Resource[client.Environment]{},
 		KV:           &KVResource{},
+		Postgres:     &PostgresResource{},
 	}
 
 	mux := http.NewServeMux()
@@ -591,6 +616,73 @@ func NewServer(t *testing.T) *Server {
 			}
 		}
 		w.WriteHeader(http.StatusNotFound)
+	})
+
+	// POST /postgres — create a new Postgres instance.
+	// Tests can assert against s.Postgres.Instances.
+	mux.HandleFunc("POST /postgres", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+
+		var body client.CreatePostgresJSONRequestBody
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if status, hasError := s.Postgres.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+
+		owner, ok := s.ownerByID(body.OwnerId)
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		region := pointers.ValueOrDefault(body.Region, client.Oregon)
+		databaseName := pointers.ValueOrDefault(body.DatabaseName, body.Name+"_db")
+		databaseUser := pointers.ValueOrDefault(body.DatabaseUser, "appuser")
+
+		ipAllowList := []client.CidrBlockAndDescription{}
+		if body.IpAllowList != nil {
+			ipAllowList = *body.IpAllowList
+		}
+
+		replicas := client.ReadReplicas{}
+		if body.ReadReplicas != nil {
+			for _, r := range *body.ReadReplicas {
+				replicas = append(replicas, client.ReadReplica{
+					Id:   testids.RandomPostgresID(),
+					Name: r.Name,
+				})
+			}
+		}
+
+		id := testids.RandomPostgresID()
+		pg := &client.PostgresDetail{
+			Id:                      id,
+			Name:                    body.Name,
+			Plan:                    body.Plan,
+			Version:                 body.Version,
+			Region:                  region,
+			Owner:                   owner,
+			Status:                  client.DatabaseStatusCreating,
+			DatabaseName:            databaseName,
+			DatabaseUser:            databaseUser,
+			DiskSizeGB:              body.DiskSizeGB,
+			DiskAutoscalingEnabled:  pointers.ValueOrDefault(body.EnableDiskAutoscaling, false),
+			HighAvailabilityEnabled: pointers.ValueOrDefault(body.EnableHighAvailability, false),
+			EnvironmentId:           body.EnvironmentId,
+			IpAllowList:             ipAllowList,
+			ReadReplicas:            replicas,
+			ParameterOverrides:      body.ParameterOverrides,
+			DashboardUrl:            "https://dashboard.render.com/d/" + id,
+			CreatedAt:               time.Now(),
+			UpdatedAt:               time.Now(),
+		}
+
+		s.Postgres.Instances = append(s.Postgres.Instances, pg)
+		writeJSON(w, http.StatusCreated, pg)
 	})
 
 	s.server = httptest.NewServer(mux)

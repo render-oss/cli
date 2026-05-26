@@ -180,7 +180,7 @@ func (d *Dependencies) ServiceService() *service.Service {
 
 func (d *Dependencies) PostgresService() *postgres.Service {
 	return d.cache.postgresService.Get(func() *postgres.Service {
-		return postgres.NewService(d.PostgresRepo(), d.EnvironmentRepo(), d.ProjectRepo())
+		return postgres.NewService(d.PostgresRepo(), d.EnvironmentRepo(), d.ProjectRepo(), d.Resolver())
 	})
 }
 

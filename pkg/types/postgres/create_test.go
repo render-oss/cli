@@ -9,114 +9,55 @@ import (
 )
 
 func TestCreatePostgresInputValidate(t *testing.T) {
-	t.Run("requires name", func(t *testing.T) {
-		input := postgrestypes.CreatePostgresInput{
-			Plan:    "free",
-			Version: 16,
-		}
-		err := input.Validate(false)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "--name is required")
+	// A zero-value input must pass validation so users can run
+	// `render ea pg create` with no flags and get a working database.
+	// Defaults are filled in client-side (name, plan, version, disk size)
+	// and server-side (region, db name, etc.).
+	t.Run("zero-value input is valid", func(t *testing.T) {
+		require.NoError(t, postgrestypes.CreatePostgresInput{}.Validate(false))
 	})
 
-	t.Run("requires plan", func(t *testing.T) {
-		input := postgrestypes.CreatePostgresInput{
-			Name:    "test-db",
-			Version: 16,
-		}
-		err := input.Validate(false)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "--plan is required")
-	})
-
-	t.Run("requires version", func(t *testing.T) {
-		input := postgrestypes.CreatePostgresInput{
-			Name: "test-db",
-			Plan: "free",
-		}
-		err := input.Validate(false)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "--version is required")
-	})
-
-	t.Run("rejects version below minimum", func(t *testing.T) {
-		input := postgrestypes.CreatePostgresInput{
-			Name:    "test-db",
-			Plan:    "free",
-			Version: 10,
-		}
-		err := input.Validate(false)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid --version")
-	})
-
-	t.Run("accepts known versions", func(t *testing.T) {
-		for _, version := range []int{11, 14, 16, 18} {
-			input := postgrestypes.CreatePostgresInput{
-				Name:    "test-db",
-				Plan:    "free",
-				Version: version,
-			}
-			err := input.Validate(false)
-			require.NoError(t, err)
-		}
-	})
-
-	t.Run("accepts future versions above minimum", func(t *testing.T) {
-		input := postgrestypes.CreatePostgresInput{
-			Name:    "test-db",
-			Plan:    "free",
-			Version: 99,
-		}
-		err := input.Validate(false)
-		require.NoError(t, err)
-	})
-
-	t.Run("rejects malformed parameter override without equals", func(t *testing.T) {
-		input := postgrestypes.CreatePostgresInput{
-			Name:               "test-db",
-			Plan:               "free",
-			Version:            16,
+	t.Run("rejects malformed parameter override", func(t *testing.T) {
+		err := postgrestypes.CreatePostgresInput{
 			ParameterOverrides: []string{"noequals"},
-		}
-		err := input.Validate(false)
+		}.Validate(false)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid --parameter-override")
 		assert.Contains(t, err.Error(), "expected KEY=VALUE format")
 	})
 
-	t.Run("accepts valid parameter override", func(t *testing.T) {
-		input := postgrestypes.CreatePostgresInput{
-			Name:               "test-db",
-			Plan:               "free",
-			Version:            16,
-			ParameterOverrides: []string{"max_connections=100"},
-		}
-		err := input.Validate(false)
-		require.NoError(t, err)
+	t.Run("accepts valid parameter overrides", func(t *testing.T) {
+		require.NoError(t, postgrestypes.CreatePostgresInput{
+			ParameterOverrides: []string{"max_connections=100", "shared_buffers=256MB"},
+		}.Validate(false))
+	})
+}
+
+func TestValidateDiskSizeGB(t *testing.T) {
+	t.Run("nil is valid (means let server decide)", func(t *testing.T) {
+		require.NoError(t, postgrestypes.ValidateDiskSizeGB(nil))
 	})
 
-	t.Run("accepts multiple valid parameter overrides", func(t *testing.T) {
-		input := postgrestypes.CreatePostgresInput{
-			Name:    "test-db",
-			Plan:    "free",
-			Version: 16,
-			ParameterOverrides: []string{
-				"max_connections=100",
-				"shared_buffers=256MB",
-			},
-		}
-		err := input.Validate(false)
-		require.NoError(t, err)
+	t.Run("accepts 1 GB", func(t *testing.T) {
+		size := 1
+		require.NoError(t, postgrestypes.ValidateDiskSizeGB(&size))
 	})
 
-	t.Run("valid minimal input", func(t *testing.T) {
-		input := postgrestypes.CreatePostgresInput{
-			Name:    "test-db",
-			Plan:    "free",
-			Version: 16,
+	t.Run("accepts multiples of 5", func(t *testing.T) {
+		for _, size := range []int{5, 15, 100, 250, 1000} {
+			s := size
+			require.NoError(t, postgrestypes.ValidateDiskSizeGB(&s))
 		}
-		err := input.Validate(false)
-		require.NoError(t, err)
+	})
+
+	t.Run("rejects 0", func(t *testing.T) {
+		size := 0
+		require.Error(t, postgrestypes.ValidateDiskSizeGB(&size))
+	})
+
+	t.Run("rejects non-multiples of 5", func(t *testing.T) {
+		for _, size := range []int{2, 3, 4, 7, 11, 99} {
+			s := size
+			require.Error(t, postgrestypes.ValidateDiskSizeGB(&s), "size %d should be invalid", s)
+		}
 	})
 }

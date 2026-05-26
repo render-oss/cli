@@ -8,9 +8,11 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/environment"
+	"github.com/render-oss/cli/pkg/owner"
 	"github.com/render-oss/cli/pkg/postgres"
 	postgrestui "github.com/render-oss/cli/pkg/postgres/tui"
 	"github.com/render-oss/cli/pkg/project"
+	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/tui"
 )
 
@@ -61,11 +63,13 @@ func listDatabases(ctx context.Context, input PostgresInput) ([]*postgres.Model,
 		return nil, err
 	}
 
+	ownerRepo := owner.NewRepo(c)
 	environmentRepo := environment.NewRepo(c)
 	projectRepo := project.NewRepo(c)
 	postgresRepo := postgres.NewRepo(c)
 
-	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo)
+	resolver := resolve.New(ownerRepo, projectRepo, environmentRepo)
+	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo, resolver)
 
 	params := &client.ListPostgresParams{}
 	if input.EnvironmentIDs != nil {

@@ -56,6 +56,16 @@ func RandomKeyValueID() string {
 	return KeyValueID(xid.New().String())
 }
 
+// PostgresID returns a syntactically valid Postgres ID for tests.
+func PostgresID(label string) string {
+	return objectID("dpg", label)
+}
+
+// RandomPostgresID returns a syntactically valid Postgres ID for tests.
+func RandomPostgresID() string {
+	return PostgresID(xid.New().String())
+}
+
 // objectID returns a deterministic test ID in Render object ID form:
 //
 //	objectID("prj", "Project A!") == "prj-projecta000000000000"

@@ -11,9 +11,11 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/environment"
 	"github.com/render-oss/cli/pkg/keyvalue"
+	"github.com/render-oss/cli/pkg/owner"
 	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/postgres"
 	"github.com/render-oss/cli/pkg/project"
+	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/resource/util"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/workflow"
@@ -49,6 +51,7 @@ func NewDefaultResourceService() (*Service, error) {
 	}
 
 	serviceRepo := service.NewRepo(c)
+	ownerRepo := owner.NewRepo(c)
 	environmentRepo := environment.NewRepo(c)
 	projectRepo := project.NewRepo(c)
 	postgresRepo := postgres.NewRepo(c)
@@ -56,7 +59,8 @@ func NewDefaultResourceService() (*Service, error) {
 	workflowRepo := workflow.NewRepo(c)
 
 	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
-	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo)
+	resolver := resolve.New(ownerRepo, projectRepo, environmentRepo)
+	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo, resolver)
 	keyValueService := keyvalue.NewService(keyValueRepo, environmentRepo, projectRepo)
 	workflowService := workflow.NewService(workflowRepo, environmentRepo, projectRepo)
 
