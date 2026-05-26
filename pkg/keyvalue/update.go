@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/types"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
@@ -82,7 +83,7 @@ func BuildUpdateRequest(input kvtypes.KeyValueUpdateInput) (client.UpdateKeyValu
 	}
 
 	if len(input.IPAllowList) > 0 {
-		entries, err := parseIPAllowList(input.IPAllowList)
+		entries, err := types.ParseIPAllowList(input.IPAllowList)
 		if err != nil {
 			return client.UpdateKeyValueJSONRequestBody{}, err
 		}

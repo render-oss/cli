@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	"github.com/render-oss/cli/pkg/client"
 )
 
 // ParseIPAllowListEntry parses an AWS-style composite flag value into a CIDR block and description.
@@ -41,6 +43,24 @@ func ParseIPAllowListEntry(raw string) (cidrBlock string, description string, er
 	}
 
 	return cidrBlock, description, nil
+}
+
+// ParseIPAllowList parses a list of --ip-allow-list flag values into the REST
+// API shape. Each entry follows the format documented on
+// ParseIPAllowListEntry.
+func ParseIPAllowList(raw []string) ([]client.CidrBlockAndDescription, error) {
+	out := make([]client.CidrBlockAndDescription, 0, len(raw))
+	for _, entry := range raw {
+		cidr, desc, err := ParseIPAllowListEntry(entry)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, client.CidrBlockAndDescription{
+			CidrBlock:   cidr,
+			Description: desc,
+		})
+	}
+	return out, nil
 }
 
 // FormatIPAllowListEntry formats a CIDR block and description into the composite flag format.

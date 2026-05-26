@@ -374,16 +374,9 @@ func ParseIPAllowListInputs(raw []string) (*[]client.CidrBlockAndDescription, er
 	if len(raw) == 0 {
 		return nil, nil
 	}
-	entries := make([]client.CidrBlockAndDescription, 0, len(raw))
-	for _, entry := range raw {
-		cidr, description, err := types.ParseIPAllowListEntry(entry)
-		if err != nil {
-			return nil, err
-		}
-		entries = append(entries, client.CidrBlockAndDescription{
-			CidrBlock:   cidr,
-			Description: description,
-		})
+	entries, err := types.ParseIPAllowList(raw)
+	if err != nil {
+		return nil, err
 	}
 	return &entries, nil
 }

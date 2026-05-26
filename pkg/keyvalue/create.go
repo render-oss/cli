@@ -129,7 +129,7 @@ func BuildCreateRequest(input kvtypes.KeyValueCreateRequestInput) (client.Create
 	}
 
 	if len(input.IPAllowList) > 0 {
-		entries, err := parseIPAllowList(input.IPAllowList)
+		entries, err := types.ParseIPAllowList(input.IPAllowList)
 		if err != nil {
 			return client.CreateKeyValueJSONRequestBody{}, err
 		}
@@ -137,19 +137,4 @@ func BuildCreateRequest(input kvtypes.KeyValueCreateRequestInput) (client.Create
 	}
 
 	return body, nil
-}
-
-func parseIPAllowList(raw []string) ([]client.CidrBlockAndDescription, error) {
-	out := make([]client.CidrBlockAndDescription, 0, len(raw))
-	for _, entry := range raw {
-		cidr, desc, err := types.ParseIPAllowListEntry(entry)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, client.CidrBlockAndDescription{
-			CidrBlock:   cidr,
-			Description: desc,
-		})
-	}
-	return out, nil
 }

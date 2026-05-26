@@ -61,6 +61,33 @@ func TestParseIPAllowListEntry(t *testing.T) {
 	})
 }
 
+func TestParseIPAllowList(t *testing.T) {
+	t.Run("parses each entry into a CidrBlockAndDescription", func(t *testing.T) {
+		out, err := types.ParseIPAllowList([]string{
+			"cidr=10.0.0.0/8,description=Internal",
+			"cidr=203.0.113.5/32",
+		})
+		require.NoError(t, err)
+		require.Len(t, out, 2)
+		assert.Equal(t, "10.0.0.0/8", out[0].CidrBlock)
+		assert.Equal(t, "Internal", out[0].Description)
+		assert.Equal(t, "203.0.113.5/32", out[1].CidrBlock)
+		assert.Equal(t, "", out[1].Description)
+	})
+
+	t.Run("propagates entry-level errors", func(t *testing.T) {
+		_, err := types.ParseIPAllowList([]string{"malformed"})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "must start with cidr=")
+	})
+
+	t.Run("nil input yields empty slice", func(t *testing.T) {
+		out, err := types.ParseIPAllowList(nil)
+		require.NoError(t, err)
+		assert.Empty(t, out)
+	})
+}
+
 func TestFormatIPAllowListEntry(t *testing.T) {
 	t.Run("formats cidr with description", func(t *testing.T) {
 		result := types.FormatIPAllowListEntry("10.0.0.0/8", "Internal")
