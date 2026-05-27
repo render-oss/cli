@@ -12,6 +12,7 @@ import (
 
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
+	pgclient "github.com/render-oss/cli/pkg/client/postgres"
 	"github.com/render-oss/cli/pkg/pointers"
 )
 
@@ -186,6 +187,82 @@ func NewKV(kv *client.KeyValueDetail) *client.KeyValueDetail {
 		}
 	}
 	return kv
+}
+
+// NewPostgres returns a PostgresDetail with sensible defaults for any
+// zero-value fields.
+func NewPostgres(pg *client.PostgresDetail) *client.PostgresDetail {
+	if pg == nil {
+		pg = &client.PostgresDetail{}
+	}
+	if pg.Id == "" {
+		pg.Id = testids.RandomPostgresID()
+	}
+	if pg.Name == "" {
+		pg.Name = "my-postgres"
+	}
+	if pg.Plan == "" {
+		pg.Plan = pgclient.Free
+	}
+	if pg.Version == "" {
+		pg.Version = client.PostgresVersion("18")
+	}
+	if pg.Region == "" {
+		pg.Region = client.Oregon
+	}
+	if pg.Status == "" {
+		pg.Status = client.DatabaseStatusAvailable
+	}
+	if pg.DatabaseName == "" {
+		pg.DatabaseName = pg.Name + "_db"
+	}
+	if pg.DatabaseUser == "" {
+		pg.DatabaseUser = "appuser"
+	}
+	if pg.IpAllowList == nil {
+		pg.IpAllowList = []client.CidrBlockAndDescription{}
+	}
+	if pg.ReadReplicas == nil {
+		pg.ReadReplicas = client.ReadReplicas{}
+	}
+	if pg.DashboardUrl == "" {
+		pg.DashboardUrl = "https://dashboard.render.com/d/" + pg.Id
+	}
+	now := time.Now()
+	if pg.CreatedAt.IsZero() {
+		pg.CreatedAt = now
+	}
+	if pg.UpdatedAt.IsZero() {
+		pg.UpdatedAt = now
+	}
+	return pg
+}
+
+func postgresListItem(pg *client.PostgresDetail) client.Postgres {
+	return client.Postgres{
+		CreatedAt:               pg.CreatedAt,
+		DashboardUrl:            pg.DashboardUrl,
+		DatabaseName:            pg.DatabaseName,
+		DatabaseUser:            pg.DatabaseUser,
+		DiskAutoscalingEnabled:  pg.DiskAutoscalingEnabled,
+		DiskSizeGB:              pg.DiskSizeGB,
+		EnvironmentId:           pg.EnvironmentId,
+		ExpiresAt:               pg.ExpiresAt,
+		HighAvailabilityEnabled: pg.HighAvailabilityEnabled,
+		Id:                      pg.Id,
+		IpAllowList:             pg.IpAllowList,
+		Name:                    pg.Name,
+		Owner:                   pg.Owner,
+		Plan:                    pg.Plan,
+		PrimaryPostgresID:       pg.PrimaryPostgresID,
+		ReadReplicas:            pg.ReadReplicas,
+		Region:                  pg.Region,
+		Role:                    pg.Role,
+		Status:                  pg.Status,
+		Suspenders:              pg.Suspenders,
+		UpdatedAt:               pg.UpdatedAt,
+		Version:                 pg.Version,
+	}
 }
 
 // NewUser returns a User with sensible defaults for any zero-value fields.
@@ -618,6 +695,34 @@ func NewServer(t *testing.T) *Server {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
+	// GET /postgres — list Postgres instances (supports ?name=, ?ownerId=,
+	// and ?environmentId= filters)
+	mux.HandleFunc("GET /postgres", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		name := r.URL.Query().Get("name")
+		ownerID := r.URL.Query().Get("ownerId")
+		envIDs := queryListValues(r, "environmentId")
+		result := make([]client.PostgresWithCursor, 0, len(s.Postgres.Instances))
+		for i, pg := range s.Postgres.Instances {
+			if name != "" && pg.Name != name {
+				continue
+			}
+			if ownerID != "" && pg.Owner.Id != ownerID {
+				continue
+			}
+			if len(envIDs) > 0 {
+				if pg.EnvironmentId == nil || !slices.Contains(envIDs, *pg.EnvironmentId) {
+					continue
+				}
+			}
+			result = append(result, client.PostgresWithCursor{
+				Cursor:   client.Cursor(fmt.Sprintf("c%d", i)),
+				Postgres: postgresListItem(pg),
+			})
+		}
+		writeJSON(w, http.StatusOK, result)
+	})
+
 	// POST /postgres — create a new Postgres instance.
 	// Tests can assert against s.Postgres.Instances.
 	mux.HandleFunc("POST /postgres", func(w http.ResponseWriter, r *http.Request) {
@@ -683,6 +788,41 @@ func NewServer(t *testing.T) *Server {
 
 		s.Postgres.Instances = append(s.Postgres.Instances, pg)
 		writeJSON(w, http.StatusCreated, pg)
+	})
+
+	// GET /postgres/{id} — retrieve a Postgres instance
+	mux.HandleFunc("GET /postgres/{id}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		id := r.PathValue("id")
+		if status, hasError := s.Postgres.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		for _, pg := range s.Postgres.Instances {
+			if pg.Id == id {
+				writeJSON(w, http.StatusOK, pg)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	// DELETE /postgres/{id} — delete a Postgres instance
+	mux.HandleFunc("DELETE /postgres/{id}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		id := r.PathValue("id")
+		if status, hasError := s.Postgres.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		for i, pg := range s.Postgres.Instances {
+			if pg.Id == id {
+				s.Postgres.Instances = slices.Delete(s.Postgres.Instances, i, i+1)
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
 	})
 
 	s.server = httptest.NewServer(mux)
