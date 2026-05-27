@@ -71,6 +71,16 @@ func (s *Service) RestartPostgresDatabase(ctx context.Context, id string) error 
 	return s.repo.RestartPostgresDatabase(ctx, id)
 }
 
+// Resolve resolves a Postgres database by ID or name within an optional
+// active-workspace project/environment scope.
+func (s *Service) Resolve(ctx context.Context, input ResolveInput) (*client.PostgresDetail, error) {
+	return s.resolve(ctx, input)
+}
+
+func (s *Service) Delete(ctx context.Context, id string) error {
+	return s.repo.DeletePostgres(ctx, id)
+}
+
 // Create applies defaults, resolves workspace/project/environment scope,
 // and calls the Postgres create endpoint. The non-interactive flag path
 // and (eventually) the interactive wizard both go through here.

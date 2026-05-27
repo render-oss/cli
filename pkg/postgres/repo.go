@@ -2,10 +2,17 @@ package postgres
 
 import (
 	"context"
+	"errors"
+	"net/http"
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/config"
 )
+
+// ErrPostgresNotFound is returned by Repo.GetPostgres when the API responds
+// with a 404, so callers can distinguish "this ID doesn't exist" from other
+// failure modes without parsing error messages.
+var ErrPostgresNotFound = errors.New("postgres not found")
 
 type Repo struct {
 	client *client.ClientWithResponses
@@ -56,6 +63,10 @@ func (r *Repo) GetPostgres(ctx context.Context, id string) (*client.PostgresDeta
 		return nil, err
 	}
 
+	if resp.StatusCode() == http.StatusNotFound {
+		return nil, ErrPostgresNotFound
+	}
+
 	if err := client.ErrorFromResponse(resp); err != nil {
 		return nil, err
 	}
@@ -100,4 +111,13 @@ func (r *Repo) CreatePostgres(ctx context.Context, data client.CreatePostgresJSO
 	}
 
 	return resp.JSON201, nil
+}
+
+func (r *Repo) DeletePostgres(ctx context.Context, id string) error {
+	resp, err := r.client.DeletePostgresWithResponse(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	return client.ErrorFromResponse(resp)
 }

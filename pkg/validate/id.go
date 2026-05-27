@@ -43,9 +43,12 @@ func IsKeyValueID(s string) bool {
 	return IsObjectID("red", s)
 }
 
-// IsPostgresID checks if the string is a valid Postgres ID (dpg-[a-z0-9]{20}).
+// IsPostgresID checks if the string is a valid Postgres ID. Primary Postgres
+// databases and replicas append a lowercase letter suffix to the base xid
+// (for example, dpg-12345678901234567890-a).
 func IsPostgresID(s string) bool {
-	return IsObjectID("dpg", s)
+	var postgresIDRegex = regexp.MustCompile(`^dpg-[a-z0-9]{20}(-[a-z]+)?$`)
+	return postgresIDRegex.MatchString(s)
 }
 
 // IsServiceInstanceID checks if the string is a valid service instance ID (srv-[a-z0-9]{20}-[a-z0-9]+)

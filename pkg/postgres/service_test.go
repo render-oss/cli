@@ -2,6 +2,8 @@ package postgres_test
 
 import (
 	"context"
+	"net/http"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,6 +22,7 @@ import (
 )
 
 type testHarness struct {
+	t           testing.TB
 	server      *renderapi.Server
 	service     *postgres.Service
 	workspaceID string
@@ -46,10 +49,85 @@ func newHarness(t *testing.T) testHarness {
 	)
 
 	return testHarness{
+		t:           t,
 		server:      server,
 		service:     svc,
 		workspaceID: workspaceID,
 	}
+}
+
+// addPostgres creates a Postgres that is owned by the seeded Active Workspace directly (no environment)
+func (h testHarness) addPostgres(name string) *client.PostgresDetail {
+	return h.server.Postgres.Add(renderapi.NewPostgres(&client.PostgresDetail{
+		Name:  name,
+		Owner: client.Owner{Id: h.workspaceID},
+	}))
+}
+
+// addPostgresInEnvironment creates a Postgres that is owned by the provided environment
+// Use only if the provided environment lives in the Active Workspace
+// Otherwise, use addPostgresInWorkspaceEnvironment
+func (h testHarness) addPostgresInEnvironment(name string, environmentID string) *client.PostgresDetail {
+	return h.addPostgresInWorkspaceEnvironment(name, h.workspaceID, environmentID)
+}
+
+func (h testHarness) addPostgresInWorkspaceEnvironment(name string, workspaceID string, environmentID string) *client.PostgresDetail {
+	h.requireOwner(workspaceID)
+	env := h.requireEnvironment(environmentID)
+	project := h.requireProject(env.ProjectId)
+	require.Equal(h.t, workspaceID, project.Owner.Id, "test setup: environment %q belongs to project %q in workspace %q, not workspace %q", environmentID, project.Id, project.Owner.Id, workspaceID)
+
+	return h.server.Postgres.Add(renderapi.NewPostgres(&client.PostgresDetail{
+		Name:          name,
+		Owner:         client.Owner{Id: workspaceID},
+		EnvironmentId: pointers.From(environmentID),
+	}))
+}
+
+func (h testHarness) addProjectAndEnvironment(workspaceID string, projectName string, environmentName string) client.Environment {
+	h.requireOwner(workspaceID)
+
+	project := renderapi.NewProject(renderapi.ProjectAttrs{
+		Name:    projectName,
+		OwnerId: workspaceID,
+	})
+	env := renderapi.NewEnvironment(client.Environment{
+		Name:      environmentName,
+		ProjectId: project.Id,
+	})
+	project.EnvironmentIds = []string{env.Id}
+	h.server.Projects.Add(project)
+	h.server.Environments.Add(env)
+	return env
+}
+
+func (h testHarness) requireOwner(workspaceID string) {
+	h.t.Helper()
+
+	idx := slices.IndexFunc(h.server.Owners.Instances, func(owner client.Owner) bool {
+		return owner.Id == workspaceID
+	})
+	require.NotEqual(h.t, -1, idx, "test setup: owner %q must be registered before use", workspaceID)
+}
+
+func (h testHarness) requireEnvironment(environmentID string) client.Environment {
+	h.t.Helper()
+
+	idx := slices.IndexFunc(h.server.Environments.Instances, func(env client.Environment) bool {
+		return env.Id == environmentID
+	})
+	require.NotEqual(h.t, -1, idx, "test setup: environment %q must be registered before use", environmentID)
+	return h.server.Environments.Instances[idx]
+}
+
+func (h testHarness) requireProject(projectID string) client.Project {
+	h.t.Helper()
+
+	idx := slices.IndexFunc(h.server.Projects.Instances, func(project client.Project) bool {
+		return project.Id == projectID
+	})
+	require.NotEqual(h.t, -1, idx, "test setup: project %q must be registered before use", projectID)
+	return h.server.Projects.Instances[idx]
 }
 
 func TestServiceCreate_UsesResolvedWorkspaceAndDefaults(t *testing.T) {
@@ -91,4 +169,51 @@ func TestServiceCreate_AutoSelectsSingleEnvironmentWhenOnlyProjectGiven(t *testi
 
 	require.NotNil(t, created.EnvironmentId)
 	assert.Equal(t, env.Id, *created.EnvironmentId)
+}
+
+func TestServiceDelete_DeletesByID(t *testing.T) {
+	harness := newHarness(t)
+	pg := harness.addPostgres("my-db")
+
+	err := harness.service.Delete(context.Background(), pg.Id)
+	require.NoError(t, err)
+
+	assert.Empty(t, harness.server.Postgres.Instances)
+}
+
+// Given 2 environments in different workspaces each named "production" each with a database named "my-pg",
+// Ensure that we resolve the Postgres instance relative to the active workspace
+func TestServiceResolve_EnvironmentLookupStaysInActiveWorkspace(t *testing.T) {
+	harness := newHarness(t)
+	otherWorkspaceID := testids.WorkspaceID("other")
+	harness.server.Owners.Add(renderapi.NewOwner(client.Owner{Id: otherWorkspaceID, Name: "Other Workspace"}))
+
+	activeProduction := harness.addProjectAndEnvironment(harness.workspaceID, "Active Project", "production")
+	otherProduction := harness.addProjectAndEnvironment(otherWorkspaceID, "Other Project", "production")
+	activeWorkspacePG := harness.addPostgresInEnvironment("my-db", activeProduction.Id)
+	otherWorkspacePG := harness.addPostgresInWorkspaceEnvironment("my-db", otherWorkspaceID, otherProduction.Id)
+
+	result, err := harness.service.Resolve(context.Background(), postgres.ResolveInput{
+		IDOrName:            "my-db",
+		EnvironmentIDOrName: pointers.From("production"),
+	})
+	require.NoError(t, err)
+
+	assert.NotEqual(t, otherWorkspacePG.Id, result.Id)
+	assert.Equal(t, activeWorkspacePG.Id, result.Id)
+}
+
+func TestServiceResolve_IDLookup_NonNotFoundError_Surfaces(t *testing.T) {
+	harness := newHarness(t)
+	pg := harness.addPostgres("my-db")
+	harness.server.Postgres.RespondWith(http.StatusInternalServerError)
+
+	_, err := harness.service.Resolve(context.Background(), postgres.ResolveInput{
+		IDOrName: pg.Id,
+	})
+	require.Error(t, err)
+
+	assert.NotContains(t, err.Error(), "No Postgres database named")
+	assert.Len(t, harness.server.Postgres.Instances, 1)
+	assert.False(t, harness.server.HasRequest("DELETE", "/postgres/"))
 }

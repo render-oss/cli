@@ -128,6 +128,35 @@ func TestIsEnvironmentID(t *testing.T) {
 	}
 }
 
+func TestIsPostgresID(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{"valid base postgres ID", "dpg-12345678901234567890", true},
+		{"valid primary postgres ID", "dpg-12345678901234567890-a", true},
+		{"valid postgres replica suffix b", "dpg-12345678901234567890-b", true},
+		{"valid postgres replica suffix bd", "dpg-12345678901234567890-bd", true},
+		{"valid postgres replica suffix z", "dpg-12345678901234567890-z", true},
+		{"valid replica postgres ID", "dpg-12345678901234567890-aa", true},
+		{"numeric suffix rejected", "dpg-12345678901234567890-1", false},
+		{"service ID rejected", "srv-12345678901234567890", false},
+		{"incorrect prefix rejected", "xdpg-12345678901234567890-a", false},
+		{"correct prefix but base too short rejected", "dpg-short-name-a", false},
+		{"empty suffix rejected", "dpg-12345678901234567890-", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := validate.IsPostgresID(tc.input)
+			if got != tc.expected {
+				t.Errorf("IsPostgresID(%q) = %v, want %v", tc.input, got, tc.expected)
+			}
+		})
+	}
+}
+
 func TestIsServiceInstanceID(t *testing.T) {
 	tests := []struct {
 		name     string
