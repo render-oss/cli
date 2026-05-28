@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.19.0] - 2026-05-28
+
+### Added
+
+- `render ea pg create` command to create a Postgres instance from the CLI
+- `render ssh --ephemeral` accepts `--size` to choose the plan for the ephemeral instance (e.g. `--size standard`)
+
+### Changed
+
+- Runtime CLI command errors no longer print command usage/help text after the error
+
 ## [2.18.0] - 2026-05-21
 
 ### Added
