@@ -10,7 +10,6 @@ import (
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/pointers"
 )
 
 func executePGDelete(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
@@ -19,21 +18,6 @@ func executePGDelete(t *testing.T, server *renderapi.Server, extraArgs ...string
 	t.Setenv("RENDER_WORKSPACE", pgActiveWorkspaceID)
 
 	return executePGCommand(t, server, append([]string{"ea", "pg", "delete"}, extraArgs...)...)
-}
-
-func seedPG(server *renderapi.Server, name string) *client.PostgresDetail {
-	return server.Postgres.Add(renderapi.NewPostgres(&client.PostgresDetail{
-		Name:  name,
-		Owner: client.Owner{Id: pgActiveWorkspaceID},
-	}))
-}
-
-func seedPGInEnv(server *renderapi.Server, name string, envID string) *client.PostgresDetail {
-	return server.Postgres.Add(renderapi.NewPostgres(&client.PostgresDetail{
-		Name:          name,
-		Owner:         client.Owner{Id: pgActiveWorkspaceID},
-		EnvironmentId: pointers.From(envID),
-	}))
 }
 
 func TestPGDelete_PreviewByID_DoesNotDelete(t *testing.T) {

@@ -58,7 +58,7 @@ func (s *Service) ListPostgres(ctx context.Context, params *client.ListPostgresP
 
 // List resolves active-workspace project/environment selectors into API params
 // before listing Postgres databases.
-func (s *Service) List(ctx context.Context, input ListInput) ([]*Model, error) {
+func (s *Service) List(ctx context.Context, input pgtypes.ListPostgresInput) ([]*Model, error) {
 	params := &client.ListPostgresParams{}
 
 	if input.HasFilter() {
@@ -154,7 +154,7 @@ func (s *Service) hydratePostgresModel(ctx context.Context, postgres *client.Pos
 // environment IDs to filter on. A valid project with no environments returns
 // an empty ID list, which callers should treat as an empty resource list rather
 // than an invalid selector.
-func (s *Service) listEnvIDs(ctx context.Context, input ListInput) ([]string, error) {
+func (s *Service) listEnvIDs(ctx context.Context, input pgtypes.ListPostgresInput) ([]string, error) {
 	scope, err := s.resolver.ResolveScopeInActiveWorkspace(ctx, resolve.ActiveWorkspaceScopeInput{
 		ProjectIDOrName:     input.ProjectIDOrName,
 		EnvironmentIDOrName: input.EnvironmentIDOrName,

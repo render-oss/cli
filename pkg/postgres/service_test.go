@@ -189,7 +189,7 @@ func TestServiceList_FilterByProject(t *testing.T) {
 	projAPostgres := harness.addPostgresInEnvironment("project-a-db", projAProdEnv.Id)
 	projBPostgres := harness.addPostgresInEnvironment("project-b-db", projBProdEnv.Id)
 
-	result, err := harness.service.List(context.Background(), postgres.ListInput{
+	result, err := harness.service.List(context.Background(), pgtypes.ListPostgresInput{
 		ProjectIDOrName: pointers.From("Project A"),
 	})
 	require.NoError(t, err)
@@ -207,7 +207,7 @@ func TestServiceList_ProjectWithNoEnvironmentsReturnsEmptyList(t *testing.T) {
 	})
 	harness.server.Projects.Add(project)
 
-	result, err := harness.service.List(context.Background(), postgres.ListInput{
+	result, err := harness.service.List(context.Background(), pgtypes.ListPostgresInput{
 		ProjectIDOrName: pointers.From("Empty Project"),
 	})
 	require.NoError(t, err)
@@ -227,7 +227,7 @@ func TestServiceList_EnvironmentLookupStaysInActiveWorkspace(t *testing.T) {
 	activeWorkspacePG := harness.addPostgresInEnvironment("active-db", activeProduction.Id)
 	otherWorkspacePG := harness.addPostgresInWorkspaceEnvironment("other-db", otherWorkspaceID, otherProduction.Id)
 
-	result, err := harness.service.List(context.Background(), postgres.ListInput{
+	result, err := harness.service.List(context.Background(), pgtypes.ListPostgresInput{
 		EnvironmentIDOrName: pointers.From("production"),
 	})
 	require.NoError(t, err)
