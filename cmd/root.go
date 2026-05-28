@@ -155,7 +155,7 @@ func setupWorkspaceCommands(deps *dependencies.Dependencies) {
 }
 
 func setupPGCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
-	earlyAccess.AddCommand(newPgCmd(newPgCreateCmd(deps)))
+	earlyAccess.AddCommand(newPgCmd(newPgCreateCmd(deps), newPgDeleteCmd(deps)))
 }
 
 func SetupCommands() error {

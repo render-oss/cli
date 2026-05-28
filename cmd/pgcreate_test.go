@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"testing"
 
@@ -12,11 +11,7 @@ import (
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
 	pgclient "github.com/render-oss/cli/pkg/client/postgres"
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/dependencies"
 )
-
-var pgActiveWorkspaceID = testids.WorkspaceID("active")
 
 func executePGCreate(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()
@@ -24,37 +19,6 @@ func executePGCreate(t *testing.T, server *renderapi.Server, extraArgs ...string
 	t.Setenv("RENDER_WORKSPACE", pgActiveWorkspaceID)
 
 	return executePGCommand(t, server, append([]string{"ea", "pg", "create"}, extraArgs...)...)
-}
-
-func executePGCommand(t *testing.T, server *renderapi.Server, args ...string) (CommandResult, error) {
-	t.Helper()
-	t.Setenv("RENDER_CLI_CONFIG_PATH", newTestConfigPath(t))
-	t.Setenv("RENDER_API_KEY", "test-api-key")
-
-	c, err := client.NewClientWithResponses(server.URL())
-	require.NoError(t, err)
-	deps := dependencies.New(c)
-	deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
-		return command.RuntimeSignals{
-			StdinTTY:  false,
-			StdoutTTY: false,
-			StderrTTY: false,
-		}, nil
-	}
-
-	root := newRootCmd()
-	ea := newEarlyAccessCmd()
-	root.AddCommand(ea)
-	setupPGCommands(ea, deps)
-	setupRootCmdPersistentRun(root, deps)
-
-	var stdout, stderr bytes.Buffer
-	root.SetOut(&stdout)
-	root.SetErr(&stderr)
-	root.SetArgs(args)
-
-	execErr := root.Execute()
-	return CommandResult{Stdout: stdout.String(), Stderr: stderr.String()}, execErr
 }
 
 func TestPGCreate_ZeroFlags_AppliesDefaults(t *testing.T) {
