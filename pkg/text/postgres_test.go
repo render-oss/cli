@@ -8,6 +8,7 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	pgclient "github.com/render-oss/cli/pkg/client/postgres"
 	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/postgres"
 	"github.com/render-oss/cli/pkg/text"
 )
 
@@ -110,4 +111,49 @@ func TestPostgresDetail_IPAllowList(t *testing.T) {
 		assert.Contains(t, out, "10.0.0.0/8 (internal)")
 		assert.Contains(t, out, "203.0.113.5/32")
 	})
+}
+
+func TestPostgresTable(t *testing.T) {
+	out := text.PostgresTable([]*postgres.Model{{
+		Postgres: &client.Postgres{
+			Id:     "dpg-table",
+			Name:   "table-pg",
+			Plan:   pgclient.Basic256mb,
+			Region: client.Oregon,
+			Status: client.DatabaseStatusAvailable,
+		},
+		Project:     &client.Project{Name: "Project A"},
+		Environment: &client.Environment{Name: "production"},
+	}})
+
+	assert.Contains(t, out, "table-pg")
+	assert.Contains(t, out, "Project A")
+	assert.Contains(t, out, "production")
+	assert.Contains(t, out, "basic_256mb")
+	assert.Contains(t, out, "dpg-table")
+}
+
+func TestPostgresTable_EmptyState(t *testing.T) {
+	out := text.PostgresTable([]*postgres.Model{})
+
+	assert.Contains(t, out, "NAME")
+	assert.Contains(t, out, "No Postgres databases found.")
+}
+
+func TestPostgresGetDetail_ConnectionInfo(t *testing.T) {
+	pg := basicPostgres()
+	conn := &client.PostgresConnectionInfo{
+		PsqlCommand:              "PGPASSWORD=secret psql postgres://internal",
+		InternalConnectionString: "postgres://internal",
+		ExternalConnectionString: "postgres://external",
+		Password:                 "secret",
+	}
+
+	out := text.PostgresGetDetail(pg, conn)
+
+	assert.Contains(t, out, "Name: my-pg")
+	assert.Contains(t, out, "PSQL:")
+	assert.Contains(t, out, "Internal: postgres://internal")
+	assert.Contains(t, out, "External: postgres://external")
+	assert.Contains(t, out, "Password: secret")
 }

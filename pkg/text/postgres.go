@@ -4,8 +4,31 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jedib0t/go-pretty/table"
+
 	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/postgres"
 )
+
+func PostgresTable(v []*postgres.Model) string {
+	t := newTable()
+	t.AppendHeader(table.Row{"Name", "Project", "Environment", "Plan", "Region", "Status", "ID"})
+	if len(v) == 0 {
+		t.SetCaption("No Postgres databases found.")
+	}
+	for _, m := range v {
+		t.AppendRow(table.Row{
+			m.Name(),
+			m.ProjectName(),
+			m.EnvironmentName(),
+			string(m.Postgres.Plan),
+			string(m.Postgres.Region),
+			string(m.Postgres.Status),
+			m.ID(),
+		})
+	}
+	return FormatString(t.Render())
+}
 
 // PostgresDetail formats a Postgres instance detail for text output.
 // Does NOT include an action prefix (e.g., "Created") — callers should prepend
@@ -35,6 +58,21 @@ func PostgresDetail(pg *client.PostgresDetail) string {
 	}
 	lines = append(lines, ipAllowListBlock(pg.IpAllowList))
 	return strings.Join(lines, "\n")
+}
+
+func PostgresGetDetail(pg *client.PostgresDetail, conn *client.PostgresConnectionInfo) string {
+	detail := PostgresDetail(pg)
+	if conn == nil {
+		return detail
+	}
+	return strings.Join([]string{
+		detail,
+		"",
+		fmt.Sprintf("PSQL:     %s", conn.PsqlCommand),
+		fmt.Sprintf("Internal: %s", conn.InternalConnectionString),
+		fmt.Sprintf("External: %s", conn.ExternalConnectionString),
+		fmt.Sprintf("Password: %s", conn.Password),
+	}, "\n")
 }
 
 // readReplicasBlock renders the read-replica list as a header line followed by

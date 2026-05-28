@@ -807,6 +807,24 @@ func NewServer(t *testing.T) *Server {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
+	// GET /postgres/{id}/connection-info — retrieve connection strings for a Postgres instance
+	mux.HandleFunc("GET /postgres/{id}/connection-info", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		id := r.PathValue("id")
+		for _, pg := range s.Postgres.Instances {
+			if pg.Id == id {
+				writeJSON(w, http.StatusOK, &client.PostgresConnectionInfo{
+					PsqlCommand:              "PGPASSWORD=fake-password psql fake-internal",
+					InternalConnectionString: "postgres://fake-internal",
+					ExternalConnectionString: "postgres://fake-external",
+					Password:                 "fake-password",
+				})
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+
 	// DELETE /postgres/{id} — delete a Postgres instance
 	mux.HandleFunc("DELETE /postgres/{id}", func(w http.ResponseWriter, r *http.Request) {
 		record(r)

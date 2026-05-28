@@ -181,6 +181,62 @@ func TestServiceDelete_DeletesByID(t *testing.T) {
 	assert.Empty(t, harness.server.Postgres.Instances)
 }
 
+func TestServiceList_FilterByProject(t *testing.T) {
+	harness := newHarness(t)
+
+	projAProdEnv := harness.addProjectAndEnvironment(harness.workspaceID, "Project A", "production")
+	projBProdEnv := harness.addProjectAndEnvironment(harness.workspaceID, "Project B", "production")
+	projAPostgres := harness.addPostgresInEnvironment("project-a-db", projAProdEnv.Id)
+	projBPostgres := harness.addPostgresInEnvironment("project-b-db", projBProdEnv.Id)
+
+	result, err := harness.service.List(context.Background(), postgres.ListInput{
+		ProjectIDOrName: pointers.From("Project A"),
+	})
+	require.NoError(t, err)
+
+	require.Len(t, result, 1)
+	assert.Equal(t, projAPostgres.Id, result[0].ID())
+	assert.NotEqual(t, projBPostgres.Id, result[0].ID())
+}
+
+func TestServiceList_ProjectWithNoEnvironmentsReturnsEmptyList(t *testing.T) {
+	harness := newHarness(t)
+	project := renderapi.NewProject(renderapi.ProjectAttrs{
+		Name:    "Empty Project",
+		OwnerId: harness.workspaceID,
+	})
+	harness.server.Projects.Add(project)
+
+	result, err := harness.service.List(context.Background(), postgres.ListInput{
+		ProjectIDOrName: pointers.From("Empty Project"),
+	})
+	require.NoError(t, err)
+
+	assert.Empty(t, result)
+	assert.NotNil(t, result)
+	assert.False(t, harness.server.HasRequest("GET", "/postgres"))
+}
+
+func TestServiceList_EnvironmentLookupStaysInActiveWorkspace(t *testing.T) {
+	harness := newHarness(t)
+	otherWorkspaceID := testids.WorkspaceID("other")
+	harness.server.Owners.Add(renderapi.NewOwner(client.Owner{Id: otherWorkspaceID, Name: "Other Workspace"}))
+
+	activeProduction := harness.addProjectAndEnvironment(harness.workspaceID, "Active Project", "production")
+	otherProduction := harness.addProjectAndEnvironment(otherWorkspaceID, "Other Project", "production")
+	activeWorkspacePG := harness.addPostgresInEnvironment("active-db", activeProduction.Id)
+	otherWorkspacePG := harness.addPostgresInWorkspaceEnvironment("other-db", otherWorkspaceID, otherProduction.Id)
+
+	result, err := harness.service.List(context.Background(), postgres.ListInput{
+		EnvironmentIDOrName: pointers.From("production"),
+	})
+	require.NoError(t, err)
+
+	require.Len(t, result, 1)
+	assert.NotEqual(t, otherWorkspacePG.Id, result[0].ID())
+	assert.Equal(t, activeWorkspacePG.Id, result[0].ID())
+}
+
 // Given 2 environments in different workspaces each named "production" each with a database named "my-pg",
 // Ensure that we resolve the Postgres instance relative to the active workspace
 func TestServiceResolve_EnvironmentLookupStaysInActiveWorkspace(t *testing.T) {
