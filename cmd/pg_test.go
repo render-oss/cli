@@ -49,7 +49,7 @@ func executePGCommand(t *testing.T, server *renderapi.Server, args ...string) (C
 
 // seedPG adds a new Postgres database to the seeded active workspace.
 func seedPG(server *renderapi.Server, name string) *client.PostgresDetail {
-	return server.Postgres.Add(renderapi.NewPostgres(&client.PostgresDetail{
+	return server.Postgres.Add(renderapi.NewPostgres(client.PostgresDetail{
 		Name:  name,
 		Owner: client.Owner{Id: pgActiveWorkspaceID},
 	}))
@@ -57,7 +57,7 @@ func seedPG(server *renderapi.Server, name string) *client.PostgresDetail {
 
 // seedPGInEnv adds a new Postgres database to the specified environment inside the active workspace.
 func seedPGInEnv(server *renderapi.Server, name string, envID string) *client.PostgresDetail {
-	return server.Postgres.Add(renderapi.NewPostgres(&client.PostgresDetail{
+	return server.Postgres.Add(renderapi.NewPostgres(client.PostgresDetail{
 		Name:          name,
 		Owner:         client.Owner{Id: pgActiveWorkspaceID},
 		EnvironmentId: pointers.From(envID),

@@ -58,7 +58,7 @@ func newHarness(t *testing.T) testHarness {
 
 // addPostgres creates a Postgres that is owned by the seeded Active Workspace directly (no environment)
 func (h testHarness) addPostgres(name string) *client.PostgresDetail {
-	return h.server.Postgres.Add(renderapi.NewPostgres(&client.PostgresDetail{
+	return h.server.Postgres.Add(renderapi.NewPostgres(client.PostgresDetail{
 		Name:  name,
 		Owner: client.Owner{Id: h.workspaceID},
 	}))
@@ -77,7 +77,7 @@ func (h testHarness) addPostgresInWorkspaceEnvironment(name string, workspaceID 
 	project := h.requireProject(env.ProjectId)
 	require.Equal(h.t, workspaceID, project.Owner.Id, "test setup: environment %q belongs to project %q in workspace %q, not workspace %q", environmentID, project.Id, project.Owner.Id, workspaceID)
 
-	return h.server.Postgres.Add(renderapi.NewPostgres(&client.PostgresDetail{
+	return h.server.Postgres.Add(renderapi.NewPostgres(client.PostgresDetail{
 		Name:          name,
 		Owner:         client.Owner{Id: workspaceID},
 		EnvironmentId: pointers.From(environmentID),

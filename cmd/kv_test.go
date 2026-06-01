@@ -17,7 +17,7 @@ var ACTIVE_WORKSPACE_ID = testids.WorkspaceID("active")
 // seedKV adds a KV instance owned by the active workspace, with a random
 // valid ID and the given name. Returns the seeded detail for assertions.
 func seedKV(server *renderapi.Server, name string) *client.KeyValueDetail {
-	kv := renderapi.NewKV(&client.KeyValueDetail{
+	kv := renderapi.NewKV(client.KeyValueDetail{
 		Name:  name,
 		Owner: client.Owner{Id: ACTIVE_WORKSPACE_ID},
 	})
@@ -27,7 +27,7 @@ func seedKV(server *renderapi.Server, name string) *client.KeyValueDetail {
 
 // seedKVInEnv adds a KV instance scoped to a specific environment.
 func seedKVInEnv(server *renderapi.Server, name, envID string) *client.KeyValueDetail {
-	kv := renderapi.NewKV(&client.KeyValueDetail{
+	kv := renderapi.NewKV(client.KeyValueDetail{
 		Name:          name,
 		Owner:         client.Owner{Id: ACTIVE_WORKSPACE_ID},
 		EnvironmentId: &envID,

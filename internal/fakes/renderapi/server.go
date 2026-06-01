@@ -158,10 +158,7 @@ func NewEnvironment(e client.Environment) *client.Environment {
 }
 
 // NewKV returns a KeyValueDetail with sensible defaults for any zero-value fields.
-func NewKV(kv *client.KeyValueDetail) *client.KeyValueDetail {
-	if kv == nil {
-		kv = &client.KeyValueDetail{}
-	}
+func NewKV(kv client.KeyValueDetail) *client.KeyValueDetail {
 	if kv.Id == "" {
 		kv.Id = testids.RandomKeyValueID()
 	}
@@ -186,15 +183,12 @@ func NewKV(kv *client.KeyValueDetail) *client.KeyValueDetail {
 			kv.UpdatedAt = now
 		}
 	}
-	return kv
+	return &kv
 }
 
 // NewPostgres returns a PostgresDetail with sensible defaults for any
 // zero-value fields.
-func NewPostgres(pg *client.PostgresDetail) *client.PostgresDetail {
-	if pg == nil {
-		pg = &client.PostgresDetail{}
-	}
+func NewPostgres(pg client.PostgresDetail) *client.PostgresDetail {
 	if pg.Id == "" {
 		pg.Id = testids.RandomPostgresID()
 	}
@@ -235,7 +229,7 @@ func NewPostgres(pg *client.PostgresDetail) *client.PostgresDetail {
 	if pg.UpdatedAt.IsZero() {
 		pg.UpdatedAt = now
 	}
-	return pg
+	return &pg
 }
 
 func postgresListItem(pg *client.PostgresDetail) client.Postgres {
