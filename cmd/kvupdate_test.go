@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
-	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
@@ -130,16 +129,13 @@ func TestKVUpdate_ResolveErrors_Propagate(t *testing.T) {
 // the flag, this would be ambiguous; with it, only the prod instance is patched.
 func TestKVUpdate_EnvironmentDisambiguatesName(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	prodEnvID := testids.EnvironmentID("production")
-	stagingEnvID := testids.EnvironmentID("staging")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
-		Id: projectID, Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID,
-	}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: prodEnvID, Name: "production", ProjectId: projectID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: stagingEnvID, Name: "staging", ProjectId: projectID}))
-	prodKV := seedKVInEnv(server, "shared", prodEnvID)
-	stagingKV := seedKVInEnv(server, "shared", stagingEnvID)
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
+	prodKV := seedKVInEnv(server, "shared", project.Env("production").Id)
+	stagingKV := seedKVInEnv(server, "shared", project.Env("staging").Id)
 
 	_, err := executeKVUpdate(t, server,
 		"shared",

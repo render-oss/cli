@@ -155,15 +155,14 @@ func TestKVDelete_JSONOutput_OnError(t *testing.T) {
 
 func TestKVDelete_NameCollision_NarrowedByEnvironment_Deletes(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	envProdID := testids.EnvironmentID("production")
-	envStagingID := testids.EnvironmentID("staging")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envProdID, Name: "production", ProjectId: projectID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envStagingID, Name: "staging", ProjectId: projectID}))
+	proj := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
 
-	prodKV := seedKVInEnv(server, "key-value-not-unique-name", envProdID)
-	stagingKV := seedKVInEnv(server, "key-value-not-unique-name", envStagingID)
+	prodKV := seedKVInEnv(server, "key-value-not-unique-name", proj.Env("production").Id)
+	stagingKV := seedKVInEnv(server, "key-value-not-unique-name", proj.Env("staging").Id)
 
 	result, err := executeKVDelete(t, server, "key-value-not-unique-name", "--environment", "production", "--confirm", "--output", "text")
 	require.NoError(t, err)
@@ -176,13 +175,13 @@ func TestKVDelete_NameCollision_NarrowedByEnvironment_Deletes(t *testing.T) {
 
 func TestKVDelete_EnvironmentByID_Deletes(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	envID := testids.EnvironmentID("production")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envID, Name: "production", ProjectId: projectID}))
-	kv := seedKVInEnv(server, "by-name-cache", envID)
+	proj := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	kv := seedKVInEnv(server, "by-name-cache", proj.Env("production").Id)
 
-	result, err := executeKVDelete(t, server, "by-name-cache", "--environment", envID, "--confirm", "--output", "text")
+	result, err := executeKVDelete(t, server, "by-name-cache", "--environment", proj.Env("production").Id, "--confirm", "--output", "text")
 	require.NoError(t, err)
 	assert.Empty(t, server.KV.Instances)
 	assert.Contains(t, result.Stdout, "Deleted")
@@ -202,14 +201,13 @@ func TestKVDelete_UnknownEnvironment_Errors(t *testing.T) {
 
 func TestKVDelete_IDWithMismatchedEnvironment_Errors(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	envProdID := testids.EnvironmentID("production")
-	envStagingID := testids.EnvironmentID("staging")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envProdID, Name: "production", ProjectId: projectID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envStagingID, Name: "staging", ProjectId: projectID}))
+	proj := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
 
-	kv := seedKVInEnv(server, "prod-cache", envProdID)
+	kv := seedKVInEnv(server, "prod-cache", proj.Env("production").Id)
 
 	_, err := executeKVDelete(t, server, kv.Id, "--environment", "staging", "--confirm", "--output", "text")
 	require.Error(t, err)

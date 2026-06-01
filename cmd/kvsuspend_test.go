@@ -132,15 +132,14 @@ func TestKVSuspend_JSONOutput_AfterConfirm(t *testing.T) {
 
 func TestKVSuspend_NameCollision_NarrowedByEnvironment_Suspends(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	envProdID := testids.EnvironmentID("production")
-	envStagingID := testids.EnvironmentID("staging")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envProdID, Name: "production", ProjectId: projectID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envStagingID, Name: "staging", ProjectId: projectID}))
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
 
-	prodKV := seedKVInEnv(server, "key-value-not-unique-name", envProdID)
-	stagingKV := seedKVInEnv(server, "key-value-not-unique-name", envStagingID)
+	prodKV := seedKVInEnv(server, "key-value-not-unique-name", project.Env("production").Id)
+	stagingKV := seedKVInEnv(server, "key-value-not-unique-name", project.Env("staging").Id)
 
 	result, err := executeKVSuspend(t, server, "key-value-not-unique-name", "--environment", "production", "--confirm", "--output", "text")
 	require.NoError(t, err)

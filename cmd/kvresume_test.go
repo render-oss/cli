@@ -121,16 +121,15 @@ func TestKVResume_JSONOutput(t *testing.T) {
 
 func TestKVResume_NameCollision_NarrowedByEnvironment_Resumes(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	envProdID := testids.EnvironmentID("production")
-	envStagingID := testids.EnvironmentID("staging")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envProdID, Name: "production", ProjectId: projectID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envStagingID, Name: "staging", ProjectId: projectID}))
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
 
-	prodKV := seedKVInEnv(server, "key-value-not-unique-name", envProdID)
+	prodKV := seedKVInEnv(server, "key-value-not-unique-name", project.Env("production").Id)
 	prodKV.Status = client.DatabaseStatusSuspended
-	stagingKV := seedKVInEnv(server, "key-value-not-unique-name", envStagingID)
+	stagingKV := seedKVInEnv(server, "key-value-not-unique-name", project.Env("staging").Id)
 	stagingKV.Status = client.DatabaseStatusSuspended
 
 	result, err := executeKVResume(t, server, "key-value-not-unique-name", "--environment", "production", "--output", "text")

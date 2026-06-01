@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
-	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
@@ -67,17 +66,16 @@ func TestKVList_MultipleInstances(t *testing.T) {
 
 func TestKVList_FilterByEnvironmentID(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	envProdID := testids.EnvironmentID("production")
-	envStagingID := testids.EnvironmentID("staging")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envProdID, Name: "production", ProjectId: projectID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envStagingID, Name: "staging", ProjectId: projectID}))
+	proj := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
 
-	prodKV := seedKVInEnv(server, "prod-cache", envProdID)
-	stagingKV := seedKVInEnv(server, "staging-cache", envStagingID)
+	prodKV := seedKVInEnv(server, "prod-cache", proj.Env("production").Id)
+	stagingKV := seedKVInEnv(server, "staging-cache", proj.Env("staging").Id)
 
-	result, err := executeKVList(t, server, "--environment", envProdID, "--output", "text")
+	result, err := executeKVList(t, server, "--environment", proj.Env("production").Id, "--output", "text")
 	require.NoError(t, err)
 
 	assert.Contains(t, result.Stdout, prodKV.Id)
@@ -86,15 +84,14 @@ func TestKVList_FilterByEnvironmentID(t *testing.T) {
 
 func TestKVList_FilterByEnvironmentName(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	envProdID := testids.EnvironmentID("production")
-	envStagingID := testids.EnvironmentID("staging")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envProdID, Name: "production", ProjectId: projectID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envStagingID, Name: "staging", ProjectId: projectID}))
+	proj := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
 
-	prodKV := seedKVInEnv(server, "prod-cache", envProdID)
-	stagingKV := seedKVInEnv(server, "staging-cache", envStagingID)
+	prodKV := seedKVInEnv(server, "prod-cache", proj.Env("production").Id)
+	stagingKV := seedKVInEnv(server, "staging-cache", proj.Env("staging").Id)
 
 	result, err := executeKVList(t, server, "--environment", "production", "--output", "text")
 	require.NoError(t, err)
@@ -147,26 +144,19 @@ func TestKVList_UnknownEnvironment_Errors(t *testing.T) {
 func TestKVList_FilterByProject(t *testing.T) {
 	server := renderapi.NewServer(t)
 
-	projectAID := testids.ProjectID("project a")
-	projectBID := testids.ProjectID("project b")
-	projectAProdID := testids.EnvironmentID("project a production")
-	projectAStagingID := testids.EnvironmentID("project a staging")
-	projectBProdID := testids.EnvironmentID("project b production")
+	projectA := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
+	projectB := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
-	projectA := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectAID, Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID})
-	projectA.EnvironmentIds = []string{projectAProdID, projectAStagingID}
-	projectB := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectBID, Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID})
-	projectB.EnvironmentIds = []string{projectBProdID}
-
-	server.Projects.Add(projectA)
-	server.Projects.Add(projectB)
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectAProdID, Name: "production", ProjectId: projectAID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectAStagingID, Name: "staging", ProjectId: projectAID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectBProdID, Name: "production", ProjectId: projectBID}))
-
-	aProdKV := seedKVInEnv(server, "a-prod-cache", projectAProdID)
-	aStagingKV := seedKVInEnv(server, "a-staging-cache", projectAStagingID)
-	bProdKV := seedKVInEnv(server, "b-prod-cache", projectBProdID)
+	aProdKV := seedKVInEnv(server, "a-prod-cache", projectA.Env("production").Id)
+	aStagingKV := seedKVInEnv(server, "a-staging-cache", projectA.Env("staging").Id)
+	bProdKV := seedKVInEnv(server, "b-prod-cache", projectB.Env("production").Id)
 
 	result, err := executeKVList(t, server, "--project", "Project A", "--output", "text")
 	require.NoError(t, err)
@@ -179,23 +169,17 @@ func TestKVList_FilterByProject(t *testing.T) {
 func TestKVList_FilterByProjectAndEnvironment_NarrowsToEnvWithinProject(t *testing.T) {
 	server := renderapi.NewServer(t)
 
-	projectAID := testids.ProjectID("project a")
-	projectBID := testids.ProjectID("project b")
-	projectAProdID := testids.EnvironmentID("project a production")
-	projectBProdID := testids.EnvironmentID("project b production")
+	projectA := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	projectB := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
-	projectA := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectAID, Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID})
-	projectA.EnvironmentIds = []string{projectAProdID}
-	projectB := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectBID, Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID})
-	projectB.EnvironmentIds = []string{projectBProdID}
-
-	server.Projects.Add(projectA)
-	server.Projects.Add(projectB)
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectAProdID, Name: "production", ProjectId: projectAID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectBProdID, Name: "production", ProjectId: projectBID}))
-
-	aProdKV := seedKVInEnv(server, "a-prod-cache", projectAProdID)
-	bProdKV := seedKVInEnv(server, "b-prod-cache", projectBProdID)
+	aProdKV := seedKVInEnv(server, "a-prod-cache", projectA.Env("production").Id)
+	bProdKV := seedKVInEnv(server, "b-prod-cache", projectB.Env("production").Id)
 
 	result, err := executeKVList(t, server,
 		"--project", "Project A",

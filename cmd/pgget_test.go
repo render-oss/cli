@@ -77,15 +77,14 @@ func TestPGGet_WithConnectionInfo_ShowsCredentials(t *testing.T) {
 
 func TestPGGet_WithEnvironmentFlag_ResolvesCorrectly(t *testing.T) {
 	harness := newPGGetHarness(t)
-	projectID := testids.ProjectID("project")
-	prodEnvId := testids.EnvironmentID("production")
-	stagingEnvId := testids.EnvironmentID("staging")
-	harness.server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: pgActiveWorkspaceID}))
-	harness.server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: prodEnvId, Name: "production", ProjectId: projectID}))
-	harness.server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: stagingEnvId, Name: "staging", ProjectId: projectID}))
+	project := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
 
-	prodPG := seedPGInEnv(harness.server, "shared-name", prodEnvId)
-	stagingPG := seedPGInEnv(harness.server, "shared-name", stagingEnvId)
+	prodPG := seedPGInEnv(harness.server, "shared-name", project.Env("production").Id)
+	stagingPG := seedPGInEnv(harness.server, "shared-name", project.Env("staging").Id)
 
 	result, err := harness.execute("shared-name", "--environment", "production", "--output", "text")
 	require.NoError(t, err)
@@ -97,21 +96,17 @@ func TestPGGet_WithEnvironmentFlag_ResolvesCorrectly(t *testing.T) {
 func TestPGGet_WithProjectFlag_NarrowsNameLookupToProject(t *testing.T) {
 	harness := newPGGetHarness(t)
 
-	projectAID := testids.ProjectID("project-a")
-	projectBID := testids.ProjectID("project-b")
-	projectAEnvID := testids.EnvironmentID("project-a-production")
-	projectBEnvID := testids.EnvironmentID("project-b-production")
-	projectA := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectAID, Name: "Project A", OwnerId: pgActiveWorkspaceID})
-	projectA.EnvironmentIds = []string{projectAEnvID}
-	projectB := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectBID, Name: "Project B", OwnerId: pgActiveWorkspaceID})
-	projectB.EnvironmentIds = []string{projectBEnvID}
-	harness.server.Projects.Add(projectA)
-	harness.server.Projects.Add(projectB)
-	harness.server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectAEnvID, Name: "production", ProjectId: projectAID}))
-	harness.server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectBEnvID, Name: "production", ProjectId: projectBID}))
+	projectA := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project A", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	projectB := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project B", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
-	projectAPG := seedPGInEnv(harness.server, "db", projectAEnvID)
-	projectBPG := seedPGInEnv(harness.server, "db", projectBEnvID)
+	projectAPG := seedPGInEnv(harness.server, "db", projectA.Env("production").Id)
+	projectBPG := seedPGInEnv(harness.server, "db", projectB.Env("production").Id)
 
 	result, err := harness.execute("db", "--project", "Project A", "--output", "text")
 	require.NoError(t, err)
@@ -122,20 +117,16 @@ func TestPGGet_WithProjectFlag_NarrowsNameLookupToProject(t *testing.T) {
 
 func TestPGGet_IDWithMismatchedProject_Errors(t *testing.T) {
 	harness := newPGGetHarness(t)
-	projectID := testids.ProjectID("project")
-	otherProjectID := testids.ProjectID("other-project")
-	projectEnvID := testids.EnvironmentID("project")
-	otherEnvID := testids.EnvironmentID("other-project")
-	project := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: pgActiveWorkspaceID})
-	project.EnvironmentIds = []string{projectEnvID}
-	otherProject := renderapi.NewProject(renderapi.ProjectAttrs{Id: otherProjectID, Name: "Other Project", OwnerId: pgActiveWorkspaceID})
-	otherProject.EnvironmentIds = []string{otherEnvID}
-	harness.server.Projects.Add(project)
-	harness.server.Projects.Add(otherProject)
-	harness.server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectEnvID, Name: "production", ProjectId: projectID}))
-	harness.server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: otherEnvID, Name: "production", ProjectId: otherProjectID}))
+	harness.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	otherProject := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Other Project", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
-	otherPG := seedPGInEnv(harness.server, "other-db", otherEnvID)
+	otherPG := seedPGInEnv(harness.server, "other-db", otherProject.Env("production").Id)
 
 	_, err := harness.execute(otherPG.Id, "--project", "My Project", "--output", "text")
 	require.Error(t, err)

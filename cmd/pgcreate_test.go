@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
-	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
 	pgclient "github.com/render-oss/cli/pkg/client/postgres"
 )
@@ -133,18 +132,10 @@ func TestPGCreate_NoWorkspaceConfigured(t *testing.T) {
 
 func TestPGCreate_ProjectFlag_SingleEnv(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	environmentID := testids.EnvironmentID("production")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
-		Id:      projectID,
-		Name:    "My Project",
-		OwnerId: pgActiveWorkspaceID,
-	}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{
-		Id:        environmentID,
-		Name:      "production",
-		ProjectId: projectID,
-	}))
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
 	_, err := executePGCreate(t, server,
 		"--project", "My Project",
@@ -154,5 +145,5 @@ func TestPGCreate_ProjectFlag_SingleEnv(t *testing.T) {
 
 	require.Len(t, server.Postgres.Instances, 1)
 	require.NotNil(t, server.Postgres.Instances[0].EnvironmentId)
-	assert.Equal(t, environmentID, *server.Postgres.Instances[0].EnvironmentId)
+	assert.Equal(t, project.Env("production").Id, *server.Postgres.Instances[0].EnvironmentId)
 }

@@ -87,15 +87,14 @@ func TestKVGet_WithConnectionInfo_ShowsCredentials(t *testing.T) {
 
 func TestKVGet_WithEnvironmentFlag_ResolvesCorrectly(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	envProdID := testids.EnvironmentID("production")
-	envStagingID := testids.EnvironmentID("staging")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envProdID, Name: "production", ProjectId: projectID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envStagingID, Name: "staging", ProjectId: projectID}))
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
 
-	prodKV := seedKVInEnv(server, "shared-name", envProdID)
-	seedKVInEnv(server, "shared-name", envStagingID)
+	prodKV := seedKVInEnv(server, "shared-name", project.Env("production").Id)
+	seedKVInEnv(server, "shared-name", project.Env("staging").Id)
 
 	result, err := executeKVGet(t, server, "shared-name", "--environment", "production", "--output", "text")
 	require.NoError(t, err)
@@ -106,25 +105,18 @@ func TestKVGet_WithEnvironmentFlag_ResolvesCorrectly(t *testing.T) {
 func TestKVGet_WithProjectFlag_NarrowsNameLookupToProject(t *testing.T) {
 	server := renderapi.NewServer(t)
 
-	projectAID := testids.ProjectID("project a")
-	projectBID := testids.ProjectID("project b")
-	projectAProductionEnvID := testids.EnvironmentID("project a production")
-	projectAStagingEnvID := testids.EnvironmentID("project a staging")
-	projectBProductionEnvID := testids.EnvironmentID("project b production")
+	projectA := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
+	projectB := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
-	projectA := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectAID, Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID})
-	projectA.EnvironmentIds = []string{projectAProductionEnvID, projectAStagingEnvID}
-	projectB := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectBID, Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID})
-	projectB.EnvironmentIds = []string{projectBProductionEnvID}
-
-	server.Projects.Add(projectA)
-	server.Projects.Add(projectB)
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectAProductionEnvID, Name: "production", ProjectId: projectAID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectAStagingEnvID, Name: "staging", ProjectId: projectAID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectBProductionEnvID, Name: "production", ProjectId: projectBID}))
-
-	projectAKV := seedKVInEnv(server, "cache", projectAStagingEnvID)
-	projectBKV := seedKVInEnv(server, "cache", projectBProductionEnvID)
+	projectAKV := seedKVInEnv(server, "cache", projectA.Env("staging").Id)
+	projectBKV := seedKVInEnv(server, "cache", projectB.Env("production").Id)
 
 	result, err := executeKVGet(t, server, "cache", "--project", "Project A", "--output", "text")
 	require.NoError(t, err)
@@ -138,17 +130,17 @@ func TestKVGet_WithEnvironmentFlag_NarrowsLookupToActiveWorkspace(t *testing.T) 
 
 	otherWorkspaceID := testids.WorkspaceID("other")
 	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: otherWorkspaceID, Name: "Other Workspace"}))
-	activeProjectID := testids.ProjectID("active")
-	otherProjectID := testids.ProjectID("other")
-	activeEnvID := testids.EnvironmentID("active production")
-	otherEnvID := testids.EnvironmentID("other production")
 
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: activeProjectID, Name: "Active Project", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: otherProjectID, Name: "Other Project", OwnerId: otherWorkspaceID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: activeEnvID, Name: "production", ProjectId: activeProjectID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: otherEnvID, Name: "production", ProjectId: otherProjectID}))
+	activeProject := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Active Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Other Project", OwnerId: otherWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
-	kv := seedKVInEnv(server, "cache", activeEnvID)
+	kv := seedKVInEnv(server, "cache", activeProject.Env("production").Id)
 
 	result, err := executeKVGet(t, server, "cache", "--environment", "production", "--output", "text")
 	require.NoError(t, err)
@@ -158,20 +150,16 @@ func TestKVGet_WithEnvironmentFlag_NarrowsLookupToActiveWorkspace(t *testing.T) 
 
 func TestKVGet_IDWithMismatchedProject_Errors(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	otherProjectID := testids.ProjectID("other project")
-	projectEnvID := testids.EnvironmentID("project")
-	otherEnvID := testids.EnvironmentID("other project")
-	project := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID})
-	project.EnvironmentIds = []string{projectEnvID}
-	otherProject := renderapi.NewProject(renderapi.ProjectAttrs{Id: otherProjectID, Name: "Other Project", OwnerId: ACTIVE_WORKSPACE_ID})
-	otherProject.EnvironmentIds = []string{otherEnvID}
-	server.Projects.Add(project)
-	server.Projects.Add(otherProject)
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectEnvID, Name: "production", ProjectId: projectID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: otherEnvID, Name: "production", ProjectId: otherProjectID}))
+	server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	otherProject := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Other Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
-	otherKV := seedKVInEnv(server, "other-cache", otherEnvID)
+	otherKV := seedKVInEnv(server, "other-cache", otherProject.Env("production").Id)
 
 	_, err := executeKVGet(t, server, otherKV.Id, "--project", "My Project", "--output", "text")
 	require.Error(t, err)

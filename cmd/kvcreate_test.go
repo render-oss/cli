@@ -207,24 +207,16 @@ func TestKVCreate_EnvironmentByID_DerivesWorkspaceFromEnvironmentProject(t *test
 	server := renderapi.NewServer(t)
 	inactiveWorkspace := renderapi.NewOwner(client.Owner{Id: testids.WorkspaceID("inactive"), Name: "Not the Active Workspace"})
 	server.Owners.Add(inactiveWorkspace)
-	projectID := testids.ProjectID("project")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
-		Id:      projectID,
-		Name:    "My Project",
-		OwnerId: inactiveWorkspace.Id,
-	}))
-	environmentID := testids.EnvironmentID("production")
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{
-		Id:        environmentID,
-		Name:      "production",
-		ProjectId: projectID,
-	}))
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: inactiveWorkspace.Id},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
 	_, err := executeCommand(t, server,
 		"ea", "kv", "create",
 		"--name", "my-kv",
 		"--plan", "free",
-		"--environment", environmentID,
+		"--environment", project.Env("production").Id,
 		"--output", "text",
 	)
 	require.NoError(t, err)
@@ -232,7 +224,7 @@ func TestKVCreate_EnvironmentByID_DerivesWorkspaceFromEnvironmentProject(t *test
 	kv := server.KV.Instances[0]
 	assert.Equal(t, inactiveWorkspace.Id, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
-	assert.Equal(t, environmentID, *kv.EnvironmentId)
+	assert.Equal(t, project.Env("production").Id, *kv.EnvironmentId)
 }
 
 func TestKVCreate_EnvironmentByID_DerivesWorkspaceIgnoringActiveWorkspace(t *testing.T) {
@@ -240,25 +232,15 @@ func TestKVCreate_EnvironmentByID_DerivesWorkspaceIgnoringActiveWorkspace(t *tes
 	inactiveWorkspace := renderapi.NewOwner(client.Owner{Id: testids.WorkspaceID("inactive"), Name: "Not the Active Workspace"})
 	server.Owners.Add(inactiveWorkspace)
 
-	projectID := testids.ProjectID("project")
-
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
-		Id:      projectID,
-		Name:    "Project with 1 Environment",
-		OwnerId: inactiveWorkspace.Id,
-	}))
-
-	prodEnvID := testids.EnvironmentID("production")
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{
-		Id:        prodEnvID,
-		Name:      "production",
-		ProjectId: projectID,
-	}))
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project with 1 Environment", OwnerId: inactiveWorkspace.Id},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
 	_, err := executeKVCreate(t, server,
 		"--name", "my-kv",
 		"--plan", "free",
-		"--environment", prodEnvID,
+		"--environment", project.Env("production").Id,
 		"--output", "text",
 	)
 	require.NoError(t, err)
@@ -267,7 +249,7 @@ func TestKVCreate_EnvironmentByID_DerivesWorkspaceIgnoringActiveWorkspace(t *tes
 	assert.Equal(t, inactiveWorkspace.Id, kv.Owner.Id)
 	assert.NotEqual(t, ACTIVE_WORKSPACE_ID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
-	assert.Equal(t, prodEnvID, *kv.EnvironmentId)
+	assert.Equal(t, project.Env("production").Id, *kv.EnvironmentId)
 }
 
 func TestKVCreate_ProjectFlagDerivesWorkspaceIgnoringActiveWorkspace(t *testing.T) {
@@ -275,24 +257,15 @@ func TestKVCreate_ProjectFlagDerivesWorkspaceIgnoringActiveWorkspace(t *testing.
 	projectWorkspace := renderapi.NewOwner(client.Owner{Id: testids.WorkspaceID("project workspace"), Name: "Project Workspace"})
 	server.Owners.Add(projectWorkspace)
 
-	projectID := testids.ProjectID("project workspace")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
-		Id:      projectID,
-		Name:    "Project Workspace App",
-		OwnerId: projectWorkspace.Id,
-	}))
-
-	environmentID := testids.EnvironmentID("project workspace")
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{
-		Id:        environmentID,
-		Name:      "production",
-		ProjectId: projectID,
-	}))
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project Workspace App", OwnerId: projectWorkspace.Id},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
 	_, err := executeKVCreate(t, server,
 		"--name", "my-kv",
 		"--plan", "free",
-		"--project", projectID,
+		"--project", project.Project.Id,
 		"--output", "text",
 	)
 	require.NoError(t, err)
@@ -301,7 +274,7 @@ func TestKVCreate_ProjectFlagDerivesWorkspaceIgnoringActiveWorkspace(t *testing.
 	assert.Equal(t, projectWorkspace.Id, kv.Owner.Id)
 	assert.NotEqual(t, ACTIVE_WORKSPACE_ID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
-	assert.Equal(t, environmentID, *kv.EnvironmentId)
+	assert.Equal(t, project.Env("production").Id, *kv.EnvironmentId)
 }
 
 func TestKVCreate_EnvironmentByID_WorkspaceFlagMismatchErrors(t *testing.T) {
@@ -312,25 +285,17 @@ func TestKVCreate_EnvironmentByID_WorkspaceFlagMismatchErrors(t *testing.T) {
 	server.Owners.Add(workspace1)
 	server.Owners.Add(workspace2)
 
-	projectID := testids.ProjectID("workspace two")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
-		Id:      projectID,
-		Name:    "Project Belonging to Workspace 2",
-		OwnerId: workspace2.Id,
-	}))
-	environmentID := testids.EnvironmentID("workspace two")
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{
-		Id:        environmentID,
-		Name:      "Environment Inside Workspace 2",
-		ProjectId: projectID,
-	}))
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project Belonging to Workspace 2", OwnerId: workspace2.Id},
+		renderapi.EnvAttrs{Name: "Environment Inside Workspace 2"},
+	)
 
 	_, err := executeCommand(t, server,
 		"ea", "kv", "create",
 		"--name", "my-kv",
 		"--plan", "free",
 		"--workspace", workspace1.Id,
-		"--environment", environmentID,
+		"--environment", project.Env("Environment Inside Workspace 2").Id,
 		"--output", "text",
 	)
 	require.Error(t, err)
@@ -342,30 +307,17 @@ func TestKVCreate_EnvironmentByID_WorkspaceFlagMismatchErrors(t *testing.T) {
 func TestKVCreate_EnvironmentByID_ProjectFlagMismatchErrors(t *testing.T) {
 	server := renderapi.NewServer(t)
 
-	project1ID := testids.ProjectID("one")
-	project2ID := testids.ProjectID("two")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
-		Id:      project1ID,
-		Name:    "Project 1",
-		OwnerId: ACTIVE_WORKSPACE_ID,
-	}))
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
-		Id:      project2ID,
-		Name:    "Project 2",
-		OwnerId: ACTIVE_WORKSPACE_ID,
-	}))
-	environmentID := testids.EnvironmentID("project two")
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{
-		Id:        environmentID,
-		Name:      "Environment in Project 2",
-		ProjectId: project2ID,
-	}))
+	project1 := server.CreateProject(renderapi.ProjectAttrs{Name: "Project 1", OwnerId: ACTIVE_WORKSPACE_ID})
+	project2 := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project 2", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "Environment in Project 2"},
+	)
 
 	_, err := executeKVCreate(t, server,
 		"--name", "my-kv",
 		"--plan", "free",
-		"--project", project1ID,
-		"--environment", environmentID,
+		"--project", project1.Project.Id,
+		"--environment", project2.Env("Environment in Project 2").Id,
 		"--output", "text",
 	)
 	require.Error(t, err)
@@ -376,10 +328,10 @@ func TestKVCreate_EnvironmentByID_ProjectFlagMismatchErrors(t *testing.T) {
 
 func TestKVCreate_EnvironmentByName_UniqueMatch(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	environmentID := testids.EnvironmentID("production")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: environmentID, Name: "production", ProjectId: projectID}))
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 	_, err := executeKVCreate(t, server,
 		"--name", "my-kv", "--plan", "free",
 		"--environment", "production",
@@ -390,12 +342,12 @@ func TestKVCreate_EnvironmentByName_UniqueMatch(t *testing.T) {
 	kv := server.KV.Instances[0]
 	assert.Equal(t, ACTIVE_WORKSPACE_ID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
-	assert.Equal(t, environmentID, *kv.EnvironmentId)
+	assert.Equal(t, project.Env("production").Id, *kv.EnvironmentId)
 }
 
 func TestKVCreate_EnvironmentByName_NoMatch(t *testing.T) {
 	server := renderapi.NewServer(t)
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: testids.ProjectID("project"), Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID}))
+	server.CreateProject(renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID})
 	_, err := executeKVCreate(t, server,
 		"--name", "my-kv", "--plan", "free",
 		"--environment", "nonexistent",
@@ -408,12 +360,14 @@ func TestKVCreate_EnvironmentByName_NoMatch(t *testing.T) {
 
 func TestKVCreate_EnvironmentByName_AmbiguousMatch(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectAID := testids.ProjectID("project a")
-	projectBID := testids.ProjectID("project b")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectAID, Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectBID, Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: testids.EnvironmentID("a"), Name: "production", ProjectId: projectAID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: testids.EnvironmentID("b"), Name: "production", ProjectId: projectBID}))
+	server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 	_, err := executeKVCreate(t, server,
 		"--name", "my-kv", "--plan", "free",
 		"--environment", "production",
@@ -545,36 +499,28 @@ func TestKVCreate_APIError(t *testing.T) {
 
 func TestKVCreate_ProjectByID_SingleEnv(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	environmentID := testids.EnvironmentID("production")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
-		Id:      projectID,
-		Name:    "My Project",
-		OwnerId: ACTIVE_WORKSPACE_ID,
-	}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: environmentID, Name: "production", ProjectId: projectID}))
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 	_, err := executeKVCreate(t, server,
 		"--name", "my-kv", "--plan", "free",
-		"--project", projectID,
+		"--project", project.Project.Id,
 		"--output", "text",
 	)
 	require.NoError(t, err)
 	kv := server.KV.Instances[0]
 	assert.Equal(t, ACTIVE_WORKSPACE_ID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
-	assert.Equal(t, environmentID, *kv.EnvironmentId)
+	assert.Equal(t, project.Env("production").Id, *kv.EnvironmentId)
 }
 
 func TestKVCreate_ProjectByName_SingleEnv(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	environmentID := testids.EnvironmentID("production")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
-		Id:      projectID,
-		Name:    "My Project",
-		OwnerId: ACTIVE_WORKSPACE_ID,
-	}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: environmentID, Name: "production", ProjectId: projectID}))
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 	_, err := executeKVCreate(t, server,
 		"--name", "my-kv", "--plan", "free",
 		"--project", "My Project",
@@ -584,22 +530,19 @@ func TestKVCreate_ProjectByName_SingleEnv(t *testing.T) {
 	kv := server.KV.Instances[0]
 	assert.Equal(t, ACTIVE_WORKSPACE_ID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
-	assert.Equal(t, environmentID, *kv.EnvironmentId)
+	assert.Equal(t, project.Env("production").Id, *kv.EnvironmentId)
 }
 
 func TestKVCreate_ProjectFlag_MultipleEnvs_Error(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{
-		Id:      projectID,
-		Name:    "My Project",
-		OwnerId: ACTIVE_WORKSPACE_ID,
-	}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: testids.EnvironmentID("staging"), Name: "staging", ProjectId: projectID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: testids.EnvironmentID("production"), Name: "production", ProjectId: projectID}))
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "staging"},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 	_, err := executeKVCreate(t, server,
 		"--name", "my-kv", "--plan", "free",
-		"--project", projectID,
+		"--project", project.Project.Id,
 		"--output", "text",
 	)
 	require.Error(t, err)
@@ -616,17 +559,17 @@ func TestKVCreate_ProjectFlag_MultipleEnvs_Error(t *testing.T) {
 // unambiguously.
 func TestKVCreate_ProjectByID_DisambiguatesAmbiguousEnvironmentName(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectAID := testids.ProjectID("project a")
-	projectBID := testids.ProjectID("project b")
-	environmentAID := testids.EnvironmentID("project a")
-	environmentBID := testids.EnvironmentID("project b")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectAID, Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectBID, Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: environmentAID, Name: "production", ProjectId: projectAID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: environmentBID, Name: "production", ProjectId: projectBID}))
+	projectA := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 	_, err := executeKVCreate(t, server,
 		"--name", "my-kv", "--plan", "free",
-		"--project", projectAID,
+		"--project", projectA.Project.Id,
 		"--environment", "production",
 		"--output", "text",
 	)
@@ -634,7 +577,7 @@ func TestKVCreate_ProjectByID_DisambiguatesAmbiguousEnvironmentName(t *testing.T
 	kv := server.KV.Instances[0]
 	assert.Equal(t, ACTIVE_WORKSPACE_ID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
-	assert.Equal(t, environmentAID, *kv.EnvironmentId)
+	assert.Equal(t, projectA.Env("production").Id, *kv.EnvironmentId)
 }
 
 // TestKVCreate_ProjectByName_DisambiguatesAmbiguousEnvironmentName is the same
@@ -643,14 +586,14 @@ func TestKVCreate_ProjectByID_DisambiguatesAmbiguousEnvironmentName(t *testing.T
 // the name-resolution path in resolveProjectID.
 func TestKVCreate_ProjectByName_DisambiguatesAmbiguousEnvironmentName(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectAID := testids.ProjectID("project a")
-	projectBID := testids.ProjectID("project b")
-	environmentAID := testids.EnvironmentID("project a")
-	environmentBID := testids.EnvironmentID("project b")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectAID, Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectBID, Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: environmentAID, Name: "production", ProjectId: projectAID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: environmentBID, Name: "production", ProjectId: projectBID}))
+	projectA := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 	_, err := executeKVCreate(t, server,
 		"--name", "my-kv", "--plan", "free",
 		"--project", "Project A",
@@ -661,5 +604,5 @@ func TestKVCreate_ProjectByName_DisambiguatesAmbiguousEnvironmentName(t *testing
 	kv := server.KV.Instances[0]
 	assert.Equal(t, ACTIVE_WORKSPACE_ID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
-	assert.Equal(t, environmentAID, *kv.EnvironmentId)
+	assert.Equal(t, projectA.Env("production").Id, *kv.EnvironmentId)
 }

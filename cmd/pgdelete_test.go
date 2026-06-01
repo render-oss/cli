@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
-	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
 )
 
@@ -106,15 +105,14 @@ func TestPGDelete_JSONOutput_OnError(t *testing.T) {
 
 func TestPGDelete_NameCollision_NarrowedByEnvironment_Deletes(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	envProdID := testids.EnvironmentID("production")
-	envStagingID := testids.EnvironmentID("staging")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: pgActiveWorkspaceID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envProdID, Name: "production", ProjectId: projectID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envStagingID, Name: "staging", ProjectId: projectID}))
+	proj := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
 
-	prodPG := seedPGInEnv(server, "not-unique", envProdID)
-	stagingPG := seedPGInEnv(server, "not-unique", envStagingID)
+	prodPG := seedPGInEnv(server, "not-unique", proj.Env("production").Id)
+	stagingPG := seedPGInEnv(server, "not-unique", proj.Env("staging").Id)
 
 	result, err := executePGDelete(t, server, "not-unique", "--environment", "production", "--confirm", "--output", "text")
 	require.NoError(t, err)
@@ -127,21 +125,17 @@ func TestPGDelete_NameCollision_NarrowedByEnvironment_Deletes(t *testing.T) {
 
 func TestPGDelete_NameCollision_NarrowedByProject_Deletes(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectAID := testids.ProjectID("project-a")
-	projectBID := testids.ProjectID("project-b")
-	envAID := testids.EnvironmentID("project-a-production")
-	envBID := testids.EnvironmentID("project-b-production")
-	projectA := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectAID, Name: "Project A", OwnerId: pgActiveWorkspaceID})
-	projectA.EnvironmentIds = []string{envAID}
-	projectB := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectBID, Name: "Project B", OwnerId: pgActiveWorkspaceID})
-	projectB.EnvironmentIds = []string{envBID}
-	server.Projects.Add(projectA)
-	server.Projects.Add(projectB)
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envAID, Name: "production", ProjectId: projectAID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envBID, Name: "production", ProjectId: projectBID}))
+	projectA := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project A", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	projectB := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project B", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
-	projectAPG := seedPGInEnv(server, "not-unique", envAID)
-	projectBPG := seedPGInEnv(server, "not-unique", envBID)
+	projectAPG := seedPGInEnv(server, "not-unique", projectA.Env("production").Id)
+	projectBPG := seedPGInEnv(server, "not-unique", projectB.Env("production").Id)
 
 	result, err := executePGDelete(t, server, "not-unique", "--project", "Project A", "--confirm", "--output", "text")
 	require.NoError(t, err)
@@ -154,13 +148,12 @@ func TestPGDelete_NameCollision_NarrowedByProject_Deletes(t *testing.T) {
 
 func TestPGDelete_IDWithMismatchedEnvironment_Errors(t *testing.T) {
 	server := renderapi.NewServer(t)
-	projectID := testids.ProjectID("project")
-	envProdID := testids.EnvironmentID("production")
-	envStagingID := testids.EnvironmentID("staging")
-	server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: pgActiveWorkspaceID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envProdID, Name: "production", ProjectId: projectID}))
-	server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envStagingID, Name: "staging", ProjectId: projectID}))
-	pg := seedPGInEnv(server, "prod-db", envProdID)
+	proj := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
+	pg := seedPGInEnv(server, "prod-db", proj.Env("production").Id)
 
 	_, err := executePGDelete(t, server, pg.Id, "--environment", "staging", "--confirm", "--output", "text")
 	require.Error(t, err)

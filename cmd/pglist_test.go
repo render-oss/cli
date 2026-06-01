@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
-	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
 )
 
@@ -72,15 +71,14 @@ func TestPGList_MultipleDatabases(t *testing.T) {
 
 func TestPGList_FilterByEnvironmentName(t *testing.T) {
 	harness := newPGListHarness(t)
-	projectID := testids.ProjectID("project")
-	envProdID := testids.EnvironmentID("production")
-	envStagingID := testids.EnvironmentID("staging")
-	harness.server.Projects.Add(renderapi.NewProject(renderapi.ProjectAttrs{Id: projectID, Name: "My Project", OwnerId: pgActiveWorkspaceID}))
-	harness.server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envProdID, Name: "production", ProjectId: projectID}))
-	harness.server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: envStagingID, Name: "staging", ProjectId: projectID}))
+	project := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
 
-	prodPG := seedPGInEnv(harness.server, "prod-db", envProdID)
-	stagingPG := seedPGInEnv(harness.server, "staging-db", envStagingID)
+	prodPG := seedPGInEnv(harness.server, "prod-db", project.Env("production").Id)
+	stagingPG := seedPGInEnv(harness.server, "staging-db", project.Env("staging").Id)
 
 	result, err := harness.execute("--environment", "production", "--output", "text")
 	require.NoError(t, err)
@@ -92,26 +90,19 @@ func TestPGList_FilterByEnvironmentName(t *testing.T) {
 func TestPGList_FilterByProject(t *testing.T) {
 	harness := newPGListHarness(t)
 
-	projectAID := testids.ProjectID("project-a")
-	projectBID := testids.ProjectID("project-b")
-	projectAProdID := testids.EnvironmentID("project-a-production")
-	projectAStagingID := testids.EnvironmentID("project-a-staging")
-	projectBProdID := testids.EnvironmentID("project-b-production")
+	projectA := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project A", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+		renderapi.EnvAttrs{Name: "staging"},
+	)
+	projectB := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project B", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
-	projectA := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectAID, Name: "Project A", OwnerId: pgActiveWorkspaceID})
-	projectA.EnvironmentIds = []string{projectAProdID, projectAStagingID}
-	projectB := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectBID, Name: "Project B", OwnerId: pgActiveWorkspaceID})
-	projectB.EnvironmentIds = []string{projectBProdID}
-
-	harness.server.Projects.Add(projectA)
-	harness.server.Projects.Add(projectB)
-	harness.server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectAProdID, Name: "production", ProjectId: projectAID}))
-	harness.server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectAStagingID, Name: "staging", ProjectId: projectAID}))
-	harness.server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectBProdID, Name: "production", ProjectId: projectBID}))
-
-	projectAProdPG := seedPGInEnv(harness.server, "a-prod-db", projectAProdID)
-	projectAStagingPG := seedPGInEnv(harness.server, "a-staging-db", projectAStagingID)
-	projectBProdPG := seedPGInEnv(harness.server, "b-prod-db", projectBProdID)
+	projectAProdPG := seedPGInEnv(harness.server, "a-prod-db", projectA.Env("production").Id)
+	projectAStagingPG := seedPGInEnv(harness.server, "a-staging-db", projectA.Env("staging").Id)
+	projectBProdPG := seedPGInEnv(harness.server, "b-prod-db", projectB.Env("production").Id)
 
 	result, err := harness.execute("--project", "Project A", "--output", "text")
 	require.NoError(t, err)
@@ -124,23 +115,17 @@ func TestPGList_FilterByProject(t *testing.T) {
 func TestPGList_FilterByProjectAndEnvironment_NarrowsToEnvWithinProject(t *testing.T) {
 	harness := newPGListHarness(t)
 
-	projectAID := testids.ProjectID("project-a")
-	projectBID := testids.ProjectID("project-b")
-	projectAProdID := testids.EnvironmentID("project-a-production")
-	projectBProdID := testids.EnvironmentID("project-b-production")
+	projectA := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project A", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	projectB := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Project B", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
 
-	projectA := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectAID, Name: "Project A", OwnerId: pgActiveWorkspaceID})
-	projectA.EnvironmentIds = []string{projectAProdID}
-	projectB := renderapi.NewProject(renderapi.ProjectAttrs{Id: projectBID, Name: "Project B", OwnerId: pgActiveWorkspaceID})
-	projectB.EnvironmentIds = []string{projectBProdID}
-
-	harness.server.Projects.Add(projectA)
-	harness.server.Projects.Add(projectB)
-	harness.server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectAProdID, Name: "production", ProjectId: projectAID}))
-	harness.server.Environments.Add(renderapi.NewEnvironment(client.Environment{Id: projectBProdID, Name: "production", ProjectId: projectBID}))
-
-	projectAProdPG := seedPGInEnv(harness.server, "a-prod-db", projectAProdID)
-	projectBProdPG := seedPGInEnv(harness.server, "b-prod-db", projectBProdID)
+	projectAProdPG := seedPGInEnv(harness.server, "a-prod-db", projectA.Env("production").Id)
+	projectBProdPG := seedPGInEnv(harness.server, "b-prod-db", projectB.Env("production").Id)
 
 	result, err := harness.execute(
 		"--project", "Project A",
