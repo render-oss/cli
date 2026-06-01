@@ -273,3 +273,19 @@ func TestServiceResolve_IDLookup_NonNotFoundError_Surfaces(t *testing.T) {
 	assert.Len(t, harness.server.Postgres.Instances, 1)
 	assert.False(t, harness.server.HasRequest("DELETE", "/postgres/"))
 }
+
+func TestService_SuspendThenResume(t *testing.T) {
+	harness := newHarness(t)
+	pg := harness.addPostgres("my-db")
+	require.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Instances[0].Status)
+
+	err := harness.service.SuspendPostgres(context.Background(), pg.Id)
+	require.NoError(t, err)
+	assert.Equal(t, client.DatabaseStatusSuspended, harness.server.Postgres.Instances[0].Status)
+	assert.True(t, harness.server.HasRequest("POST", "/postgres/"+pg.Id+"/suspend"))
+
+	err = harness.service.ResumePostgres(context.Background(), pg.Id)
+	require.NoError(t, err)
+	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Instances[0].Status)
+	assert.True(t, harness.server.HasRequest("POST", "/postgres/"+pg.Id+"/resume"))
+}

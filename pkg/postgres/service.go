@@ -107,6 +107,14 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.repo.DeletePostgres(ctx, id)
 }
 
+func (s *Service) SuspendPostgres(ctx context.Context, id string) error {
+	return s.repo.SuspendPostgres(ctx, id)
+}
+
+func (s *Service) ResumePostgres(ctx context.Context, id string) error {
+	return s.repo.ResumePostgres(ctx, id)
+}
+
 // Create applies defaults, resolves workspace/project/environment scope,
 // and calls the Postgres create endpoint. The non-interactive flag path
 // and (eventually) the interactive wizard both go through here.

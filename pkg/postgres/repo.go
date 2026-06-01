@@ -121,3 +121,21 @@ func (r *Repo) DeletePostgres(ctx context.Context, id string) error {
 
 	return client.ErrorFromResponse(resp)
 }
+
+func (r *Repo) SuspendPostgres(ctx context.Context, id string) error {
+	resp, err := r.client.SuspendPostgresWithResponse(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	return client.ErrorFromResponse(resp)
+}
+
+func (r *Repo) ResumePostgres(ctx context.Context, id string) error {
+	resp, err := r.client.ResumePostgresWithResponse(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	return client.ErrorFromResponse(resp)
+}

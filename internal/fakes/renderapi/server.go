@@ -839,6 +839,44 @@ func NewServer(t *testing.T) *Server {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
+	// POST /postgres/{id}/suspend — suspend a Postgres instance
+	mux.HandleFunc("POST /postgres/{id}/suspend", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.Postgres.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		id := r.PathValue("id")
+		for _, pg := range s.Postgres.Instances {
+			if pg.Id == id {
+				pg.Status = client.DatabaseStatusSuspended
+				pg.UpdatedAt = time.Now()
+				w.WriteHeader(http.StatusAccepted)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	// POST /postgres/{id}/resume — resume a suspended Postgres instance
+	mux.HandleFunc("POST /postgres/{id}/resume", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.Postgres.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		id := r.PathValue("id")
+		for _, pg := range s.Postgres.Instances {
+			if pg.Id == id {
+				pg.Status = client.DatabaseStatusAvailable
+				pg.UpdatedAt = time.Now()
+				w.WriteHeader(http.StatusAccepted)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+
 	s.server = httptest.NewServer(mux)
 	t.Cleanup(s.server.Close)
 	return s
