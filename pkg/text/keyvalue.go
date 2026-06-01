@@ -45,25 +45,6 @@ func KeyValueDetail(kv *client.KeyValueDetail) string {
 	return strings.Join(lines, "\n")
 }
 
-// ipAllowListBlock renders the allow-list as either a one-liner ("IP allow-list: (empty)")
-// or a header line followed by indented entries — each "  - <cidr> (<description>)" or
-// "  - <cidr>" when description is empty.
-func ipAllowListBlock(entries []client.CidrBlockAndDescription) string {
-	if len(entries) == 0 {
-		return "IP allow-list: (empty)"
-	}
-	var b strings.Builder
-	b.WriteString("IP allow-list:")
-	for _, e := range entries {
-		if e.Description != "" {
-			fmt.Fprintf(&b, "\n  - %s (%s)", e.CidrBlock, e.Description)
-		} else {
-			fmt.Fprintf(&b, "\n  - %s", e.CidrBlock)
-		}
-	}
-	return b.String()
-}
-
 func KeyValueGetDetail(kv *client.KeyValueDetail, conn *client.KeyValueConnectionInfo) string {
 	detail := KeyValueDetail(kv)
 	if len(kv.IpAllowList) == 0 {
@@ -110,27 +91,4 @@ func memoryPolicyLabel(kv *client.KeyValueDetail) string {
 		return "(none)"
 	}
 	return *kv.Options.MaxmemoryPolicy
-}
-
-func ipAllowListLabel(entries []client.CidrBlockAndDescription) string {
-	switch len(entries) {
-	case 0:
-		return "(empty)"
-	case 1:
-		return "1 entry"
-	default:
-		return fmt.Sprintf("%d entries", len(entries))
-	}
-}
-
-func ipAllowListEqual(a, b []client.CidrBlockAndDescription) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i].CidrBlock != b[i].CidrBlock || a[i].Description != b[i].Description {
-			return false
-		}
-	}
-	return true
 }
