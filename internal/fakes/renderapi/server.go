@@ -111,7 +111,7 @@ func (pg *PostgresResource) nextError() (int, bool) {
 }
 
 // NewOwner returns an Owner with sensible defaults for any zero-value fields.
-func NewOwner(o client.Owner) client.Owner {
+func NewOwner(o client.Owner) *client.Owner {
 	if o.Id == "" {
 		o.Id = testids.RandomWorkspaceID()
 	}
@@ -121,7 +121,7 @@ func NewOwner(o client.Owner) client.Owner {
 	if o.Email == "" {
 		o.Email = "team@example.com"
 	}
-	return o
+	return &o
 }
 
 // ProjectAttrs defines the fields callers can specify when creating a fake project.
@@ -132,14 +132,14 @@ type ProjectAttrs struct {
 }
 
 // NewProject returns a Project with sensible defaults for any zero-value fields.
-func NewProject(attrs ProjectAttrs) client.Project {
+func NewProject(attrs ProjectAttrs) *client.Project {
 	if attrs.Id == "" {
 		attrs.Id = testids.RandomProjectID()
 	}
 	if attrs.Name == "" {
 		attrs.Name = "My Project"
 	}
-	return client.Project{
+	return &client.Project{
 		Id:    attrs.Id,
 		Name:  attrs.Name,
 		Owner: client.Owner{Id: attrs.OwnerId},
@@ -147,14 +147,14 @@ func NewProject(attrs ProjectAttrs) client.Project {
 }
 
 // NewEnvironment returns an Environment with sensible defaults for any zero-value fields.
-func NewEnvironment(e client.Environment) client.Environment {
+func NewEnvironment(e client.Environment) *client.Environment {
 	if e.Id == "" {
 		e.Id = testids.RandomEnvironmentID()
 	}
 	if e.Name == "" {
 		e.Name = "My Environment"
 	}
-	return e
+	return &e
 }
 
 // NewKV returns a KeyValueDetail with sensible defaults for any zero-value fields.
@@ -282,9 +282,9 @@ type Server struct {
 	server       *httptest.Server
 	Requests     []RecordedRequest
 	CurrentUser  *client.User
-	Owners       *Resource[client.Owner]
-	Projects     *Resource[client.Project]
-	Environments *Resource[client.Environment]
+	Owners       *Resource[*client.Owner]
+	Projects     *Resource[*client.Project]
+	Environments *Resource[*client.Environment]
 	KV           *KVResource
 	Postgres     *PostgresResource
 }
@@ -295,7 +295,7 @@ type Server struct {
 func (s *Server) ownerByID(id string) (client.Owner, bool) {
 	for _, o := range s.Owners.Instances {
 		if o.Id == id {
-			return o, true
+			return *o, true
 		}
 	}
 	return client.Owner{}, false
@@ -328,9 +328,9 @@ func NewServer(t *testing.T) *Server {
 	t.Helper()
 
 	s := &Server{
-		Owners:       &Resource[client.Owner]{},
-		Projects:     &Resource[client.Project]{},
-		Environments: &Resource[client.Environment]{},
+		Owners:       &Resource[*client.Owner]{},
+		Projects:     &Resource[*client.Project]{},
+		Environments: &Resource[*client.Environment]{},
 		KV:           &KVResource{},
 		Postgres:     &PostgresResource{},
 	}
@@ -361,7 +361,7 @@ func NewServer(t *testing.T) *Server {
 		record(r)
 		result := s.Owners.Instances
 		if name := r.URL.Query().Get("name"); name != "" {
-			var filtered []client.Owner
+			var filtered []*client.Owner
 			for _, o := range s.Owners.Instances {
 				if o.Name == name {
 					filtered = append(filtered, o)
@@ -371,8 +371,7 @@ func NewServer(t *testing.T) *Server {
 		}
 		wrapped := make([]client.OwnerWithCursor, len(result))
 		for i := range result {
-			o := result[i]
-			wrapped[i] = client.OwnerWithCursor{Owner: &o}
+			wrapped[i] = client.OwnerWithCursor{Owner: result[i]}
 		}
 		writeJSON(w, http.StatusOK, wrapped)
 	})
@@ -395,7 +394,7 @@ func NewServer(t *testing.T) *Server {
 		record(r)
 		result := s.Projects.Instances
 		if ownerIDs := queryListValues(r, "ownerId"); len(ownerIDs) > 0 {
-			var filtered []client.Project
+			var filtered []*client.Project
 			for _, p := range result {
 				if slices.Contains(ownerIDs, p.Owner.Id) {
 					filtered = append(filtered, p)
@@ -404,7 +403,7 @@ func NewServer(t *testing.T) *Server {
 			result = filtered
 		}
 		if name := r.URL.Query().Get("name"); name != "" {
-			var filtered []client.Project
+			var filtered []*client.Project
 			for _, p := range result {
 				if p.Name == name {
 					filtered = append(filtered, p)
@@ -414,7 +413,8 @@ func NewServer(t *testing.T) *Server {
 		}
 		wrapped := make([]client.ProjectWithCursor, len(result))
 		for i := range result {
-			p := result[i]
+			// Copy before setting Owner so the response doesn't mutate stored state.
+			p := *result[i]
 			owner, ok := s.ownerByID(p.Owner.Id)
 			if !ok {
 				http.Error(w, "fake server: project owner not seeded: "+p.Owner.Id, http.StatusInternalServerError)
@@ -430,8 +430,10 @@ func NewServer(t *testing.T) *Server {
 	mux.HandleFunc("GET /projects/{id}", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
 		id := r.PathValue("id")
-		for _, p := range s.Projects.Instances {
-			if p.Id == id {
+		for _, stored := range s.Projects.Instances {
+			if stored.Id == id {
+				// Copy before setting Owner so the response doesn't mutate stored state.
+				p := *stored
 				owner, ok := s.ownerByID(p.Owner.Id)
 				if !ok {
 					http.Error(w, "fake server: project owner not seeded: "+p.Owner.Id, http.StatusInternalServerError)
@@ -450,7 +452,7 @@ func NewServer(t *testing.T) *Server {
 		record(r)
 		result := s.Environments.Instances
 		if projectIDs := queryListValues(r, "projectId"); len(projectIDs) > 0 {
-			var filtered []client.Environment
+			var filtered []*client.Environment
 			for _, e := range result {
 				if slices.Contains(projectIDs, e.ProjectId) {
 					filtered = append(filtered, e)
@@ -459,7 +461,7 @@ func NewServer(t *testing.T) *Server {
 			result = filtered
 		}
 		if name := r.URL.Query().Get("name"); name != "" {
-			var filtered []client.Environment
+			var filtered []*client.Environment
 			for _, e := range result {
 				if e.Name == name {
 					filtered = append(filtered, e)
@@ -469,7 +471,7 @@ func NewServer(t *testing.T) *Server {
 		}
 		wrapped := make([]client.EnvironmentWithCursor, len(result))
 		for i := range result {
-			wrapped[i] = client.EnvironmentWithCursor{Environment: result[i]}
+			wrapped[i] = client.EnvironmentWithCursor{Environment: *result[i]}
 		}
 		writeJSON(w, http.StatusOK, wrapped)
 	})
@@ -530,7 +532,7 @@ func NewServer(t *testing.T) *Server {
 		var owner client.Owner
 		for _, o := range s.Owners.Instances {
 			if o.Id == body.OwnerId {
-				owner = o
+				owner = *o
 				break
 			}
 		}

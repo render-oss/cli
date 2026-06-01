@@ -98,13 +98,13 @@ func (h testHarness) addProjectAndEnvironment(workspaceID string, projectName st
 	project.EnvironmentIds = []string{env.Id}
 	h.server.Projects.Add(project)
 	h.server.Environments.Add(env)
-	return env
+	return *env
 }
 
 func (h testHarness) requireOwner(workspaceID string) {
 	h.t.Helper()
 
-	idx := slices.IndexFunc(h.server.Owners.Instances, func(owner client.Owner) bool {
+	idx := slices.IndexFunc(h.server.Owners.Instances, func(owner *client.Owner) bool {
 		return owner.Id == workspaceID
 	})
 	require.NotEqual(h.t, -1, idx, "test setup: owner %q must be registered before use", workspaceID)
@@ -113,21 +113,21 @@ func (h testHarness) requireOwner(workspaceID string) {
 func (h testHarness) requireEnvironment(environmentID string) client.Environment {
 	h.t.Helper()
 
-	idx := slices.IndexFunc(h.server.Environments.Instances, func(env client.Environment) bool {
+	idx := slices.IndexFunc(h.server.Environments.Instances, func(env *client.Environment) bool {
 		return env.Id == environmentID
 	})
 	require.NotEqual(h.t, -1, idx, "test setup: environment %q must be registered before use", environmentID)
-	return h.server.Environments.Instances[idx]
+	return *h.server.Environments.Instances[idx]
 }
 
 func (h testHarness) requireProject(projectID string) client.Project {
 	h.t.Helper()
 
-	idx := slices.IndexFunc(h.server.Projects.Instances, func(project client.Project) bool {
+	idx := slices.IndexFunc(h.server.Projects.Instances, func(project *client.Project) bool {
 		return project.Id == projectID
 	})
 	require.NotEqual(h.t, -1, idx, "test setup: project %q must be registered before use", projectID)
-	return h.server.Projects.Instances[idx]
+	return *h.server.Projects.Instances[idx]
 }
 
 func TestServiceCreate_UsesResolvedWorkspaceAndDefaults(t *testing.T) {
