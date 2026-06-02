@@ -877,6 +877,52 @@ func NewServer(t *testing.T) *Server {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
+	// PATCH /postgres/{id} — update a Postgres instance
+	mux.HandleFunc("PATCH /postgres/{id}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.Postgres.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		id := r.PathValue("id")
+		var body client.PostgresPATCHInput
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		idx := slices.IndexFunc(s.Postgres.Instances, func(pg *client.PostgresDetail) bool {
+			return pg.Id == id
+		})
+		if idx == -1 {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		pg := s.Postgres.Instances[idx]
+		if body.Name != nil {
+			pg.Name = *body.Name
+		}
+		if body.Plan != nil {
+			pg.Plan = *body.Plan
+		}
+		if body.DiskSizeGB != nil {
+			pg.DiskSizeGB = body.DiskSizeGB
+		}
+		if body.EnableDiskAutoscaling != nil {
+			pg.DiskAutoscalingEnabled = *body.EnableDiskAutoscaling
+		}
+		if body.EnableHighAvailability != nil {
+			pg.HighAvailabilityEnabled = *body.EnableHighAvailability
+		}
+		if body.ParameterOverrides != nil {
+			pg.ParameterOverrides = body.ParameterOverrides
+		}
+		if body.IpAllowList != nil {
+			pg.IpAllowList = *body.IpAllowList
+		}
+		pg.UpdatedAt = time.Now()
+		writeJSON(w, http.StatusOK, pg)
+	})
+
 	s.server = httptest.NewServer(mux)
 	t.Cleanup(s.server.Close)
 	return s

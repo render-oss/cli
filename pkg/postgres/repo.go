@@ -113,6 +113,19 @@ func (r *Repo) CreatePostgres(ctx context.Context, data client.CreatePostgresJSO
 	return resp.JSON201, nil
 }
 
+func (r *Repo) UpdatePostgres(ctx context.Context, id string, body client.UpdatePostgresJSONRequestBody) (*client.PostgresDetail, error) {
+	resp, err := r.client.UpdatePostgresWithResponse(ctx, id, body)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+
+	return resp.JSON200, nil
+}
+
 func (r *Repo) DeletePostgres(ctx context.Context, id string) error {
 	resp, err := r.client.DeletePostgresWithResponse(ctx, id)
 	if err != nil {

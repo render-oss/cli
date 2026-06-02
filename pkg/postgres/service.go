@@ -144,6 +144,32 @@ func (s *Service) Create(ctx context.Context, input pgtypes.CreatePostgresInput)
 	return s.repo.CreatePostgres(ctx, body)
 }
 
+// Update resolves the target Postgres database (by ID or name, optionally
+// narrowed by project/environment), builds the PATCH body, and applies it via
+// the Render API. Returns both the pre- and post-update server state.
+func (s *Service) Update(ctx context.Context, input pgtypes.UpdatePostgresInput) (*UpdateResult, error) {
+	before, err := s.Resolve(ctx, ResolveInput{
+		IDOrName:            input.IDOrName,
+		ProjectIDOrName:     input.ProjectIDOrName,
+		EnvironmentIDOrName: input.EnvironmentIDOrName,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := BuildUpdateRequest(input)
+	if err != nil {
+		return nil, err
+	}
+
+	after, err := s.repo.UpdatePostgres(ctx, before.Id, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return &UpdateResult{Before: before, After: after}, nil
+}
+
 func (s *Service) hydratePostgresModel(ctx context.Context, postgres *client.Postgres, projects []*client.Project) (*Model, error) {
 	model := &Model{Postgres: postgres}
 
