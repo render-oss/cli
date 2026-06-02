@@ -31,6 +31,24 @@ func TestUpdatePostgresInputValidate(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("rejects invalid disk size", func(t *testing.T) {
+		input := postgrestypes.UpdatePostgresInput{
+			IDOrName:   "dpg-xxx",
+			DiskSizeGB: pointers.From(0),
+		}
+		err := input.Validate(false)
+		assert.ErrorContains(t, err, "--disk-size-gb")
+	})
+
+	t.Run("accepts valid disk size", func(t *testing.T) {
+		input := postgrestypes.UpdatePostgresInput{
+			IDOrName:   "dpg-xxx",
+			DiskSizeGB: pointers.From(10),
+		}
+		err := input.Validate(false)
+		require.NoError(t, err)
+	})
+
 	t.Run("rejects malformed parameter override", func(t *testing.T) {
 		input := postgrestypes.UpdatePostgresInput{
 			IDOrName:           "dpg-xxx",

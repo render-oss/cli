@@ -1,0 +1,136 @@
+package cmd
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/spf13/cobra"
+
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
+	"github.com/render-oss/cli/pkg/postgres"
+	"github.com/render-oss/cli/pkg/text"
+	"github.com/render-oss/cli/pkg/types"
+	pgtypes "github.com/render-oss/cli/pkg/types/postgres"
+)
+
+func newPgUpdateCmd(deps *dependencies.Dependencies) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "update <postgresID|postgresName>",
+		Short:        "Update a Postgres database",
+		Args:         cobra.ExactArgs(1),
+		SilenceUsage: true,
+		Long: `Update an existing Postgres database on Render.
+
+The positional argument is the target database (ID dpg-... or name). At least
+one mutating flag must be supplied. Use --name to rename the database; the
+positional argument always identifies the target and is never the new name.
+
+Only the fields you pass are changed; everything else is left untouched.
+
+Name lookup is scoped to your active workspace. If a name isn't found, switch
+workspaces with 'render workspace set <name|ID>' and try again, or pass the
+Postgres ID instead (which works across workspaces). If a name matches more
+than one database, narrow the search with --project <id|name> or
+--environment <id|name>.
+
+The --ip-allow-list flag replaces the server-side list; pass it once per entry.
+To remove all allow-list entries, pass --clear-ip-allow-list. The two flags are
+mutually exclusive.`,
+		Example: `  # Rename
+  render ea pg update dpg-abc123def456ghi789jkl0 --name application_db
+
+  # Change plan
+  render ea pg update my-db --plan pro_4gb
+
+  # Grow the disk and enable autoscaling
+  render ea pg update my-db --disk-size-gb 50 --disk-autoscaling
+
+  # Replace the IP allow-list (entire list, not append)
+  render ea pg update my-db \
+    --ip-allow-list "cidr=203.0.113.5/32,description=office" \
+    --ip-allow-list "cidr=10.0.0.0/8,description=internal"
+
+  # Clear the IP allow-list
+  render ea pg update my-db --clear-ip-allow-list
+
+  # Disambiguate a name that exists in multiple environments
+  render ea pg update my-db --environment production --plan pro_8gb
+
+  # JSON output
+  render ea pg update dpg-abc123def456ghi789jkl0 --plan pro_4gb --output json`,
+	}
+
+	cmd.Flags().String("project", "",
+		"Project ID or name (optional). Narrows name lookup when the same Postgres database name exists in multiple projects.")
+	cmd.Flags().String("environment", "",
+		"Environment ID or name (optional). Narrows name lookup when the same Postgres database name exists in multiple environments.")
+
+	cmd.Flags().String("name", "", "Rename the database")
+	cmd.Flags().String("plan", "", "Plan name. Examples: "+strings.Join(postgres.ModernPlans, " | "))
+
+	cmd.Flags().Int("disk-size-gb", 0, "Disk size in GB. Must be 1 or a multiple of 5.")
+	cmd.Flags().Bool("disk-autoscaling", false, "Enable disk autoscaling. Pass --disk-autoscaling=false to disable.")
+	cmd.Flags().Bool("high-availability", false, "Enable high availability (Pro plans and above). Pass --high-availability=false to disable.")
+
+	cmd.Flags().String("datadog-api-key", "", "Datadog API key for monitoring. Pass an empty string to remove.")
+	cmd.Flags().String("datadog-site", "", "Datadog region/site (e.g. US1, US3, EU)")
+
+	cmd.Flags().StringArray("parameter-override", nil,
+		"Override a Postgres server parameter. Repeat the flag for multiple entries.\n"+
+			"Format: KEY=VALUE\n"+
+			"Example: --parameter-override max_connections=100\n\n"+
+			"Entries not mentioned in the flag are preserved (upsert semantics — keys\n"+
+			"you supply are added or updated; all other existing overrides are kept).\n"+
+			"To remove an individual override, use the Render dashboard.")
+	cmd.Flags().StringArray("ip-allow-list", nil,
+		"Replace the IP allow-list with the supplied entries. Repeat the flag for multiple entries.\n"+
+			"Format: cidr=<range>,description=<label>")
+	cmd.Flags().Bool("clear-ip-allow-list", false,
+		"Remove all IP allow-list entries. Mutually exclusive with --ip-allow-list")
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		// No interactive flow yet; collapse --output interactive onto text so
+		// the standard NonInteractive path handles every format.
+		command.DefaultFormatNonInteractive(cmd)
+
+		var input pgtypes.UpdatePostgresInput
+		if err := command.ParseCommand(cmd, args, &input); err != nil {
+			return err
+		}
+		input.ProjectIDOrName = types.OptionalNonZeroString(input.ProjectIDOrName)
+		input.EnvironmentIDOrName = types.OptionalNonZeroString(input.EnvironmentIDOrName)
+
+		// Captured by both closures so the text formatter can render a diff
+		// while JSON/YAML output stays simple — just the new state, matching
+		// pg create's output shape.
+		var before *client.PostgresDetail
+
+		_, err := command.NonInteractive(cmd,
+			func() (*client.PostgresDetail, error) {
+				result, err := deps.PostgresService().Update(cmd.Context(), input)
+				if err != nil {
+					return nil, err
+				}
+				before = result.Before
+				return result.After, nil
+			},
+			func(after *client.PostgresDetail) string {
+				return pgUpdateSuccessMessage(before, after)
+			},
+		)
+		return err
+	}
+
+	return cmd
+}
+
+func pgUpdateSuccessMessage(before, after *client.PostgresDetail) string {
+	details := "Full details:\n  " + strings.ReplaceAll(text.PostgresDetail(after), "\n", "\n  ")
+	diff := text.PostgresUpdateDiff(before, after)
+	if diff == "" {
+		return fmt.Sprintf("No changes applied to Postgres database\n\n%s\n", details)
+	}
+	return fmt.Sprintf("Updated Postgres database\n\nChanges:\n%s\n\n%s\n", diff, details)
+}

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"maps"
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/environment"
@@ -160,6 +161,16 @@ func (s *Service) Update(ctx context.Context, input pgtypes.UpdatePostgresInput)
 	body, err := BuildUpdateRequest(input)
 	if err != nil {
 		return nil, err
+	}
+
+	// The API treats parameterOverrides as a full replacement when supplied, so
+	// merge the caller's entries into the existing server-side map to preserve
+	// overrides the caller didn't mention (upsert, not replace).
+	if body.ParameterOverrides != nil && before.ParameterOverrides != nil {
+		merged := make(client.PostgresParameterOverrides)
+		maps.Copy(merged, *before.ParameterOverrides)
+		maps.Copy(merged, *body.ParameterOverrides)
+		body.ParameterOverrides = &merged
 	}
 
 	after, err := s.repo.UpdatePostgres(ctx, before.Id, body)

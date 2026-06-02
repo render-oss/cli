@@ -51,6 +51,10 @@ func (u UpdatePostgresInput) Validate(interactive bool) error {
 		return fmt.Errorf("at least one field must be provided for update")
 	}
 
+	if err := ValidateDiskSizeGB(u.DiskSizeGB); err != nil {
+		return err
+	}
+
 	if len(u.IPAllowList) > 0 && u.ClearIPAllowList {
 		return fmt.Errorf("--ip-allow-list and --clear-ip-allow-list are mutually exclusive")
 	}

@@ -2,6 +2,9 @@ package text
 
 import (
 	"fmt"
+	"maps"
+	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/jedib0t/go-pretty/table"
@@ -57,6 +60,15 @@ func PostgresDetail(pg *client.PostgresDetail) string {
 		lines = append(lines, block)
 	}
 	lines = append(lines, ipAllowListBlock(pg.IpAllowList))
+	if pg.ParameterOverrides != nil && len(*pg.ParameterOverrides) > 0 {
+		keys := slices.Sorted(maps.Keys(*pg.ParameterOverrides))
+		var b strings.Builder
+		b.WriteString("Parameter overrides:")
+		for _, k := range keys {
+			fmt.Fprintf(&b, "\n  %s: %s", k, (*pg.ParameterOverrides)[k])
+		}
+		lines = append(lines, b.String())
+	}
 	return strings.Join(lines, "\n")
 }
 
@@ -95,4 +107,50 @@ func boolLabel(b bool) string {
 		return "enabled"
 	}
 	return "disabled"
+}
+
+// diskSizeLabel renders a *int disk size for display, returning "(unset)" when nil.
+func diskSizeLabel(gb *int) string {
+	if gb == nil {
+		return "(unset)"
+	}
+	return fmt.Sprintf("%d GB", *gb)
+}
+
+// PostgresUpdateDiff renders the user-visible changes between before and after
+// snapshots of a Postgres instance, showing only the fields that actually
+// changed. Returns an empty string when nothing changed (the cmd layer can
+// then surface a "no changes" message).
+//
+// Label column is padded to 20 characters so the arrows align:
+//
+//	"  High availability: disabled → enabled"
+func PostgresUpdateDiff(before, after *client.PostgresDetail) string {
+	var lines []string
+
+	if before.Name != after.Name {
+		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Name:", before.Name, after.Name))
+	}
+	if before.Plan != after.Plan {
+		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Plan:", string(before.Plan), string(after.Plan)))
+	}
+	if diskSizeLabel(before.DiskSizeGB) != diskSizeLabel(after.DiskSizeGB) {
+		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Disk size:", diskSizeLabel(before.DiskSizeGB), diskSizeLabel(after.DiskSizeGB)))
+	}
+	if before.DiskAutoscalingEnabled != after.DiskAutoscalingEnabled {
+		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Disk autoscaling:", boolLabel(before.DiskAutoscalingEnabled), boolLabel(after.DiskAutoscalingEnabled)))
+	}
+	if before.HighAvailabilityEnabled != after.HighAvailabilityEnabled {
+		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "High availability:", boolLabel(before.HighAvailabilityEnabled), boolLabel(after.HighAvailabilityEnabled)))
+	}
+	if !ipAllowListEqual(before.IpAllowList, after.IpAllowList) {
+		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "IP allow-list:", ipAllowListLabel(before.IpAllowList), ipAllowListLabel(after.IpAllowList)))
+	}
+	// ParameterOverrides is a map; rather than a noisy per-key diff we flag that
+	// it changed. The full new state is shown in the PostgresDetail block below.
+	if !reflect.DeepEqual(before.ParameterOverrides, after.ParameterOverrides) {
+		lines = append(lines, fmt.Sprintf("  %-20s %s", "Parameter overrides:", "updated"))
+	}
+
+	return strings.Join(lines, "\n")
 }
