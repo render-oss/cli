@@ -24,7 +24,7 @@ type SSHInput struct {
 	Project         *client.Project
 	EnvironmentIDs  []string
 	Ephemeral       bool   `cli:"ephemeral"`
-	Size            string `cli:"size"`
+	Plan            string `cli:"plan"`
 
 	Args []string
 }
@@ -48,9 +48,9 @@ func handleSSHError(err error) error {
 // createEphemeralShell creates an ephemeral shell pod for the given service
 // and returns the ephemeral shell id from the API response (empty string if
 // the response did not include one). This must be called before SSH'ing into
-// an ephemeral shell. If size is non-empty, it is sent as the requested
+// an ephemeral shell. If plan is non-empty, it is sent as the requested
 // instance plan name.
-func createEphemeralShell(ctx context.Context, serviceID, size string) (string, error) {
+func createEphemeralShell(ctx context.Context, serviceID, plan string) (string, error) {
 	apiCfg, err := config.DefaultAPIConfig()
 	if err != nil {
 		return "", fmt.Errorf("failed to get API config: %w", err)
@@ -59,8 +59,8 @@ func createEphemeralShell(ctx context.Context, serviceID, size string) (string, 
 	url := fmt.Sprintf("%sservices/%s/ephemeral-shell", apiCfg.Host, serviceID)
 
 	var reqBody io.Reader = bytes.NewReader(nil)
-	if size != "" {
-		payload, err := json.Marshal(client.CreateEphemeralShellJSONRequestBody{Size: &size})
+	if plan != "" {
+		payload, err := json.Marshal(client.CreateEphemeralShellJSONRequestBody{Plan: &plan})
 		if err != nil {
 			return "", fmt.Errorf("failed to encode request body: %w", err)
 		}
@@ -74,7 +74,7 @@ func createEphemeralShell(ctx context.Context, serviceID, size string) (string, 
 
 	req.Header = client.AddHeaders(req.Header, apiCfg.Key)
 	req.Header.Set("Accept", "application/json")
-	if size != "" {
+	if plan != "" {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
@@ -199,16 +199,16 @@ func loadDataSSH(ctx context.Context, in *SSHInput) (*exec.Cmd, error) {
 		}
 	}
 
-	if in.Size != "" && !in.Ephemeral {
+	if in.Plan != "" && !in.Ephemeral {
 		return nil, tui.UserFacingError{
 			Title:   "Invalid flags",
-			Message: "--size is only supported with --ephemeral.",
+			Message: "--plan is only supported with --ephemeral.",
 		}
 	}
 
 	if in.Ephemeral {
 		// Create the ephemeral shell pod first
-		shellID, err := createEphemeralShell(ctx, serviceInfo.Id, in.Size)
+		shellID, err := createEphemeralShell(ctx, serviceInfo.Id, in.Plan)
 		if err != nil {
 			return nil, tui.UserFacingError{
 				Title:   "Failed to create ephemeral shell",

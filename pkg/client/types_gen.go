@@ -3762,7 +3762,12 @@ type GetEnvVarsForServiceParams struct {
 
 // CreateEphemeralShellJSONBody defines parameters for CreateEphemeralShell.
 type CreateEphemeralShellJSONBody struct {
+	// Plan The plan to use when creating the ephemeral shell instance.
+	Plan *string `json:"plan,omitempty"`
+
 	// Size The size to use when creating the ephemeral shell instance.
+	// Deprecated: use `plan` instead. This field will be removed in a future release.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Size *string `json:"size,omitempty"`
 }
 

@@ -32,8 +32,8 @@ You can specify the service ID, service name, or specific instance ID as an argu
   # Connect to an ephemeral instance
   render ssh srv-abc123 --ephemeral
 
-  # Connect to an ephemeral instance with a specific plan size
-  render ssh srv-abc123 --ephemeral --size standard
+  # Connect to an ephemeral instance with a specific plan
+  render ssh srv-abc123 --ephemeral --plan standard
 
   # Pass through ssh arguments
   render ssh srv-abc123 -- -L 5432:localhost:5432`,
@@ -131,7 +131,7 @@ func init() {
 	rootCmd.AddCommand(sshCmd)
 
 	sshCmd.Flags().BoolP("ephemeral", "e", false, "Connect to an ephemeral instance")
-	sshCmd.Flags().String("size", "", "Plan name to use for the ephemeral instance (e.g. starter, standard, pro). Only valid with --ephemeral.")
+	sshCmd.Flags().String("plan", "", "Plan name to use for the ephemeral instance (e.g. starter, standard, pro). Only valid with --ephemeral.")
 
 	sshCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
