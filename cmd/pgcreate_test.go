@@ -94,6 +94,30 @@ func TestPGCreate_OutputJSON_IsMachineReadable(t *testing.T) {
 	assert.NotEmpty(t, decoded["id"])
 }
 
+// Verifies that --confirm in interactive output mode creates without launching the wizard.
+func TestPGCreate_InteractiveConfirm_PrintsTextSuccess(t *testing.T) {
+	server := renderapi.NewServer(t)
+	result, err := executePGCreate(t, server,
+		"--confirm",
+		"--name", "confirm-pg",
+		"--plan", "basic_256mb",
+		"--version", "17",
+		"--region", "oregon",
+		"--output", "interactive",
+	)
+	require.NoError(t, err)
+
+	require.Len(t, server.Postgres.Instances, 1)
+	pg := server.Postgres.Instances[0]
+	assert.Equal(t, "confirm-pg", pg.Name)
+	assert.Equal(t, pgclient.Basic256mb, pg.Plan)
+	assert.Equal(t, client.PostgresVersion("17"), pg.Version)
+	assert.Equal(t, client.Oregon, pg.Region)
+	assert.Contains(t, result.Stdout, "Created Postgres database")
+	assert.Contains(t, result.Stdout, "confirm-pg")
+	assert.Contains(t, result.Stdout, pg.Id)
+}
+
 func TestPGCreate_PostgresAlias(t *testing.T) {
 	server := renderapi.NewServer(t)
 	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: pgActiveWorkspaceID, Name: "Test Workspace"}))

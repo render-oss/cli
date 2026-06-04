@@ -11,6 +11,7 @@ import (
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/postgres"
 	"github.com/render-oss/cli/pkg/text"
+	"github.com/render-oss/cli/pkg/tui/views"
 	"github.com/render-oss/cli/pkg/types"
 	pgtypes "github.com/render-oss/cli/pkg/types/postgres"
 )
@@ -23,21 +24,28 @@ func newPgCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 		SilenceUsage: true,
 		Long: `Create a new Postgres database on Render.
 
-Every flag is optional: running 'render ea pg create' with no flags provisions
-a database in the active workspace with sensible defaults.
+In interactive mode, a wizard guides you through the core choices for the
+database. The wizard owns those prompted values. Flag-only settings, such as
+--disk-size-gb, --database-name, --database-user, --ip-allow-list,
+--parameter-override, and --read-replica, are still included in the create
+request.
 
-Output defaults to text. Use --output json or --output yaml for
-machine-readable output.
+Use --confirm to skip the wizard and create immediately from flags and defaults.
+When --confirm is used with the default interactive output mode, output is
+printed as text. Use --output json, yaml, or text for non-interactive output.
 
 Examples:
-  # Create with all defaults
+  # Launch the interactive wizard
   render ea pg create
 
-  # Pick a plan, version, and region
-  render ea pg create --name analytics --plan pro_8gb --version 17 --region ohio
+  # Create immediately with defaults and text output
+  render ea pg create --confirm
 
-  # Restrict inbound traffic (repeat the flag for multiple entries)
-  render ea pg create --name analytics \
+  # Create immediately with explicit values
+  render ea pg create --confirm --name analytics --plan pro_8gb --version 17 --region ohio
+
+  # Include flag-only settings while using the wizard for prompted values
+  render ea pg create \
     --ip-allow-list "cidr=203.0.113.5/32,description=office" \
     --ip-allow-list "cidr=10.0.0.0/8,description=internal"
 
@@ -77,14 +85,22 @@ Examples:
 		"Name of a read replica to create alongside the primary. Repeat the flag for multiple replicas.")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		command.DefaultFormatNonInteractive(cmd)
+		if command.GetConfirmFromContext(cmd.Context()) {
+			command.DefaultFormatNonInteractive(cmd)
+		}
 
 		var input pgtypes.CreatePostgresInput
 		if err := command.ParseCommand(cmd, args, &input); err != nil {
 			return err
 		}
 
-		_, err := command.NonInteractive(cmd,
+		// There are two execution paths:
+		//  1. Non-interactive output (text/json/yaml): create and print via the shared formatter.
+		//  2. Interactive output: run the TUI wizard, which owns its styled output.
+		// --confirm skips prompts, so collapse default interactive output to text before
+		// this gate. command.NonInteractive returns (false, nil) only when the resolved
+		// output format is still interactive, without calling loadData.
+		nonInteractive, err := command.NonInteractive(cmd,
 			func() (*client.PostgresDetail, error) {
 				return deps.PostgresService().Create(cmd.Context(), input)
 			},
@@ -92,6 +108,17 @@ Examples:
 				return pgCreateSuccessMessage(pg)
 			},
 		)
+		if err != nil || nonInteractive {
+			return err
+		}
+
+		repos := views.PostgresCreateRepos{
+			Owners:   deps.OwnerRepo(),
+			Projects: deps.ProjectRepo(),
+			Envs:     deps.EnvironmentRepo(),
+			Postgres: deps.PostgresRepo(),
+		}
+		_, err = views.RunPostgresCreate(cmd, repos, input)
 		return err
 	}
 
