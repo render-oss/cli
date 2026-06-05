@@ -8,7 +8,6 @@ import (
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
-	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,33 +16,9 @@ import (
 // Seeds and selects an active workspace before running the command.
 func executeKVGet(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()
-	t.Cleanup(resetKVGetFlags)
-	resetKVGetFlags()
 
-	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: ACTIVE_WORKSPACE_ID, Name: "Test Workspace"}))
-	session := newCommandSession(t, server)
-	if _, err := session.execute("workspace", "set", ACTIVE_WORKSPACE_ID, "--output", "text"); err != nil {
-		return CommandResult{}, err
-	}
-	resetKVGetFlags()
-
-	args := append([]string{"ea", "kv", "get"}, extraArgs...)
-	return session.execute(args...)
-}
-
-// resetKVGetFlags resets the flags consumed by kvGetCmd between test runs,
-// since Cobra retains values across Execute() calls.
-func resetKVGetFlags() {
-	rootCmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
-		if f.Name == "output" {
-			f.Changed = false
-			f.Value.Set(f.DefValue) //nolint:errcheck
-		}
-	})
-	kvGetCmd.Flags().VisitAll(func(f *pflag.Flag) {
-		f.Changed = false
-		f.Value.Set(f.DefValue) //nolint:errcheck
-	})
+	args := append([]string{"get"}, extraArgs...)
+	return executeKVCommand(t, server, args...)
 }
 
 func TestKVGet_ByID_TextOutput(t *testing.T) {
@@ -88,7 +63,7 @@ func TestKVGet_WithConnectionInfo_ShowsCredentials(t *testing.T) {
 func TestKVGet_WithEnvironmentFlag_ResolvesCorrectly(t *testing.T) {
 	server := renderapi.NewServer(t)
 	project := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 		renderapi.EnvAttrs{Name: "staging"},
 	)
@@ -106,12 +81,12 @@ func TestKVGet_WithProjectFlag_NarrowsNameLookupToProject(t *testing.T) {
 	server := renderapi.NewServer(t)
 
 	projectA := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "Project A", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 		renderapi.EnvAttrs{Name: "staging"},
 	)
 	projectB := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "Project B", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 	)
 
@@ -132,7 +107,7 @@ func TestKVGet_WithEnvironmentFlag_NarrowsLookupToActiveWorkspace(t *testing.T) 
 	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: otherWorkspaceID, Name: "Other Workspace"}))
 
 	activeProject := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "Active Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "Active Project", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 	)
 	server.CreateProject(
@@ -151,11 +126,11 @@ func TestKVGet_WithEnvironmentFlag_NarrowsLookupToActiveWorkspace(t *testing.T) 
 func TestKVGet_IDWithMismatchedProject_Errors(t *testing.T) {
 	server := renderapi.NewServer(t)
 	server.CreateProject(
-		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 	)
 	otherProject := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "Other Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "Other Project", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 	)
 
@@ -195,7 +170,7 @@ func TestKVGet_UnknownName_Errors(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "does-not-exist")
 	assert.Contains(t, err.Error(), "Test Workspace", "name errors should surface the active workspace name")
-	assert.Contains(t, err.Error(), ACTIVE_WORKSPACE_ID, "name errors should also include the workspace ID for copy-paste")
+	assert.Contains(t, err.Error(), kvTestWorkspaceID, "name errors should also include the workspace ID for copy-paste")
 	assert.Contains(t, err.Error(), "render workspace set", "name errors should hint at the workspace-switch command")
 }
 

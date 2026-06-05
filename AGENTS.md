@@ -88,6 +88,30 @@ proj, _ := s.projectRepo.ListProjects(ctx)    // different repo
 return s.enrich(svc, proj)                    // business logic
 ```
 
+**Command construction**: New Cobra commands should use factory functions that
+accept dependencies, then be registered from setup functions in `cmd/root.go`.
+Avoid package-global command singletons and `init`-time subcommand registration
+for new command / subcommands.
+
+```go
+// cmd/pgget.go
+func newPgGetCmd(deps *dependencies.Dependencies) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "get <postgresID|postgresName>",
+		Short: "Get a Postgres database",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return deps.PostgresService().Get(cmd.Context(), args[0])
+		},
+	}
+	return cmd
+}
+
+// cmd/root.go
+func setupPGCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
+	earlyAccess.AddCommand(newPgCmd(newPgGetCmd(deps)))
+}
+```
+
 **Output formats**: Use `command.IsInteractive(ctx)` for branching:
 ```go
 if command.IsInteractive(ctx) {

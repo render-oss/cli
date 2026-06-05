@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,31 +13,9 @@ import (
 // Seeds and selects an active workspace before running the command.
 func executeKVList(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()
-	t.Cleanup(resetKVListFlags)
-	resetKVListFlags()
 
-	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: ACTIVE_WORKSPACE_ID, Name: "Test Workspace"}))
-	session := newCommandSession(t, server)
-	if _, err := session.execute("workspace", "set", ACTIVE_WORKSPACE_ID, "--output", "text"); err != nil {
-		return CommandResult{}, err
-	}
-	resetKVListFlags()
-
-	args := append([]string{"ea", "kv", "list"}, extraArgs...)
-	return session.execute(args...)
-}
-
-func resetKVListFlags() {
-	rootCmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
-		if f.Name == "output" {
-			f.Changed = false
-			f.Value.Set(f.DefValue) //nolint:errcheck
-		}
-	})
-	kvListCmd.Flags().VisitAll(func(f *pflag.Flag) {
-		f.Changed = false
-		f.Value.Set(f.DefValue) //nolint:errcheck
-	})
+	args := append([]string{"list"}, extraArgs...)
+	return executeKVCommand(t, server, args...)
 }
 
 func TestKVList_NoInstances(t *testing.T) {
@@ -67,7 +43,7 @@ func TestKVList_MultipleInstances(t *testing.T) {
 func TestKVList_FilterByEnvironmentID(t *testing.T) {
 	server := renderapi.NewServer(t)
 	proj := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 		renderapi.EnvAttrs{Name: "staging"},
 	)
@@ -85,7 +61,7 @@ func TestKVList_FilterByEnvironmentID(t *testing.T) {
 func TestKVList_FilterByEnvironmentName(t *testing.T) {
 	server := renderapi.NewServer(t)
 	proj := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 		renderapi.EnvAttrs{Name: "staging"},
 	)
@@ -145,12 +121,12 @@ func TestKVList_FilterByProject(t *testing.T) {
 	server := renderapi.NewServer(t)
 
 	projectA := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "Project A", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 		renderapi.EnvAttrs{Name: "staging"},
 	)
 	projectB := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "Project B", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 	)
 
@@ -170,11 +146,11 @@ func TestKVList_FilterByProjectAndEnvironment_NarrowsToEnvWithinProject(t *testi
 	server := renderapi.NewServer(t)
 
 	projectA := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "Project A", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "Project A", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 	)
 	projectB := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "Project B", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "Project B", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 	)
 

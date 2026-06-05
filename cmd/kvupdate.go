@@ -8,18 +8,20 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/text"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
-var kvUpdateCmd = &cobra.Command{
-	Use:          "update <keyValueID|keyValueName>",
-	Short:        "Update a Key Value store instance",
-	Args:         cobra.ExactArgs(1),
-	SilenceUsage: true,
-	Long: `Update an existing Key Value store instance on Render.
+func newKVUpdateCmd(_ *dependencies.Dependencies) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "update <keyValueID|keyValueName>",
+		Short:        "Update a Key Value store instance",
+		Args:         cobra.ExactArgs(1),
+		SilenceUsage: true,
+		Long: `Update an existing Key Value store instance on Render.
 
 The positional argument is the target Key Value (ID red-... or name). At least
 one mutating flag must be supplied. Use --name to rename the instance; the
@@ -36,7 +38,7 @@ moved between them; the --environment flag is for name disambiguation only.
 The --ip-allow-list flag replaces the server-side list; pass it once per entry.
 To remove all allow-list entries, pass --clear-ip-allow-list. The two flags are
 mutually exclusive.`,
-	Example: `  # Rename
+		Example: `  # Rename
   render ea kv update red-abc123def456ghi789jkl0 --name new-cache-name
 
   # Change plan
@@ -55,9 +57,8 @@ mutually exclusive.`,
 
   # JSON output
   render ea kv update red-abc123def456ghi789jkl0 --plan pro --output json`,
-}
+	}
 
-func init() {
 	memoryPolicyDesc := `Controls what the instance does when it runs out of memory to store new data.
 Shortcuts: cache (sets allkeys_lru, recommended for caching) | queue (sets noeviction, recommended for job queues).
 Technical values: noeviction | allkeys_lru | allkeys_lfu | allkeys_random | volatile_lru | volatile_lfu | volatile_random | volatile_ttl`
@@ -66,21 +67,21 @@ Technical values: noeviction | allkeys_lru | allkeys_lfu | allkeys_random | vola
 Format: cidr=<range>,description=<label>
 Example: --ip-allow-list "cidr=203.0.113.5/32,description=office"`
 
-	kvUpdateCmd.Flags().String("environment", "",
+	cmd.Flags().String("environment", "",
 		"Environment ID or name (optional). Narrows name lookup when the same Key Value name exists in multiple environments")
 
-	kvUpdateCmd.Flags().String("name", "", "Rename the Key Value instance")
-	kvUpdateCmd.Flags().String("plan", "",
+	cmd.Flags().String("name", "", "Rename the Key Value instance")
+	cmd.Flags().String("plan", "",
 		"Plan name. Examples: free | starter | standard | pro | pro_plus. Account-specific plan names are accepted")
 
 	maxmemFlag := command.NewEnumInput(kvtypes.MemoryPolicyInputValues(), false)
-	kvUpdateCmd.Flags().Var(maxmemFlag, "memory-policy", memoryPolicyDesc)
+	cmd.Flags().Var(maxmemFlag, "memory-policy", memoryPolicyDesc)
 
-	kvUpdateCmd.Flags().StringArray("ip-allow-list", nil, ipAllowListDesc)
-	kvUpdateCmd.Flags().Bool("clear-ip-allow-list", false,
+	cmd.Flags().StringArray("ip-allow-list", nil, ipAllowListDesc)
+	cmd.Flags().Bool("clear-ip-allow-list", false,
 		"Remove all IP allow-list entries. Mutually exclusive with --ip-allow-list")
 
-	kvUpdateCmd.RunE = func(cmd *cobra.Command, args []string) error {
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		// No interactive flow yet; collapse --output interactive onto text so
 		// the standard NonInteractive path handles every format.
 		command.DefaultFormatNonInteractive(cmd)
@@ -122,7 +123,7 @@ Example: --ip-allow-list "cidr=203.0.113.5/32,description=office"`
 		return err
 	}
 
-	kvCmd.AddCommand(kvUpdateCmd)
+	return cmd
 }
 
 func kvUpdateSuccessMessage(before, after *client.KeyValueDetail) string {

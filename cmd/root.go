@@ -158,6 +158,10 @@ func setupPGCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies
 	earlyAccess.AddCommand(newPgCmd(newPgCreateCmd(deps), newPgDeleteCmd(deps), newPgGetCmd(deps), newPgListCmd(deps), newPgUpdateCmd(deps), newPgSuspendCmd(deps), newPgResumeCmd(deps)))
 }
 
+func setupKVCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
+	earlyAccess.AddCommand(newKVCmd(newKVCreateCmd(deps), newKVDeleteCmd(deps), newKVGetCmd(deps), newKVListCmd(deps), newKVResumeCmd(deps), newKVSuspendCmd(deps), newKVUpdateCmd(deps)))
+}
+
 func SetupCommands() error {
 	c, err := client.NewDefaultClient()
 	if err != nil {
@@ -176,6 +180,7 @@ func SetupCommands() error {
 	setupWorkflowCommands(deps)
 	setupLogCommands(deps)
 	setupWorkspaceCommands(deps)
+	setupKVCommands(EarlyAccessCmd, deps)
 	setupPGCommands(EarlyAccessCmd, deps)
 	setupRootCmdPersistentRun(rootCmd, deps)
 

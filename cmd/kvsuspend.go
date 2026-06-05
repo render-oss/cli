@@ -5,18 +5,20 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/text"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
-var kvSuspendCmd = &cobra.Command{
-	Use:          "suspend <keyValueID|keyValueName>",
-	Short:        "Suspend a Key Value store instance",
-	Args:         cobra.ExactArgs(1),
-	SilenceUsage: true,
-	Long: `Suspend a Key Value store instance on Render.
+func newKVSuspendCmd(_ *dependencies.Dependencies) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "suspend <keyValueID|keyValueName>",
+		Short:        "Suspend a Key Value store instance",
+		Args:         cobra.ExactArgs(1),
+		SilenceUsage: true,
+		Long: `Suspend a Key Value store instance on Render.
 
 Without --confirm, this command previews what would be suspended and makes no
 changes. Pass --confirm to actually suspend the instance.
@@ -28,7 +30,7 @@ If the name matches more than one instance, narrow the search with
 Name lookup is scoped to your active workspace. If a name isn't found, switch
 workspaces with 'render workspace set <name|ID>' and try again, or pass the
 Key Value ID instead (which works across workspaces).`,
-	Example: `  # Preview suspension (no changes made)
+		Example: `  # Preview suspension (no changes made)
   render ea kv suspend red-abc123def456ghi789jkl0
 
   # Suspend by ID
@@ -42,13 +44,12 @@ Key Value ID instead (which works across workspaces).`,
 
   # JSON output
   render ea kv suspend red-abc123def456ghi789jkl0 --confirm --output json`,
-}
+	}
 
-func init() {
-	kvSuspendCmd.Flags().String("environment", "",
+	cmd.Flags().String("environment", "",
 		"Environment ID or name (optional). Narrows name lookup when the same Key Value name exists in multiple environments.")
 
-	kvSuspendCmd.RunE = func(cmd *cobra.Command, args []string) error {
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)
 
 		var input kvtypes.KeyValueSuspendInput
@@ -96,7 +97,7 @@ func init() {
 		return err
 	}
 
-	kvCmd.AddCommand(kvSuspendCmd)
+	return cmd
 }
 
 func formatSuspendTextOutput(r *keyvalue.SuspendResult) string {

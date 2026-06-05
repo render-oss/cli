@@ -7,8 +7,6 @@ import (
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
-	"github.com/render-oss/cli/pkg/client"
-	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,33 +15,9 @@ import (
 // Seeds and selects an active workspace before running the command.
 func executeKVDelete(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()
-	t.Cleanup(resetKVDeleteFlags)
-	resetKVDeleteFlags()
 
-	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: ACTIVE_WORKSPACE_ID, Name: "Test Workspace"}))
-	session := newCommandSession(t, server)
-	if _, err := session.execute("workspace", "set", ACTIVE_WORKSPACE_ID, "--output", "text"); err != nil {
-		return CommandResult{}, err
-	}
-	resetKVDeleteFlags()
-
-	args := append([]string{"ea", "kv", "delete"}, extraArgs...)
-	return session.execute(args...)
-}
-
-// resetKVDeleteFlags resets the flags consumed by kvDeleteCmd between test
-// runs, since Cobra retains values across Execute() calls.
-func resetKVDeleteFlags() {
-	rootCmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
-		if f.Name == "confirm" || f.Name == "output" {
-			f.Changed = false
-			f.Value.Set(f.DefValue) //nolint:errcheck
-		}
-	})
-	kvDeleteCmd.Flags().VisitAll(func(f *pflag.Flag) {
-		f.Changed = false
-		f.Value.Set(f.DefValue) //nolint:errcheck
-	})
+	args := append([]string{"delete"}, extraArgs...)
+	return executeKVCommand(t, server, args...)
 }
 
 func TestKVDelete_PreviewByID_DoesNotDelete(t *testing.T) {
@@ -116,7 +90,7 @@ func TestKVDelete_UnknownName_Errors(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "does-not-exist")
 	assert.Contains(t, err.Error(), "Test Workspace", "name errors should surface the active workspace name")
-	assert.Contains(t, err.Error(), ACTIVE_WORKSPACE_ID, "name errors should also include the workspace ID for copy-paste")
+	assert.Contains(t, err.Error(), kvTestWorkspaceID, "name errors should also include the workspace ID for copy-paste")
 	assert.Contains(t, err.Error(), "render workspace set", "name errors should hint at the workspace-switch command")
 }
 
@@ -156,7 +130,7 @@ func TestKVDelete_JSONOutput_OnError(t *testing.T) {
 func TestKVDelete_NameCollision_NarrowedByEnvironment_Deletes(t *testing.T) {
 	server := renderapi.NewServer(t)
 	proj := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 		renderapi.EnvAttrs{Name: "staging"},
 	)
@@ -176,7 +150,7 @@ func TestKVDelete_NameCollision_NarrowedByEnvironment_Deletes(t *testing.T) {
 func TestKVDelete_EnvironmentByID_Deletes(t *testing.T) {
 	server := renderapi.NewServer(t)
 	proj := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 	)
 	kv := seedKVInEnv(server, "by-name-cache", proj.Env("production").Id)
@@ -202,7 +176,7 @@ func TestKVDelete_UnknownEnvironment_Errors(t *testing.T) {
 func TestKVDelete_IDWithMismatchedEnvironment_Errors(t *testing.T) {
 	server := renderapi.NewServer(t)
 	proj := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 		renderapi.EnvAttrs{Name: "staging"},
 	)

@@ -7,7 +7,6 @@ import (
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/pkg/client"
-	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,40 +15,9 @@ import (
 // Seeds and selects an active workspace before running the command.
 func executeKVUpdate(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()
-	t.Cleanup(resetKVUpdateFlags)
-	resetKVUpdateFlags()
 
-	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: ACTIVE_WORKSPACE_ID, Name: "Test Workspace"}))
-	session := newCommandSession(t, server)
-	if _, err := session.execute("workspace", "set", ACTIVE_WORKSPACE_ID, "--output", "text"); err != nil {
-		return CommandResult{}, err
-	}
-	resetKVUpdateFlags()
-
-	args := append([]string{"ea", "kv", "update"}, extraArgs...)
-	return session.execute(args...)
-}
-
-func resetKVUpdateFlags() {
-	rootCmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
-		if f.Name == "confirm" || f.Name == "output" {
-			f.Changed = false
-			f.Value.Set(f.DefValue) //nolint:errcheck
-		}
-	})
-	kvUpdateCmd.Flags().VisitAll(func(f *pflag.Flag) {
-		f.Changed = false
-		// pflag.SliceValue (stringArray/stringSlice) needs Replace, not Set —
-		// Set would append "[]" as a literal element. Without Replace, values
-		// from a previous test's --ip-allow-list flag persist into the next
-		// test, which breaks any subsequent test that exercises the mutex
-		// with --clear-ip-allow-list.
-		if sliceVal, ok := f.Value.(pflag.SliceValue); ok {
-			_ = sliceVal.Replace(nil)
-			return
-		}
-		f.Value.Set(f.DefValue) //nolint:errcheck
-	})
+	args := append([]string{"update"}, extraArgs...)
+	return executeKVCommand(t, server, args...)
 }
 
 // TestKVUpdate_HappyPath_MultiField covers the non-interactive happy path end-to-end:
@@ -130,7 +98,7 @@ func TestKVUpdate_ResolveErrors_Propagate(t *testing.T) {
 func TestKVUpdate_EnvironmentDisambiguatesName(t *testing.T) {
 	server := renderapi.NewServer(t)
 	project := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 		renderapi.EnvAttrs{Name: "staging"},
 	)

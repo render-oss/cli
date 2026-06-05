@@ -8,7 +8,6 @@ import (
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
-	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,31 +16,9 @@ import (
 // Seeds and selects an active workspace before running the command.
 func executeKVSuspend(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()
-	t.Cleanup(resetKVSuspendFlags)
-	resetKVSuspendFlags()
 
-	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: ACTIVE_WORKSPACE_ID, Name: "Test Workspace"}))
-	session := newCommandSession(t, server)
-	if _, err := session.execute("workspace", "set", ACTIVE_WORKSPACE_ID, "--output", "text"); err != nil {
-		return CommandResult{}, err
-	}
-	resetKVSuspendFlags()
-
-	args := append([]string{"ea", "kv", "suspend"}, extraArgs...)
-	return session.execute(args...)
-}
-
-func resetKVSuspendFlags() {
-	rootCmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
-		if f.Name == "confirm" || f.Name == "output" {
-			f.Changed = false
-			f.Value.Set(f.DefValue) //nolint:errcheck
-		}
-	})
-	kvSuspendCmd.Flags().VisitAll(func(f *pflag.Flag) {
-		f.Changed = false
-		f.Value.Set(f.DefValue) //nolint:errcheck
-	})
+	args := append([]string{"suspend"}, extraArgs...)
+	return executeKVCommand(t, server, args...)
 }
 
 func TestKVSuspend_PreviewByID_DoesNotSuspend(t *testing.T) {
@@ -133,7 +110,7 @@ func TestKVSuspend_JSONOutput_AfterConfirm(t *testing.T) {
 func TestKVSuspend_NameCollision_NarrowedByEnvironment_Suspends(t *testing.T) {
 	server := renderapi.NewServer(t)
 	project := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 		renderapi.EnvAttrs{Name: "staging"},
 	)

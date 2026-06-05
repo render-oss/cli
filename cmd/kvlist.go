@@ -5,23 +5,25 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/text"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
-var kvListCmd = &cobra.Command{
-	Use:          "list",
-	Short:        "List Key Value store instances",
-	Args:         cobra.NoArgs,
-	SilenceUsage: true,
-	Long: `List Key Value store instances in the active workspace.
+func newKVListCmd(_ *dependencies.Dependencies) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "list",
+		Short:        "List Key Value store instances",
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
+		Long: `List Key Value store instances in the active workspace.
 
 Use --project to narrow results to a single project, --environment to narrow
 to a single environment, or both — when both are supplied, the environment is
 resolved within that project.`,
-	Example: `  # List all Key Value instances in the active workspace
+		Example: `  # List all Key Value instances in the active workspace
   render ea kv list
 
   # List all Key Value instances in a project
@@ -35,15 +37,14 @@ resolved within that project.`,
 
   # JSON output
   render ea kv list --output json`,
-}
+	}
 
-func init() {
-	kvListCmd.Flags().String("project", "",
+	cmd.Flags().String("project", "",
 		"Project ID or name (optional). Narrows results to environments in this project.")
-	kvListCmd.Flags().String("environment", "",
+	cmd.Flags().String("environment", "",
 		"Environment ID or name (optional). Narrows results to this environment.")
 
-	kvListCmd.RunE = func(cmd *cobra.Command, args []string) error {
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)
 
 		var input kvtypes.KeyValueListInput
@@ -72,7 +73,7 @@ func init() {
 		return err
 	}
 
-	kvCmd.AddCommand(kvListCmd)
+	return cmd
 }
 
 // resolveListEnvIDs translates --project/--environment selectors into the

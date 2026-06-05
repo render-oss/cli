@@ -5,18 +5,20 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/text"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
-var kvResumeCmd = &cobra.Command{
-	Use:          "resume <keyValueID|keyValueName>",
-	Short:        "Resume a suspended Key Value store instance",
-	Args:         cobra.ExactArgs(1),
-	SilenceUsage: true,
-	Long: `Resume a suspended Key Value store instance on Render.
+func newKVResumeCmd(_ *dependencies.Dependencies) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "resume <keyValueID|keyValueName>",
+		Short:        "Resume a suspended Key Value store instance",
+		Args:         cobra.ExactArgs(1),
+		SilenceUsage: true,
+		Long: `Resume a suspended Key Value store instance on Render.
 
 The positional argument accepts either a Key Value ID (red-...) or a name.
 If the name matches more than one instance, narrow the search with
@@ -25,7 +27,7 @@ If the name matches more than one instance, narrow the search with
 Name lookup is scoped to your active workspace. If a name isn't found, switch
 workspaces with 'render workspace set <name|ID>' and try again, or pass the
 Key Value ID instead (which works across workspaces).`,
-	Example: `  # Resume by ID
+		Example: `  # Resume by ID
   render ea kv resume red-abc123def456ghi789jkl0
 
   # Resume by name
@@ -36,13 +38,12 @@ Key Value ID instead (which works across workspaces).`,
 
   # JSON output
   render ea kv resume red-abc123def456ghi789jkl0 --output json`,
-}
+	}
 
-func init() {
-	kvResumeCmd.Flags().String("environment", "",
+	cmd.Flags().String("environment", "",
 		"Environment ID or name (optional). Narrows name lookup when the same Key Value name exists in multiple environments.")
 
-	kvResumeCmd.RunE = func(cmd *cobra.Command, args []string) error {
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)
 
 		var input kvtypes.KeyValueResumeInput
@@ -82,7 +83,7 @@ func init() {
 		return err
 	}
 
-	kvCmd.AddCommand(kvResumeCmd)
+	return cmd
 }
 
 func formatResumeTextOutput(kv *client.KeyValueDetail) string {

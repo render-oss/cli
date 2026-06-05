@@ -5,18 +5,20 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/text"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
-var kvGetCmd = &cobra.Command{
-	Use:          "get <keyValueID|keyValueName>",
-	Short:        "Get details of a Key Value store instance",
-	Args:         cobra.ExactArgs(1),
-	SilenceUsage: true,
-	Long: `Get details and connection info for a Key Value store instance on Render.
+func newKVGetCmd(_ *dependencies.Dependencies) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "get <keyValueID|keyValueName>",
+		Short:        "Get details of a Key Value store instance",
+		Args:         cobra.ExactArgs(1),
+		SilenceUsage: true,
+		Long: `Get details and connection info for a Key Value store instance on Render.
 
 The positional argument accepts either a Key Value ID (red-...) or a name.
 If the name matches more than one instance, narrow the search with
@@ -26,7 +28,7 @@ directly.
 Name lookup is scoped to your active workspace. If a name isn't found, switch
 workspaces with 'render workspace set <name|ID>' and try again, or pass the
 Key Value ID instead (which works across workspaces).`,
-	Example: `  # Get by ID
+		Example: `  # Get by ID
   render ea kv get red-abc123def456ghi789jkl0
 
   # Get by name
@@ -43,17 +45,16 @@ Key Value ID instead (which works across workspaces).`,
 
   # JSON output
   render ea kv get red-abc123def456ghi789jkl0 --output json`,
-}
+	}
 
-func init() {
-	kvGetCmd.Flags().String("project", "",
+	cmd.Flags().String("project", "",
 		"Project ID or name (optional). Narrows name lookup within the active workspace.")
-	kvGetCmd.Flags().String("environment", "",
+	cmd.Flags().String("environment", "",
 		"Environment ID or name (optional). Narrows name lookup when the same Key Value name exists in multiple environments.")
-	kvGetCmd.Flags().Bool("include-sensitive-connection-info", false,
+	cmd.Flags().Bool("include-sensitive-connection-info", false,
 		"Include connection strings and credentials in the output")
 
-	kvGetCmd.RunE = func(cmd *cobra.Command, args []string) error {
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)
 
 		var input kvtypes.KeyValueGetInput
@@ -100,5 +101,5 @@ func init() {
 		return err
 	}
 
-	kvCmd.AddCommand(kvGetCmd)
+	return cmd
 }

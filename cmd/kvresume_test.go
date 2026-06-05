@@ -8,7 +8,6 @@ import (
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
-	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,31 +16,9 @@ import (
 // Seeds and selects an active workspace before running the command.
 func executeKVResume(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()
-	t.Cleanup(resetKVResumeFlags)
-	resetKVResumeFlags()
 
-	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: ACTIVE_WORKSPACE_ID, Name: "Test Workspace"}))
-	session := newCommandSession(t, server)
-	if _, err := session.execute("workspace", "set", ACTIVE_WORKSPACE_ID, "--output", "text"); err != nil {
-		return CommandResult{}, err
-	}
-	resetKVResumeFlags()
-
-	args := append([]string{"ea", "kv", "resume"}, extraArgs...)
-	return session.execute(args...)
-}
-
-func resetKVResumeFlags() {
-	rootCmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
-		if f.Name == "output" {
-			f.Changed = false
-			f.Value.Set(f.DefValue) //nolint:errcheck
-		}
-	})
-	kvResumeCmd.Flags().VisitAll(func(f *pflag.Flag) {
-		f.Changed = false
-		f.Value.Set(f.DefValue) //nolint:errcheck
-	})
+	args := append([]string{"resume"}, extraArgs...)
+	return executeKVCommand(t, server, args...)
 }
 
 // seedSuspendedKV adds a KV pre-seeded with Suspended status so resume tests
@@ -122,7 +99,7 @@ func TestKVResume_JSONOutput(t *testing.T) {
 func TestKVResume_NameCollision_NarrowedByEnvironment_Resumes(t *testing.T) {
 	server := renderapi.NewServer(t)
 	project := server.CreateProject(
-		renderapi.ProjectAttrs{Name: "My Project", OwnerId: ACTIVE_WORKSPACE_ID},
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
 		renderapi.EnvAttrs{Name: "production"},
 		renderapi.EnvAttrs{Name: "staging"},
 	)
