@@ -1,8 +1,6 @@
 package keyvalue
 
 import (
-	"context"
-
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/types"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
@@ -14,43 +12,6 @@ import (
 type UpdateResult struct {
 	Before *client.KeyValueDetail `json:"before"`
 	After  *client.KeyValueDetail `json:"after"`
-}
-
-// Update resolves the target Key Value (by ID or name, optionally narrowed by
-// env), validates and normalizes the requested changes, and applies them via
-// the Render API. Returns both the pre- and post-update server state.
-func Update(
-	ctx context.Context,
-	idOrName string,
-	env *client.Environment,
-	input kvtypes.KeyValueUpdateInput,
-) (*UpdateResult, error) {
-	normalized, err := kvtypes.NormalizeAndValidateUpdateInput(input)
-	if err != nil {
-		return nil, err
-	}
-
-	c, err := client.NewDefaultClient()
-	if err != nil {
-		return nil, err
-	}
-	repo := NewRepo(c)
-
-	before, err := resolveWithRepo(ctx, repo, idOrName, env)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := BuildUpdateRequest(normalized)
-	if err != nil {
-		return nil, err
-	}
-
-	after, err := repo.UpdateKeyValue(ctx, before.Id, body)
-	if err != nil {
-		return nil, err
-	}
-	return &UpdateResult{Before: before, After: after}, nil
 }
 
 // BuildUpdateRequest converts a normalized KeyValueUpdateInput into the API

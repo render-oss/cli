@@ -6,6 +6,7 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/environment"
 	"github.com/render-oss/cli/pkg/project"
+	"github.com/render-oss/cli/pkg/resolve"
 )
 
 // List fetches Key Value instances for the active workspace, optionally
@@ -15,6 +16,6 @@ func List(ctx context.Context, params *client.ListKeyValueParams) ([]*Model, err
 	if err != nil {
 		return nil, err
 	}
-	svc := NewService(NewRepo(c), environment.NewRepo(c), project.NewRepo(c))
+	svc := NewService(NewRepo(c), environment.NewRepo(c), project.NewRepo(c), resolve.NewFromClient(c))
 	return svc.ListKeyValue(ctx, params)
 }

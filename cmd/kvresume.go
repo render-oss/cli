@@ -7,12 +7,11 @@ import (
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/keyvalue"
-	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/text"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
-func newKVResumeCmd(_ *dependencies.Dependencies) *cobra.Command {
+func newKVResumeCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "resume <keyValueID|keyValueName>",
 		Short:        "Resume a suspended Key Value store instance",
@@ -53,30 +52,23 @@ Key Value ID instead (which works across workspaces).`,
 		input = kvtypes.NormalizeResumeInput(input)
 
 		loadData := func() (*client.KeyValueDetail, error) {
-			var project *client.Project
-			var env *client.Environment
-			if input.EnvironmentIDOrName != nil {
-				c, err := client.NewDefaultClient()
-				if err != nil {
-					return nil, err
-				}
-				scope, err := resolve.NewFromClient(c).ResolveScopeInActiveWorkspace(cmd.Context(), resolve.ActiveWorkspaceScopeInput{
-					EnvironmentIDOrName: input.EnvironmentIDOrName,
-				})
-				if err != nil {
-					return nil, err
-				}
-				project = scope.Project
-				env = scope.Environment
-			}
-			kv, err := keyvalue.Resolve(cmd.Context(), input.IDOrName, project, env)
+			kv, err := deps.KeyValueService().Resolve(cmd.Context(), keyvalue.ResolveInput{
+				IDOrName:            input.IDOrName,
+				EnvironmentIDOrName: input.EnvironmentIDOrName,
+			})
 			if err != nil {
 				return nil, err
 			}
-			if err := keyvalue.Resume(cmd.Context(), kv.Id); err != nil {
+			if err := deps.KeyValueService().Resume(cmd.Context(), kv.KeyValue.Id); err != nil {
 				return nil, err
 			}
-			return keyvalue.Resolve(cmd.Context(), kv.Id, project, env)
+			kv, err = deps.KeyValueService().Resolve(cmd.Context(), keyvalue.ResolveInput{
+				IDOrName: kv.KeyValue.Id,
+			})
+			if err != nil {
+				return nil, err
+			}
+			return kv.KeyValue, nil
 		}
 
 		_, err := command.NonInteractive(cmd, loadData, formatResumeTextOutput)

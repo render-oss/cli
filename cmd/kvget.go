@@ -3,16 +3,14 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/keyvalue"
-	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/text"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
-func newKVGetCmd(_ *dependencies.Dependencies) *cobra.Command {
+func newKVGetCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "get <keyValueID|keyValueName>",
 		Short:        "Get details of a Key Value store instance",
@@ -64,35 +62,23 @@ Key Value ID instead (which works across workspaces).`,
 		input = kvtypes.NormalizeGetInput(input)
 
 		loadData := func() (*keyvalue.GetResult, error) {
-			var project *client.Project
-			var env *client.Environment
-			if input.ProjectIDOrName != nil || input.EnvironmentIDOrName != nil {
-				c, err := client.NewDefaultClient()
-				if err != nil {
-					return nil, err
-				}
-				scope, err := resolve.NewFromClient(c).ResolveScopeInActiveWorkspace(cmd.Context(), resolve.ActiveWorkspaceScopeInput{
-					ProjectIDOrName:     input.ProjectIDOrName,
-					EnvironmentIDOrName: input.EnvironmentIDOrName,
-				})
-				if err != nil {
-					return nil, err
-				}
-				project = scope.Project
-				env = scope.Environment
-			}
-			kv, err := keyvalue.Resolve(cmd.Context(), input.IDOrName, project, env)
+			resolved, err := deps.KeyValueService().Resolve(cmd.Context(), keyvalue.ResolveInput{
+				IDOrName:            input.IDOrName,
+				ProjectIDOrName:     input.ProjectIDOrName,
+				EnvironmentIDOrName: input.EnvironmentIDOrName,
+			})
 			if err != nil {
 				return nil, err
 			}
-			var conn *client.KeyValueConnectionInfo
+			kv := resolved.KeyValue
 			if input.IncludeSensitiveConnectionInfo {
-				conn, err = keyvalue.GetConnectionInfo(cmd.Context(), kv.Id)
+				conn, err := deps.KeyValueService().GetConnectionInfo(cmd.Context(), kv.Id)
 				if err != nil {
 					return nil, err
 				}
+				return &keyvalue.GetResult{KeyValue: kv, ConnectionInfo: conn}, nil
 			}
-			return &keyvalue.GetResult{KeyValue: kv, ConnectionInfo: conn}, nil
+			return &keyvalue.GetResult{KeyValue: kv}, nil
 		}
 
 		_, err := command.NonInteractive(cmd, loadData, func(r *keyvalue.GetResult) string {

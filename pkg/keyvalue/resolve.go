@@ -8,6 +8,7 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/resolve"
 	rstrings "github.com/render-oss/cli/pkg/strings"
 	"github.com/render-oss/cli/pkg/tui"
 	"github.com/render-oss/cli/pkg/validate"
@@ -16,6 +17,62 @@ import (
 type resolveScope struct {
 	project *client.Project
 	env     *client.Environment
+}
+
+// resolve looks up the requested Key Value and returns it with the
+// project/environment context needed by command output.
+func (s *Service) resolve(ctx context.Context, input ResolveInput) (*ResolvedKeyValue, error) {
+	scope := resolveScope{}
+	if input.ProjectIDOrName != nil || input.EnvironmentIDOrName != nil || !validate.IsKeyValueID(input.IDOrName) {
+		resolved, err := s.resolver.ResolveScopeInActiveWorkspace(ctx, resolve.ActiveWorkspaceScopeInput{
+			ProjectIDOrName:     input.ProjectIDOrName,
+			EnvironmentIDOrName: input.EnvironmentIDOrName,
+		})
+		if err != nil {
+			return nil, err
+		}
+		scope = resolveScope{project: resolved.Project, env: resolved.Environment}
+	}
+
+	kv, err := resolveInScope(ctx, s.repo, input.IDOrName, scope)
+	if err != nil {
+		return nil, err
+	}
+
+	resolved := &ResolvedKeyValue{
+		KeyValue:    kv,
+		Project:     scope.project,
+		Environment: scope.env,
+	}
+	if err := s.enrichResolvedKeyValue(ctx, resolved); err != nil {
+		return nil, err
+	}
+	return resolved, nil
+}
+
+// enrichResolvedKeyValue fills in related project/environment data when the
+// lookup itself did not already resolve that context.
+func (s *Service) enrichResolvedKeyValue(ctx context.Context, resolved *ResolvedKeyValue) error {
+	if resolved.KeyValue == nil || resolved.KeyValue.EnvironmentId == nil {
+		return nil
+	}
+
+	kv := keyValueFromKeyValueDetail(resolved.KeyValue)
+	if resolved.Environment == nil {
+		env, err := s.environmentForKeyValue(ctx, kv, nil)
+		if err != nil {
+			return err
+		}
+		resolved.Environment = env
+	}
+	if resolved.Project == nil {
+		project, err := s.projectRepo.GetProject(ctx, resolved.Environment.ProjectId)
+		if err != nil {
+			return err
+		}
+		resolved.Project = project
+	}
+	return nil
 }
 
 // Resolve looks up a Key Value instance by ID or name within an optional
@@ -39,14 +96,14 @@ func Resolve(
 		return nil, err
 	}
 	repo := NewRepo(c)
-	return resolveInScopeWithRepo(ctx, repo, idOrName, resolveScope{project: project, env: env})
+	return resolveInScope(ctx, repo, idOrName, resolveScope{project: project, env: env})
 }
 
 func resolveWithRepo(ctx context.Context, repo *Repo, idOrName string, env *client.Environment) (*client.KeyValueDetail, error) {
-	return resolveInScopeWithRepo(ctx, repo, idOrName, resolveScope{env: env})
+	return resolveInScope(ctx, repo, idOrName, resolveScope{env: env})
 }
 
-func resolveInScopeWithRepo(
+func resolveInScope(
 	ctx context.Context,
 	repo *Repo,
 	idOrName string,

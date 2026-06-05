@@ -41,7 +41,7 @@ func RestartResource(ctx context.Context, input RestartInput) (string, error) {
 	serviceService := service.NewService(serviceRepo, environmentRepo, projectRepo)
 	resolver := resolve.New(ownerRepo, projectRepo, environmentRepo)
 	postgresService := postgres.NewService(postgresRepo, environmentRepo, projectRepo, resolver)
-	keyValueService := keyvalue.NewService(keyValueRepo, environmentRepo, projectRepo)
+	keyValueService := keyvalue.NewService(keyValueRepo, environmentRepo, projectRepo, resolver)
 	workflowService := workflow.NewService(workflowRepo, environmentRepo, projectRepo)
 
 	resourceService := resource.NewResourceService(

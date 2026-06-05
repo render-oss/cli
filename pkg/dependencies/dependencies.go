@@ -186,7 +186,7 @@ func (d *Dependencies) PostgresService() *postgres.Service {
 
 func (d *Dependencies) KeyValueService() *keyvalue.Service {
 	return d.cache.keyValueService.Get(func() *keyvalue.Service {
-		return keyvalue.NewService(d.KeyValueRepo(), d.EnvironmentRepo(), d.ProjectRepo())
+		return keyvalue.NewService(d.KeyValueRepo(), d.EnvironmentRepo(), d.ProjectRepo(), d.Resolver())
 	})
 }
 

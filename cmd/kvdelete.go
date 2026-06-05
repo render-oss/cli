@@ -3,16 +3,14 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/keyvalue"
-	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/text"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
-func newKVDeleteCmd(_ *dependencies.Dependencies) *cobra.Command {
+func newKVDeleteCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "delete <keyValueID|keyValueName>",
 		Short:        "Delete a Key Value store instance",
@@ -62,23 +60,16 @@ Key Value ID instead (which works across workspaces).`,
 		confirm := command.GetConfirmFromContext(cmd.Context())
 
 		loadData := func() (*keyvalue.DeleteResult, error) {
-			var env *client.Environment
-			if input.EnvironmentIDOrName != nil {
-				c, err := client.NewDefaultClient()
-				if err != nil {
-					return nil, err
-				}
-				env, err = resolve.NewFromClient(c).ResolveEnvironment(cmd.Context(), *input.EnvironmentIDOrName)
-				if err != nil {
-					return nil, err
-				}
-			}
-			kv, err := keyvalue.Resolve(cmd.Context(), input.IDOrName, nil, env)
+			resolved, err := deps.KeyValueService().Resolve(cmd.Context(), keyvalue.ResolveInput{
+				IDOrName:            input.IDOrName,
+				EnvironmentIDOrName: input.EnvironmentIDOrName,
+			})
 			if err != nil {
 				return nil, err
 			}
+			kv := resolved.KeyValue
 			if confirm {
-				if err := keyvalue.Delete(cmd.Context(), kv.Id); err != nil {
+				if err := deps.KeyValueService().Delete(cmd.Context(), kv.Id); err != nil {
 					return nil, err
 				}
 			}

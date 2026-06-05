@@ -6,21 +6,41 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/environment"
 	"github.com/render-oss/cli/pkg/project"
+	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/resource/util"
+	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
 type Service struct {
 	repo            *Repo
 	environmentRepo *environment.Repo
 	projectRepo     *project.Repo
+	resolver        *resolve.Resolver
 }
 
-func NewService(repo *Repo, environmentRepo *environment.Repo, projectRepo *project.Repo) *Service {
+func NewService(repo *Repo, environmentRepo *environment.Repo, projectRepo *project.Repo, resolver *resolve.Resolver) *Service {
 	return &Service{
 		repo:            repo,
 		environmentRepo: environmentRepo,
 		projectRepo:     projectRepo,
+		resolver:        resolver,
 	}
+}
+
+// ResolveInput describes a Key Value lookup by ID or name within optional
+// active-workspace project/environment scope.
+type ResolveInput struct {
+	IDOrName            string
+	ProjectIDOrName     *string
+	EnvironmentIDOrName *string
+}
+
+// ResolvedKeyValue carries a Key Value detail plus related resources needed to
+// build user-facing output.
+type ResolvedKeyValue struct {
+	KeyValue    *client.KeyValueDetail
+	Project     *client.Project
+	Environment *client.Environment
 }
 
 func (s *Service) ListKeyValue(ctx context.Context, params *client.ListKeyValueParams) ([]*Model, error) {
@@ -60,6 +80,54 @@ func (s *Service) GetKeyValue(ctx context.Context, id string) (*Model, error) {
 	}
 
 	return s.hydrateKeyValueModel(ctx, keyValueFromKeyValueDetail(kv), projects)
+}
+
+// Resolve resolves a Key Value instance by ID or name within an optional
+// active-workspace project/environment scope.
+func (s *Service) Resolve(ctx context.Context, input ResolveInput) (*ResolvedKeyValue, error) {
+	return s.resolve(ctx, input)
+}
+
+func (s *Service) GetConnectionInfo(ctx context.Context, id string) (*client.KeyValueConnectionInfo, error) {
+	return s.repo.GetKeyValueConnectionInfo(ctx, id)
+}
+
+func (s *Service) Delete(ctx context.Context, id string) error {
+	return s.repo.DeleteKeyValue(ctx, id)
+}
+
+func (s *Service) Suspend(ctx context.Context, id string) error {
+	return s.repo.SuspendKeyValue(ctx, id)
+}
+
+func (s *Service) Resume(ctx context.Context, id string) error {
+	return s.repo.ResumeKeyValue(ctx, id)
+}
+
+func (s *Service) Update(ctx context.Context, input kvtypes.KeyValueUpdateInput) (*UpdateResult, error) {
+	normalized, err := kvtypes.NormalizeAndValidateUpdateInput(input)
+	if err != nil {
+		return nil, err
+	}
+
+	before, err := s.Resolve(ctx, ResolveInput{
+		IDOrName:            normalized.IDOrName,
+		EnvironmentIDOrName: normalized.EnvironmentIDOrName,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := BuildUpdateRequest(normalized)
+	if err != nil {
+		return nil, err
+	}
+
+	after, err := s.repo.UpdateKeyValue(ctx, before.KeyValue.Id, body)
+	if err != nil {
+		return nil, err
+	}
+	return &UpdateResult{Before: before.KeyValue, After: after}, nil
 }
 
 func (s *Service) hydrateKeyValueModel(ctx context.Context, kv *client.KeyValue, projects []*client.Project) (*Model, error) {

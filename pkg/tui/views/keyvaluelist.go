@@ -11,7 +11,9 @@ import (
 	"github.com/render-oss/cli/pkg/environment"
 	"github.com/render-oss/cli/pkg/keyvalue"
 	keyvaluetui "github.com/render-oss/cli/pkg/keyvalue/tui"
+	"github.com/render-oss/cli/pkg/owner"
 	"github.com/render-oss/cli/pkg/project"
+	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/tui"
 )
 
@@ -61,10 +63,12 @@ func listKeyValues(ctx context.Context, input KeyValueInput) ([]*keyvalue.Model,
 	}
 
 	environmentRepo := environment.NewRepo(c)
+	ownerRepo := owner.NewRepo(c)
 	projectRepo := project.NewRepo(c)
 	keyValueRepo := keyvalue.NewRepo(c)
+	resolver := resolve.New(ownerRepo, projectRepo, environmentRepo)
 
-	keyValueService := keyvalue.NewService(keyValueRepo, environmentRepo, projectRepo)
+	keyValueService := keyvalue.NewService(keyValueRepo, environmentRepo, projectRepo, resolver)
 
 	params := &client.ListKeyValueParams{}
 	if input.EnvironmentIDs != nil {

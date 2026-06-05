@@ -3,16 +3,14 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/keyvalue"
-	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/text"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
-func newKVSuspendCmd(_ *dependencies.Dependencies) *cobra.Command {
+func newKVSuspendCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "suspend <keyValueID|keyValueName>",
 		Short:        "Suspend a Key Value store instance",
@@ -60,37 +58,27 @@ Key Value ID instead (which works across workspaces).`,
 		confirm := command.GetConfirmFromContext(cmd.Context())
 
 		loadData := func() (*keyvalue.SuspendResult, error) {
-			var project *client.Project
-			var env *client.Environment
-			if input.EnvironmentIDOrName != nil {
-				c, err := client.NewDefaultClient()
-				if err != nil {
-					return nil, err
-				}
-				scope, err := resolve.NewFromClient(c).ResolveScopeInActiveWorkspace(cmd.Context(), resolve.ActiveWorkspaceScopeInput{
-					EnvironmentIDOrName: input.EnvironmentIDOrName,
-				})
-				if err != nil {
-					return nil, err
-				}
-				project = scope.Project
-				env = scope.Environment
-			}
-			kv, err := keyvalue.Resolve(cmd.Context(), input.IDOrName, project, env)
+			before, err := deps.KeyValueService().Resolve(cmd.Context(), keyvalue.ResolveInput{
+				IDOrName:            input.IDOrName,
+				EnvironmentIDOrName: input.EnvironmentIDOrName,
+			})
 			if err != nil {
 				return nil, err
 			}
+			kv := before.KeyValue
 			if !confirm {
 				return &keyvalue.SuspendResult{KeyValue: kv, Suspended: false}, nil
 			}
-			if err := keyvalue.Suspend(cmd.Context(), kv.Id); err != nil {
+			if err := deps.KeyValueService().Suspend(cmd.Context(), kv.Id); err != nil {
 				return nil, err
 			}
-			post, err := keyvalue.Resolve(cmd.Context(), kv.Id, project, env)
+			after, err := deps.KeyValueService().Resolve(cmd.Context(), keyvalue.ResolveInput{
+				IDOrName: kv.Id,
+			})
 			if err != nil {
 				return nil, err
 			}
-			return &keyvalue.SuspendResult{KeyValue: post, Suspended: true}, nil
+			return &keyvalue.SuspendResult{KeyValue: after.KeyValue, Suspended: true}, nil
 		}
 
 		_, err := command.NonInteractive(cmd, loadData, formatSuspendTextOutput)

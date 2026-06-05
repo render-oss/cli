@@ -9,13 +9,11 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
-	"github.com/render-oss/cli/pkg/keyvalue"
-	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/text"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
-func newKVUpdateCmd(_ *dependencies.Dependencies) *cobra.Command {
+func newKVUpdateCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "update <keyValueID|keyValueName>",
 		Short:        "Update a Key Value store instance",
@@ -98,18 +96,7 @@ Example: --ip-allow-list "cidr=203.0.113.5/32,description=office"`
 
 		_, err := command.NonInteractive(cmd,
 			func() (*client.KeyValueDetail, error) {
-				var env *client.Environment
-				if input.EnvironmentIDOrName != nil {
-					c, err := client.NewDefaultClient()
-					if err != nil {
-						return nil, err
-					}
-					env, err = resolve.NewFromClient(c).ResolveEnvironment(cmd.Context(), *input.EnvironmentIDOrName)
-					if err != nil {
-						return nil, err
-					}
-				}
-				result, err := keyvalue.Update(cmd.Context(), input.IDOrName, env, input)
+				result, err := deps.KeyValueService().Update(cmd.Context(), input)
 				if err != nil {
 					return nil, err
 				}
