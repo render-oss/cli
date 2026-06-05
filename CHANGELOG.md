@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.20.0] - 2026-06-04
+
+### Added
+
+- `render ea pg list` command to list Postgres databases in a workspace, project, or environment
+- `render ea pg get` command to fetch details of a Postgres database
+- `render ea pg update` command to update a Postgres database
+- `render ea pg suspend` and `render ea pg resume` commands to suspend and resume a Postgres database
+- `render ea pg create` now offers an interactive wizard when run without `--confirm` in interactive output mode
+
+### Changed
+
+- **Breaking:** `render ssh --ephemeral` now accepts `--plan` instead of `--size` to choose the instance type (e.g. `--plan standard`)
+
 ## [2.19.0] - 2026-05-28
 
 ### Added
