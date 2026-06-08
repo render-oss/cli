@@ -61,7 +61,7 @@ Key Value ID instead (which works across workspaces).`,
 		}
 		input = kvtypes.NormalizeGetInput(input)
 
-		loadData := func() (*keyvalue.GetResult, error) {
+		loadData := func() (*keyvalue.KeyValueOut, error) {
 			resolved, err := deps.KeyValueService().Resolve(cmd.Context(), keyvalue.ResolveInput{
 				IDOrName:            input.IDOrName,
 				ProjectIDOrName:     input.ProjectIDOrName,
@@ -70,19 +70,19 @@ Key Value ID instead (which works across workspaces).`,
 			if err != nil {
 				return nil, err
 			}
-			kv := resolved.KeyValue
+			out := keyvalue.NewKeyValueOut(resolved)
 			if input.IncludeSensitiveConnectionInfo {
-				conn, err := deps.KeyValueService().GetConnectionInfo(cmd.Context(), kv.Id)
+				conn, err := deps.KeyValueService().GetConnectionInfo(cmd.Context(), out.ID)
 				if err != nil {
 					return nil, err
 				}
-				return &keyvalue.GetResult{KeyValue: kv, ConnectionInfo: conn}, nil
+				out.ConnectionInfo = conn
 			}
-			return &keyvalue.GetResult{KeyValue: kv}, nil
+			return &out, nil
 		}
 
-		_, err := command.NonInteractive(cmd, loadData, func(r *keyvalue.GetResult) string {
-			return text.KeyValueGetDetail(r.KeyValue, r.ConnectionInfo) + "\n"
+		_, err := command.NonInteractive(cmd, loadData, func(kv *keyvalue.KeyValueOut) string {
+			return text.KeyValueDetail(kv) + "\n"
 		})
 		return err
 	}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
@@ -176,22 +177,43 @@ func TestKVGet_UnknownName_Errors(t *testing.T) {
 
 func TestKVGet_JSONOutput_WithoutConnectionInfo(t *testing.T) {
 	server := renderapi.NewServer(t)
-	kv := seedKV(server, "json-cache")
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	env := project.Env("production")
+	kv := seedKVInEnv(server, "json-cache", env.Id)
+	kv.Owner.Type = client.OwnerTypeTeam
+	kv.Plan = client.KeyValuePlanStarter
+	kv.Region = client.Oregon
+	maxmemoryPolicy := "allkeys-lru"
+	kv.Options.MaxmemoryPolicy = &maxmemoryPolicy
+	kv.IpAllowList = []client.CidrBlockAndDescription{{
+		CidrBlock:   "203.0.113.5/32",
+		Description: "office",
+	}}
 
 	result, err := executeKVGet(t, server, kv.Id, "--output", "json")
 	require.NoError(t, err)
 
-	var body struct {
-		KeyValue struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		} `json:"keyValue"`
-		ConnectionInfo *struct{} `json:"connectionInfo"`
-	}
+	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Equal(t, kv.Id, body.KeyValue.ID)
-	assert.Equal(t, "json-cache", body.KeyValue.Name)
-	assert.Nil(t, body.ConnectionInfo)
+	assert.NotContains(t, body, "connectionInfo")
+	assert.Equal(t, map[string]any{
+		"id":              kv.Id,
+		"name":            "json-cache",
+		"plan":            string(client.KeyValuePlanStarter),
+		"region":          string(client.Oregon),
+		"status":          string(client.DatabaseStatusAvailable),
+		"createdAt":       kv.CreatedAt.Format(time.RFC3339Nano),
+		"updatedAt":       kv.UpdatedAt.Format(time.RFC3339Nano),
+		"ownerId":         kvTestWorkspaceID,
+		"ownerType":       string(client.OwnerTypeTeam),
+		"projectId":       project.Project.Id,
+		"environmentId":   env.Id,
+		"ipAllowList":     []any{map[string]any{"cidrBlock": "203.0.113.5/32", "description": "office"}},
+		"maxmemoryPolicy": maxmemoryPolicy,
+	}, body)
 }
 
 func TestKVGet_JSONOutput_WithConnectionInfo(t *testing.T) {
@@ -201,19 +223,18 @@ func TestKVGet_JSONOutput_WithConnectionInfo(t *testing.T) {
 	result, err := executeKVGet(t, server, kv.Id, "--include-sensitive-connection-info", "--output", "json")
 	require.NoError(t, err)
 
-	var body struct {
-		KeyValue struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		} `json:"keyValue"`
-		ConnectionInfo struct {
-			CliCommand string `json:"cliCommand"`
-		} `json:"connectionInfo"`
-	}
+	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Equal(t, kv.Id, body.KeyValue.ID)
-	assert.Equal(t, "json-cache", body.KeyValue.Name)
-	assert.NotEmpty(t, body.ConnectionInfo.CliCommand)
+	assert.Equal(t, kv.Id, body["id"])
+	assert.Equal(t, "json-cache", body["name"])
+
+	connectionInfo, ok := body["connectionInfo"].(map[string]any)
+	require.True(t, ok, "expected connectionInfo object in JSON output: %s", result.Stdout)
+	assert.Equal(t, map[string]any{
+		"cliCommand":               "redis-cli -h fake-host -p 6379",
+		"externalConnectionString": "rediss://fake-external",
+		"internalConnectionString": "redis://fake-internal",
+	}, connectionInfo)
 }
 
 func TestKVGet_IDLookup_NonNotFoundError_Surfaces(t *testing.T) {

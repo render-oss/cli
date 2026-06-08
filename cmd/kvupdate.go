@@ -114,7 +114,7 @@ Example: --ip-allow-list "cidr=203.0.113.5/32,description=office"`
 }
 
 func kvUpdateSuccessMessage(before, after *client.KeyValueDetail) string {
-	details := "Full details:\n  " + strings.ReplaceAll(text.KeyValueDetail(after), "\n", "\n  ")
+	details := "Full details:\n  " + strings.ReplaceAll(text.KeyValueAPIDetail(after), "\n", "\n  ")
 	diff := text.KeyValueUpdateDiff(before, after)
 	if diff == "" {
 		return fmt.Sprintf("No changes applied to Key Value\n\n%s\n", details)

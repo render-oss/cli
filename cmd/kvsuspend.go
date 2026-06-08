@@ -90,9 +90,9 @@ Key Value ID instead (which works across workspaces).`,
 
 func formatSuspendTextOutput(r *keyvalue.SuspendResult) string {
 	if r.Suspended {
-		return "Suspended this Key Value:\n\n" + text.KeyValueDetail(r.KeyValue) + "\n"
+		return "Suspended this Key Value:\n\n" + text.KeyValueAPIDetail(r.KeyValue) + "\n"
 	}
 	return "This command would suspend this Key Value:\n\n" +
-		text.KeyValueDetail(r.KeyValue) +
+		text.KeyValueAPIDetail(r.KeyValue) +
 		"\n\nRe-run with --confirm to proceed\n"
 }

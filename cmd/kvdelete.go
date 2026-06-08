@@ -85,9 +85,9 @@ Key Value ID instead (which works across workspaces).`,
 
 func formatTextOutput(r *keyvalue.DeleteResult) string {
 	if r.Deleted {
-		return "Deleted this Key Value:\n\n" + text.KeyValueDetail(r.KeyValue) + "\n"
+		return "Deleted this Key Value:\n\n" + text.KeyValueAPIDetail(r.KeyValue) + "\n"
 	}
 	return "This command would delete this Key Value:\n\n" +
-		text.KeyValueDetail(r.KeyValue) +
+		text.KeyValueAPIDetail(r.KeyValue) +
 		"\nRe-run with --confirm to proceed\n"
 }

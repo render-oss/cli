@@ -79,5 +79,5 @@ Key Value ID instead (which works across workspaces).`,
 }
 
 func formatResumeTextOutput(kv *client.KeyValueDetail) string {
-	return "Resumed this Key Value:\n\n" + text.KeyValueDetail(kv) + "\n"
+	return "Resumed this Key Value:\n\n" + text.KeyValueAPIDetail(kv) + "\n"
 }

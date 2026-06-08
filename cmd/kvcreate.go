@@ -118,6 +118,6 @@ func runKVCreateAndPrint(cmd *cobra.Command, input kvtypes.KeyValueCreateInput) 
 func kvCreateSuccessMessage(kv *client.KeyValueDetail) string {
 	return fmt.Sprintf(
 		"Created Key Value store\n\n%s\n",
-		text.KeyValueDetail(kv),
+		text.KeyValueAPIDetail(kv),
 	)
 }

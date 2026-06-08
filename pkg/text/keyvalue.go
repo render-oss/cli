@@ -27,10 +27,12 @@ func KeyValueTable(v []*keyvalue.Model) string {
 	return FormatString(t.Render())
 }
 
-// KeyValueDetail formats a KV instance detail for text output.
+// KeyValueAPIDetail formats a raw API KV instance detail for text output.
 // Does NOT include an action prefix (e.g., "Created" or "Updated") — callers should prepend
 // their own action prefix in the formatText closure passed to command.NonInteractive.
-func KeyValueDetail(kv *client.KeyValueDetail) string {
+//
+// Prefer converting callers to keyvalue.KeyValueOut and using KeyValueDetail.
+func KeyValueAPIDetail(kv *client.KeyValueDetail) string {
 	lines := []string{
 		fmt.Sprintf("Name: %s", kv.Name),
 		fmt.Sprintf("ID: %s", kv.Id),
@@ -45,20 +47,30 @@ func KeyValueDetail(kv *client.KeyValueDetail) string {
 	return strings.Join(lines, "\n")
 }
 
-func KeyValueGetDetail(kv *client.KeyValueDetail, conn *client.KeyValueConnectionInfo) string {
-	detail := KeyValueDetail(kv)
-	if len(kv.IpAllowList) == 0 {
+func KeyValueDetail(kv *keyvalue.KeyValueOut) string {
+	lines := []string{
+		fmt.Sprintf("Name: %s", kv.Name),
+		fmt.Sprintf("ID: %s", kv.ID),
+		fmt.Sprintf("Plan: %s", string(kv.Plan)),
+		fmt.Sprintf("Region: %s", string(kv.Region)),
+		fmt.Sprintf("Status: %s", string(kv.Status)),
+	}
+	if kv.MaxmemoryPolicy != nil {
+		lines = append(lines, fmt.Sprintf("Memory policy: %s", *kv.MaxmemoryPolicy))
+	}
+	detail := strings.Join(append(lines, ipAllowListBlock(kv.IPAllowList)), "\n")
+	if len(kv.IPAllowList) == 0 {
 		detail = strings.Replace(detail, "IP allow-list: (empty)", "IP allow-list: (empty, external connections are blocked)", 1)
 	}
-	if conn == nil {
+	if kv.ConnectionInfo == nil {
 		return detail
 	}
 	return strings.Join([]string{
 		detail,
 		"",
-		fmt.Sprintf("CLI:      %s", conn.CliCommand),
-		fmt.Sprintf("Internal: %s", conn.InternalConnectionString),
-		fmt.Sprintf("External: %s", conn.ExternalConnectionString),
+		fmt.Sprintf("CLI:      %s", kv.ConnectionInfo.CliCommand),
+		fmt.Sprintf("Internal: %s", kv.ConnectionInfo.InternalConnectionString),
+		fmt.Sprintf("External: %s", kv.ConnectionInfo.ExternalConnectionString),
 	}, "\n")
 }
 
