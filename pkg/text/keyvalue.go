@@ -74,33 +74,35 @@ func KeyValueDetail(kv *keyvalue.KeyValueOut) string {
 	}, "\n")
 }
 
-// KeyValueUpdateDiff renders the user-visible changes between before and after
-// snapshots of a Key Value instance, showing only the fields that actually
-// changed. Returns an empty string when nothing changed (the cmd layer can
-// then surface a "no changes" message).
-func KeyValueUpdateDiff(before, after *client.KeyValueDetail) string {
+// KeyValueUpdateDiff renders the user-visible changes from the public update
+// diff contract. Returns an empty string when nothing changed (the cmd layer
+// can then surface a "no changes" message).
+func KeyValueUpdateDiff(diff keyvalue.KeyValueUpdateDiff) string {
 	var lines []string
 
-	if before.Name != after.Name {
-		lines = append(lines, fmt.Sprintf("  Name:          %s → %s", before.Name, after.Name))
+	if diff.Name != nil {
+		lines = append(lines, fmt.Sprintf("  Name:          %s → %s", diff.Name.Before, diff.Name.After))
 	}
-	if before.Plan != after.Plan {
-		lines = append(lines, fmt.Sprintf("  Plan:          %s → %s", before.Plan, after.Plan))
+	if diff.Plan != nil {
+		lines = append(lines, fmt.Sprintf("  Plan:          %s → %s", diff.Plan.Before, diff.Plan.After))
 	}
-	if beforePolicy, afterPolicy := memoryPolicyLabel(before), memoryPolicyLabel(after); beforePolicy != afterPolicy {
-		lines = append(lines, fmt.Sprintf("  Memory policy: %s → %s", beforePolicy, afterPolicy))
+	if diff.MaxmemoryPolicy != nil {
+		lines = append(lines, fmt.Sprintf("  Memory policy: %s → %s",
+			memoryPolicyDiffLabel(diff.MaxmemoryPolicy.Before),
+			memoryPolicyDiffLabel(diff.MaxmemoryPolicy.After)))
 	}
-	if !ipAllowListEqual(before.IpAllowList, after.IpAllowList) {
+	if diff.IPAllowList != nil {
 		lines = append(lines, fmt.Sprintf("  IP allow-list: %s → %s",
-			ipAllowListLabel(before.IpAllowList), ipAllowListLabel(after.IpAllowList)))
+			ipAllowListLabel(diff.IPAllowList.Before),
+			ipAllowListLabel(diff.IPAllowList.After)))
 	}
 
 	return strings.Join(lines, "\n")
 }
 
-func memoryPolicyLabel(kv *client.KeyValueDetail) string {
-	if kv.Options.MaxmemoryPolicy == nil {
+func memoryPolicyDiffLabel(policy *string) string {
+	if policy == nil {
 		return "(none)"
 	}
-	return *kv.Options.MaxmemoryPolicy
+	return *policy
 }

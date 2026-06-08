@@ -1,17 +1,56 @@
 package keyvalue
 
 import (
+	"github.com/render-oss/cli/internal/ipallowlist"
 	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/types"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
-// UpdateResult captures both the pre- and post-update KV state so callers can
-// show users a diff of what changed. JSON/YAML consumers also get strictly
-// more information than just the new state.
-type UpdateResult struct {
-	Before *client.KeyValueDetail `json:"before"`
-	After  *client.KeyValueDetail `json:"after"`
+// UpdateOutcome captures both the pre-update API detail and post-update
+// resolved state needed by command output.
+type UpdateOutcome struct {
+	Before *client.KeyValueDetail
+	After  *ResolvedKeyValue
+}
+
+func NewKeyValueUpdateOut(before *client.KeyValueDetail, after *ResolvedKeyValue) KeyValueUpdateOut {
+	out := KeyValueUpdateOut{
+		Data: NewKeyValueOut(after),
+	}
+	if before == nil {
+		return out
+	}
+	out.Diff = NewKeyValueUpdateDiff(before, &out.Data)
+	return out
+}
+
+func NewKeyValueUpdateDiff(before *client.KeyValueDetail, after *KeyValueOut) KeyValueUpdateDiff {
+	var diff KeyValueUpdateDiff
+	if before.Name != after.Name {
+		diff.Name = newKeyValueFieldDiff(before.Name, after.Name)
+	}
+	if before.Plan != after.Plan {
+		diff.Plan = newKeyValueFieldDiff(before.Plan, after.Plan)
+	}
+	if !pointers.Equal(before.Options.MaxmemoryPolicy, after.MaxmemoryPolicy) {
+		diff.MaxmemoryPolicy = newKeyValueFieldDiff(
+			before.Options.MaxmemoryPolicy,
+			after.MaxmemoryPolicy,
+		)
+	}
+	if !ipallowlist.Equal(before.IpAllowList, after.IPAllowList) {
+		diff.IPAllowList = newKeyValueFieldDiff(before.IpAllowList, after.IPAllowList)
+	}
+	return diff
+}
+
+func newKeyValueFieldDiff[T any](before, after T) *KeyValueFieldDiff[T] {
+	return &KeyValueFieldDiff[T]{
+		Before: before,
+		After:  after,
+	}
 }
 
 // BuildUpdateRequest converts a normalized KeyValueUpdateInput into the API

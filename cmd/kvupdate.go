@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
+	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/text"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
@@ -89,22 +89,17 @@ Example: --ip-allow-list "cidr=203.0.113.5/32,description=office"`
 			return err
 		}
 
-		// Captured by both closures so the text formatter can render a diff
-		// while JSON/YAML output stays simple — just the new KV state, matching
-		// kv create's output shape.
-		var before *client.KeyValueDetail
-
 		_, err := command.NonInteractive(cmd,
-			func() (*client.KeyValueDetail, error) {
+			func() (*keyvalue.KeyValueUpdateOut, error) {
 				result, err := deps.KeyValueService().Update(cmd.Context(), input)
 				if err != nil {
 					return nil, err
 				}
-				before = result.Before
-				return result.After, nil
+				out := keyvalue.NewKeyValueUpdateOut(result.Before, result.After)
+				return &out, nil
 			},
-			func(after *client.KeyValueDetail) string {
-				return kvUpdateSuccessMessage(before, after)
+			func(out *keyvalue.KeyValueUpdateOut) string {
+				return kvUpdateSuccessMessage(out)
 			},
 		)
 		return err
@@ -113,9 +108,9 @@ Example: --ip-allow-list "cidr=203.0.113.5/32,description=office"`
 	return cmd
 }
 
-func kvUpdateSuccessMessage(before, after *client.KeyValueDetail) string {
-	details := "Full details:\n  " + strings.ReplaceAll(text.KeyValueAPIDetail(after), "\n", "\n  ")
-	diff := text.KeyValueUpdateDiff(before, after)
+func kvUpdateSuccessMessage(out *keyvalue.KeyValueUpdateOut) string {
+	details := "Full details:\n  " + strings.ReplaceAll(text.KeyValueDetail(&out.Data), "\n", "\n  ")
+	diff := text.KeyValueUpdateDiff(out.Diff)
 	if diff == "" {
 		return fmt.Sprintf("No changes applied to Key Value\n\n%s\n", details)
 	}

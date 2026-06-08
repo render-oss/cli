@@ -104,7 +104,7 @@ func (s *Service) Resume(ctx context.Context, id string) error {
 	return s.repo.ResumeKeyValue(ctx, id)
 }
 
-func (s *Service) Update(ctx context.Context, input kvtypes.KeyValueUpdateInput) (*UpdateResult, error) {
+func (s *Service) Update(ctx context.Context, input kvtypes.KeyValueUpdateInput) (*UpdateOutcome, error) {
 	normalized, err := kvtypes.NormalizeAndValidateUpdateInput(input)
 	if err != nil {
 		return nil, err
@@ -127,7 +127,14 @@ func (s *Service) Update(ctx context.Context, input kvtypes.KeyValueUpdateInput)
 	if err != nil {
 		return nil, err
 	}
-	return &UpdateResult{Before: before.KeyValue, After: after}, nil
+	return &UpdateOutcome{
+		Before: before.KeyValue,
+		After: &ResolvedKeyValue{
+			KeyValue:    after,
+			Project:     before.Project,
+			Environment: before.Environment,
+		},
+	}, nil
 }
 
 func (s *Service) hydrateKeyValueModel(ctx context.Context, kv *client.KeyValue, projects []*client.Project) (*Model, error) {

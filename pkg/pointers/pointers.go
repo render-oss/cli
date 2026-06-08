@@ -21,6 +21,16 @@ func ValueOrDefault[T any](x *T, def T) T {
 	return *x
 }
 
+// Equal reports whether two pointers are both nil or point to equal values.
+// It compares the pointed-to values, not the pointer addresses. T must be
+// comparable because Equal uses == after dereferencing non-nil pointers.
+func Equal[T comparable](a, b *T) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
 func PointerValueIfNotEmptyString(s string) *string {
 	if s == "" {
 		return nil

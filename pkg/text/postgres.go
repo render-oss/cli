@@ -9,6 +9,7 @@ import (
 
 	"github.com/jedib0t/go-pretty/table"
 
+	"github.com/render-oss/cli/internal/ipallowlist"
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/postgres"
 )
@@ -143,7 +144,7 @@ func PostgresUpdateDiff(before, after *client.PostgresDetail) string {
 	if before.HighAvailabilityEnabled != after.HighAvailabilityEnabled {
 		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "High availability:", boolLabel(before.HighAvailabilityEnabled), boolLabel(after.HighAvailabilityEnabled)))
 	}
-	if !ipAllowListEqual(before.IpAllowList, after.IpAllowList) {
+	if !ipallowlist.Equal(before.IpAllowList, after.IpAllowList) {
 		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "IP allow-list:", ipAllowListLabel(before.IpAllowList), ipAllowListLabel(after.IpAllowList)))
 	}
 	// ParameterOverrides is a map; rather than a noisy per-key diff we flag that

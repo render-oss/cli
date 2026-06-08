@@ -180,19 +180,40 @@ func TestKVUpdate_IPAllowListFlags_MutuallyExclusive(t *testing.T) {
 // --- Output formats and API errors ---
 
 // TestKVUpdate_OutputJSON proves --output json produces valid JSON of the
-// post-update KV (matching the shape `kv create` returns), not the pre/post
-// diff structure that text output renders.
+// post-update KV plus the public diff contract for fields update can mutate.
 func TestKVUpdate_OutputJSON(t *testing.T) {
 	server := renderapi.NewServer(t)
-	kv := seedKV(server, "before-name")
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	env := project.Env("production")
+	kv := seedKVInEnv(server, "before-name", env.Id)
 
 	result, err := executeKVUpdate(t, server, kv.Id, "--name", "after-name", "--output", "json")
 	require.NoError(t, err)
 
-	var body map[string]interface{}
+	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body),
 		"expected valid JSON, got: %s", result.Stdout)
-	assert.Equal(t, "after-name", body["name"])
+
+	data := requireSubMap(t, body, "data")
+	assert.Equal(t, "after-name", data["name"])
+	assert.Equal(t, kv.Id, data["id"])
+	assert.Equal(t, kvTestWorkspaceID, data["ownerId"])
+	assert.Equal(t, project.Project.Id, data["projectId"])
+	assert.Equal(t, env.Id, data["environmentId"])
+
+	diff := requireSubMap(t, body, "diff")
+	nameDiff := requireSubMap(t, diff, "name")
+	assert.Equal(t, "before-name", nameDiff["before"])
+	assert.Equal(t, "after-name", nameDiff["after"])
+	assert.NotContains(t, diff, "plan")
+	assert.NotContains(t, diff, "maxmemoryPolicy")
+	assert.NotContains(t, diff, "ipAllowList")
+
+	assert.NotContains(t, body, "before")
+	assert.NotContains(t, body, "after")
 }
 
 // TestKVUpdate_APIError_Propagates proves a 5xx from the PATCH surfaces as

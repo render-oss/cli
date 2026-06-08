@@ -47,6 +47,23 @@ type SuspendOutMeta struct {
 	Message   string `json:"message,omitempty"`
 }
 
+type KeyValueUpdateOut struct {
+	Data KeyValueOut        `json:"data"`
+	Diff KeyValueUpdateDiff `json:"diff"`
+}
+
+type KeyValueUpdateDiff struct {
+	Name            *KeyValueFieldDiff[string]                           `json:"name,omitempty"`
+	Plan            *KeyValueFieldDiff[client.KeyValuePlan]              `json:"plan,omitempty"`
+	MaxmemoryPolicy *KeyValueFieldDiff[*string]                          `json:"maxmemoryPolicy,omitempty"`
+	IPAllowList     *KeyValueFieldDiff[[]client.CidrBlockAndDescription] `json:"ipAllowList,omitempty"`
+}
+
+type KeyValueFieldDiff[T any] struct {
+	Before T `json:"before"`
+	After  T `json:"after"`
+}
+
 func NewKeyValueOut(resolved *ResolvedKeyValue) KeyValueOut {
 	if resolved == nil || resolved.KeyValue == nil {
 		return KeyValueOut{}
