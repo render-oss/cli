@@ -92,19 +92,38 @@ func TestKVSuspend_JSONOutput_AfterConfirm(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, client.DatabaseStatusSuspended, server.KV.Instances[0].Status)
 
-	var body struct {
-		KeyValue struct {
-			ID     string `json:"id"`
-			Name   string `json:"name"`
-			Status string `json:"status"`
-		} `json:"keyValue"`
-		Suspended bool `json:"suspended"`
-	}
+	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Equal(t, kv.Id, body.KeyValue.ID)
-	assert.Equal(t, "json-cache", body.KeyValue.Name)
-	assert.Equal(t, string(client.DatabaseStatusSuspended), body.KeyValue.Status)
-	assert.True(t, body.Suspended)
+	require.Len(t, body, 2)
+
+	data := requireSubMap(t, body, "data")
+	meta := requireSubMap(t, body, "meta")
+	assert.Equal(t, kv.Id, data["id"])
+	assert.Equal(t, "json-cache", data["name"])
+	assert.Equal(t, string(client.DatabaseStatusSuspended), data["status"])
+	assert.Equal(t, kvTestWorkspaceID, data["ownerId"])
+	assert.Nil(t, data["projectId"])
+	assert.Nil(t, data["environmentId"])
+	assert.Equal(t, true, meta["suspended"])
+	assert.NotContains(t, meta, "message")
+}
+
+func TestKVSuspend_JSONOutput_PreviewIncludesConfirmMessage(t *testing.T) {
+	server := renderapi.NewServer(t)
+	kv := seedKV(server, "json-cache")
+
+	result, err := executeKVSuspend(t, server, kv.Id, "--output", "json")
+	require.NoError(t, err)
+	assert.Len(t, server.KV.Instances, 1, "preview must not suspend")
+
+	var body map[string]any
+	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
+
+	data := requireSubMap(t, body, "data")
+	meta := requireSubMap(t, body, "meta")
+	assert.Equal(t, kv.Id, data["id"])
+	assert.Equal(t, false, meta["suspended"])
+	assert.Equal(t, "re-run with --confirm to suspend", meta["message"])
 }
 
 func TestKVSuspend_NameCollision_NarrowedByEnvironment_Suspends(t *testing.T) {

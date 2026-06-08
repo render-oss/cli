@@ -96,23 +96,51 @@ func TestKVDelete_UnknownName_Errors(t *testing.T) {
 
 func TestKVDelete_JSONOutput_AfterConfirm(t *testing.T) {
 	server := renderapi.NewServer(t)
-	kv := seedKV(server, "json-cache")
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	env := project.Env("production")
+	kv := seedKVInEnv(server, "json-cache", env.Id)
 
 	result, err := executeKVDelete(t, server, kv.Id, "--confirm", "--output", "json")
 	require.NoError(t, err)
 	assert.Empty(t, server.KV.Instances)
 
-	var body struct {
-		KeyValue struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		} `json:"keyValue"`
-		Deleted bool `json:"deleted"`
-	}
+	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Equal(t, kv.Id, body.KeyValue.ID)
-	assert.Equal(t, "json-cache", body.KeyValue.Name)
-	assert.True(t, body.Deleted)
+	require.Len(t, body, 2)
+
+	data := requireSubMap(t, body, "data")
+	meta := requireSubMap(t, body, "meta")
+	assert.Equal(t, kv.Id, data["id"])
+	assert.Equal(t, "json-cache", data["name"])
+	assert.Equal(t, kvTestWorkspaceID, data["ownerId"])
+	assert.Equal(t, project.Project.Id, data["projectId"])
+	assert.Equal(t, env.Id, data["environmentId"])
+	assert.Equal(t, true, meta["deleted"])
+	assert.NotContains(t, meta, "message")
+	assert.NotContains(t, body, "keyValue")
+	assert.NotContains(t, data, "projectName")
+	assert.NotContains(t, data, "environmentName")
+}
+
+func TestKVDelete_JSONOutput_PreviewIncludesConfirmMessage(t *testing.T) {
+	server := renderapi.NewServer(t)
+	kv := seedKV(server, "json-cache")
+
+	result, err := executeKVDelete(t, server, kv.Id, "--output", "json")
+	require.NoError(t, err)
+	assert.Len(t, server.KV.Instances, 1, "preview must not delete")
+
+	var body map[string]any
+	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
+
+	data := requireSubMap(t, body, "data")
+	meta := requireSubMap(t, body, "meta")
+	assert.Equal(t, kv.Id, data["id"])
+	assert.Equal(t, false, meta["deleted"])
+	assert.Equal(t, "re-run with --confirm to delete", meta["message"])
 }
 
 func TestKVDelete_JSONOutput_OnError(t *testing.T) {

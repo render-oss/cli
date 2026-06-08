@@ -59,7 +59,7 @@ Key Value ID instead (which works across workspaces).`,
 		input = kvtypes.NormalizeDeleteInput(input)
 		confirm := command.GetConfirmFromContext(cmd.Context())
 
-		loadData := func() (*keyvalue.DeleteResult, error) {
+		loadData := func() (*keyvalue.DeleteOut, error) {
 			resolved, err := deps.KeyValueService().Resolve(cmd.Context(), keyvalue.ResolveInput{
 				IDOrName:            input.IDOrName,
 				EnvironmentIDOrName: input.EnvironmentIDOrName,
@@ -67,27 +67,34 @@ Key Value ID instead (which works across workspaces).`,
 			if err != nil {
 				return nil, err
 			}
-			kv := resolved.KeyValue
+			out := keyvalue.DeleteOut{
+				Data: keyvalue.NewKeyValueOut(resolved),
+				Meta: keyvalue.DeleteOutMeta{
+					Deleted: confirm,
+				},
+			}
 			if confirm {
-				if err := deps.KeyValueService().Delete(cmd.Context(), kv.Id); err != nil {
+				if err := deps.KeyValueService().Delete(cmd.Context(), out.Data.ID); err != nil {
 					return nil, err
 				}
+			} else {
+				out.Meta.Message = "re-run with --confirm to delete"
 			}
-			return &keyvalue.DeleteResult{KeyValue: kv, Deleted: confirm}, nil
+			return &out, nil
 		}
 
-		_, err := command.NonInteractive(cmd, loadData, formatTextOutput)
+		_, err := command.NonInteractive(cmd, loadData, formatDeleteTextOutput)
 		return err
 	}
 
 	return cmd
 }
 
-func formatTextOutput(r *keyvalue.DeleteResult) string {
-	if r.Deleted {
-		return "Deleted this Key Value:\n\n" + text.KeyValueAPIDetail(r.KeyValue) + "\n"
+func formatDeleteTextOutput(r *keyvalue.DeleteOut) string {
+	if r.Meta.Deleted {
+		return "Deleted this Key Value:\n\n" + text.KeyValueDetail(&r.Data) + "\n"
 	}
 	return "This command would delete this Key Value:\n\n" +
-		text.KeyValueAPIDetail(r.KeyValue) +
+		text.KeyValueDetail(&r.Data) +
 		"\nRe-run with --confirm to proceed\n"
 }

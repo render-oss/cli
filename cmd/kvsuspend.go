@@ -57,7 +57,7 @@ Key Value ID instead (which works across workspaces).`,
 		input = kvtypes.NormalizeSuspendInput(input)
 		confirm := command.GetConfirmFromContext(cmd.Context())
 
-		loadData := func() (*keyvalue.SuspendResult, error) {
+		loadData := func() (*keyvalue.SuspendOut, error) {
 			before, err := deps.KeyValueService().Resolve(cmd.Context(), keyvalue.ResolveInput{
 				IDOrName:            input.IDOrName,
 				EnvironmentIDOrName: input.EnvironmentIDOrName,
@@ -65,20 +65,27 @@ Key Value ID instead (which works across workspaces).`,
 			if err != nil {
 				return nil, err
 			}
-			kv := before.KeyValue
-			if !confirm {
-				return &keyvalue.SuspendResult{KeyValue: kv, Suspended: false}, nil
+			out := keyvalue.SuspendOut{
+				Data: keyvalue.NewKeyValueOut(before),
+				Meta: keyvalue.SuspendOutMeta{
+					Suspended: confirm,
+				},
 			}
-			if err := deps.KeyValueService().Suspend(cmd.Context(), kv.Id); err != nil {
+			if !confirm {
+				out.Meta.Message = "re-run with --confirm to suspend"
+				return &out, nil
+			}
+			if err := deps.KeyValueService().Suspend(cmd.Context(), out.Data.ID); err != nil {
 				return nil, err
 			}
 			after, err := deps.KeyValueService().Resolve(cmd.Context(), keyvalue.ResolveInput{
-				IDOrName: kv.Id,
+				IDOrName: out.Data.ID,
 			})
 			if err != nil {
 				return nil, err
 			}
-			return &keyvalue.SuspendResult{KeyValue: after.KeyValue, Suspended: true}, nil
+			out.Data = keyvalue.NewKeyValueOut(after)
+			return &out, nil
 		}
 
 		_, err := command.NonInteractive(cmd, loadData, formatSuspendTextOutput)
@@ -88,11 +95,11 @@ Key Value ID instead (which works across workspaces).`,
 	return cmd
 }
 
-func formatSuspendTextOutput(r *keyvalue.SuspendResult) string {
-	if r.Suspended {
-		return "Suspended this Key Value:\n\n" + text.KeyValueAPIDetail(r.KeyValue) + "\n"
+func formatSuspendTextOutput(r *keyvalue.SuspendOut) string {
+	if r.Meta.Suspended {
+		return "Suspended this Key Value:\n\n" + text.KeyValueDetail(&r.Data) + "\n"
 	}
 	return "This command would suspend this Key Value:\n\n" +
-		text.KeyValueAPIDetail(r.KeyValue) +
+		text.KeyValueDetail(&r.Data) +
 		"\n\nRe-run with --confirm to proceed\n"
 }

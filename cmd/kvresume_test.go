@@ -79,21 +79,29 @@ func TestKVResume_UnknownID_Errors(t *testing.T) {
 
 func TestKVResume_JSONOutput(t *testing.T) {
 	server := renderapi.NewServer(t)
-	kv := seedSuspendedKV(server, "json-cache")
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	env := project.Env("production")
+	kv := seedKVInEnv(server, "json-cache", env.Id)
+	kv.Status = client.DatabaseStatusSuspended
 
 	result, err := executeKVResume(t, server, kv.Id, "--output", "json")
 	require.NoError(t, err)
 	assert.Equal(t, client.DatabaseStatusAvailable, server.KV.Instances[0].Status)
 
-	var body struct {
-		ID     string `json:"id"`
-		Name   string `json:"name"`
-		Status string `json:"status"`
-	}
+	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Equal(t, kv.Id, body.ID)
-	assert.Equal(t, "json-cache", body.Name)
-	assert.Equal(t, string(client.DatabaseStatusAvailable), body.Status)
+	assert.Equal(t, kv.Id, body["id"])
+	assert.Equal(t, "json-cache", body["name"])
+	assert.Equal(t, string(client.DatabaseStatusAvailable), body["status"])
+	assert.Equal(t, kvTestWorkspaceID, body["ownerId"])
+	assert.Equal(t, project.Project.Id, body["projectId"])
+	assert.Equal(t, env.Id, body["environmentId"])
+	assert.NotContains(t, body, "keyValue")
+	assert.NotContains(t, body, "projectName")
+	assert.NotContains(t, body, "environmentName")
 }
 
 func TestKVResume_NameCollision_NarrowedByEnvironment_Resumes(t *testing.T) {

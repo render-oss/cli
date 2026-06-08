@@ -27,6 +27,26 @@ type KeyValueOut struct {
 	MaxmemoryPolicy *string                          `json:"maxmemoryPolicy,omitempty"`
 }
 
+type DeleteOut struct {
+	Data KeyValueOut   `json:"data"`
+	Meta DeleteOutMeta `json:"meta"`
+}
+
+type DeleteOutMeta struct {
+	Deleted bool   `json:"deleted"`
+	Message string `json:"message,omitempty"`
+}
+
+type SuspendOut struct {
+	Data KeyValueOut    `json:"data"`
+	Meta SuspendOutMeta `json:"meta"`
+}
+
+type SuspendOutMeta struct {
+	Suspended bool   `json:"suspended"`
+	Message   string `json:"message,omitempty"`
+}
+
 func NewKeyValueOut(resolved *ResolvedKeyValue) KeyValueOut {
 	if resolved == nil || resolved.KeyValue == nil {
 		return KeyValueOut{}
