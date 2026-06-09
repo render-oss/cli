@@ -19,6 +19,13 @@ type Service struct {
 	resolver        *resolve.Resolver
 }
 
+// ResolvedPostgres carries a Postgres detail plus its resolved scope.
+type ResolvedPostgres struct {
+	Postgres    *client.PostgresDetail
+	Project     *client.Project
+	Environment *client.Environment
+}
+
 func NewService(repo *Repo, environmentRepo *environment.Repo, projectRepo *project.Repo, resolver *resolve.Resolver) *Service {
 	return &Service{
 		repo:            repo,
@@ -100,7 +107,7 @@ func (s *Service) GetConnectionInfo(ctx context.Context, id string) (*client.Pos
 
 // Resolve resolves a Postgres database by ID or name within an optional
 // active-workspace project/environment scope.
-func (s *Service) Resolve(ctx context.Context, input ResolveInput) (*client.PostgresDetail, error) {
+func (s *Service) Resolve(ctx context.Context, input ResolveInput) (*ResolvedPostgres, error) {
 	return s.resolve(ctx, input)
 }
 
@@ -149,7 +156,7 @@ func (s *Service) Create(ctx context.Context, input pgtypes.CreatePostgresInput)
 // narrowed by project/environment), builds the PATCH body, and applies it via
 // the Render API. Returns both the pre- and post-update server state.
 func (s *Service) Update(ctx context.Context, input pgtypes.UpdatePostgresInput) (*UpdateResult, error) {
-	before, err := s.Resolve(ctx, ResolveInput{
+	resolvedBefore, err := s.Resolve(ctx, ResolveInput{
 		IDOrName:            input.IDOrName,
 		ProjectIDOrName:     input.ProjectIDOrName,
 		EnvironmentIDOrName: input.EnvironmentIDOrName,
@@ -157,6 +164,7 @@ func (s *Service) Update(ctx context.Context, input pgtypes.UpdatePostgresInput)
 	if err != nil {
 		return nil, err
 	}
+	before := resolvedBefore.Postgres
 
 	body, err := BuildUpdateRequest(input)
 	if err != nil {

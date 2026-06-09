@@ -255,8 +255,49 @@ func TestServiceResolve_EnvironmentLookupStaysInActiveWorkspace(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	assert.NotEqual(t, otherWorkspacePG.Id, result.Id)
-	assert.Equal(t, activeWorkspacePG.Id, result.Id)
+	require.NotNil(t, result.Postgres)
+	assert.NotEqual(t, otherWorkspacePG.Id, result.Postgres.Id)
+	assert.Equal(t, activeWorkspacePG.Id, result.Postgres.Id)
+}
+
+func TestServiceResolve_EnrichesProjectAndEnvironmentForIDLookup(t *testing.T) {
+	harness := newHarness(t)
+	env := harness.addProjectAndEnvironment(harness.workspaceID, "Active Project", "production")
+	pg := harness.addPostgresInEnvironment("my-db", env.Id)
+	project := harness.requireProject(env.ProjectId)
+
+	result, err := harness.service.Resolve(context.Background(), postgres.ResolveInput{
+		IDOrName: pg.Id,
+	})
+	require.NoError(t, err)
+
+	require.NotNil(t, result.Postgres)
+	assert.Equal(t, pg.Id, result.Postgres.Id)
+	require.NotNil(t, result.Environment)
+	assert.Equal(t, env.Id, result.Environment.Id)
+	require.NotNil(t, result.Project)
+	assert.Equal(t, project.Id, result.Project.Id)
+}
+
+func TestServiceResolve_PreservesResolvedProjectAndEnvironmentForScopedNameLookup(t *testing.T) {
+	harness := newHarness(t)
+	env := harness.addProjectAndEnvironment(harness.workspaceID, "Active Project", "production")
+	pg := harness.addPostgresInEnvironment("my-db", env.Id)
+	project := harness.requireProject(env.ProjectId)
+
+	result, err := harness.service.Resolve(context.Background(), postgres.ResolveInput{
+		IDOrName:            "my-db",
+		ProjectIDOrName:     pointers.From(project.Name),
+		EnvironmentIDOrName: pointers.From(env.Name),
+	})
+	require.NoError(t, err)
+
+	require.NotNil(t, result.Postgres)
+	assert.Equal(t, pg.Id, result.Postgres.Id)
+	require.NotNil(t, result.Environment)
+	assert.Equal(t, env.Id, result.Environment.Id)
+	require.NotNil(t, result.Project)
+	assert.Equal(t, project.Id, result.Project.Id)
 }
 
 func TestServiceResolve_IDLookup_NonNotFoundError_Surfaces(t *testing.T) {

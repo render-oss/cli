@@ -57,7 +57,7 @@ Postgres ID instead (which works across workspaces).`,
 		input = pgtypes.NormalizeResumeInput(input)
 
 		loadData := func() (*client.PostgresDetail, error) {
-			pg, err := deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{
+			resolved, err := deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{
 				IDOrName:            input.IDOrName,
 				ProjectIDOrName:     input.ProjectIDOrName,
 				EnvironmentIDOrName: input.EnvironmentIDOrName,
@@ -65,10 +65,15 @@ Postgres ID instead (which works across workspaces).`,
 			if err != nil {
 				return nil, err
 			}
+			pg := resolved.Postgres
 			if err := deps.PostgresService().ResumePostgres(cmd.Context(), pg.Id); err != nil {
 				return nil, err
 			}
-			return deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{IDOrName: pg.Id})
+			resolved, err = deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{IDOrName: pg.Id})
+			if err != nil {
+				return nil, err
+			}
+			return resolved.Postgres, nil
 		}
 
 		_, err := command.NonInteractive(cmd,

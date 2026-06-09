@@ -69,7 +69,7 @@ Postgres ID instead (which works across workspaces).`,
 		confirm := command.GetConfirmFromContext(cmd.Context())
 
 		loadData := func() (*pgSuspendResult, error) {
-			pg, err := deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{
+			resolved, err := deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{
 				IDOrName:            input.IDOrName,
 				ProjectIDOrName:     input.ProjectIDOrName,
 				EnvironmentIDOrName: input.EnvironmentIDOrName,
@@ -77,6 +77,7 @@ Postgres ID instead (which works across workspaces).`,
 			if err != nil {
 				return nil, err
 			}
+			pg := resolved.Postgres
 			if !confirm {
 				return &pgSuspendResult{Postgres: pg, Suspended: false}, nil
 			}
@@ -87,7 +88,7 @@ Postgres ID instead (which works across workspaces).`,
 			if err != nil {
 				return nil, err
 			}
-			return &pgSuspendResult{Postgres: post, Suspended: true}, nil
+			return &pgSuspendResult{Postgres: post.Postgres, Suspended: true}, nil
 		}
 
 		_, err := command.NonInteractive(cmd,

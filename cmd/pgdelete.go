@@ -81,7 +81,7 @@ Postgres ID instead (which works across workspaces).`,
 		confirm := command.GetConfirmFromContext(cmd.Context())
 
 		loadData := func() (*pgDeleteResult, error) {
-			pg, err := deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{
+			resolved, err := deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{
 				IDOrName:            input.IDOrName,
 				ProjectIDOrName:     input.ProjectIDOrName,
 				EnvironmentIDOrName: input.EnvironmentIDOrName,
@@ -89,6 +89,7 @@ Postgres ID instead (which works across workspaces).`,
 			if err != nil {
 				return nil, err
 			}
+			pg := resolved.Postgres
 			if confirm {
 				if err := deps.PostgresService().Delete(cmd.Context(), pg.Id); err != nil {
 					return nil, err

@@ -26,12 +26,49 @@ type resolveScope struct {
 	env     *client.Environment
 }
 
-func (s *Service) resolve(ctx context.Context, input ResolveInput) (*client.PostgresDetail, error) {
+func (s *Service) resolve(ctx context.Context, input ResolveInput) (*ResolvedPostgres, error) {
 	scope, err := s.resolveScope(ctx, input)
 	if err != nil {
 		return nil, err
 	}
-	return s.resolveInScope(ctx, input.IDOrName, scope)
+	pg, err := s.resolveInScope(ctx, input.IDOrName, scope)
+	if err != nil {
+		return nil, err
+	}
+	resolved := &ResolvedPostgres{
+		Postgres:    pg,
+		Project:     scope.project,
+		Environment: scope.env,
+	}
+	if err := s.enrichResolvedPostgres(ctx, resolved); err != nil {
+		return nil, err
+	}
+	return resolved, nil
+}
+
+// enrichResolvedPostgres fills in related project/environment data when the
+// lookup itself did not already resolve that context.
+func (s *Service) enrichResolvedPostgres(ctx context.Context, resolved *ResolvedPostgres) error {
+	if resolved.Postgres == nil || resolved.Postgres.EnvironmentId == nil {
+		return nil
+	}
+
+	pg := postgresFromPostgresDetail(resolved.Postgres)
+	if resolved.Environment == nil {
+		env, err := s.environmentForPostgres(ctx, pg, nil)
+		if err != nil {
+			return err
+		}
+		resolved.Environment = env
+	}
+	if resolved.Project == nil && resolved.Environment != nil {
+		project, err := s.projectRepo.GetProject(ctx, resolved.Environment.ProjectId)
+		if err != nil {
+			return err
+		}
+		resolved.Project = project
+	}
+	return nil
 }
 
 func (s *Service) resolveScope(ctx context.Context, input ResolveInput) (resolveScope, error) {
