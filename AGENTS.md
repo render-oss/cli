@@ -49,8 +49,8 @@ Prefer small, incremental changes over large speculative implementations.
 go build -o render .              # Build binary
 
 # Testing
-go test ./...                     # All tests
-go test -run TestName ./pkg/...   # Single test
+go test ./cmd/... ./pkg/... ./internal/...     # Default development loop
+go test <package> -run '<test-name-or-regex>'  # Focused test pattern
 
 # Linting & Formatting
 golangci-lint run                 # Lint
@@ -120,6 +120,17 @@ if command.IsInteractive(ctx) {
 return runNonInteractive(ctx, deps)  // JSON, YAML, TEXT
 ```
 
+For commands without an interactive/TUI path, default interactive output to text
+at the top of `RunE`:
+
+```go
+cmd.RunE = func(cmd *cobra.Command, args []string) error {
+    command.DefaultFormatNonInteractive(cmd)
+
+    // parse input and run the non-interactive command path
+}
+```
+
 **Naming**:
 | Element | Pattern | Example |
 |---------|---------|---------|
@@ -152,6 +163,38 @@ export RENDER_API_KEY="your-api-key"
 - **Table-driven tests** with `stretchr/testify`
 - **Manual fakes** in `pkg/tui/testhelper/`
 - **Hooks** (`prek.toml`): golangci-lint, shellcheck, shfmt, yaml checks, large file detection
+- **REST API fake** in `internal/fakes/renderapi` for command tests whose
+  code paths hit the API; see `cmd/pglist_test.go` for the preferred harness
+  pattern.
+
+Run `go test ./cmd/... ./pkg/... ./internal/...` by default. `e2e/e2e_test.go`
+logs in and hits the configured Render API (`api.render.com` by default), so
+leave it out of the normal development loop. When using `-run`, target the
+package under test when you know it, e.g. `go test ./cmd -run TestPGList`;
+use the broader default package set when you want normal pre-review confidence.
+To run `e2e/e2e_test.go` locally, the human operator must first follow the
+[CLI E2E tests Slab doc](https://slab.render.com/posts/e-2-e-tests-ldk27n88).
+
+Prefer the `renderapi` fake over one-off HTTP servers or API-layer mocks. Seed
+state with `renderapi.NewServer(t)`, resource factories, and server helpers; if
+coverage is missing, expand the shared fake unless a one-off server or mock is
+much more ergonomic for an edge case.
+
+```go
+server := renderapi.NewServer(t)
+server.Owners.Add(renderapi.NewOwner(client.Owner{Id: activeWorkspaceID}))
+t.Setenv("RENDER_WORKSPACE", activeWorkspaceID)
+
+project := server.CreateProject(
+    renderapi.ProjectAttrs{Name: "My Project", OwnerId: activeWorkspaceID},
+    renderapi.EnvAttrs{Name: "production"},
+)
+server.Postgres.Add(renderapi.NewPostgres(client.PostgresDetail{
+    Name:          "prod-db",
+    Owner:         client.Owner{Id: activeWorkspaceID},
+    EnvironmentId: pointers.From(project.Env("production").Id),
+}))
+```
 
 ## Common Gotchas
 
