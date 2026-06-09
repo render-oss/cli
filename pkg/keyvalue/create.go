@@ -13,17 +13,22 @@ import (
 )
 
 // Create applies defaults, resolves the requested scope (workspace/project/
-// environment), and calls the Key Value create endpoint. It is the shared
-// entry point for both the non-interactive flag path and the interactive
-// wizard's final submit step.
+// environment), and calls the Key Value create endpoint.
 func Create(ctx context.Context, input kvtypes.KeyValueCreateInput) (*client.KeyValueDetail, error) {
-	input = kvtypes.NormalizeCreateInput(input)
-
 	c, err := client.NewDefaultClient()
 	if err != nil {
 		return nil, err
 	}
-	resolver := resolve.NewFromClient(c)
+	svc := NewService(NewRepo(c), nil, nil, resolve.NewFromClient(c))
+	resolved, err := svc.Create(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	return resolved.KeyValue, nil
+}
+
+func (s *Service) create(ctx context.Context, input kvtypes.KeyValueCreateInput) (*ResolvedKeyValue, error) {
+	input = kvtypes.NormalizeCreateInput(input)
 
 	if input.Name == "" {
 		input.Name = petname.Generate(2, "-")
@@ -40,7 +45,7 @@ func Create(ctx context.Context, input kvtypes.KeyValueCreateInput) (*client.Key
 		input.MaxmemoryPolicy = &p
 	}
 
-	scope, err := resolver.ResolveScope(ctx, resolve.ScopeInput{
+	scope, err := s.resolver.ResolveScope(ctx, resolve.ScopeInput{
 		WorkspaceIDOrName:   input.WorkspaceIDOrName,
 		ProjectIDOrName:     input.ProjectIDOrName,
 		EnvironmentIDOrName: input.EnvironmentIDOrName,
@@ -51,7 +56,7 @@ func Create(ctx context.Context, input kvtypes.KeyValueCreateInput) (*client.Key
 
 	environmentID := scope.EnvironmentID()
 	if environmentID == nil && input.ProjectIDOrName != nil && input.EnvironmentIDOrName == nil {
-		environmentID, err = resolver.ResolveEnvironmentID(ctx, scope.Project, nil, scope.WorkspaceID)
+		environmentID, err = s.resolver.ResolveEnvironmentID(ctx, scope.Project, nil, scope.WorkspaceID)
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +75,15 @@ func Create(ctx context.Context, input kvtypes.KeyValueCreateInput) (*client.Key
 		return nil, err
 	}
 
-	return NewRepo(c).CreateKeyValue(ctx, body)
+	kv, err := s.repo.CreateKeyValue(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+	return &ResolvedKeyValue{
+		KeyValue:    kv,
+		Project:     scope.Project,
+		Environment: scope.Environment,
+	}, nil
 }
 
 var wellKnownPlanValues = []string{

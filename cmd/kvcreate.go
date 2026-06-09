@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/keyvalue"
@@ -15,7 +14,7 @@ import (
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
-func newKVCreateCmd(_ *dependencies.Dependencies) *cobra.Command {
+func newKVCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a new Key Value store instance",
@@ -75,10 +74,15 @@ Examples:
 		}
 
 		if nonInteractive, err := command.NonInteractive(cmd,
-			func() (*client.KeyValueDetail, error) {
-				return keyvalue.Create(cmd.Context(), input)
+			func() (*keyvalue.KeyValueOut, error) {
+				resolved, err := deps.KeyValueService().Create(cmd.Context(), input)
+				if err != nil {
+					return nil, err
+				}
+				out := keyvalue.NewKeyValueOut(resolved)
+				return &out, nil
 			},
-			func(kv *client.KeyValueDetail) string {
+			func(kv *keyvalue.KeyValueOut) string {
 				return kvCreateSuccessMessage(kv)
 			},
 		); err != nil {
@@ -88,7 +92,7 @@ Examples:
 		}
 
 		if command.GetConfirmFromContext(cmd.Context()) {
-			return runKVCreateAndPrint(cmd, input)
+			return runKVCreateAndPrint(cmd, deps, input)
 		}
 
 		kv, err := views.RunKeyValueCreate(cmd, &input)
@@ -99,25 +103,27 @@ Examples:
 			_, _ = fmt.Fprintln(cmd.OutOrStdout(), "Canceled.")
 			return nil
 		}
-		_, _ = fmt.Fprint(cmd.OutOrStdout(), kvCreateSuccessMessage(kv))
+		out := keyvalue.NewKeyValueOut(&keyvalue.ResolvedKeyValue{KeyValue: kv})
+		_, _ = fmt.Fprint(cmd.OutOrStdout(), kvCreateSuccessMessage(&out))
 		return nil
 	}
 
 	return cmd
 }
 
-func runKVCreateAndPrint(cmd *cobra.Command, input kvtypes.KeyValueCreateInput) error {
-	kv, err := keyvalue.Create(cmd.Context(), input)
+func runKVCreateAndPrint(cmd *cobra.Command, deps *dependencies.Dependencies, input kvtypes.KeyValueCreateInput) error {
+	resolved, err := deps.KeyValueService().Create(cmd.Context(), input)
 	if err != nil {
 		return err
 	}
-	_, _ = fmt.Fprint(cmd.OutOrStdout(), kvCreateSuccessMessage(kv))
+	out := keyvalue.NewKeyValueOut(resolved)
+	_, _ = fmt.Fprint(cmd.OutOrStdout(), kvCreateSuccessMessage(&out))
 	return nil
 }
 
-func kvCreateSuccessMessage(kv *client.KeyValueDetail) string {
+func kvCreateSuccessMessage(kv *keyvalue.KeyValueOut) string {
 	return fmt.Sprintf(
 		"Created Key Value store\n\n%s\n",
-		text.KeyValueAPIDetail(kv),
+		text.KeyValueDetail(kv),
 	)
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
@@ -363,14 +364,46 @@ func TestKVCreate_ConfirmMode_GeneratesName(t *testing.T) {
 
 func TestKVCreate_OutputJSON(t *testing.T) {
 	server := renderapi.NewServer(t)
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	env := project.Env("production")
+
 	cmdResult, err := executeKVCreate(t, server,
-		"--name", "my-kv", "--plan", "free",
+		"--name", "my-kv",
+		"--plan", "free",
+		"--project", "My Project",
+		"--environment", "production",
+		"--memory-policy", "queue",
+		"--ip-allow-list", "cidr=203.0.113.5/32,description=office",
 		"--output", "json",
 	)
 	require.NoError(t, err)
-	var result map[string]interface{}
-	require.NoError(t, json.Unmarshal([]byte(cmdResult.Stdout), &result), "expected valid JSON, got: %s", cmdResult.Stdout)
-	assert.Equal(t, "my-kv", result["name"])
+
+	var body map[string]any
+	require.NoError(t, json.Unmarshal([]byte(cmdResult.Stdout), &body), "expected valid JSON, got: %s", cmdResult.Stdout)
+	require.Len(t, server.KV.Instances, 1)
+	kv := server.KV.Instances[0]
+	assert.Equal(t, map[string]any{
+		"id":            kv.Id,
+		"name":          "my-kv",
+		"plan":          "free",
+		"region":        "oregon",
+		"status":        "available",
+		"createdAt":     kv.CreatedAt.Format(time.RFC3339Nano),
+		"updatedAt":     kv.UpdatedAt.Format(time.RFC3339Nano),
+		"ownerId":       kvTestWorkspaceID,
+		"projectId":     project.Project.Id,
+		"environmentId": env.Id,
+		"ipAllowList": []any{
+			map[string]any{
+				"cidrBlock":   "203.0.113.5/32",
+				"description": "office",
+			},
+		},
+		"maxmemoryPolicy": "noeviction",
+	}, body)
 }
 
 func TestKVCreate_OutputYAML(t *testing.T) {

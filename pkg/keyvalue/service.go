@@ -88,6 +88,12 @@ func (s *Service) Resolve(ctx context.Context, input ResolveInput) (*ResolvedKey
 	return s.resolve(ctx, input)
 }
 
+// Create applies defaults, resolves the requested scope, creates a Key Value,
+// and returns the created resource with resolved project/environment context.
+func (s *Service) Create(ctx context.Context, input kvtypes.KeyValueCreateInput) (*ResolvedKeyValue, error) {
+	return s.create(ctx, input)
+}
+
 func (s *Service) GetConnectionInfo(ctx context.Context, id string) (*client.KeyValueConnectionInfo, error) {
 	return s.repo.GetKeyValueConnectionInfo(ctx, id)
 }
