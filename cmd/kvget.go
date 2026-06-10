@@ -61,7 +61,7 @@ Key Value ID instead (which works across workspaces).`,
 		}
 		input = kvtypes.NormalizeGetInput(input)
 
-		loadData := func() (*keyvalue.KeyValueOut, error) {
+		loadData := func() (*keyvalue.KeyValueGetOut, error) {
 			resolved, err := deps.KeyValueService().Resolve(cmd.Context(), keyvalue.ResolveInput{
 				IDOrName:            input.IDOrName,
 				ProjectIDOrName:     input.ProjectIDOrName,
@@ -78,11 +78,11 @@ Key Value ID instead (which works across workspaces).`,
 				}
 				out.ConnectionInfo = conn
 			}
-			return &out, nil
+			return &keyvalue.KeyValueGetOut{Data: out}, nil
 		}
 
-		_, err := command.NonInteractive(cmd, loadData, func(kv *keyvalue.KeyValueOut) string {
-			return text.KeyValueDetail(kv) + "\n"
+		_, err := command.NonInteractive(cmd, loadData, func(out *keyvalue.KeyValueGetOut) string {
+			return text.KeyValueDetail(&out.Data) + "\n"
 		})
 		return err
 	}

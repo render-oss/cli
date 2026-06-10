@@ -198,7 +198,9 @@ func TestKVGet_JSONOutput_WithoutConnectionInfo(t *testing.T) {
 
 	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
+	data := requireSubMap(t, body, "data")
 	assert.NotContains(t, body, "connectionInfo")
+	assert.NotContains(t, data, "connectionInfo")
 	assert.Equal(t, map[string]any{
 		"id":              kv.Id,
 		"name":            "json-cache",
@@ -213,7 +215,7 @@ func TestKVGet_JSONOutput_WithoutConnectionInfo(t *testing.T) {
 		"environmentId":   env.Id,
 		"ipAllowList":     []any{map[string]any{"cidrBlock": "203.0.113.5/32", "description": "office"}},
 		"maxmemoryPolicy": maxmemoryPolicy,
-	}, body)
+	}, data)
 }
 
 func TestKVGet_JSONOutput_WithConnectionInfo(t *testing.T) {
@@ -225,10 +227,11 @@ func TestKVGet_JSONOutput_WithConnectionInfo(t *testing.T) {
 
 	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Equal(t, kv.Id, body["id"])
-	assert.Equal(t, "json-cache", body["name"])
+	data := requireSubMap(t, body, "data")
+	assert.Equal(t, kv.Id, data["id"])
+	assert.Equal(t, "json-cache", data["name"])
 
-	connectionInfo, ok := body["connectionInfo"].(map[string]any)
+	connectionInfo, ok := data["connectionInfo"].(map[string]any)
 	require.True(t, ok, "expected connectionInfo object in JSON output: %s", result.Stdout)
 	assert.Equal(t, map[string]any{
 		"cliCommand":               "redis-cli -h fake-host -p 6379",

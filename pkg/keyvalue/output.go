@@ -27,6 +27,12 @@ type KeyValueOut struct {
 	MaxmemoryPolicy *string                          `json:"maxmemoryPolicy,omitempty"`
 }
 
+type KeyValueGetOut struct {
+	Data KeyValueOut `json:"data"`
+}
+
+type KeyValueCreateOut = KeyValueGetOut
+
 type DeleteOut struct {
 	Data KeyValueOut   `json:"data"`
 	Meta DeleteOutMeta `json:"meta"`
@@ -36,6 +42,8 @@ type DeleteOutMeta struct {
 	Deleted bool   `json:"deleted"`
 	Message string `json:"message,omitempty"`
 }
+
+type KeyValueResumeOut = KeyValueGetOut
 
 type SuspendOut struct {
 	Data KeyValueOut    `json:"data"`

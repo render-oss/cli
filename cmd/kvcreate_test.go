@@ -383,6 +383,7 @@ func TestKVCreate_OutputJSON(t *testing.T) {
 
 	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(cmdResult.Stdout), &body), "expected valid JSON, got: %s", cmdResult.Stdout)
+	data := requireSubMap(t, body, "data")
 	require.Len(t, server.KV.Instances, 1)
 	kv := server.KV.Instances[0]
 	assert.Equal(t, map[string]any{
@@ -403,7 +404,7 @@ func TestKVCreate_OutputJSON(t *testing.T) {
 			},
 		},
 		"maxmemoryPolicy": "noeviction",
-	}, body)
+	}, data)
 }
 
 func TestKVCreate_OutputYAML(t *testing.T) {
@@ -413,6 +414,7 @@ func TestKVCreate_OutputYAML(t *testing.T) {
 		"--output", "yaml",
 	)
 	require.NoError(t, err)
+	assert.Contains(t, result.Stdout, "data:")
 	assert.Contains(t, result.Stdout, "name:")
 	assert.Contains(t, result.Stdout, "my-kv")
 }

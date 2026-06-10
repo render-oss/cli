@@ -50,7 +50,7 @@ Key Value ID instead (which works across workspaces).`,
 		}
 		input = kvtypes.NormalizeResumeInput(input)
 
-		loadData := func() (*keyvalue.KeyValueOut, error) {
+		loadData := func() (*keyvalue.KeyValueResumeOut, error) {
 			kv, err := deps.KeyValueService().Resolve(cmd.Context(), keyvalue.ResolveInput{
 				IDOrName:            input.IDOrName,
 				EnvironmentIDOrName: input.EnvironmentIDOrName,
@@ -68,7 +68,7 @@ Key Value ID instead (which works across workspaces).`,
 				return nil, err
 			}
 			out := keyvalue.NewKeyValueOut(kv)
-			return &out, nil
+			return &keyvalue.KeyValueResumeOut{Data: out}, nil
 		}
 
 		_, err := command.NonInteractive(cmd, loadData, formatResumeTextOutput)
@@ -78,6 +78,6 @@ Key Value ID instead (which works across workspaces).`,
 	return cmd
 }
 
-func formatResumeTextOutput(kv *keyvalue.KeyValueOut) string {
-	return "Resumed this Key Value:\n\n" + text.KeyValueDetail(kv) + "\n"
+func formatResumeTextOutput(out *keyvalue.KeyValueResumeOut) string {
+	return "Resumed this Key Value:\n\n" + text.KeyValueDetail(&out.Data) + "\n"
 }

@@ -74,16 +74,16 @@ Examples:
 		}
 
 		if nonInteractive, err := command.NonInteractive(cmd,
-			func() (*keyvalue.KeyValueOut, error) {
+			func() (*keyvalue.KeyValueCreateOut, error) {
 				resolved, err := deps.KeyValueService().Create(cmd.Context(), input)
 				if err != nil {
 					return nil, err
 				}
 				out := keyvalue.NewKeyValueOut(resolved)
-				return &out, nil
+				return &keyvalue.KeyValueCreateOut{Data: out}, nil
 			},
-			func(kv *keyvalue.KeyValueOut) string {
-				return kvCreateSuccessMessage(kv)
+			func(out *keyvalue.KeyValueCreateOut) string {
+				return kvCreateSuccessMessage(&out.Data)
 			},
 		); err != nil {
 			return err

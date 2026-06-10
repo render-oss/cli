@@ -93,15 +93,18 @@ func TestKVResume_JSONOutput(t *testing.T) {
 
 	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Equal(t, kv.Id, body["id"])
-	assert.Equal(t, "json-cache", body["name"])
-	assert.Equal(t, string(client.DatabaseStatusAvailable), body["status"])
-	assert.Equal(t, kvTestWorkspaceID, body["ownerId"])
-	assert.Equal(t, project.Project.Id, body["projectId"])
-	assert.Equal(t, env.Id, body["environmentId"])
+	data := requireSubMap(t, body, "data")
+	assert.Equal(t, kv.Id, data["id"])
+	assert.Equal(t, "json-cache", data["name"])
+	assert.Equal(t, string(client.DatabaseStatusAvailable), data["status"])
+	assert.Equal(t, kvTestWorkspaceID, data["ownerId"])
+	assert.Equal(t, project.Project.Id, data["projectId"])
+	assert.Equal(t, env.Id, data["environmentId"])
 	assert.NotContains(t, body, "keyValue")
 	assert.NotContains(t, body, "projectName")
 	assert.NotContains(t, body, "environmentName")
+	assert.NotContains(t, data, "projectName")
+	assert.NotContains(t, data, "environmentName")
 }
 
 func TestKVResume_NameCollision_NarrowedByEnvironment_Resumes(t *testing.T) {
