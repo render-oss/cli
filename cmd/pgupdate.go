@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/postgres"
@@ -102,22 +101,17 @@ mutually exclusive.`,
 		input.ProjectIDOrName = types.OptionalNonZeroString(input.ProjectIDOrName)
 		input.EnvironmentIDOrName = types.OptionalNonZeroString(input.EnvironmentIDOrName)
 
-		// Captured by both closures so the text formatter can render a diff
-		// while JSON/YAML output stays simple — just the new state, matching
-		// pg create's output shape.
-		var before *client.PostgresDetail
-
 		_, err := command.NonInteractive(cmd,
-			func() (*client.PostgresDetail, error) {
+			func() (*postgres.PostgresUpdateOut, error) {
 				result, err := deps.PostgresService().Update(cmd.Context(), input)
 				if err != nil {
 					return nil, err
 				}
-				before = result.Before
-				return result.After, nil
+				out := postgres.NewPostgresUpdateOut(result.Before, result.After)
+				return &out, nil
 			},
-			func(after *client.PostgresDetail) string {
-				return pgUpdateSuccessMessage(before, after)
+			func(out *postgres.PostgresUpdateOut) string {
+				return pgUpdateSuccessMessage(out)
 			},
 		)
 		return err
@@ -126,9 +120,9 @@ mutually exclusive.`,
 	return cmd
 }
 
-func pgUpdateSuccessMessage(before, after *client.PostgresDetail) string {
-	details := "Full details:\n  " + strings.ReplaceAll(text.PostgresAPIDetail(after), "\n", "\n  ")
-	diff := text.PostgresUpdateDiff(before, after)
+func pgUpdateSuccessMessage(out *postgres.PostgresUpdateOut) string {
+	details := "Full details:\n  " + strings.ReplaceAll(text.PostgresDetail(&out.Data), "\n", "\n  ")
+	diff := text.PostgresUpdateDiff(out.Diff)
 	if diff == "" {
 		return fmt.Sprintf("No changes applied to Postgres database\n\n%s\n", details)
 	}

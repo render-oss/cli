@@ -132,11 +132,11 @@ func NewPostgresUpdateOut(before *client.PostgresDetail, after *ResolvedPostgres
 	if before == nil {
 		return out
 	}
-	out.Diff = NewPostgresUpdateDiff(before, &out.Data)
+	out.Diff = newPostgresUpdateDiff(before, &out.Data)
 	return out
 }
 
-func NewPostgresUpdateDiff(before *client.PostgresDetail, after *PostgresOut) PostgresUpdateDiff {
+func newPostgresUpdateDiff(before *client.PostgresDetail, after *PostgresOut) PostgresUpdateDiff {
 	var diff PostgresUpdateDiff
 	if before == nil || after == nil {
 		return diff

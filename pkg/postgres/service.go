@@ -186,7 +186,14 @@ func (s *Service) Update(ctx context.Context, input pgtypes.UpdatePostgresInput)
 		return nil, err
 	}
 
-	return &UpdateResult{Before: before, After: after}, nil
+	return &UpdateResult{
+		Before: before,
+		After: &ResolvedPostgres{
+			Postgres:    after,
+			Project:     resolvedBefore.Project,
+			Environment: resolvedBefore.Environment,
+		},
+	}, nil
 }
 
 func (s *Service) hydratePostgresModel(ctx context.Context, postgres *client.Postgres, projects []*client.Project) (*Model, error) {

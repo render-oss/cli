@@ -12,7 +12,7 @@ import (
 // more information than just the new state.
 type UpdateResult struct {
 	Before *client.PostgresDetail `json:"before"`
-	After  *client.PostgresDetail `json:"after"`
+	After  *ResolvedPostgres      `json:"after"`
 }
 
 // BuildUpdateRequest converts an UpdatePostgresInput into the API PATCH body.

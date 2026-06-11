@@ -3,13 +3,11 @@ package text
 import (
 	"fmt"
 	"maps"
-	"reflect"
 	"slices"
 	"strings"
 
 	"github.com/jedib0t/go-pretty/table"
 
-	"github.com/render-oss/cli/internal/ipallowlist"
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/postgres"
 )
@@ -128,38 +126,37 @@ func diskSizeLabel(gb *int) string {
 	return fmt.Sprintf("%d GB", *gb)
 }
 
-// PostgresUpdateDiff renders the user-visible changes between before and after
-// snapshots of a Postgres instance, showing only the fields that actually
-// changed. Returns an empty string when nothing changed (the cmd layer can
-// then surface a "no changes" message).
+// PostgresUpdateDiff renders the user-visible changes from the public update
+// diff contract. Returns an empty string when nothing changed (the cmd layer
+// can then surface a "no changes" message).
 //
 // Label column is padded to 20 characters so the arrows align:
 //
 //	"  High availability: disabled → enabled"
-func PostgresUpdateDiff(before, after *client.PostgresDetail) string {
+func PostgresUpdateDiff(diff postgres.PostgresUpdateDiff) string {
 	var lines []string
 
-	if before.Name != after.Name {
-		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Name:", before.Name, after.Name))
+	if diff.Name != nil {
+		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Name:", diff.Name.Before, diff.Name.After))
 	}
-	if before.Plan != after.Plan {
-		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Plan:", string(before.Plan), string(after.Plan)))
+	if diff.Plan != nil {
+		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Plan:", string(diff.Plan.Before), string(diff.Plan.After)))
 	}
-	if diskSizeLabel(before.DiskSizeGB) != diskSizeLabel(after.DiskSizeGB) {
-		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Disk size:", diskSizeLabel(before.DiskSizeGB), diskSizeLabel(after.DiskSizeGB)))
+	if diff.DiskSizeGB != nil {
+		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Disk size:", diskSizeLabel(diff.DiskSizeGB.Before), diskSizeLabel(diff.DiskSizeGB.After)))
 	}
-	if before.DiskAutoscalingEnabled != after.DiskAutoscalingEnabled {
-		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Disk autoscaling:", boolLabel(before.DiskAutoscalingEnabled), boolLabel(after.DiskAutoscalingEnabled)))
+	if diff.DiskAutoscalingEnabled != nil {
+		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Disk autoscaling:", boolLabel(diff.DiskAutoscalingEnabled.Before), boolLabel(diff.DiskAutoscalingEnabled.After)))
 	}
-	if before.HighAvailabilityEnabled != after.HighAvailabilityEnabled {
-		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "High availability:", boolLabel(before.HighAvailabilityEnabled), boolLabel(after.HighAvailabilityEnabled)))
+	if diff.HighAvailabilityEnabled != nil {
+		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "High availability:", boolLabel(diff.HighAvailabilityEnabled.Before), boolLabel(diff.HighAvailabilityEnabled.After)))
 	}
-	if !ipallowlist.Equal(before.IpAllowList, after.IpAllowList) {
-		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "IP allow-list:", ipAllowListLabel(before.IpAllowList), ipAllowListLabel(after.IpAllowList)))
+	if diff.IPAllowList != nil {
+		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "IP allow-list:", ipAllowListLabel(diff.IPAllowList.Before), ipAllowListLabel(diff.IPAllowList.After)))
 	}
 	// ParameterOverrides is a map; rather than a noisy per-key diff we flag that
 	// it changed. The full new state is shown in the PostgresDetail block below.
-	if !reflect.DeepEqual(before.ParameterOverrides, after.ParameterOverrides) {
+	if diff.ParameterOverrides != nil {
 		lines = append(lines, fmt.Sprintf("  %-20s %s", "Parameter overrides:", "updated"))
 	}
 

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
@@ -11,6 +10,7 @@ import (
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testassert"
 	"github.com/render-oss/cli/internal/testids"
+	"github.com/render-oss/cli/internal/testrequire"
 	"github.com/render-oss/cli/pkg/client"
 	pgclient "github.com/render-oss/cli/pkg/client/postgres"
 	"github.com/render-oss/cli/pkg/pointers"
@@ -164,22 +164,27 @@ func TestPGUpdate_NameCollision_Errors(t *testing.T) {
 	assert.Contains(t, err.Error(), "Multiple Postgres databases")
 }
 
-func TestPGUpdate_JSONOutput_ReturnsNewState(t *testing.T) {
+func TestPGUpdate_JSONOutput_ReturnsDataAndDiff(t *testing.T) {
 	harness := newPGUpdateHarness(t)
-	pg := seedPG(harness.server, "json-db")
+	project := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	pg := seedPGInEnv(harness.server, "json-db", project.Env("production").Id)
 
 	result, err := harness.execute(pg.Id, "--name", "json-renamed", "--output", "json")
 	require.NoError(t, err)
 
-	var body struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	}
-	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Equal(t, pg.Id, body.ID)
-	assert.Equal(t, "json-renamed", body.Name)
-	// JSON returns just the new state, not a before/after wrapper.
-	assert.NotContains(t, result.Stdout, "Changes:")
+	body := unmarshalPGJSONOutput(t, result.Stdout)
+	data := testrequire.SubMap(t, body, "data")
+	diff := testrequire.SubMap(t, body, "diff")
+	nameDiff := testrequire.SubMap(t, diff, "name")
+	assert.Equal(t, pg.Id, data["id"])
+	assert.Equal(t, "json-renamed", data["name"])
+	assert.Equal(t, project.Project.Id, data["projectId"])
+	assert.Equal(t, project.Env("production").Id, data["environmentId"])
+	assert.Equal(t, "json-db", nameDiff["before"])
+	assert.Equal(t, "json-renamed", nameDiff["after"])
 }
 
 func TestPGUpdate_UnknownID_Errors(t *testing.T) {

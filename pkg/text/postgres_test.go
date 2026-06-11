@@ -28,6 +28,11 @@ func basicPostgres() *client.PostgresDetail {
 	}
 }
 
+func postgresUpdateDiff(before, after *client.PostgresDetail) postgres.PostgresUpdateDiff {
+	out := postgres.NewPostgresUpdateOut(before, &postgres.ResolvedPostgres{Postgres: after})
+	return out.Diff
+}
+
 func TestPostgresDetail_BasicFields(t *testing.T) {
 	out := text.PostgresAPIDetail(basicPostgres())
 
@@ -137,7 +142,7 @@ func TestPostgresTable(t *testing.T) {
 func TestPostgresUpdateDiff(t *testing.T) {
 	t.Run("returns empty string when nothing changed", func(t *testing.T) {
 		pg := basicPostgres()
-		assert.Empty(t, text.PostgresUpdateDiff(pg, pg))
+		assert.Empty(t, text.PostgresUpdateDiff(postgresUpdateDiff(pg, pg)))
 	})
 
 	t.Run("single changed field: name", func(t *testing.T) {
@@ -145,7 +150,7 @@ func TestPostgresUpdateDiff(t *testing.T) {
 		after := basicPostgres()
 		after.Name = "new-name"
 
-		out := text.PostgresUpdateDiff(before, after)
+		out := text.PostgresUpdateDiff(postgresUpdateDiff(before, after))
 		testassert.ContainsInOrder(t, out, "Name:", "my-pg → new-name")
 	})
 
@@ -154,7 +159,7 @@ func TestPostgresUpdateDiff(t *testing.T) {
 		after := basicPostgres()
 		after.Plan = pgclient.Basic256mb
 
-		out := text.PostgresUpdateDiff(before, after)
+		out := text.PostgresUpdateDiff(postgresUpdateDiff(before, after))
 		testassert.ContainsInOrder(t, out, "Plan:", "free → basic_256mb")
 	})
 
@@ -163,7 +168,7 @@ func TestPostgresUpdateDiff(t *testing.T) {
 		after := basicPostgres()
 		after.DiskSizeGB = pointers.From(100)
 
-		out := text.PostgresUpdateDiff(before, after)
+		out := text.PostgresUpdateDiff(postgresUpdateDiff(before, after))
 		testassert.ContainsInOrder(t, out, "Disk size:", "(unset) → 100 GB")
 	})
 
@@ -174,7 +179,7 @@ func TestPostgresUpdateDiff(t *testing.T) {
 		after.DiskAutoscalingEnabled = true
 		after.HighAvailabilityEnabled = false
 
-		out := text.PostgresUpdateDiff(before, after)
+		out := text.PostgresUpdateDiff(postgresUpdateDiff(before, after))
 		// Disk autoscaling renders before high availability, so assert the full
 		// layout in order: a field that turned on, then one that turned off.
 		testassert.ContainsInOrder(t, out,
@@ -189,7 +194,7 @@ func TestPostgresUpdateDiff(t *testing.T) {
 			{CidrBlock: "10.0.0.0/8", Description: "internal"},
 		}
 
-		out := text.PostgresUpdateDiff(before, after)
+		out := text.PostgresUpdateDiff(postgresUpdateDiff(before, after))
 		testassert.ContainsInOrder(t, out, "IP allow-list:", "(empty) → 1 entry")
 	})
 
@@ -198,7 +203,7 @@ func TestPostgresUpdateDiff(t *testing.T) {
 		after := basicPostgres()
 		after.ParameterOverrides = &client.PostgresParameterOverrides{"max_connections": "200"}
 
-		out := text.PostgresUpdateDiff(before, after)
+		out := text.PostgresUpdateDiff(postgresUpdateDiff(before, after))
 		testassert.ContainsInOrder(t, out, "Parameter overrides:", "updated")
 	})
 
@@ -208,7 +213,7 @@ func TestPostgresUpdateDiff(t *testing.T) {
 		after.Name = "renamed"
 		after.HighAvailabilityEnabled = true
 
-		out := text.PostgresUpdateDiff(before, after)
+		out := text.PostgresUpdateDiff(postgresUpdateDiff(before, after))
 		testassert.ContainsInOrder(t, out, "Name:", "High availability:")
 
 		// Only changed fields appear; untouched fields are omitted.
