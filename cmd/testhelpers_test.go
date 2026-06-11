@@ -25,6 +25,8 @@ func newTestConfigPath(t *testing.T) string {
 
 // requireSubMap returns the nested map stored at key, failing the test if the
 // key is absent or the value is not a map[string]any.
+//
+// Deprecated: use testrequire.SubMap in new tests.
 func requireSubMap(t *testing.T, body map[string]any, key string) map[string]any {
 	t.Helper()
 	return testrequire.SubMap(t, body, key)
@@ -32,9 +34,9 @@ func requireSubMap(t *testing.T, body map[string]any, key string) map[string]any
 
 // requireSubSlice returns the nested slice stored at key, failing the test if
 // the key is absent or the value is not a []any.
+//
+// Deprecated: use testrequire.SubSlice in new tests.
 func requireSubSlice(t *testing.T, body map[string]any, key string) []any {
 	t.Helper()
-	require.Contains(t, body, key, "expected %q", key)
-	require.IsType(t, []any{}, body[key], "expected %q to contain a slice", key)
-	return body[key].([]any)
+	return testrequire.SubSlice(t, body, key)
 }
