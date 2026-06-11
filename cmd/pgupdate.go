@@ -127,7 +127,7 @@ mutually exclusive.`,
 }
 
 func pgUpdateSuccessMessage(before, after *client.PostgresDetail) string {
-	details := "Full details:\n  " + strings.ReplaceAll(text.PostgresDetail(after), "\n", "\n  ")
+	details := "Full details:\n  " + strings.ReplaceAll(text.PostgresAPIDetail(after), "\n", "\n  ")
 	diff := text.PostgresUpdateDiff(before, after)
 	if diff == "" {
 		return fmt.Sprintf("No changes applied to Postgres database\n\n%s\n", details)

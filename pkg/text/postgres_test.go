@@ -29,7 +29,7 @@ func basicPostgres() *client.PostgresDetail {
 }
 
 func TestPostgresDetail_BasicFields(t *testing.T) {
-	out := text.PostgresDetail(basicPostgres())
+	out := text.PostgresAPIDetail(basicPostgres())
 
 	assert.Contains(t, out, "Name: my-pg")
 	assert.Contains(t, out, "ID: dpg-abc123")
@@ -44,7 +44,7 @@ func TestPostgresDetail_BasicFields(t *testing.T) {
 
 func TestPostgresDetail_OptionalFields(t *testing.T) {
 	t.Run("omits disk size and environment ID when unset", func(t *testing.T) {
-		out := text.PostgresDetail(basicPostgres())
+		out := text.PostgresAPIDetail(basicPostgres())
 		assert.NotContains(t, out, "Disk size:")
 		assert.NotContains(t, out, "Environment ID:")
 	})
@@ -52,19 +52,19 @@ func TestPostgresDetail_OptionalFields(t *testing.T) {
 	t.Run("includes disk size when set", func(t *testing.T) {
 		pg := basicPostgres()
 		pg.DiskSizeGB = pointers.From(100)
-		assert.Contains(t, text.PostgresDetail(pg), "Disk size: 100 GB")
+		assert.Contains(t, text.PostgresAPIDetail(pg), "Disk size: 100 GB")
 	})
 
 	t.Run("includes environment ID when set", func(t *testing.T) {
 		pg := basicPostgres()
 		pg.EnvironmentId = pointers.From("evm-123")
-		assert.Contains(t, text.PostgresDetail(pg), "Environment ID: evm-123")
+		assert.Contains(t, text.PostgresAPIDetail(pg), "Environment ID: evm-123")
 	})
 }
 
 func TestPostgresDetail_BoolLabels(t *testing.T) {
 	t.Run("disabled by default", func(t *testing.T) {
-		out := text.PostgresDetail(basicPostgres())
+		out := text.PostgresAPIDetail(basicPostgres())
 		assert.Contains(t, out, "Disk autoscaling: disabled")
 		assert.Contains(t, out, "High availability: disabled")
 	})
@@ -73,7 +73,7 @@ func TestPostgresDetail_BoolLabels(t *testing.T) {
 		pg := basicPostgres()
 		pg.DiskAutoscalingEnabled = true
 		pg.HighAvailabilityEnabled = true
-		out := text.PostgresDetail(pg)
+		out := text.PostgresAPIDetail(pg)
 		assert.Contains(t, out, "Disk autoscaling: enabled")
 		assert.Contains(t, out, "High availability: enabled")
 	})
@@ -81,7 +81,7 @@ func TestPostgresDetail_BoolLabels(t *testing.T) {
 
 func TestPostgresDetail_ReadReplicas(t *testing.T) {
 	t.Run("omits the block when no replicas", func(t *testing.T) {
-		assert.NotContains(t, text.PostgresDetail(basicPostgres()), "Read replicas")
+		assert.NotContains(t, text.PostgresAPIDetail(basicPostgres()), "Read replicas")
 	})
 
 	t.Run("lists name and ID per replica", func(t *testing.T) {
@@ -90,7 +90,7 @@ func TestPostgresDetail_ReadReplicas(t *testing.T) {
 			{Id: "dpg-rep1", Name: "replica-1"},
 			{Id: "dpg-rep2", Name: "replica-2"},
 		}
-		out := text.PostgresDetail(pg)
+		out := text.PostgresAPIDetail(pg)
 		assert.Contains(t, out, "Read replicas:")
 		assert.Contains(t, out, "- replica-1 (dpg-rep1)")
 		assert.Contains(t, out, "- replica-2 (dpg-rep2)")
@@ -99,7 +99,7 @@ func TestPostgresDetail_ReadReplicas(t *testing.T) {
 
 func TestPostgresDetail_IPAllowList(t *testing.T) {
 	t.Run("renders empty allow-list as (empty)", func(t *testing.T) {
-		assert.Contains(t, text.PostgresDetail(basicPostgres()), "IP allow-list: (empty)")
+		assert.Contains(t, text.PostgresAPIDetail(basicPostgres()), "IP allow-list: (empty)")
 	})
 
 	t.Run("renders populated entries", func(t *testing.T) {
@@ -108,7 +108,7 @@ func TestPostgresDetail_IPAllowList(t *testing.T) {
 			{CidrBlock: "10.0.0.0/8", Description: "internal"},
 			{CidrBlock: "203.0.113.5/32"},
 		}
-		out := text.PostgresDetail(pg)
+		out := text.PostgresAPIDetail(pg)
 		assert.Contains(t, out, "10.0.0.0/8 (internal)")
 		assert.Contains(t, out, "203.0.113.5/32")
 	})
@@ -228,19 +228,20 @@ func TestPostgresTable_EmptyState(t *testing.T) {
 }
 
 func TestPostgresGetDetail_ConnectionInfo(t *testing.T) {
-	pg := basicPostgres()
+	out := postgres.NewPostgresGetOut(&postgres.ResolvedPostgres{Postgres: basicPostgres()})
 	conn := &client.PostgresConnectionInfo{
 		PsqlCommand:              "PGPASSWORD=secret psql postgres://internal",
 		InternalConnectionString: "postgres://internal",
 		ExternalConnectionString: "postgres://external",
 		Password:                 "secret",
 	}
+	out.Data.ConnectionInfo = conn
 
-	out := text.PostgresGetDetail(pg, conn)
+	detail := text.PostgresGetDetail(&out.Data)
 
-	assert.Contains(t, out, "Name: my-pg")
-	assert.Contains(t, out, "PSQL:")
-	assert.Contains(t, out, "Internal: postgres://internal")
-	assert.Contains(t, out, "External: postgres://external")
-	assert.Contains(t, out, "Password: secret")
+	assert.Contains(t, detail, "Name: my-pg")
+	assert.Contains(t, detail, "PSQL:")
+	assert.Contains(t, detail, "Internal: postgres://internal")
+	assert.Contains(t, detail, "External: postgres://external")
+	assert.Contains(t, detail, "Password: secret")
 }

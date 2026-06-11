@@ -34,10 +34,19 @@ func PostgresTable(v []*postgres.Model) string {
 	return FormatString(t.Render())
 }
 
+// PostgresAPIDetail formats a raw API Postgres detail for text output.
+//
+// TODO(GROW-2588): delete this once all Postgres commands render from
+// postgres.PostgresOut.
+func PostgresAPIDetail(pg *client.PostgresDetail) string {
+	out := postgres.NewPostgresGetOut(&postgres.ResolvedPostgres{Postgres: pg})
+	return PostgresDetail(&out.Data)
+}
+
 // PostgresDetail formats a Postgres instance detail for text output.
 // Does NOT include an action prefix (e.g., "Created") — callers should prepend
 // their own action prefix in the formatText closure passed to command.NonInteractive.
-func PostgresDetail(pg *client.PostgresDetail) string {
+func PostgresDetail(pg *postgres.PostgresOut) string {
 	lines := []string{
 		fmt.Sprintf("Name: %s", pg.Name),
 		fmt.Sprintf("ID: %s", pg.Id),
@@ -73,11 +82,12 @@ func PostgresDetail(pg *client.PostgresDetail) string {
 	return strings.Join(lines, "\n")
 }
 
-func PostgresGetDetail(pg *client.PostgresDetail, conn *client.PostgresConnectionInfo) string {
+func PostgresGetDetail(pg *postgres.PostgresOut) string {
 	detail := PostgresDetail(pg)
-	if conn == nil {
+	if pg.ConnectionInfo == nil {
 		return detail
 	}
+	conn := pg.ConnectionInfo
 	return strings.Join([]string{
 		detail,
 		"",

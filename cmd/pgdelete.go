@@ -3,7 +3,6 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/postgres"
@@ -21,11 +20,6 @@ func normalizePGDeleteInput(input pgDeleteInput) pgDeleteInput {
 	input.ProjectIDOrName = types.OptionalNonZeroString(input.ProjectIDOrName)
 	input.EnvironmentIDOrName = types.OptionalNonZeroString(input.EnvironmentIDOrName)
 	return input
-}
-
-type pgDeleteResult struct {
-	Postgres *client.PostgresDetail `json:"postgres"`
-	Deleted  bool                   `json:"deleted"`
 }
 
 func newPgDeleteCmd(deps *dependencies.Dependencies) *cobra.Command {
@@ -80,7 +74,7 @@ Postgres ID instead (which works across workspaces).`,
 		input = normalizePGDeleteInput(input)
 		confirm := command.GetConfirmFromContext(cmd.Context())
 
-		loadData := func() (*pgDeleteResult, error) {
+		loadData := func() (*postgres.DeleteOut, error) {
 			resolved, err := deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{
 				IDOrName:            input.IDOrName,
 				ProjectIDOrName:     input.ProjectIDOrName,
@@ -89,13 +83,18 @@ Postgres ID instead (which works across workspaces).`,
 			if err != nil {
 				return nil, err
 			}
-			pg := resolved.Postgres
+			out := postgres.NewPostgresDeleteOut(resolved)
+			out.Meta = postgres.DeleteOutMeta{
+				Deleted: confirm,
+			}
 			if confirm {
-				if err := deps.PostgresService().Delete(cmd.Context(), pg.Id); err != nil {
+				if err := deps.PostgresService().Delete(cmd.Context(), out.Data.Id); err != nil {
 					return nil, err
 				}
+			} else {
+				out.Meta.Message = "re-run with --confirm to delete"
 			}
-			return &pgDeleteResult{Postgres: pg, Deleted: confirm}, nil
+			return &out, nil
 		}
 
 		_, err := command.NonInteractive(cmd,
@@ -108,11 +107,11 @@ Postgres ID instead (which works across workspaces).`,
 	return cmd
 }
 
-func pgDeleteTextOutput(r *pgDeleteResult) string {
-	if r.Deleted {
-		return "Deleted this Postgres database:\n\n" + text.PostgresDetail(r.Postgres) + "\n"
+func pgDeleteTextOutput(r *postgres.DeleteOut) string {
+	if r.Meta.Deleted {
+		return "Deleted this Postgres database:\n\n" + text.PostgresDetail(&r.Data) + "\n"
 	}
 	return "This command would delete this Postgres database:\n\n" +
-		text.PostgresDetail(r.Postgres) +
+		text.PostgresDetail(&r.Data) +
 		"\n\nRe-run with --confirm to proceed\n"
 }

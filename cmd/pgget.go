@@ -61,7 +61,7 @@ Postgres ID instead (which works across workspaces).`,
 		}
 		input = pgtypes.NormalizeGetInput(input)
 
-		loadData := func() (*postgres.GetResult, error) {
+		loadData := func() (*postgres.GetOut, error) {
 			resolved, err := deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{
 				IDOrName:            input.IDOrName,
 				ProjectIDOrName:     input.ProjectIDOrName,
@@ -70,19 +70,20 @@ Postgres ID instead (which works across workspaces).`,
 			if err != nil {
 				return nil, err
 			}
-			pg := resolved.Postgres
+			out := postgres.NewPostgresGetOut(resolved)
 			var conn *client.PostgresConnectionInfo
 			if input.IncludeSensitiveConnectionInfo {
-				conn, err = deps.PostgresService().GetConnectionInfo(cmd.Context(), pg.Id)
+				conn, err = deps.PostgresService().GetConnectionInfo(cmd.Context(), out.Data.Id)
 				if err != nil {
 					return nil, err
 				}
 			}
-			return &postgres.GetResult{Postgres: pg, ConnectionInfo: conn}, nil
+			out.Data.ConnectionInfo = conn
+			return &out, nil
 		}
 
-		_, err := command.NonInteractive(cmd, loadData, func(r *postgres.GetResult) string {
-			return text.PostgresGetDetail(r.Postgres, r.ConnectionInfo) + "\n"
+		_, err := command.NonInteractive(cmd, loadData, func(out *postgres.GetOut) string {
+			return text.PostgresGetDetail(&out.Data) + "\n"
 		})
 		return err
 	}

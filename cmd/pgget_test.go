@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,6 +8,7 @@ import (
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
+	"github.com/render-oss/cli/internal/testrequire"
 	"github.com/render-oss/cli/pkg/client"
 )
 
@@ -174,17 +174,11 @@ func TestPGGet_JSONOutput_WithoutConnectionInfo(t *testing.T) {
 	result, err := harness.execute(pg.Id, "--output", "json")
 	require.NoError(t, err)
 
-	var body struct {
-		Postgres struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		} `json:"postgres"`
-		ConnectionInfo *struct{} `json:"connectionInfo"`
-	}
-	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Equal(t, pg.Id, body.Postgres.ID)
-	assert.Equal(t, "json-db", body.Postgres.Name)
-	assert.Nil(t, body.ConnectionInfo)
+	body := unmarshalPGJSONOutput(t, result.Stdout)
+	data := testrequire.SubMap(t, body, "data")
+	assert.Equal(t, pg.Id, data["id"])
+	assert.Equal(t, "json-db", data["name"])
+	assert.NotContains(t, data, "connectionInfo")
 	assert.NotContains(t, result.Stdout, "psqlCommand", "connection info must not appear without --include-sensitive-connection-info")
 	assert.NotContains(t, result.Stdout, "password", "connection info must not appear without --include-sensitive-connection-info")
 	assert.False(t, harness.server.HasRequest("GET", "/connection-info"), "no connection info request without flag")
@@ -197,21 +191,13 @@ func TestPGGet_JSONOutput_WithConnectionInfo(t *testing.T) {
 	result, err := harness.execute(pg.Id, "--include-sensitive-connection-info", "--output", "json")
 	require.NoError(t, err)
 
-	var body struct {
-		Postgres struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		} `json:"postgres"`
-		ConnectionInfo struct {
-			PsqlCommand string `json:"psqlCommand"`
-			Password    string `json:"password"`
-		} `json:"connectionInfo"`
-	}
-	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Equal(t, pg.Id, body.Postgres.ID)
-	assert.Equal(t, "json-db", body.Postgres.Name)
-	assert.NotEmpty(t, body.ConnectionInfo.PsqlCommand)
-	assert.NotEmpty(t, body.ConnectionInfo.Password)
+	body := unmarshalPGJSONOutput(t, result.Stdout)
+	data := testrequire.SubMap(t, body, "data")
+	assert.Equal(t, pg.Id, data["id"])
+	assert.Equal(t, "json-db", data["name"])
+	connectionInfo := testrequire.SubMap(t, data, "connectionInfo")
+	assert.NotEmpty(t, connectionInfo["psqlCommand"])
+	assert.NotEmpty(t, connectionInfo["password"])
 }
 
 func TestPGGet_DefaultOutput_TreatedAsText(t *testing.T) {

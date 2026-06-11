@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/render-oss/cli/internal/testrequire"
 	"github.com/render-oss/cli/pkg/client"
 )
 
@@ -79,17 +79,29 @@ func TestPGDelete_JSONOutput_AfterConfirm(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, server.Postgres.Instances)
 
-	var body struct {
-		Postgres struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		} `json:"postgres"`
-		Deleted bool `json:"deleted"`
-	}
-	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Equal(t, pg.Id, body.Postgres.ID)
-	assert.Equal(t, "json-db", body.Postgres.Name)
-	assert.True(t, body.Deleted)
+	body := unmarshalPGJSONOutput(t, result.Stdout)
+	data := testrequire.SubMap(t, body, "data")
+	meta := testrequire.SubMap(t, body, "meta")
+	assert.Equal(t, pg.Id, data["id"])
+	assert.Equal(t, "json-db", data["name"])
+	assert.Equal(t, true, meta["deleted"])
+}
+
+func TestPGDelete_JSONOutput_Preview(t *testing.T) {
+	server := renderapi.NewServer(t)
+	pg := seedPG(server, "json-db")
+
+	result, err := executePGDelete(t, server, pg.Id, "--output", "json")
+	require.NoError(t, err)
+	assert.Len(t, server.Postgres.Instances, 1)
+
+	body := unmarshalPGJSONOutput(t, result.Stdout)
+	data := testrequire.SubMap(t, body, "data")
+	meta := testrequire.SubMap(t, body, "meta")
+	assert.Equal(t, pg.Id, data["id"])
+	assert.Equal(t, "json-db", data["name"])
+	assert.Equal(t, false, meta["deleted"])
+	assert.Equal(t, "re-run with --confirm to delete", meta["message"])
 }
 
 func TestPGDelete_JSONOutput_OnError(t *testing.T) {

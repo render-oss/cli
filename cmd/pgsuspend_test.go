@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -10,6 +9,7 @@ import (
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
+	"github.com/render-oss/cli/internal/testrequire"
 	"github.com/render-oss/cli/pkg/client"
 )
 
@@ -107,19 +107,31 @@ func TestPGSuspend_JSONOutput_AfterConfirm(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, client.DatabaseStatusSuspended, harness.server.Postgres.Instances[0].Status)
 
-	var body struct {
-		Postgres struct {
-			ID     string `json:"id"`
-			Name   string `json:"name"`
-			Status string `json:"status"`
-		} `json:"postgres"`
-		Suspended bool `json:"suspended"`
-	}
-	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Equal(t, pg.Id, body.Postgres.ID)
-	assert.Equal(t, "json-db", body.Postgres.Name)
-	assert.Equal(t, string(client.DatabaseStatusSuspended), body.Postgres.Status)
-	assert.True(t, body.Suspended)
+	body := unmarshalPGJSONOutput(t, result.Stdout)
+	data := testrequire.SubMap(t, body, "data")
+	meta := testrequire.SubMap(t, body, "meta")
+	assert.Equal(t, pg.Id, data["id"])
+	assert.Equal(t, "json-db", data["name"])
+	assert.Equal(t, string(client.DatabaseStatusSuspended), data["status"])
+	assert.Equal(t, true, meta["suspended"])
+}
+
+func TestPGSuspend_JSONOutput_Preview(t *testing.T) {
+	harness := newPGSuspendHarness(t)
+	pg := seedPG(harness.server, "json-db")
+
+	result, err := harness.execute(pg.Id, "--output", "json")
+	require.NoError(t, err)
+	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Instances[0].Status)
+
+	body := unmarshalPGJSONOutput(t, result.Stdout)
+	data := testrequire.SubMap(t, body, "data")
+	meta := testrequire.SubMap(t, body, "meta")
+	assert.Equal(t, pg.Id, data["id"])
+	assert.Equal(t, "json-db", data["name"])
+	assert.Equal(t, string(client.DatabaseStatusAvailable), data["status"])
+	assert.Equal(t, false, meta["suspended"])
+	assert.Equal(t, "re-run with --confirm to suspend", meta["message"])
 }
 
 func TestPGSuspend_NameCollision_NarrowedByEnvironment_Suspends(t *testing.T) {

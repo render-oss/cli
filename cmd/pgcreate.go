@@ -128,6 +128,6 @@ Examples:
 func pgCreateSuccessMessage(pg *client.PostgresDetail) string {
 	return fmt.Sprintf(
 		"Created Postgres database\n\n%s\n",
-		text.PostgresDetail(pg),
+		text.PostgresAPIDetail(pg),
 	)
 }

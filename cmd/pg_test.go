@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -62,4 +63,13 @@ func seedPGInEnv(server *renderapi.Server, name string, envID string) *client.Po
 		Owner:         client.Owner{Id: pgActiveWorkspaceID},
 		EnvironmentId: pointers.From(envID),
 	}))
+}
+
+// unmarshalPGJSONOutput decodes command stdout for tests that assert Postgres JSON output.
+func unmarshalPGJSONOutput(t *testing.T, stdout string) map[string]any {
+	t.Helper()
+
+	var body map[string]any
+	require.NoError(t, json.Unmarshal([]byte(stdout), &body), "expected valid JSON, got: %s", stdout)
+	return body
 }

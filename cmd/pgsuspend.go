@@ -3,18 +3,12 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/postgres"
 	"github.com/render-oss/cli/pkg/text"
 	pgtypes "github.com/render-oss/cli/pkg/types/postgres"
 )
-
-type pgSuspendResult struct {
-	Postgres  *client.PostgresDetail `json:"postgres"`
-	Suspended bool                   `json:"suspended"`
-}
 
 func newPgSuspendCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
@@ -68,7 +62,7 @@ Postgres ID instead (which works across workspaces).`,
 		input = pgtypes.NormalizeSuspendInput(input)
 		confirm := command.GetConfirmFromContext(cmd.Context())
 
-		loadData := func() (*pgSuspendResult, error) {
+		loadData := func() (*postgres.SuspendOut, error) {
 			resolved, err := deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{
 				IDOrName:            input.IDOrName,
 				ProjectIDOrName:     input.ProjectIDOrName,
@@ -77,18 +71,26 @@ Postgres ID instead (which works across workspaces).`,
 			if err != nil {
 				return nil, err
 			}
-			pg := resolved.Postgres
-			if !confirm {
-				return &pgSuspendResult{Postgres: pg, Suspended: false}, nil
+			out := postgres.NewPostgresSuspendOut(resolved)
+			out.Meta = postgres.SuspendOutMeta{
+				Suspended: confirm,
 			}
-			if err := deps.PostgresService().SuspendPostgres(cmd.Context(), pg.Id); err != nil {
+			if !confirm {
+				out.Meta.Message = "re-run with --confirm to suspend"
+				return &out, nil
+			}
+			if err := deps.PostgresService().SuspendPostgres(cmd.Context(), out.Data.Id); err != nil {
 				return nil, err
 			}
-			post, err := deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{IDOrName: pg.Id})
+			post, err := deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{IDOrName: out.Data.Id})
 			if err != nil {
 				return nil, err
 			}
-			return &pgSuspendResult{Postgres: post.Postgres, Suspended: true}, nil
+			out = postgres.NewPostgresSuspendOut(post)
+			out.Meta = postgres.SuspendOutMeta{
+				Suspended: confirm,
+			}
+			return &out, nil
 		}
 
 		_, err := command.NonInteractive(cmd,
@@ -101,11 +103,11 @@ Postgres ID instead (which works across workspaces).`,
 	return cmd
 }
 
-func pgSuspendTextOutput(r *pgSuspendResult) string {
-	if r.Suspended {
-		return "Suspended this Postgres database:\n\n" + text.PostgresDetail(r.Postgres) + "\n"
+func pgSuspendTextOutput(r *postgres.SuspendOut) string {
+	if r.Meta.Suspended {
+		return "Suspended this Postgres database:\n\n" + text.PostgresDetail(&r.Data) + "\n"
 	}
 	return "This command would suspend this Postgres database:\n\n" +
-		text.PostgresDetail(r.Postgres) +
+		text.PostgresDetail(&r.Data) +
 		"\n\nRe-run with --confirm to proceed\n"
 }

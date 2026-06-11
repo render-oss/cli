@@ -3,7 +3,6 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/postgres"
@@ -56,7 +55,7 @@ Postgres ID instead (which works across workspaces).`,
 		}
 		input = pgtypes.NormalizeResumeInput(input)
 
-		loadData := func() (*client.PostgresDetail, error) {
+		loadData := func() (*postgres.ResumeOut, error) {
 			resolved, err := deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{
 				IDOrName:            input.IDOrName,
 				ProjectIDOrName:     input.ProjectIDOrName,
@@ -65,15 +64,16 @@ Postgres ID instead (which works across workspaces).`,
 			if err != nil {
 				return nil, err
 			}
-			pg := resolved.Postgres
-			if err := deps.PostgresService().ResumePostgres(cmd.Context(), pg.Id); err != nil {
+			out := postgres.NewPostgresResumeOut(resolved)
+			if err := deps.PostgresService().ResumePostgres(cmd.Context(), out.Data.Id); err != nil {
 				return nil, err
 			}
-			resolved, err = deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{IDOrName: pg.Id})
+			resolved, err = deps.PostgresService().Resolve(cmd.Context(), postgres.ResolveInput{IDOrName: out.Data.Id})
 			if err != nil {
 				return nil, err
 			}
-			return resolved.Postgres, nil
+			out = postgres.NewPostgresResumeOut(resolved)
+			return &out, nil
 		}
 
 		_, err := command.NonInteractive(cmd,
@@ -86,6 +86,6 @@ Postgres ID instead (which works across workspaces).`,
 	return cmd
 }
 
-func pgResumeTextOutput(pg *client.PostgresDetail) string {
-	return "Resumed this Postgres database:\n\n" + text.PostgresDetail(pg) + "\n"
+func pgResumeTextOutput(out *postgres.ResumeOut) string {
+	return "Resumed this Postgres database:\n\n" + text.PostgresDetail(&out.Data) + "\n"
 }

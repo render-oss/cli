@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -10,6 +9,7 @@ import (
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
+	"github.com/render-oss/cli/internal/testrequire"
 	"github.com/render-oss/cli/pkg/client"
 )
 
@@ -100,15 +100,11 @@ func TestPGResume_JSONOutput(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Instances[0].Status)
 
-	var body struct {
-		ID     string `json:"id"`
-		Name   string `json:"name"`
-		Status string `json:"status"`
-	}
-	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Equal(t, pg.Id, body.ID)
-	assert.Equal(t, "json-db", body.Name)
-	assert.Equal(t, string(client.DatabaseStatusAvailable), body.Status)
+	body := unmarshalPGJSONOutput(t, result.Stdout)
+	data := testrequire.SubMap(t, body, "data")
+	assert.Equal(t, pg.Id, data["id"])
+	assert.Equal(t, "json-db", data["name"])
+	assert.Equal(t, string(client.DatabaseStatusAvailable), data["status"])
 }
 
 func TestPGResume_NameCollision_NarrowedByEnvironment_Resumes(t *testing.T) {
