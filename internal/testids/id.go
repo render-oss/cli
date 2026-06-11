@@ -66,6 +66,29 @@ func RandomPostgresID() string {
 	return PostgresID(xid.New().String())
 }
 
+// ServiceID returns a syntactically valid srv- service ID for tests.
+// Render uses srv- IDs for app service types such as web services,
+// background workers, private services, and static sites. Other service-like
+// resources use their own prefixes, such as crn-, dpg-, and red-.
+func ServiceID(label string) string {
+	return objectID("srv", label)
+}
+
+// RandomServiceID returns a syntactically valid srv- service ID for tests.
+func RandomServiceID() string {
+	return ServiceID(xid.New().String())
+}
+
+// CronJobID returns a syntactically valid crn- cron job ID for tests.
+func CronJobID(label string) string {
+	return objectID("crn", label)
+}
+
+// RandomCronJobID returns a syntactically valid crn- cron job ID for tests.
+func RandomCronJobID() string {
+	return CronJobID(xid.New().String())
+}
+
 // objectID returns a deterministic test ID in Render object ID form:
 //
 //	objectID("prj", "Project A!") == "prj-projecta000000000000"

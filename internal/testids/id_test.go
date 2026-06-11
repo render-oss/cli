@@ -17,6 +17,8 @@ func TestResourceIDsAreValid(t *testing.T) {
 		{"project", ProjectID("my project"), validate.IsProjectID},
 		{"environment", EnvironmentID("production"), validate.IsEnvironmentID},
 		{"postgres", PostgresID("appdb"), validate.IsPostgresID},
+		{"service", ServiceID("api"), validate.IsServiceID},
+		{"cron job", CronJobID("daily"), func(s string) bool { return validate.IsObjectID("crn", s) }},
 	}
 
 	for _, tc := range tests {
@@ -48,6 +50,8 @@ func TestRandomResourceIDsAreValidAndUnique(t *testing.T) {
 		{"project", RandomProjectID(), RandomProjectID(), validate.IsProjectID},
 		{"environment", RandomEnvironmentID(), RandomEnvironmentID(), validate.IsEnvironmentID},
 		{"postgres", RandomPostgresID(), RandomPostgresID(), validate.IsPostgresID},
+		{"service", RandomServiceID(), RandomServiceID(), validate.IsServiceID},
+		{"cron job", RandomCronJobID(), RandomCronJobID(), func(s string) bool { return validate.IsObjectID("crn", s) }},
 	}
 
 	for _, tc := range tests {

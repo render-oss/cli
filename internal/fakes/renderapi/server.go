@@ -281,6 +281,7 @@ type Server struct {
 	Environments *Resource[*client.Environment]
 	KV           *KVResource
 	Postgres     *PostgresResource
+	Services *ServiceResource
 }
 
 // ownerByID returns the Owner with the given ID from the seeded owners. The
@@ -327,6 +328,7 @@ func NewServer(t *testing.T) *Server {
 		Environments: &Resource[*client.Environment]{},
 		KV:           &KVResource{},
 		Postgres:     &PostgresResource{},
+		Services:     &ServiceResource{},
 	}
 
 	mux := http.NewServeMux()
@@ -922,6 +924,8 @@ func NewServer(t *testing.T) *Server {
 		pg.UpdatedAt = time.Now()
 		writeJSON(w, http.StatusOK, pg)
 	})
+
+	registerServiceRoutes(mux, s, record)
 
 	s.server = httptest.NewServer(mux)
 	t.Cleanup(s.server.Close)
