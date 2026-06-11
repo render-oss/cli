@@ -491,6 +491,8 @@ func NewServer(t *testing.T) *Server {
 		name := r.URL.Query().Get("name")
 		envIDs := queryListValues(r, "environmentId")
 		result := make([]client.KeyValueWithCursor, 0, len(s.KV.Instances))
+		// Preserve insertion order so list tests can make deterministic
+		// assertions about multiple resources.
 		for i, kv := range s.KV.Instances {
 			if name != "" && kv.Name != name {
 				continue
@@ -503,9 +505,18 @@ func NewServer(t *testing.T) *Server {
 			result = append(result, client.KeyValueWithCursor{
 				Cursor: client.Cursor(fmt.Sprintf("c%d", i)),
 				KeyValue: client.KeyValue{
-					Id:            kv.Id,
-					Name:          kv.Name,
+					CreatedAt:     kv.CreatedAt,
 					EnvironmentId: kv.EnvironmentId,
+					Id:            kv.Id,
+					IpAllowList:   kv.IpAllowList,
+					Name:          kv.Name,
+					Options:       kv.Options,
+					Owner:         kv.Owner,
+					Plan:          kv.Plan,
+					Region:        kv.Region,
+					Status:        kv.Status,
+					UpdatedAt:     kv.UpdatedAt,
+					Version:       kv.Version,
 				},
 			})
 		}

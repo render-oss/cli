@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"context"
+
 	"github.com/spf13/cobra"
 
 	"github.com/render-oss/cli/pkg/client"
@@ -12,7 +14,7 @@ import (
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 )
 
-func newKVListCmd(_ *dependencies.Dependencies) *cobra.Command {
+func newKVListCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "list",
 		Short:        "List Key Value store instances",
@@ -53,23 +55,31 @@ resolved within that project.`,
 		}
 		input = kvtypes.NormalizeListInput(input)
 
-		_, err := command.NonInteractive(cmd, func() ([]*keyvalue.Model, error) {
+		_, err := command.NonInteractive(cmd, func() (*keyvalue.KeyValueListOut, error) {
 			params := &client.ListKeyValueParams{}
 
-			envIDs, ok, err := resolveListEnvIDs(cmd, input)
+			envIDs, ok, err := resolveListEnvIDs(cmd.Context(), deps, input)
 			if err != nil {
 				return nil, err
 			}
 			if ok {
 				if len(envIDs) == 0 {
-					return nil, nil
+					out := keyvalue.NewKeyValueListOut(nil)
+					return &out, nil
 				}
 				envParam := client.EnvironmentIdParam(envIDs)
 				params.EnvironmentId = &envParam
 			}
 
-			return keyvalue.List(cmd.Context(), params)
-		}, text.KeyValueTable)
+			models, err := deps.KeyValueService().ListKeyValue(cmd.Context(), params)
+			if err != nil {
+				return nil, err
+			}
+			out := keyvalue.NewKeyValueListOut(models)
+			return &out, nil
+		}, func(out *keyvalue.KeyValueListOut) string {
+			return text.KeyValueTable(out.Data)
+		})
 		return err
 	}
 
@@ -79,16 +89,12 @@ resolved within that project.`,
 // resolveListEnvIDs translates --project/--environment selectors into the
 // environment IDs to filter on. The second return value is true when the
 // caller should apply an environment filter; false means list workspace-wide.
-func resolveListEnvIDs(cmd *cobra.Command, input kvtypes.KeyValueListInput) ([]string, bool, error) {
+func resolveListEnvIDs(ctx context.Context, deps *dependencies.Dependencies, input kvtypes.KeyValueListInput) ([]string, bool, error) {
 	if input.ProjectIDOrName == nil && input.EnvironmentIDOrName == nil {
 		return nil, false, nil
 	}
 
-	c, err := client.NewDefaultClient()
-	if err != nil {
-		return nil, false, err
-	}
-	scope, err := resolve.NewFromClient(c).ResolveScopeInActiveWorkspace(cmd.Context(), resolve.ActiveWorkspaceScopeInput{
+	scope, err := deps.Resolver().ResolveScopeInActiveWorkspace(ctx, resolve.ActiveWorkspaceScopeInput{
 		ProjectIDOrName:     input.ProjectIDOrName,
 		EnvironmentIDOrName: input.EnvironmentIDOrName,
 	})

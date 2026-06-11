@@ -10,18 +10,18 @@ import (
 	"github.com/render-oss/cli/pkg/keyvalue"
 )
 
-func KeyValueTable(v []*keyvalue.Model) string {
+func KeyValueTable(v []keyvalue.KeyValueOut) string {
 	t := newTable()
 	t.AppendHeader(table.Row{"Name", "Project", "Environment", "Plan", "Region", "Status", "ID"})
-	for _, m := range v {
+	for _, kv := range v {
 		t.AppendRow(table.Row{
-			m.Name(),
-			m.ProjectName(),
-			m.EnvironmentName(),
-			string(m.KeyValue.Plan),
-			string(m.KeyValue.Region),
-			string(m.KeyValue.Status),
-			m.ID(),
+			kv.Name,
+			kv.ProjectName,
+			kv.EnvironmentName,
+			string(kv.Plan),
+			string(kv.Region),
+			string(kv.Status),
+			kv.ID,
 		})
 	}
 	return FormatString(t.Render())

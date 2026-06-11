@@ -78,21 +78,30 @@ func TestKVList_FilterByEnvironmentName(t *testing.T) {
 
 func TestKVList_JSONOutput(t *testing.T) {
 	server := renderapi.NewServer(t)
-	kv := seedKV(server, "json-cache")
+	proj := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	first := seedKVInEnv(server, "json-cache-one", proj.Env("production").Id)
+	second := seedKVInEnv(server, "json-cache-two", proj.Env("production").Id)
 
 	result, err := executeKVList(t, server, "--output", "json")
 	require.NoError(t, err)
 
-	var body []struct {
-		KeyValue struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		} `json:"keyValue"`
-	}
+	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	require.Len(t, body, 1)
-	assert.Equal(t, kv.Id, body[0].KeyValue.ID)
-	assert.Equal(t, "json-cache", body[0].KeyValue.Name)
+	data := requireSubSlice(t, body, "data")
+	require.Len(t, data, 2)
+	require.IsType(t, map[string]any{}, data[0])
+	require.IsType(t, map[string]any{}, data[1])
+	firstItem := data[0].(map[string]any)
+	secondItem := data[1].(map[string]any)
+
+	assert.Equal(t, first.Id, firstItem["id"])
+	assert.Equal(t, "json-cache-one", firstItem["name"])
+	assert.Equal(t, second.Id, secondItem["id"])
+	assert.Equal(t, "json-cache-two", secondItem["name"])
+	assert.NotContains(t, firstItem, "keyValue")
 }
 
 func TestKVList_DefaultOutput_TreatedAsText(t *testing.T) {

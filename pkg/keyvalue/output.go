@@ -33,6 +33,10 @@ type KeyValueGetOut struct {
 
 type KeyValueCreateOut = KeyValueGetOut
 
+type KeyValueListOut struct {
+	Data []KeyValueOut `json:"data"`
+}
+
 type DeleteOut struct {
 	Data KeyValueOut   `json:"data"`
 	Meta DeleteOutMeta `json:"meta"`
@@ -107,6 +111,53 @@ func NewKeyValueOut(resolved *ResolvedKeyValue) KeyValueOut {
 	if resolved.Project != nil {
 		out.ProjectID = &resolved.Project.Id
 		out.ProjectName = resolved.Project.Name
+	}
+	return out
+}
+
+func NewKeyValueListOut(models []*Model) KeyValueListOut {
+	data := make([]KeyValueOut, 0, len(models))
+	for _, model := range models {
+		data = append(data, NewKeyValueOutFromModel(model))
+	}
+	return KeyValueListOut{Data: data}
+}
+
+func NewKeyValueOutFromModel(model *Model) KeyValueOut {
+	if model == nil || model.KeyValue == nil {
+		return KeyValueOut{}
+	}
+
+	kv := model.KeyValue
+	out := KeyValueOut{
+		ID:          kv.Id,
+		Name:        kv.Name,
+		Plan:        kv.Plan,
+		Region:      kv.Region,
+		Status:      kv.Status,
+		CreatedAt:   kv.CreatedAt,
+		UpdatedAt:   kv.UpdatedAt,
+		Version:     kv.Version,
+		OwnerID:     kv.Owner.Id,
+		OwnerType:   kv.Owner.Type,
+		IPAllowList: kv.IpAllowList,
+	}
+	if out.IPAllowList == nil {
+		out.IPAllowList = []client.CidrBlockAndDescription{}
+	}
+	if kv.Options.MaxmemoryPolicy != nil {
+		out.MaxmemoryPolicy = kv.Options.MaxmemoryPolicy
+	}
+	if kv.EnvironmentId != nil {
+		out.EnvironmentID = kv.EnvironmentId
+	}
+	if model.Environment != nil {
+		out.EnvironmentID = &model.Environment.Id
+		out.EnvironmentName = model.Environment.Name
+	}
+	if model.Project != nil {
+		out.ProjectID = &model.Project.Id
+		out.ProjectName = model.Project.Name
 	}
 	return out
 }
