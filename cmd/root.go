@@ -180,6 +180,7 @@ func SetupCommands() error {
 	setupWorkflowCommands(deps)
 	setupLogCommands(deps)
 	setupWorkspaceCommands(deps)
+	servicesCmd.AddCommand(newServiceDeleteCmd(deps))
 	setupKVCommands(EarlyAccessCmd, deps)
 	setupPGCommands(EarlyAccessCmd, deps)
 	setupRootCmdPersistentRun(rootCmd, deps)

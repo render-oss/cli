@@ -9,6 +9,8 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/pointers"
+	rstrings "github.com/render-oss/cli/pkg/strings"
+	"github.com/render-oss/cli/pkg/tui"
 	"github.com/render-oss/cli/pkg/validate"
 )
 
@@ -113,6 +115,24 @@ func (s *Repo) UpdateService(ctx context.Context, id string, data client.UpdateS
 	return resp.JSON200, nil
 }
 
+func (s *Repo) DeleteService(ctx context.Context, id string) error {
+	// GetService validates that the service belongs to the active workspace.
+	if _, err := s.GetService(ctx, id); err != nil {
+		return err
+	}
+
+	resp, err := s.client.DeleteServiceWithResponse(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Repo) GetService(ctx context.Context, id string) (*client.Service, error) {
 	resp, err := s.client.RetrieveServiceWithResponse(ctx, id)
 	if err != nil {
@@ -144,12 +164,16 @@ func (s *Repo) RestartService(ctx context.Context, id string) error {
 }
 
 func (s *Repo) ResolveServiceIDFromNameOrID(ctx context.Context, idOrName string) (string, error) {
+	return s.resolveServiceIDFromNameOrID(ctx, idOrName, looksLikeServiceID)
+}
+
+func (s *Repo) resolveServiceIDFromNameOrID(ctx context.Context, idOrName string, looksLikeID func(string) bool) (string, error) {
 	query := strings.TrimSpace(idOrName)
 	if query == "" {
 		return "", fmt.Errorf("service ID or name is required")
 	}
 
-	if looksLikeServiceID(query) {
+	if looksLikeID(query) {
 		resp, err := s.client.RetrieveServiceWithResponse(ctx, query)
 		if err != nil {
 			return "", err
@@ -187,14 +211,38 @@ func (s *Repo) ResolveServiceIDFromNameOrID(ctx context.Context, idOrName string
 
 	switch len(exactMatches) {
 	case 0:
-		return "", fmt.Errorf("no service found with ID or name %q", query)
+		return "", serviceNotFoundError(query)
 	case 1:
 		return exactMatches[0].Id, nil
 	default:
-		return "", fmt.Errorf("multiple services found with name %q; please use the service ID", query)
+		return "", tui.UserFacingError{Message: multipleServicesMessage(query)}
 	}
 }
 
 func looksLikeServiceID(v string) bool {
-	return validate.IsObjectID("srv", v) || validate.IsObjectID("crn", v)
+	return validate.IsServiceID(v) || validate.IsCronJobID(v)
+}
+
+func serviceNotFoundError(idOrName string) tui.UserFacingError {
+	if looksLikeServiceID(idOrName) {
+		return tui.UserFacingError{Message: fmt.Sprintf("No service with ID '%s'.", idOrName)}
+	}
+	workspace := activeWorkspaceLabel()
+	if workspace == "" {
+		return tui.UserFacingError{Message: fmt.Sprintf("No service named '%s'.", idOrName)}
+	}
+	return tui.UserFacingError{Message: fmt.Sprintf(
+		"No service named '%s' in workspace %s. To search another workspace, run `render workspace set <name|ID>`, or pass the service ID instead.",
+		idOrName, workspace,
+	)}
+}
+
+func multipleServicesMessage(name string) string {
+	return fmt.Sprintf("Multiple services found with name '%s'. Pass the service ID to disambiguate.", name)
+}
+
+func activeWorkspaceLabel() string {
+	id, _ := config.WorkspaceID()
+	name, _ := config.WorkspaceName()
+	return rstrings.ResourceLabel(name, id)
 }

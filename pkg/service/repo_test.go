@@ -14,6 +14,8 @@ import (
 func TestLooksLikeServiceID(t *testing.T) {
 	require.True(t, looksLikeServiceID("srv-12345678901234567890"))
 	require.True(t, looksLikeServiceID("crn-12345678901234567890"))
+	require.False(t, looksLikeServiceID("dpg-12345678901234567890"))
+	require.False(t, looksLikeServiceID("red-12345678901234567890"))
 	require.False(t, looksLikeServiceID("srv-1234567890123456789!"))
 	require.False(t, looksLikeServiceID("srv-short"))
 	require.False(t, looksLikeServiceID("abc-12345678901234567890"))
@@ -120,7 +122,8 @@ func TestResolveServiceIDFromNameOrID(t *testing.T) {
 
 		_, err = repo.ResolveServiceIDFromNameOrID(context.Background(), query)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "no service found")
+		require.Contains(t, err.Error(), "No service named")
+		require.Contains(t, err.Error(), "tea-workspace")
 	})
 }
 

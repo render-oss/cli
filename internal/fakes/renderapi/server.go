@@ -317,6 +317,16 @@ func (s *Server) HasRequest(method, uriSubstring string) bool {
 	return false
 }
 
+// HasDeleteRequest returns true if any recorded request used the DELETE method.
+func (s *Server) HasDeleteRequest() bool {
+	for _, r := range s.Requests {
+		if r.Method == http.MethodDelete {
+			return true
+		}
+	}
+	return false
+}
+
 // NewServer starts a fake Render API server covering all routes used by cmd-level tests.
 // The server is closed automatically when t completes. Seed state via server.Owners.Add(), etc.
 func NewServer(t *testing.T) *Server {

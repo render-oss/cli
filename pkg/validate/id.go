@@ -21,6 +21,11 @@ func IsServiceID(s string) bool {
 	return IsObjectID("srv", s)
 }
 
+// IsCronJobID checks if the string is a valid cron job ID (crn-[a-z0-9]{20}).
+func IsCronJobID(s string) bool {
+	return IsObjectID("crn", s)
+}
+
 // IsWorkspaceID checks if the string is a valid workspace owner ID. Workspaces
 // are represented by owner IDs, so both team IDs (tea-) and user IDs (usr-) are
 // accepted.

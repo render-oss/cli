@@ -64,6 +64,29 @@ func TestIsServiceID(t *testing.T) {
 	}
 }
 
+func TestIsCronJobID(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{"valid cron job ID", "crn-12345678901234567890", true},
+		{"service ID rejected", "srv-12345678901234567890", false},
+		{"postgres ID rejected", "dpg-12345678901234567890", false},
+		{"suffix match rejected", "xcrn-12345678901234567890", false},
+		{"too short", "crn-short", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := validate.IsCronJobID(tc.input)
+			if got != tc.expected {
+				t.Errorf("IsCronJobID(%q) = %v, want %v", tc.input, got, tc.expected)
+			}
+		})
+	}
+}
+
 func TestIsWorkspaceID(t *testing.T) {
 	tests := []struct {
 		name     string
