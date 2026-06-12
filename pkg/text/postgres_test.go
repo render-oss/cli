@@ -33,8 +33,13 @@ func postgresUpdateDiff(before, after *client.PostgresDetail) postgres.PostgresU
 	return out.Diff
 }
 
+func basicPostgresOut(pg *client.PostgresDetail) postgres.PostgresOut {
+	return postgres.NewPostgresGetOut(&postgres.ResolvedPostgres{Postgres: pg}).Data
+}
+
 func TestPostgresDetail_BasicFields(t *testing.T) {
-	out := text.PostgresAPIDetail(basicPostgres())
+	pg := basicPostgresOut(basicPostgres())
+	out := text.PostgresDetail(&pg)
 
 	assert.Contains(t, out, "Name: my-pg")
 	assert.Contains(t, out, "ID: dpg-abc123")
@@ -49,7 +54,8 @@ func TestPostgresDetail_BasicFields(t *testing.T) {
 
 func TestPostgresDetail_OptionalFields(t *testing.T) {
 	t.Run("omits disk size and environment ID when unset", func(t *testing.T) {
-		out := text.PostgresAPIDetail(basicPostgres())
+		pg := basicPostgresOut(basicPostgres())
+		out := text.PostgresDetail(&pg)
 		assert.NotContains(t, out, "Disk size:")
 		assert.NotContains(t, out, "Environment ID:")
 	})
@@ -57,19 +63,22 @@ func TestPostgresDetail_OptionalFields(t *testing.T) {
 	t.Run("includes disk size when set", func(t *testing.T) {
 		pg := basicPostgres()
 		pg.DiskSizeGB = pointers.From(100)
-		assert.Contains(t, text.PostgresAPIDetail(pg), "Disk size: 100 GB")
+		out := basicPostgresOut(pg)
+		assert.Contains(t, text.PostgresDetail(&out), "Disk size: 100 GB")
 	})
 
 	t.Run("includes environment ID when set", func(t *testing.T) {
 		pg := basicPostgres()
 		pg.EnvironmentId = pointers.From("evm-123")
-		assert.Contains(t, text.PostgresAPIDetail(pg), "Environment ID: evm-123")
+		out := basicPostgresOut(pg)
+		assert.Contains(t, text.PostgresDetail(&out), "Environment ID: evm-123")
 	})
 }
 
 func TestPostgresDetail_BoolLabels(t *testing.T) {
 	t.Run("disabled by default", func(t *testing.T) {
-		out := text.PostgresAPIDetail(basicPostgres())
+		pg := basicPostgresOut(basicPostgres())
+		out := text.PostgresDetail(&pg)
 		assert.Contains(t, out, "Disk autoscaling: disabled")
 		assert.Contains(t, out, "High availability: disabled")
 	})
@@ -78,7 +87,8 @@ func TestPostgresDetail_BoolLabels(t *testing.T) {
 		pg := basicPostgres()
 		pg.DiskAutoscalingEnabled = true
 		pg.HighAvailabilityEnabled = true
-		out := text.PostgresAPIDetail(pg)
+		pgOut := basicPostgresOut(pg)
+		out := text.PostgresDetail(&pgOut)
 		assert.Contains(t, out, "Disk autoscaling: enabled")
 		assert.Contains(t, out, "High availability: enabled")
 	})
@@ -86,7 +96,8 @@ func TestPostgresDetail_BoolLabels(t *testing.T) {
 
 func TestPostgresDetail_ReadReplicas(t *testing.T) {
 	t.Run("omits the block when no replicas", func(t *testing.T) {
-		assert.NotContains(t, text.PostgresAPIDetail(basicPostgres()), "Read replicas")
+		pg := basicPostgresOut(basicPostgres())
+		assert.NotContains(t, text.PostgresDetail(&pg), "Read replicas")
 	})
 
 	t.Run("lists name and ID per replica", func(t *testing.T) {
@@ -95,7 +106,8 @@ func TestPostgresDetail_ReadReplicas(t *testing.T) {
 			{Id: "dpg-rep1", Name: "replica-1"},
 			{Id: "dpg-rep2", Name: "replica-2"},
 		}
-		out := text.PostgresAPIDetail(pg)
+		pgOut := basicPostgresOut(pg)
+		out := text.PostgresDetail(&pgOut)
 		assert.Contains(t, out, "Read replicas:")
 		assert.Contains(t, out, "- replica-1 (dpg-rep1)")
 		assert.Contains(t, out, "- replica-2 (dpg-rep2)")
@@ -104,7 +116,8 @@ func TestPostgresDetail_ReadReplicas(t *testing.T) {
 
 func TestPostgresDetail_IPAllowList(t *testing.T) {
 	t.Run("renders empty allow-list as (empty)", func(t *testing.T) {
-		assert.Contains(t, text.PostgresAPIDetail(basicPostgres()), "IP allow-list: (empty)")
+		pg := basicPostgresOut(basicPostgres())
+		assert.Contains(t, text.PostgresDetail(&pg), "IP allow-list: (empty)")
 	})
 
 	t.Run("renders populated entries", func(t *testing.T) {
@@ -113,14 +126,15 @@ func TestPostgresDetail_IPAllowList(t *testing.T) {
 			{CidrBlock: "10.0.0.0/8", Description: "internal"},
 			{CidrBlock: "203.0.113.5/32"},
 		}
-		out := text.PostgresAPIDetail(pg)
+		pgOut := basicPostgresOut(pg)
+		out := text.PostgresDetail(&pgOut)
 		assert.Contains(t, out, "10.0.0.0/8 (internal)")
 		assert.Contains(t, out, "203.0.113.5/32")
 	})
 }
 
 func TestPostgresTable(t *testing.T) {
-	out := text.PostgresTable([]*postgres.Model{{
+	list := postgres.NewPostgresListOut([]*postgres.Model{{
 		Postgres: &client.Postgres{
 			Id:     "dpg-table",
 			Name:   "table-pg",
@@ -131,6 +145,7 @@ func TestPostgresTable(t *testing.T) {
 		Project:     &client.Project{Name: "Project A"},
 		Environment: &client.Environment{Name: "production"},
 	}})
+	out := text.PostgresTable(list.Data)
 
 	assert.Contains(t, out, "table-pg")
 	assert.Contains(t, out, "Project A")
@@ -226,7 +241,7 @@ func TestPostgresUpdateDiff(t *testing.T) {
 }
 
 func TestPostgresTable_EmptyState(t *testing.T) {
-	out := text.PostgresTable([]*postgres.Model{})
+	out := text.PostgresTable([]postgres.PostgresListItemOut{})
 
 	assert.Contains(t, out, "NAME")
 	assert.Contains(t, out, "No Postgres databases found.")

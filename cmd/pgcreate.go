@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/postgres"
@@ -101,11 +100,16 @@ Examples:
 		// this gate. command.NonInteractive returns (false, nil) only when the resolved
 		// output format is still interactive, without calling loadData.
 		nonInteractive, err := command.NonInteractive(cmd,
-			func() (*client.PostgresDetail, error) {
-				return deps.PostgresService().Create(cmd.Context(), input)
+			func() (*postgres.CreateOut, error) {
+				resolved, err := deps.PostgresService().Create(cmd.Context(), input)
+				if err != nil {
+					return nil, err
+				}
+				out := postgres.NewPostgresCreateOut(resolved)
+				return &out, nil
 			},
-			func(pg *client.PostgresDetail) string {
-				return pgCreateSuccessMessage(pg)
+			func(out *postgres.CreateOut) string {
+				return pgCreateSuccessMessage(out)
 			},
 		)
 		if err != nil || nonInteractive {
@@ -125,9 +129,9 @@ Examples:
 	return cmd
 }
 
-func pgCreateSuccessMessage(pg *client.PostgresDetail) string {
+func pgCreateSuccessMessage(out *postgres.CreateOut) string {
 	return fmt.Sprintf(
 		"Created Postgres database\n\n%s\n",
-		text.PostgresAPIDetail(pg),
+		text.PostgresDetail(&out.Data),
 	)
 }

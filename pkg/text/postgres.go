@@ -12,33 +12,24 @@ import (
 	"github.com/render-oss/cli/pkg/postgres"
 )
 
-func PostgresTable(v []*postgres.Model) string {
+func PostgresTable(v []postgres.PostgresListItemOut) string {
 	t := newTable()
 	t.AppendHeader(table.Row{"Name", "Project", "Environment", "Plan", "Region", "Status", "ID"})
 	if len(v) == 0 {
 		t.SetCaption("No Postgres databases found.")
 	}
-	for _, m := range v {
+	for _, pg := range v {
 		t.AppendRow(table.Row{
-			m.Name(),
-			m.ProjectName(),
-			m.EnvironmentName(),
-			string(m.Postgres.Plan),
-			string(m.Postgres.Region),
-			string(m.Postgres.Status),
-			m.ID(),
+			pg.Name,
+			pg.ProjectName,
+			pg.EnvironmentName,
+			string(pg.Plan),
+			string(pg.Region),
+			string(pg.Status),
+			pg.Id,
 		})
 	}
 	return FormatString(t.Render())
-}
-
-// PostgresAPIDetail formats a raw API Postgres detail for text output.
-//
-// TODO(GROW-2588): delete this once all Postgres commands render from
-// postgres.PostgresOut.
-func PostgresAPIDetail(pg *client.PostgresDetail) string {
-	out := postgres.NewPostgresGetOut(&postgres.ResolvedPostgres{Postgres: pg})
-	return PostgresDetail(&out.Data)
 }
 
 // PostgresDetail formats a Postgres instance detail for text output.

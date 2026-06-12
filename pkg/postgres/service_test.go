@@ -136,11 +136,11 @@ func TestServiceCreate_UsesResolvedWorkspaceAndDefaults(t *testing.T) {
 	created, err := harness.service.Create(context.Background(), pgtypes.CreatePostgresInput{})
 	require.NoError(t, err)
 
-	assert.NotEmpty(t, created.Id)
-	assert.NotEmpty(t, created.Name)
-	assert.Equal(t, harness.workspaceID, created.Owner.Id)
-	assert.Equal(t, "free", string(created.Plan))
-	assert.Equal(t, "18", string(created.Version))
+	assert.NotEmpty(t, created.Postgres.Id)
+	assert.NotEmpty(t, created.Postgres.Name)
+	assert.Equal(t, harness.workspaceID, created.Postgres.Owner.Id)
+	assert.Equal(t, "free", string(created.Postgres.Plan))
+	assert.Equal(t, "18", string(created.Postgres.Version))
 	assert.Len(t, harness.server.Postgres.Instances, 1)
 }
 
@@ -167,8 +167,12 @@ func TestServiceCreate_AutoSelectsSingleEnvironmentWhenOnlyProjectGiven(t *testi
 	})
 	require.NoError(t, err)
 
-	require.NotNil(t, created.EnvironmentId)
-	assert.Equal(t, env.Id, *created.EnvironmentId)
+	require.NotNil(t, created.Postgres.EnvironmentId)
+	assert.Equal(t, env.Id, *created.Postgres.EnvironmentId)
+	require.NotNil(t, created.Environment)
+	assert.Equal(t, env.Id, created.Environment.Id)
+	require.NotNil(t, created.Project)
+	assert.Equal(t, proj.Id, created.Project.Id)
 }
 
 func TestServiceDelete_DeletesByID(t *testing.T) {

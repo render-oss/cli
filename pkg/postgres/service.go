@@ -126,7 +126,7 @@ func (s *Service) ResumePostgres(ctx context.Context, id string) error {
 // Create applies defaults, resolves workspace/project/environment scope,
 // and calls the Postgres create endpoint. The non-interactive flag path
 // and (eventually) the interactive wizard both go through here.
-func (s *Service) Create(ctx context.Context, input pgtypes.CreatePostgresInput) (*client.PostgresDetail, error) {
+func (s *Service) Create(ctx context.Context, input pgtypes.CreatePostgresInput) (*ResolvedPostgres, error) {
 	scope, err := s.resolver.ResolveScope(ctx, resolve.ScopeInput{
 		WorkspaceIDOrName:   input.WorkspaceIDOrName,
 		ProjectIDOrName:     input.ProjectIDOrName,
@@ -143,13 +143,28 @@ func (s *Service) Create(ctx context.Context, input pgtypes.CreatePostgresInput)
 			return nil, err
 		}
 	}
+	env := scope.Environment
+	if env == nil && environmentID != nil {
+		env, err = s.environmentRepo.GetEnvironment(ctx, *environmentID)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	body, err := BuildCreateRequest(buildRequestInput(input, scope.WorkspaceID, environmentID))
 	if err != nil {
 		return nil, err
 	}
 
-	return s.repo.CreatePostgres(ctx, body)
+	created, err := s.repo.CreatePostgres(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+	return &ResolvedPostgres{
+		Postgres:    created,
+		Project:     scope.Project,
+		Environment: env,
+	}, nil
 }
 
 // Update resolves the target Postgres database (by ID or name, optionally

@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/render-oss/cli/internal/testrequire"
 	"github.com/render-oss/cli/pkg/client"
 	pgclient "github.com/render-oss/cli/pkg/client/postgres"
 )
@@ -82,16 +82,26 @@ func TestPGCreate_AllFlags(t *testing.T) {
 
 func TestPGCreate_OutputJSON_IsMachineReadable(t *testing.T) {
 	server := renderapi.NewServer(t)
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+
 	result, err := executePGCreate(t, server,
 		"--name", "my-pg",
+		"--project", "My Project",
 		"--output", "json",
 	)
 	require.NoError(t, err)
 
-	var decoded map[string]any
-	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &decoded))
-	assert.Equal(t, "my-pg", decoded["name"])
-	assert.NotEmpty(t, decoded["id"])
+	body := unmarshalPGJSONOutput(t, result.Stdout)
+	data := testrequire.SubMap(t, body, "data")
+	assert.Equal(t, "my-pg", data["name"])
+	assert.NotEmpty(t, data["id"])
+	assert.Equal(t, project.Project.Id, data["projectId"])
+	assert.Equal(t, project.Env("production").Id, data["environmentId"])
+	testrequire.SubSlice(t, data, "ipAllowList")
+	testrequire.SubSlice(t, data, "readReplicas")
 }
 
 // Verifies that --confirm in interactive output mode creates without launching the wizard.

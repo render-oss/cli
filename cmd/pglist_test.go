@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/render-oss/cli/internal/testrequire"
 	"github.com/render-oss/cli/pkg/client"
 )
 
@@ -46,13 +46,8 @@ func TestPGList_NoDatabases(t *testing.T) {
 	result, err = harness.execute("--output", "json")
 	require.NoError(t, err)
 
-	var body []struct {
-		Postgres struct {
-			ID string `json:"id"`
-		} `json:"postgres"`
-	}
-	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	assert.Empty(t, body)
+	body := unmarshalPGJSONOutput(t, result.Stdout)
+	assert.Empty(t, testrequire.SubSlice(t, body, "data"))
 }
 
 func TestPGList_MultipleDatabases(t *testing.T) {
@@ -146,20 +141,17 @@ func TestPGList_JSONOutput(t *testing.T) {
 	result, err := harness.execute("--output", "json")
 	require.NoError(t, err)
 
-	var body []struct {
-		Postgres struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		} `json:"postgres"`
-	}
-	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
-	require.Len(t, body, 2)
+	body := unmarshalPGJSONOutput(t, result.Stdout)
+	data := testrequire.SubSlice(t, body, "data")
+	require.Len(t, data, 2)
 
 	// Build an _un-ordered_ object to assert against
 	// Order is just determined by our fake render api, so not meaningful
 	got := map[string]string{}
-	for _, item := range body {
-		got[item.Postgres.ID] = item.Postgres.Name
+	for _, item := range data {
+		itemMap, ok := item.(map[string]any)
+		require.True(t, ok)
+		got[itemMap["id"].(string)] = itemMap["name"].(string)
 	}
 	assert.Equal(t, map[string]string{
 		pg1.Id: "json-db-one",

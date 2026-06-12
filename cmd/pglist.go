@@ -52,9 +52,16 @@ resolved within that project.`,
 		}
 		input = pgtypes.NormalizeListInput(input)
 
-		_, err := command.NonInteractive(cmd, func() ([]*postgres.Model, error) {
-			return deps.PostgresService().List(cmd.Context(), input)
-		}, text.PostgresTable)
+		_, err := command.NonInteractive(cmd, func() (*postgres.PostgresListOut, error) {
+			models, err := deps.PostgresService().List(cmd.Context(), input)
+			if err != nil {
+				return nil, err
+			}
+			out := postgres.NewPostgresListOut(models)
+			return &out, nil
+		}, func(out *postgres.PostgresListOut) string {
+			return text.PostgresTable(out.Data)
+		})
 		return err
 	}
 
