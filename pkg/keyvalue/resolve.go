@@ -75,34 +75,6 @@ func (s *Service) enrichResolvedKeyValue(ctx context.Context, resolved *Resolved
 	return nil
 }
 
-// Resolve looks up a Key Value instance by ID or name within an optional
-// project/environment scope.
-//
-// If env is supplied, Key Value name lookup is narrowed to that environment,
-// and an ID lookup is rejected unless the Key Value belongs to that
-// environment. If only project is supplied, name lookup is narrowed to all
-// environments in that project, and ID lookup is rejected unless the Key Value
-// belongs to one of them. If both are supplied, env is the concrete Key Value
-// scope; the caller is responsible for resolving env relative to project
-// before calling Resolve.
-func Resolve(
-	ctx context.Context,
-	idOrName string,
-	project *client.Project,
-	env *client.Environment,
-) (*client.KeyValueDetail, error) {
-	c, err := client.NewDefaultClient()
-	if err != nil {
-		return nil, err
-	}
-	repo := NewRepo(c)
-	return resolveInScope(ctx, repo, idOrName, resolveScope{project: project, env: env})
-}
-
-func resolveWithRepo(ctx context.Context, repo *Repo, idOrName string, env *client.Environment) (*client.KeyValueDetail, error) {
-	return resolveInScope(ctx, repo, idOrName, resolveScope{env: env})
-}
-
 func resolveInScope(
 	ctx context.Context,
 	repo *Repo,

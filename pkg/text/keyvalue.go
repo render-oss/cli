@@ -6,7 +6,6 @@ import (
 
 	"github.com/jedib0t/go-pretty/table"
 
-	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/keyvalue"
 )
 
@@ -25,26 +24,6 @@ func KeyValueTable(v []keyvalue.KeyValueOut) string {
 		})
 	}
 	return FormatString(t.Render())
-}
-
-// KeyValueAPIDetail formats a raw API KV instance detail for text output.
-// Does NOT include an action prefix (e.g., "Created" or "Updated") — callers should prepend
-// their own action prefix in the formatText closure passed to command.NonInteractive.
-//
-// Prefer converting callers to keyvalue.KeyValueOut and using KeyValueDetail.
-func KeyValueAPIDetail(kv *client.KeyValueDetail) string {
-	lines := []string{
-		fmt.Sprintf("Name: %s", kv.Name),
-		fmt.Sprintf("ID: %s", kv.Id),
-		fmt.Sprintf("Plan: %s", string(kv.Plan)),
-		fmt.Sprintf("Region: %s", string(kv.Region)),
-		fmt.Sprintf("Status: %s", string(kv.Status)),
-	}
-	if kv.Options.MaxmemoryPolicy != nil {
-		lines = append(lines, fmt.Sprintf("Memory policy: %s", *kv.Options.MaxmemoryPolicy))
-	}
-	lines = append(lines, ipAllowListBlock(kv.IpAllowList))
-	return strings.Join(lines, "\n")
 }
 
 func KeyValueDetail(kv *keyvalue.KeyValueOut) string {
