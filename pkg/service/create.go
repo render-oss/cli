@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/render-oss/cli/pkg/client"
+	envvar "github.com/render-oss/cli/pkg/client/envvar"
 	"github.com/render-oss/cli/pkg/pointers"
 	types "github.com/render-oss/cli/pkg/types"
 	servicetypes "github.com/render-oss/cli/pkg/types/service"
@@ -103,19 +104,19 @@ func BuildCreateRequest(cliInput servicetypes.ServiceCreateInput, ownerID string
 	return body, nil
 }
 
-func parseEnvVarInputs(values []string) ([]client.EnvVarInput, error) {
+func parseEnvVarInputs(values []string) ([]envvar.EnvVarInput, error) {
 	if len(values) == 0 {
 		return nil, nil
 	}
 
-	parsed := make([]client.EnvVarInput, 0, len(values))
+	parsed := make([]envvar.EnvVarInput, 0, len(values))
 	for _, raw := range values {
 		envVarInput, err := types.ParseEnvVar(raw)
 		if err != nil {
 			return nil, err
 		}
-		var envVar client.EnvVarInput
-		if err := envVar.FromEnvVarKeyValue(client.EnvVarKeyValue{
+		var envVar envvar.EnvVarInput
+		if err := envVar.FromEnvVarKeyValue(envvar.EnvVarKeyValue{
 			Key:   envVarInput.Key,
 			Value: envVarInput.Value,
 		}); err != nil {

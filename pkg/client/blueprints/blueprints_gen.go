@@ -14,6 +14,7 @@ import (
 
 // Defines values for ResourceRefType.
 const (
+	ArtifactSource   ResourceRefType = "artifact_source"
 	BackgroundWorker ResourceRefType = "background_worker"
 	CronJob          ResourceRefType = "cron_job"
 	EnvironmentGroup ResourceRefType = "environment_group"

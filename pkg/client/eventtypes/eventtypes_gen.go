@@ -8,6 +8,8 @@ package client
 
 // Defines values for EventType.
 const (
+	EventTypeAutoDeployDisabled                    EventType = "auto_deploy_disabled"
+	EventTypeAutoDeployEnabled                     EventType = "auto_deploy_enabled"
 	EventTypeAutoscalingConfigChanged              EventType = "autoscaling_config_changed"
 	EventTypeAutoscalingEnded                      EventType = "autoscaling_ended"
 	EventTypeAutoscalingStarted                    EventType = "autoscaling_started"
@@ -73,6 +75,8 @@ const (
 
 // Defines values for ServiceEventType.
 const (
+	ServiceEventTypeAutoDeployDisabled          ServiceEventType = "auto_deploy_disabled"
+	ServiceEventTypeAutoDeployEnabled           ServiceEventType = "auto_deploy_enabled"
 	ServiceEventTypeAutoscalingConfigChanged    ServiceEventType = "autoscaling_config_changed"
 	ServiceEventTypeAutoscalingEnded            ServiceEventType = "autoscaling_ended"
 	ServiceEventTypeAutoscalingStarted          ServiceEventType = "autoscaling_started"

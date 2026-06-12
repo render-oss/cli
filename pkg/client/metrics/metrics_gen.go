@@ -29,6 +29,7 @@ const (
 	GRAFANA     OtelProviderType = "GRAFANA"
 	GROUNDCOVER OtelProviderType = "GROUNDCOVER"
 	HONEYCOMB   OtelProviderType = "HONEYCOMB"
+	LOGFIRE     OtelProviderType = "LOGFIRE"
 	NEWRELIC    OtelProviderType = "NEW_RELIC"
 	SIGNOZ      OtelProviderType = "SIGNOZ"
 )

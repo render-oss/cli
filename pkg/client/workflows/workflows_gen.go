@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
-	externalRef4 "github.com/render-oss/cli/pkg/client/envvar"
+	externalRef5 "github.com/render-oss/cli/pkg/client/envvar"
 )
 
 // Defines values for AutoDeployTrigger.
@@ -230,7 +230,7 @@ type WorkflowCreate struct {
 	// AutoDeployTrigger Controls autodeploy behavior. "commit" deploys when a commit is pushed to the branch. "checksPass" waits for CI checks to pass before deploying. "off" disables autodeploy.
 	AutoDeployTrigger *AutoDeployTrigger             `json:"autoDeployTrigger,omitempty"`
 	BuildConfig       BuildConfig                    `json:"buildConfig"`
-	EnvVars           *externalRef4.EnvVarInputArray `json:"envVars,omitempty"`
+	EnvVars           *externalRef5.EnvVarInputArray `json:"envVars,omitempty"`
 	Name              string                         `json:"name"`
 	OwnerId           string                         `json:"ownerId"`
 

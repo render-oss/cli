@@ -11,17 +11,33 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
-	externalRef1 "github.com/render-oss/cli/pkg/client/autoscaling"
-	externalRef3 "github.com/render-oss/cli/pkg/client/disks"
-	externalRef6 "github.com/render-oss/cli/pkg/client/eventstatuses"
-	externalRef7 "github.com/render-oss/cli/pkg/client/eventtypes"
-	externalRef8 "github.com/render-oss/cli/pkg/client/jobs"
+	externalRef1 "github.com/render-oss/cli/pkg/client/autodeploy"
+	externalRef2 "github.com/render-oss/cli/pkg/client/autoscaling"
+	externalRef4 "github.com/render-oss/cli/pkg/client/disks"
+	externalRef7 "github.com/render-oss/cli/pkg/client/eventstatuses"
+	externalRef8 "github.com/render-oss/cli/pkg/client/eventtypes"
+	externalRef9 "github.com/render-oss/cli/pkg/client/jobs"
 )
+
+// AutoDeployDisabledEvent defines model for autoDeployDisabledEvent.
+type AutoDeployDisabledEvent struct {
+	// FromTrigger Controls autodeploy behavior. commit deploys when a commit is pushed to a branch. checksPass waits for the branch to be green.
+	FromTrigger *externalRef1.AutoDeployTrigger `json:"fromTrigger,omitempty"`
+
+	// Reason Why auto-deploy was disabled (manual_deploy, rollback, or setting_change)
+	Reason string `json:"reason"`
+}
+
+// AutoDeployEnabledEvent defines model for autoDeployEnabledEvent.
+type AutoDeployEnabledEvent struct {
+	// NewTrigger Controls autodeploy behavior. commit deploys when a commit is pushed to a branch. checksPass waits for the branch to be green.
+	NewTrigger *externalRef1.AutoDeployTrigger `json:"newTrigger,omitempty"`
+}
 
 // AutoscalingConfigChangedEvent defines model for autoscalingConfigChangedEvent.
 type AutoscalingConfigChangedEvent struct {
-	FromConfig *externalRef1.AutoscalingConfig `json:"fromConfig,omitempty"`
-	ToConfig   externalRef1.AutoscalingConfig  `json:"toConfig"`
+	FromConfig *externalRef2.AutoscalingConfig `json:"fromConfig,omitempty"`
+	ToConfig   externalRef2.AutoscalingConfig  `json:"toConfig"`
 }
 
 // AutoscalingEndedEvent defines model for autoscalingEndedEvent.
@@ -95,7 +111,7 @@ type BuildDeployTrigger struct {
 // BuildEndedEvent defines model for buildEndedEvent.
 type BuildEndedEvent struct {
 	BuildId     string                   `json:"buildId"`
-	BuildStatus externalRef6.EventStatus `json:"buildStatus"`
+	BuildStatus externalRef7.EventStatus `json:"buildStatus"`
 	Reason      BuildDeployEndReason     `json:"reason"`
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Status int `json:"status"`
@@ -120,7 +136,7 @@ type CommitIgnoredEvent struct {
 type CronJobRunEndedEvent struct {
 	CronJobRunId string                        `json:"cronJobRunId"`
 	Reason       *FailureReason                `json:"reason,omitempty"`
-	Status       externalRef6.CronJobRunStatus `json:"status"`
+	Status       externalRef7.CronJobRunStatus `json:"status"`
 
 	// User User who triggered the action
 	User *User `json:"user,omitempty"`
@@ -134,7 +150,7 @@ type CronJobRunStartedEvent struct {
 // DeployEndedEvent defines model for deployEndedEvent.
 type DeployEndedEvent struct {
 	DeployId     string                   `json:"deployId"`
-	DeployStatus externalRef6.EventStatus `json:"deployStatus"`
+	DeployStatus externalRef7.EventStatus `json:"deployStatus"`
 	Reason       BuildDeployEndReason     `json:"reason"`
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Status int `json:"status"`
@@ -148,18 +164,18 @@ type DeployStartedEvent struct {
 
 // DiskCreatedEvent defines model for diskCreatedEvent.
 type DiskCreatedEvent struct {
-	DiskId externalRef3.DiskId `json:"diskId"`
+	DiskId externalRef4.DiskId `json:"diskId"`
 	SizeGB int                 `json:"sizeGB"`
 }
 
 // DiskDeletedEvent defines model for diskDeletedEvent.
 type DiskDeletedEvent struct {
-	DiskId externalRef3.DiskId `json:"diskId"`
+	DiskId externalRef4.DiskId `json:"diskId"`
 }
 
 // DiskUpdatedEvent defines model for diskUpdatedEvent.
 type DiskUpdatedEvent struct {
-	DiskId     externalRef3.DiskId `json:"diskId"`
+	DiskId     externalRef4.DiskId `json:"diskId"`
 	FromSizeGB int                 `json:"fromSizeGB"`
 	ToSizeGB   int                 `json:"toSizeGB"`
 }
@@ -197,7 +213,7 @@ type Event struct {
 	Id        EventId                `json:"id"`
 	ServiceId string                 `json:"serviceId"`
 	Timestamp time.Time              `json:"timestamp"`
-	Type      externalRef7.EventType `json:"type"`
+	Type      externalRef8.EventType `json:"type"`
 }
 
 // EventDetails defines model for eventDetails.
@@ -213,6 +229,9 @@ type FailureReason struct {
 	// EarlyExit If true, the application exited early. Services besides cron jobs should not exit unless receiving a `SIGTERM` signal from Render.
 	EarlyExit *bool `json:"earlyExit,omitempty"`
 	Evicted   bool  `json:"evicted"`
+
+	// EvictionReason Details about why the application was evicted.
+	EvictionReason *string `json:"evictionReason,omitempty"`
 
 	// NonZeroExit If present, the application exited with the specified non-zero status.
 	NonZeroExit     *int       `json:"nonZeroExit,omitempty"`
@@ -249,9 +268,9 @@ type InstanceId = string
 
 // JobRunEndedEvent defines model for jobRunEndedEvent.
 type JobRunEndedEvent struct {
-	JobId  externalRef8.JobId     `json:"jobId"`
+	JobId  externalRef9.JobId     `json:"jobId"`
 	Reason *FailureReason         `json:"reason,omitempty"`
-	Status externalRef8.JobStatus `json:"status"`
+	Status externalRef9.JobStatus `json:"status"`
 }
 
 // KeyValueAvailableEvent defines model for keyValueAvailableEvent.
@@ -414,7 +433,7 @@ type PostgresUpgradeSucceededEvent struct {
 type PreDeployEndedEvent struct {
 	DeployCommandExecutionId string                   `json:"deployCommandExecutionId"`
 	DeployId                 string                   `json:"deployId"`
-	PreDeployStatus          externalRef6.EventStatus `json:"preDeployStatus"`
+	PreDeployStatus          externalRef7.EventStatus `json:"preDeployStatus"`
 	Reason                   BuildDeployEndReason     `json:"reason"`
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Status int `json:"status"`
@@ -449,7 +468,7 @@ type ServiceEvent struct {
 	Id        EventId                       `json:"id"`
 	ServiceId string                        `json:"serviceId"`
 	Timestamp time.Time                     `json:"timestamp"`
-	Type      externalRef7.ServiceEventType `json:"type"`
+	Type      externalRef8.ServiceEventType `json:"type"`
 }
 
 // ServiceEventDetails defines model for serviceEventDetails.
@@ -2177,6 +2196,58 @@ func (t *ServiceEventDetails) FromEdgeCachePurgedEvent(v EdgeCachePurgedEvent) e
 
 // MergeEdgeCachePurgedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided EdgeCachePurgedEvent
 func (t *ServiceEventDetails) MergeEdgeCachePurgedEvent(v EdgeCachePurgedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsAutoDeployDisabledEvent returns the union data inside the ServiceEventDetails as a AutoDeployDisabledEvent
+func (t ServiceEventDetails) AsAutoDeployDisabledEvent() (AutoDeployDisabledEvent, error) {
+	var body AutoDeployDisabledEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromAutoDeployDisabledEvent overwrites any union data inside the ServiceEventDetails as the provided AutoDeployDisabledEvent
+func (t *ServiceEventDetails) FromAutoDeployDisabledEvent(v AutoDeployDisabledEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeAutoDeployDisabledEvent performs a merge with any union data inside the ServiceEventDetails, using the provided AutoDeployDisabledEvent
+func (t *ServiceEventDetails) MergeAutoDeployDisabledEvent(v AutoDeployDisabledEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsAutoDeployEnabledEvent returns the union data inside the ServiceEventDetails as a AutoDeployEnabledEvent
+func (t ServiceEventDetails) AsAutoDeployEnabledEvent() (AutoDeployEnabledEvent, error) {
+	var body AutoDeployEnabledEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromAutoDeployEnabledEvent overwrites any union data inside the ServiceEventDetails as the provided AutoDeployEnabledEvent
+func (t *ServiceEventDetails) FromAutoDeployEnabledEvent(v AutoDeployEnabledEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeAutoDeployEnabledEvent performs a merge with any union data inside the ServiceEventDetails, using the provided AutoDeployEnabledEvent
+func (t *ServiceEventDetails) MergeAutoDeployEnabledEvent(v AutoDeployEnabledEvent) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err

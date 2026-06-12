@@ -50,10 +50,13 @@ type ArtifactSource struct {
 
 // ArtifactSourceGit defines model for artifactSourceGit.
 type ArtifactSourceGit struct {
-	BaseDir        *string `json:"baseDir,omitempty"`
-	Branch         *string `json:"branch,omitempty"`
-	BuildCommand   *string `json:"buildCommand,omitempty"`
-	DockerfilePath *string `json:"dockerfilePath,omitempty"`
+	BaseDir      *string `json:"baseDir,omitempty"`
+	Branch       *string `json:"branch,omitempty"`
+	BuildCommand *string `json:"buildCommand,omitempty"`
+
+	// BuildFilter Glob patterns matched against files changed by a commit. When set, a commit only triggers a build when at least one changed file matches `paths` and none match `ignoredPaths`. Useful for monorepos where a single repo backs many services.
+	BuildFilter    *BuildFilter `json:"buildFilter,omitempty"`
+	DockerfilePath *string      `json:"dockerfilePath,omitempty"`
 
 	// Region Defaults to "oregon"
 	Region               *ArtifactSourceGitRegion `json:"region,omitempty"`
@@ -78,10 +81,13 @@ type ArtifactSourceImage struct {
 
 // ArtifactSourcePATCHGit defines model for artifactSourcePATCHGit.
 type ArtifactSourcePATCHGit struct {
-	BaseDir        *string `json:"baseDir,omitempty"`
-	Branch         *string `json:"branch,omitempty"`
-	BuildCommand   *string `json:"buildCommand,omitempty"`
-	DockerfilePath *string `json:"dockerfilePath,omitempty"`
+	BaseDir      *string `json:"baseDir,omitempty"`
+	Branch       *string `json:"branch,omitempty"`
+	BuildCommand *string `json:"buildCommand,omitempty"`
+
+	// BuildFilter Glob patterns matched against files changed by a commit. When set, a commit only triggers a build when at least one changed file matches `paths` and none match `ignoredPaths`. Useful for monorepos where a single repo backs many services.
+	BuildFilter    *BuildFilter `json:"buildFilter,omitempty"`
+	DockerfilePath *string      `json:"dockerfilePath,omitempty"`
 
 	// Region Region for the build. Honored only when this PATCH performs an image→build transition; rejected on a pure build patch (the cluster is pinned for an existing build), and must match the prior build region when switching back to build after time as an external image. Defaults to "oregon" for first-time builds.
 	Region               *ArtifactSourcePATCHGitRegion `json:"region,omitempty"`
@@ -122,6 +128,12 @@ type ArtifactSourcePOSTInput struct {
 type ArtifactSourceWithCursor struct {
 	ArtifactSource ArtifactSource `json:"artifactSource"`
 	Cursor         string         `json:"cursor"`
+}
+
+// BuildFilter Glob patterns matched against files changed by a commit. When set, a commit only triggers a build when at least one changed file matches `paths` and none match `ignoredPaths`. Useful for monorepos where a single repo backs many services.
+type BuildFilter struct {
+	IgnoredPaths []string `json:"ignoredPaths"`
+	Paths        []string `json:"paths"`
 }
 
 // ArtifactSourceIdParam defines model for artifactSourceIdParam.
