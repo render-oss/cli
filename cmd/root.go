@@ -162,6 +162,10 @@ func setupKVCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies
 	earlyAccess.AddCommand(newKVCmd(newKVCreateCmd(deps), newKVDeleteCmd(deps), newKVGetCmd(deps), newKVListCmd(deps), newKVResumeCmd(deps), newKVSuspendCmd(deps), newKVUpdateCmd(deps)))
 }
 
+func setupSandboxCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
+	earlyAccess.AddCommand(newSandboxCmd(newSandboxCreateCmd(deps), newSandboxExecCmd(deps), newSandboxListCmd(deps), newSandboxStopCmd(deps)))
+}
+
 func SetupCommands() error {
 	c, err := client.NewDefaultClient()
 	if err != nil {
@@ -183,6 +187,7 @@ func SetupCommands() error {
 	servicesCmd.AddCommand(newServiceDeleteCmd(deps))
 	setupKVCommands(EarlyAccessCmd, deps)
 	setupPGCommands(EarlyAccessCmd, deps)
+	setupSandboxCommands(EarlyAccessCmd, deps)
 	setupRootCmdPersistentRun(rootCmd, deps)
 
 	return nil
