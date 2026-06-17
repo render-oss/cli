@@ -9,6 +9,11 @@ import (
 	types "github.com/render-oss/cli/pkg/types"
 )
 
+// ErrRuntimeUpdateNotSupported explains that the CLI intentionally does not
+// support switching runtimes, even though the API can perform some runtime
+// transitions directly.
+var ErrRuntimeUpdateNotSupported = errors.New("cannot switch runtimes via the CLI; use the API directly, or create a new service and delete the old one when you're ready")
+
 // ServiceUpdateInput is the raw command input parsed from Cobra flags for service update.
 type ServiceUpdateInput struct {
 	Name string `cli:"name"`
@@ -106,9 +111,6 @@ func (s ServiceUpdateInput) ValidateUpdate() error {
 		if _, _, err := types.ParseIPAllowListEntry(entry); err != nil {
 			return err
 		}
-	}
-	if s.MaintenanceModeURI != nil && s.MaintenanceMode == nil {
-		return errors.New("cannot set --maintenance-mode-uri without --maintenance-mode")
 	}
 	return nil
 }
@@ -235,9 +237,7 @@ func (s ServiceUpdateInput) ValidateForServiceType(serviceType ServiceType) erro
 		}
 	}
 	if s.Runtime != nil {
-		if err := reject("runtime", ServiceTypeWebService, ServiceTypePrivateService, ServiceTypeBackgroundWorker, ServiceTypeCronJob); err != nil {
-			return err
-		}
+		return ErrRuntimeUpdateNotSupported
 	}
 
 	return nil

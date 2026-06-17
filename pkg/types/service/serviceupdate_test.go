@@ -176,14 +176,13 @@ func TestValidateUpdate(t *testing.T) {
 		assert.Contains(t, err.Error(), "invalid --ip-allow-list")
 	})
 
-	t.Run("rejects --maintenance-mode-uri without --maintenance-mode", func(t *testing.T) {
+	t.Run("passes with service ID and maintenance-mode-uri flag", func(t *testing.T) {
 		svc := servicetypes.ServiceUpdateInput{
 			MaintenanceModeURI: pointers.From("/maintenance.html"),
 			ServiceIDOrName:    "my-service-id",
 		}
 		err := svc.ValidateUpdate()
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "cannot set --maintenance-mode-uri without --maintenance-mode")
+		require.NoError(t, err)
 	})
 }
 
@@ -252,6 +251,12 @@ func TestValidateForServiceType(t *testing.T) {
 			errMsg:      "--cron-schedule is not supported for web_service",
 		},
 		{
+			name:        "cron-command on web service",
+			input:       servicetypes.ServiceUpdateInput{CronCommand: pointers.From("bin/nightly")},
+			serviceType: servicetypes.ServiceTypeWebService,
+			errMsg:      "--cron-command is not supported for web_service",
+		},
+		{
 			name:        "publish-directory on private service",
 			input:       servicetypes.ServiceUpdateInput{PublishDirectory: pointers.From("dist")},
 			serviceType: servicetypes.ServiceTypePrivateService,
@@ -262,6 +267,12 @@ func TestValidateForServiceType(t *testing.T) {
 			input:       servicetypes.ServiceUpdateInput{StartCommand: pointers.From("npm start")},
 			serviceType: servicetypes.ServiceTypeStaticSite,
 			errMsg:      "--start-command is not supported for static_site",
+		},
+		{
+			name:        "start-command on cron job",
+			input:       servicetypes.ServiceUpdateInput{StartCommand: pointers.From("npm start")},
+			serviceType: servicetypes.ServiceTypeCronJob,
+			errMsg:      "--start-command is not supported for cron_job",
 		},
 		{
 			name:        "maintenance-mode on private service",
@@ -280,12 +291,6 @@ func TestValidateForServiceType(t *testing.T) {
 			input:       servicetypes.ServiceUpdateInput{Plan: pointers.From("pro")},
 			serviceType: servicetypes.ServiceTypeStaticSite,
 			errMsg:      "--plan is not supported for static_site",
-		},
-		{
-			name:        "runtime on static site",
-			input:       servicetypes.ServiceUpdateInput{Runtime: svcRuntime(servicetypes.ServiceRuntimeNode)},
-			serviceType: servicetypes.ServiceTypeStaticSite,
-			errMsg:      "--runtime is not supported for static_site",
 		},
 		{
 			name:        "ip-allow-list on background worker",
@@ -310,6 +315,22 @@ func TestValidateForServiceType(t *testing.T) {
 		}
 		err := input.ValidateForServiceType(servicetypes.ServiceTypeWebService)
 		require.NoError(t, err)
+	})
+
+	t.Run("rejects the runtime flag", func(t *testing.T) {
+		input := servicetypes.ServiceUpdateInput{
+			Runtime: svcRuntime(servicetypes.ServiceRuntimeRuby),
+		}
+		for _, st := range []servicetypes.ServiceType{
+			servicetypes.ServiceTypeWebService,
+			servicetypes.ServiceTypePrivateService,
+			servicetypes.ServiceTypeBackgroundWorker,
+			servicetypes.ServiceTypeCronJob,
+			servicetypes.ServiceTypeStaticSite,
+		} {
+			err := input.ValidateForServiceType(st)
+			require.ErrorIs(t, err, servicetypes.ErrRuntimeUpdateNotSupported, "runtime updates should be rejected for %s", st)
+		}
 	})
 
 	t.Run("allows build-command on any type", func(t *testing.T) {
