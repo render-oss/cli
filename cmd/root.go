@@ -166,6 +166,10 @@ func setupSandboxCommands(earlyAccess *cobra.Command, deps *dependencies.Depende
 	earlyAccess.AddCommand(newSandboxCmd(newSandboxCreateCmd(deps), newSandboxExecCmd(deps), newSandboxListCmd(deps), newSandboxStopCmd(deps)))
 }
 
+func setupServiceCommands(deps *dependencies.Dependencies) {
+	servicesCmd.AddCommand(newServiceDeleteCmd(deps), newServiceUpdateCmd(deps))
+}
+
 func SetupCommands() error {
 	c, err := client.NewDefaultClient()
 	if err != nil {
@@ -184,7 +188,7 @@ func SetupCommands() error {
 	setupWorkflowCommands(deps)
 	setupLogCommands(deps)
 	setupWorkspaceCommands(deps)
-	servicesCmd.AddCommand(newServiceDeleteCmd(deps))
+	setupServiceCommands(deps)
 	setupKVCommands(EarlyAccessCmd, deps)
 	setupPGCommands(EarlyAccessCmd, deps)
 	setupSandboxCommands(EarlyAccessCmd, deps)

@@ -13,24 +13,22 @@ import (
 	servicetypes "github.com/render-oss/cli/pkg/types/service"
 )
 
-var ServiceUpdateCmd = &cobra.Command{
-	Use:   "update <service>",
-	Args:  cobra.ExactArgs(1),
-	Short: "Update configuration for an existing service",
-	Long: `Update a service on Render. This command only runs in non-interactive modes.
+func newServiceUpdateCmd(deps *dependencies.Dependencies) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update <service>",
+		Args:  cobra.ExactArgs(1),
+		Short: "Update configuration for an existing service",
+		Long: `Update a service on Render. This command only runs in non-interactive modes.
 
 Provide configuration updates with flags.`,
-	Example: `  # Rename a service
+		Example: `  # Rename a service
   render services update my-service --name my-new-name --output json
 
   # Change a service plan
   render services update srv-abc123 --plan pro --output json`,
-}
+	}
 
-func init() {
-	servicesCmd.AddCommand(ServiceUpdateCmd)
-
-	ServiceUpdateCmd.RunE = func(cmd *cobra.Command, args []string) error {
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var cliInput servicetypes.ServiceUpdateInput
 		if err := command.ParseCommand(cmd, args, &cliInput); err != nil {
 			return fmt.Errorf("failed to parse command: %w", err)
@@ -47,7 +45,7 @@ func init() {
 		ctx := cmd.Context()
 
 		nonInteractive, err := command.NonInteractiveWithConfirm(cmd, func() (*client.Service, error) {
-			return updateServiceNonInteractive(ctx, cliInput)
+			return updateServiceNonInteractive(ctx, deps, cliInput)
 		}, func(svc *client.Service) string {
 			return text.FormatStringF("Updated service %s (%s)", svc.Name, svc.Id)
 		}, nil)
@@ -63,56 +61,57 @@ func init() {
 	}
 
 	// Identity and source flags
-	ServiceUpdateCmd.Flags().String("name", "", "Service name")
-	ServiceUpdateCmd.Flags().String("repo", "", "Git repository URL")
-	ServiceUpdateCmd.Flags().String("branch", "", "Git branch")
-	ServiceUpdateCmd.Flags().String("image", "", "Docker image URL")
+	cmd.Flags().String("name", "", "Service name")
+	cmd.Flags().String("repo", "", "Git repository URL")
+	cmd.Flags().String("branch", "", "Git branch")
+	cmd.Flags().String("image", "", "Docker image URL")
 
 	// Deployment configuration flags
-	ServiceUpdateCmd.Flags().String("plan", "", "Service plan")
+	cmd.Flags().String("plan", "", "Service plan")
 	runtimeFlag := command.NewEnumInput(servicetypes.ServiceRuntimeValues(), false)
-	ServiceUpdateCmd.Flags().Var(runtimeFlag, "runtime", "Runtime environment")
-	ServiceUpdateCmd.Flags().String("root-directory", "", "Root directory")
+	cmd.Flags().Var(runtimeFlag, "runtime", "Runtime environment")
+	cmd.Flags().String("root-directory", "", "Root directory")
 
 	// Build and start commands
-	ServiceUpdateCmd.Flags().String("build-command", "", "Build command")
-	ServiceUpdateCmd.Flags().String("start-command", "", "Start command")
-	ServiceUpdateCmd.Flags().String("pre-deploy-command", "", "Pre-deploy command")
+	cmd.Flags().String("build-command", "", "Build command")
+	cmd.Flags().String("start-command", "", "Start command")
+	cmd.Flags().String("pre-deploy-command", "", "Pre-deploy command")
 
 	// Type-specific flags
-	ServiceUpdateCmd.Flags().String("health-check-path", "", "Health check path")
-	ServiceUpdateCmd.Flags().String("publish-directory", "", "Publish directory")
-	ServiceUpdateCmd.Flags().String("cron-command", "", "Cron command")
-	ServiceUpdateCmd.Flags().String("cron-schedule", "", "Cron schedule")
+	cmd.Flags().String("health-check-path", "", "Health check path")
+	cmd.Flags().String("publish-directory", "", "Publish directory")
+	cmd.Flags().String("cron-command", "", "Cron command")
+	cmd.Flags().String("cron-schedule", "", "Cron schedule")
 
 	// Registry flag
-	ServiceUpdateCmd.Flags().String("registry-credential", "", "Registry credential")
+	cmd.Flags().String("registry-credential", "", "Registry credential")
 
 	// Behavior flags
-	ServiceUpdateCmd.Flags().Bool("auto-deploy", false, "Enable auto-deploy")
+	cmd.Flags().Bool("auto-deploy", false, "Enable auto-deploy")
 
 	// Build filter flags
-	ServiceUpdateCmd.Flags().StringArray("build-filter-path", nil, "Build filter path (can be specified multiple times)")
-	ServiceUpdateCmd.Flags().StringArray("build-filter-ignored-path", nil, "Build filter ignored path (can be specified multiple times)")
+	cmd.Flags().StringArray("build-filter-path", nil, "Build filter path (can be specified multiple times)")
+	cmd.Flags().StringArray("build-filter-ignored-path", nil, "Build filter ignored path (can be specified multiple times)")
 
 	// Instance and scaling flags
-	ServiceUpdateCmd.Flags().Int("num-instances", 0, "Number of instances")
-	ServiceUpdateCmd.Flags().Int("max-shutdown-delay", 0, "Max shutdown delay in seconds")
+	cmd.Flags().Int("num-instances", 0, "Number of instances")
+	cmd.Flags().Int("max-shutdown-delay", 0, "Max shutdown delay in seconds")
 
 	// Preview and preview generation flags
 	previewsFlag := command.NewEnumInput(servicetypes.PreviewsGenerationValues(), false)
-	ServiceUpdateCmd.Flags().Var(previewsFlag, "previews", "Preview generation mode")
+	cmd.Flags().Var(previewsFlag, "previews", "Preview generation mode")
 
 	// Maintenance mode flags
-	ServiceUpdateCmd.Flags().Bool("maintenance-mode", false, "Enable maintenance mode")
-	ServiceUpdateCmd.Flags().String("maintenance-mode-uri", "", "Maintenance mode URI")
+	cmd.Flags().Bool("maintenance-mode", false, "Enable maintenance mode")
+	cmd.Flags().String("maintenance-mode-uri", "", "Maintenance mode URI")
 
 	// IP allow list flag
-	ServiceUpdateCmd.Flags().StringArray("ip-allow-list", nil, "IP allow list entry in cidr=..., description=... format (can be specified multiple times)")
+	cmd.Flags().StringArray("ip-allow-list", nil, "IP allow list entry in cidr=..., description=... format (can be specified multiple times)")
+
+	return cmd
 }
 
-func updateServiceNonInteractive(ctx context.Context, cliInput servicetypes.ServiceUpdateInput) (*client.Service, error) {
-	deps := dependencies.GetFromContext(ctx)
+func updateServiceNonInteractive(ctx context.Context, deps *dependencies.Dependencies, cliInput servicetypes.ServiceUpdateInput) (*client.Service, error) {
 	serviceRepo := deps.ServiceRepo()
 
 	// Resolve service ID
