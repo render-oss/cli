@@ -4,6 +4,7 @@ import "github.com/render-oss/cli/pkg/client"
 
 type ServiceOut struct {
 	client.Service
+	EnvironmentID   *string `json:"environmentId"`
 	ProjectID       *string `json:"projectId"`
 	ProjectName     string  `json:"-"`
 	EnvironmentName string  `json:"-"`
@@ -12,6 +13,10 @@ type ServiceOut struct {
 type DeleteOut struct {
 	Data ServiceOut    `json:"data"`
 	Meta DeleteOutMeta `json:"meta"`
+}
+
+type UpdateOut struct {
+	Data ServiceOut `json:"data"`
 }
 
 type DeleteOutMeta struct {
@@ -27,6 +32,7 @@ func newServiceOutFromModel(model *Model) ServiceOut {
 	out := ServiceOut{}
 	if model.Service != nil {
 		out.Service = *model.Service
+		out.EnvironmentID = model.Service.EnvironmentId
 	}
 	if model.Project != nil {
 		out.ProjectID = &model.Project.Id
@@ -42,6 +48,13 @@ func newServiceOutFromModel(model *Model) ServiceOut {
 // Callers should mutate [DeleteOut.Meta] as needed.
 func NewDeleteOutFromModel(model *Model) DeleteOut {
 	return DeleteOut{
+		Data: newServiceOutFromModel(model),
+	}
+}
+
+// NewUpdateOutFromModel constructs an [UpdateOut] from a service [Model].
+func NewUpdateOutFromModel(model *Model) UpdateOut {
+	return UpdateOut{
 		Data: newServiceOutFromModel(model),
 	}
 }

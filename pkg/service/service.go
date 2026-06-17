@@ -59,6 +59,9 @@ func (s *Service) GetService(ctx context.Context, id string) (*Model, error) {
 		return nil, err
 	}
 
+	// TODO(GROW-2652): This hydrates one service by listing every project in the workspace
+	// and then that project's environments. Resolve the service's project and
+	// environment more directly (get each by ID).
 	projects, err := s.projectRepo.ListProjects(ctx)
 	if err != nil {
 		return nil, err

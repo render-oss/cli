@@ -9,6 +9,7 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
+	servicepkg "github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/text"
 	servicetypes "github.com/render-oss/cli/pkg/types/service"
 )
@@ -42,13 +43,9 @@ Provide configuration updates with flags.`,
 			return err
 		}
 
-		ctx := cmd.Context()
-
-		nonInteractive, err := command.NonInteractiveWithConfirm(cmd, func() (*client.Service, error) {
-			return updateServiceNonInteractive(ctx, deps, cliInput)
-		}, func(svc *client.Service) string {
-			return text.FormatStringF("Updated service %s (%s)", svc.Name, svc.Id)
-		}, nil)
+		nonInteractive, err := command.NonInteractiveWithConfirm(cmd, func() (*servicepkg.UpdateOut, error) {
+			return updateServiceNonInteractive(cmd.Context(), deps, cliInput)
+		}, serviceUpdateTextOutput, nil)
 		if err != nil {
 			return err
 		}
@@ -111,8 +108,9 @@ Provide configuration updates with flags.`,
 	return cmd
 }
 
-func updateServiceNonInteractive(ctx context.Context, deps *dependencies.Dependencies, cliInput servicetypes.ServiceUpdateInput) (*client.Service, error) {
+func updateServiceNonInteractive(ctx context.Context, deps *dependencies.Dependencies, cliInput servicetypes.ServiceUpdateInput) (*servicepkg.UpdateOut, error) {
 	serviceRepo := deps.ServiceRepo()
+	serviceService := deps.ServiceService()
 
 	// Resolve service ID
 	idOrName, err := cliInput.ParseServiceID()
@@ -129,5 +127,19 @@ func updateServiceNonInteractive(ctx context.Context, deps *dependencies.Depende
 	// For now, use an empty UpdateServiceJSONRequestBody as a placeholder
 	body := client.UpdateServiceJSONRequestBody{}
 
-	return serviceRepo.UpdateService(ctx, serviceID, body)
+	if _, err := serviceRepo.UpdateService(ctx, serviceID, body); err != nil {
+		return nil, err
+	}
+
+	updated, err := serviceService.GetService(ctx, serviceID)
+	if err != nil {
+		return nil, err
+	}
+
+	out := servicepkg.NewUpdateOutFromModel(updated)
+	return &out, nil
+}
+
+func serviceUpdateTextOutput(out *servicepkg.UpdateOut) string {
+	return "Updated this service:\n\n" + text.ServiceDetail(&out.Data) + "\n"
 }

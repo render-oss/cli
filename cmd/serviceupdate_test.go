@@ -1,10 +1,18 @@
 package cmd
 
 import (
+	"bytes"
 	"testing"
 
+	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/render-oss/cli/internal/testassert"
+	"github.com/render-oss/cli/internal/testrequire"
+	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -118,4 +126,110 @@ func TestServiceUpdateCommandStructure(t *testing.T) {
 	t.Run("command has RunE defined", func(t *testing.T) {
 		require.NotNil(t, cmd.RunE)
 	})
+}
+
+type serviceUpdateHarness struct {
+	t      *testing.T
+	server *renderapi.Server
+	deps   *dependencies.Dependencies
+}
+
+func newServiceUpdateHarness(t *testing.T) serviceUpdateHarness {
+	t.Helper()
+
+	server := renderapi.NewServer(t)
+	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: serviceTestWorkspaceID, Name: serviceTestWorkspaceName}))
+	t.Setenv("RENDER_CLI_CONFIG_PATH", newTestConfigPath(t))
+	t.Setenv("RENDER_HOST", server.URL())
+	t.Setenv("RENDER_API_KEY", "test-api-key")
+	t.Setenv("RENDER_WORKSPACE", "")
+	require.NoError(t, (&config.Config{
+		Workspace:     serviceTestWorkspaceID,
+		WorkspaceName: serviceTestWorkspaceName,
+	}).Persist())
+
+	c, err := client.NewClientWithResponses(server.URL())
+	require.NoError(t, err)
+	deps := dependencies.New(c)
+	deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
+		return command.RuntimeSignals{
+			StdinTTY:  false,
+			StdoutTTY: false,
+			StderrTTY: false,
+		}, nil
+	}
+
+	return serviceUpdateHarness{
+		t:      t,
+		server: server,
+		deps:   deps,
+	}
+}
+
+// execute invokes `services update` on the cobra application
+func (h serviceUpdateHarness) execute(extraArgs ...string) (CommandResult, error) {
+	h.t.Helper()
+
+	root, stdout, stderr := h.setupCmd()
+	root.SetArgs(append([]string{"services", "update"}, extraArgs...))
+
+	execErr := root.Execute()
+	return CommandResult{Stdout: stdout.String(), Stderr: stderr.String()}, execErr
+}
+
+// setupCmd builds the Cobra application under test
+func (h serviceUpdateHarness) setupCmd() (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	h.t.Helper()
+
+	root := newRootCmd()
+	services := cobraServicesCommand()
+	services.AddCommand(newServiceUpdateCmd(h.deps))
+	root.AddCommand(services)
+	setupRootCmdPersistentRun(root, h.deps)
+
+	var stdout, stderr bytes.Buffer
+	root.SetOut(&stdout)
+	root.SetErr(&stderr)
+
+	return root, &stdout, &stderr
+}
+
+func TestServiceUpdate_JSONOutput_ReturnsServiceOutEnvelope(t *testing.T) {
+	harness := newServiceUpdateHarness(t)
+	project := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Website", OwnerId: serviceTestWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	envID := project.Env("production").Id
+	svc := harness.server.Services.Add(renderapi.NewWebService(renderapi.WebServiceAttrs{
+		Service: renderapi.CommonServiceAttrs{
+			Name:          "json-service",
+			OwnerID:       serviceTestWorkspaceID,
+			EnvironmentID: envID,
+		},
+	}))
+
+	result, err := harness.execute(svc.Id,
+		"--name", "json-service-renamed",
+		"--output", "json",
+	)
+	require.NoError(t, err)
+
+	assert.True(t, harness.server.HasRequest("PATCH", "/services/"+svc.Id))
+
+	body := testrequire.ParseJSONMap(t, result.Stdout)
+	testassert.MapContains(t, body, map[string]any{
+		"data": map[string]any{
+			"id":            svc.Id,
+			"name":          "json-service",
+			"type":          string(client.WebService),
+			"projectId":     project.Project.Id,
+			"environmentId": envID,
+			"serviceDetails": map[string]any{
+				"runtime":            string(client.ServiceRuntimeNode),
+				"envSpecificDetails": map[string]any{},
+			},
+		},
+	})
+	assert.NotContains(t, body, "id")
 }

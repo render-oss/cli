@@ -1,6 +1,7 @@
 package renderapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -632,6 +633,39 @@ func registerServiceRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 			}
 		}
 		w.WriteHeader(http.StatusNotFound)
+	})
+
+	// PATCH /services/{id} - update a service
+	mux.HandleFunc("PATCH /services/{id}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.Services.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+
+		var body client.UpdateServiceJSONRequestBody
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		idx := slices.IndexFunc(s.Services.Instances, func(svc *client.Service) bool {
+			return svc.Id == r.PathValue("id")
+		})
+		if idx == -1 {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		svc := s.Services.Instances[idx]
+		if body.Name != nil {
+			svc.Name = *body.Name
+		}
+		if body.Branch != nil {
+			svc.Branch = body.Branch
+		}
+		svc.UpdatedAt = time.Now()
+		writeJSON(w, http.StatusOK, svc)
 	})
 
 	// DELETE /services/{id} - delete a service
