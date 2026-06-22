@@ -20,12 +20,12 @@ import (
 )
 
 type WorkflowCreateInput struct {
-	Name              *string `cli:"name"`
-	Repo              *string `cli:"repo"`
+	Name              *string `cli:"name" validate:"required"`
+	Repo              *string `cli:"repo" validate:"required"`
 	Branch            *string `cli:"branch"`
-	Runtime           *string `cli:"runtime"`
-	BuildCommand      *string `cli:"build-command"`
-	RunCommand        *string `cli:"run-command"`
+	Runtime           *string `cli:"runtime" validate:"required"`
+	BuildCommand      *string `cli:"build-command" validate:"required"`
+	RunCommand        *string `cli:"run-command" validate:"required"`
 	Region            *string `cli:"region"`
 	RootDir           *string `cli:"root-directory"`
 	AutoDeployTrigger *string `cli:"auto-deploy-trigger"`
@@ -36,30 +36,6 @@ type WorkflowCreateInput struct {
 	// must be appended after file-derived ones so they override on duplicate
 	// keys (resolveEnvVars merges via a map; later writes win).
 	EnvVars 		  []string `cli:"env-var"`
-}
-
-func (w WorkflowCreateInput) Validate(interactive bool) error {
-	if interactive {
-		return nil
-	}
-
-	if w.Name == nil || *w.Name == "" {
-		return fmt.Errorf("--name is required")
-	}
-	if w.Repo == nil || *w.Repo == "" {
-		return fmt.Errorf("--repo is required")
-	}
-	if w.Runtime == nil || *w.Runtime == "" {
-		return fmt.Errorf("--runtime is required")
-	}
-	if w.BuildCommand == nil || *w.BuildCommand == "" {
-		return fmt.Errorf("--build-command is required")
-	}
-	if w.RunCommand == nil || *w.RunCommand == "" {
-		return fmt.Errorf("--run-command is required")
-	}
-
-	return nil
 }
 
 func CreateWorkflow(ctx context.Context, input WorkflowCreateInput) (*wfclient.Workflow, error) {

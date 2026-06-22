@@ -361,6 +361,12 @@ func ParseCommand(cmd *cobra.Command, args []string, v any) error {
 		}
 	}
 
+	if !IsInteractive(cmd.Context()) {
+		if err := ValidateRequiredFields(v); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

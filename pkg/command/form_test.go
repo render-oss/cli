@@ -35,6 +35,74 @@ func TestTextareaConfigFromStruct(t *testing.T) {
 	})
 }
 
+func TestRequiredFieldCLITags(t *testing.T) {
+	type sample struct {
+		Name         *string `cli:"name" validate:"required"`
+		Branch       *string `cli:"branch"`
+		BuildCommand *string `cli:"build-command" validate:"required"`
+	}
+
+	required := requiredFieldCLITags(&sample{})
+
+	assert.True(t, required["name"])
+	assert.True(t, required["build-command"])
+	assert.False(t, required["branch"])
+}
+
+func TestRequiredFieldError(t *testing.T) {
+	assert.EqualError(t, requiredFieldError("input", false), "input is required")
+	assert.EqualError(t, requiredFieldError("input", true), "--input is required")
+}
+
+func TestValidateRequiredFields(t *testing.T) {
+	t.Run("missing required pointer string", func(t *testing.T) {
+		input := struct {
+			Name *string `cli:"name" validate:"required"`
+		}{}
+		err := ValidateRequiredFields(&input)
+		assert.EqualError(t, err, "--name is required")
+	})
+
+	t.Run("empty required pointer string", func(t *testing.T) {
+		name := ""
+		input := struct {
+			Name *string `cli:"name" validate:"required"`
+		}{Name: &name}
+		err := ValidateRequiredFields(&input)
+		assert.EqualError(t, err, "--name is required")
+	})
+
+	t.Run("all required fields present", func(t *testing.T) {
+		name := "my-workflow"
+		repo := "https://github.com/org/repo"
+		runtime := "node"
+		build := "npm install"
+		run := "npm start"
+		input := struct {
+			Name         *string `cli:"name" validate:"required"`
+			Repo         *string `cli:"repo" validate:"required"`
+			Runtime      *string `cli:"runtime" validate:"required"`
+			BuildCommand *string `cli:"build-command" validate:"required"`
+			RunCommand   *string `cli:"run-command" validate:"required"`
+		}{
+			Name:         &name,
+			Repo:         &repo,
+			Runtime:      &runtime,
+			BuildCommand: &build,
+			RunCommand:   &run,
+		}
+		assert.NoError(t, ValidateRequiredFields(&input))
+	})
+
+	t.Run("empty required slice", func(t *testing.T) {
+		input := struct {
+			EnvVars []string `cli:"env-var" validate:"required"`
+		}{}
+		err := ValidateRequiredFields(&input)
+		assert.EqualError(t, err, "--env-var is required")
+	})
+}
+
 func TestPreferredEditor(t *testing.T) {
 	t.Run("returns $EDITOR when set", func(t *testing.T) {
 		t.Setenv("EDITOR", "emacs")

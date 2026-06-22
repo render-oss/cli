@@ -5,6 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/render-oss/cli/pkg/command"
 )
 
 func TestTaskListInputValidate(t *testing.T) {
@@ -46,11 +48,10 @@ func TestTaskRunInputValidate(t *testing.T) {
 		assert.Contains(t, err.Error(), "task slug must be specified")
 	})
 
-	t.Run("non-interactive missing input", func(t *testing.T) {
+	t.Run("missing input", func(t *testing.T) {
 		input := TaskRunInput{TaskSlug: "tsk-1"}
-		err := input.Validate(false)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "input must be specified")
+		err := command.ValidateRequiredFields(&input)
+		assert.EqualError(t, err, "--input is required")
 	})
 
 	t.Run("invalid JSON input errors even in interactive mode", func(t *testing.T) {

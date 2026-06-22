@@ -336,6 +336,102 @@ type textareaConfig struct {
 	ext   string
 }
 
+func chainStringValidators(validators ...func(string) error) func(string) error {
+	return func(s string) error {
+		for _, validate := range validators {
+			if err := validate(s); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+func requiredFieldError(name string, cliFlag bool) error {
+	prefix := ""
+	if cliFlag {
+		prefix = "--"
+	}
+	return fmt.Errorf("%s%s is required", prefix, name)
+}
+
+func requiredFieldStringValidator(name string) func(string) error {
+	return func(s string) error {
+		if s == "" {
+			return requiredFieldError(name, false)
+		}
+		return nil
+	}
+}
+
+func requiredFieldSliceValidator(name string) func([]string) error {
+	return func(s []string) error {
+		if len(s) == 0 {
+			return requiredFieldError(name, false)
+		}
+		return nil
+	}
+}
+
+// requiredFieldCLITags returns cli flag names for fields tagged validate:"required".
+func requiredFieldCLITags(v any) map[string]bool {
+	required := make(map[string]bool)
+	vtype := reflect.TypeOf(v).Elem()
+	for field := range vtype.Fields() {
+		if field.Tag.Get("validate") != "required" {
+			continue
+		}
+		if cliTag := field.Tag.Get("cli"); cliTag != "" {
+			required[cliTag] = true
+		}
+	}
+	return required
+}
+
+// ValidateRequiredFields returns an error when a field tagged validate:"required"
+// is empty. Used for non-interactive flag parsing.
+func ValidateRequiredFields(v any) error {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
+		return fmt.Errorf("value must be a non-nil pointer")
+	}
+	rv = rv.Elem()
+	if rv.Kind() != reflect.Struct {
+		return fmt.Errorf("value must be a pointer to struct")
+	}
+
+	rt := rv.Type()
+	for field := range rt.Fields() {
+		if field.Tag.Get("validate") != "required" {
+			continue
+		}
+		cliTag := field.Tag.Get("cli")
+		if cliTag == "" {
+			continue
+		}
+		if isEmptyValue(rv.FieldByName(field.Name)) {
+			return requiredFieldError(cliTag, true)
+		}
+	}
+	return nil
+}
+
+func isEmptyValue(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Pointer:
+		if v.IsNil() {
+			return true
+		}
+		return isEmptyValue(v.Elem())
+	case reflect.String:
+		return v.String() == ""
+	case reflect.Slice, reflect.Array:
+		return v.Len() == 0
+	default:
+		return v.IsZero()
+	}
+}
+
 // textareaConfigFromStruct reads cli-lines and cli-ext struct tags in a single
 // pass and returns a map from cli flag name to textarea config.
 func textareaConfigFromStruct(v any) map[string]textareaConfig {
@@ -367,6 +463,7 @@ func HuhFormFields(cmd *cobra.Command, v any) ([]huh.Field, FormValues) {
 	huhFieldMap := make(map[string]huh.Field)
 	formValues := FormValuesFromStruct(v)
 	textareaConfigs := textareaConfigFromStruct(v)
+	requiredFields := requiredFieldCLITags(v)
 
 	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
 		// If the flag is not in the form values, skip it
@@ -385,6 +482,11 @@ func HuhFormFields(cmd *cobra.Command, v any) ([]huh.Field, FormValues) {
 		// filter component. We can adjust if needed.
 		wrappedDescription := ansi.Wrap(flag.Usage, 53, "-")
 
+		title := flag.Name
+		if requiredFields[flag.Name] {
+			title += " *"
+		}
+
 		if flag.Value.Type() == EnumType {
 			enumFlag := flag.Value.(*CobraEnum)
 
@@ -397,33 +499,49 @@ func HuhFormFields(cmd *cobra.Command, v any) ([]huh.Field, FormValues) {
 				sliceValue := NewStringSliceFormValue(value.String())
 				formValues[flag.Name] = sliceValue
 
-				huhFieldMap[flag.Name] = huh.NewMultiSelect[string]().Key(flag.Name).Title(flag.Name).Description(wrappedDescription).Options(options...).Value((*[]string)(sliceValue))
+				field := huh.NewMultiSelect[string]().Key(flag.Name).Title(title).Description(wrappedDescription).Options(options...).Value((*[]string)(sliceValue))
+				if requiredFields[flag.Name] {
+					field = field.Validate(requiredFieldSliceValidator(flag.Name))
+				}
+				huhFieldMap[flag.Name] = field
 			} else {
 				strValue := NewStringFormValue(value.String())
 				formValues[flag.Name] = strValue
 
-				huhFieldMap[flag.Name] = huh.NewSelect[string]().Key(flag.Name).Title(flag.Name).Description(wrappedDescription).Options(options...).Value((*string)(strValue))
+				field := huh.NewSelect[string]().Key(flag.Name).Title(title).Description(wrappedDescription).Options(options...).Value((*string)(strValue))
+				if requiredFields[flag.Name] {
+					field = field.Validate(requiredFieldStringValidator(flag.Name))
+				}
+				huhFieldMap[flag.Name] = field
 			}
 		} else if flag.Value.Type() == TimeType {
 			timeValue := NewStringFormValue(value.String())
 			formValues[flag.Name] = timeValue
 
-			huhFieldMap[flag.Name] = huh.NewInput().
+			field := huh.NewInput().
 				Key(flag.Name).
-				Title(flag.Name).
+				Title(title).
 				Description(wrappedDescription).
 				Value((*string)(timeValue)).
 				Placeholder(fmt.Sprintf("Relative time or %s", time.RFC3339)).
 				SuggestionsFunc(func() []string { return TimeSuggestion(timeValue.String()) }, timeValue)
+			if requiredFields[flag.Name] {
+				field = field.Validate(requiredFieldStringValidator(flag.Name))
+			}
+			huhFieldMap[flag.Name] = field
 		} else if cfg, ok := textareaConfigs[flag.Name]; ok && cfg.lines > 0 {
 			strValue := NewStringFormValue(value.String())
 			formValues[flag.Name] = strValue
 
-			field := huh.NewText().Key(flag.Name).Title(flag.Name).Description(wrappedDescription).Value((*string)(strValue)).Lines(cfg.lines).CharLimit(0)
+			field := huh.NewText().Key(flag.Name).Title(title).Description(wrappedDescription).Value((*string)(strValue)).Lines(cfg.lines).CharLimit(0)
+			var validators []func(string) error
+			if requiredFields[flag.Name] {
+				validators = append(validators, requiredFieldStringValidator(flag.Name))
+			}
 			editor := preferredEditor()
 			if cfg.ext != "" {
 				if cfg.ext == "json" {
-					field = field.Validate(func(s string) error {
+					validators = append(validators, func(s string) error {
 						if s != "" && !json.Valid([]byte(s)) {
 							return fmt.Errorf("input must be valid JSON")
 						}
@@ -434,12 +552,19 @@ func HuhFormFields(cmd *cobra.Command, v any) ([]huh.Field, FormValues) {
 			} else {
 				field = field.Editor(editor)
 			}
+			if len(validators) > 0 {
+				field = field.Validate(chainStringValidators(validators...))
+			}
 			huhFieldMap[flag.Name] = field
 		} else {
 			strValue := NewStringFormValue(value.String())
 			formValues[flag.Name] = strValue
 
-			huhFieldMap[flag.Name] = huh.NewInput().Key(flag.Name).Title(flag.Name).Description(wrappedDescription).Value((*string)(strValue))
+			field := huh.NewInput().Key(flag.Name).Title(title).Description(wrappedDescription).Value((*string)(strValue))
+			if requiredFields[flag.Name] {
+				field = field.Validate(requiredFieldStringValidator(flag.Name))
+			}
+			huhFieldMap[flag.Name] = field
 		}
 	})
 

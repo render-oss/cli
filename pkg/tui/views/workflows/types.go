@@ -19,7 +19,7 @@ type TaskListInput struct {
 
 type TaskRunInput struct {
 	TaskSlug string `cli:"arg:0"`
-	Input    string `cli:"input" cli-lines:"15" cli-ext:"json"`
+	Input    string `cli:"input" cli-lines:"15" cli-ext:"json" validate:"required"`
 }
 
 type TaskRunTargetInput struct {
@@ -70,9 +70,7 @@ func (t TaskRunInput) Validate(interactive bool) error {
 		return errors.New("task slug must be specified when output is not interactive")
 	}
 
-	if !interactive && t.Input == "" {
-		return errors.New("input must be specified when output is not interactive")
-	} else if t.Input != "" && !json.Valid([]byte(t.Input)) {
+	if t.Input != "" && !json.Valid([]byte(t.Input)) {
 		return errors.New("input must be valid JSON")
 	}
 

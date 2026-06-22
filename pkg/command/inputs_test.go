@@ -1,6 +1,7 @@
 package command_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -211,6 +212,44 @@ func TestParseCommand(t *testing.T) {
 		err := command.ParseCommand(cmd, []string{}, &v)
 		require.NoError(t, err)
 
+	})
+
+	t.Run("required fields", func(t *testing.T) {
+		type testStruct struct {
+			Name *string `cli:"name" validate:"required"`
+		}
+
+		newCmd := func(output command.Output) *cobra.Command {
+			cmd := &cobra.Command{}
+			cmd.Flags().String("name", "", "")
+			cmd.SetContext(command.SetFormatInContext(context.Background(), &output))
+			return cmd
+		}
+
+		t.Run("non-interactive missing required flag fails", func(t *testing.T) {
+			var v testStruct
+			cmd := newCmd(command.JSON)
+
+			err := command.ParseCommand(cmd, []string{}, &v)
+			require.EqualError(t, err, "--name is required")
+		})
+
+		t.Run("non-interactive with required flag set succeeds", func(t *testing.T) {
+			var v testStruct
+			cmd := newCmd(command.JSON)
+			require.NoError(t, cmd.ParseFlags([]string{"--name", "my-workflow"}))
+
+			err := command.ParseCommand(cmd, []string{}, &v)
+			require.NoError(t, err)
+		})
+
+		t.Run("interactive missing required flag is deferred to the form", func(t *testing.T) {
+			var v testStruct
+			cmd := newCmd(command.Interactive)
+
+			err := command.ParseCommand(cmd, []string{}, &v)
+			require.NoError(t, err)
+		})
 	})
 }
 
