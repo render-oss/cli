@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	servicepkg "github.com/render-oss/cli/pkg/service"
@@ -38,8 +37,8 @@ Provide configuration updates with flags.`,
 		// Interactive mode is not implemented yet; force non-interactive behavior for now.
 		command.DefaultFormatNonInteractive(cmd)
 
-		cliInput = servicetypes.NormalizeServiceUpdateCLIInput(cliInput)
-		if err := cliInput.ValidateUpdate(); err != nil {
+		cliInput, err := servicetypes.NormalizeAndValidateUpdateInput(cliInput)
+		if err != nil {
 			return err
 		}
 
@@ -123,9 +122,19 @@ func updateServiceNonInteractive(ctx context.Context, deps *dependencies.Depende
 		return nil, fmt.Errorf("failed to resolve service %q: %w", idOrName, err)
 	}
 
-	// TODO: BuildUpdateRequest to construct the PATCH body
-	// For now, use an empty UpdateServiceJSONRequestBody as a placeholder
-	body := client.UpdateServiceJSONRequestBody{}
+	before, err := serviceRepo.GetService(ctx, serviceID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cliInput.ValidateForServiceType(servicetypes.ServiceType(before.Type)); err != nil {
+		return nil, err
+	}
+
+	body, err := servicepkg.BuildUpdateRequest(*before, cliInput)
+	if err != nil {
+		return nil, err
+	}
 
 	if _, err := serviceRepo.UpdateService(ctx, serviceID, body); err != nil {
 		return nil, err

@@ -96,13 +96,11 @@ func (s *Repo) CreateService(ctx context.Context, data client.CreateServiceJSONR
 	return resp.JSON201.Service, nil
 }
 
+// UpdateService PATCHes the given service. It does not re-fetch the service to
+// validate workspace ownership, so the caller must pass an id already resolved
+// against the active workspace (GetService and ResolveServiceIDFromNameOrID
+// both validate ownership and return such an id).
 func (s *Repo) UpdateService(ctx context.Context, id string, data client.UpdateServiceJSONRequestBody) (*client.Service, error) {
-	// we get the Service to ensure the workspace matches. Since GetService checks the workspace, we just check
-	// if an error was returned
-	if _, err := s.GetService(ctx, id); err != nil {
-		return nil, err
-	}
-
 	resp, err := s.client.UpdateServiceWithResponse(ctx, id, data)
 	if err != nil {
 		return nil, err

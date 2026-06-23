@@ -170,7 +170,7 @@ func (s ServiceUpdateInput) ValidateForServiceType(serviceType ServiceType) erro
 		if slices.Contains(allowedTypes, serviceType) {
 			return nil
 		}
-		return fmt.Errorf("--%s is not supported for %s services", flag, serviceType)
+		return fmt.Errorf("--%s is not supported for %s", flag, serviceType)
 	}
 
 	if s.NumInstances != nil {

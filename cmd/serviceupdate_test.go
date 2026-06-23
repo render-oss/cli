@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"net/http"
 	"testing"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
@@ -11,6 +12,8 @@ import (
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/dependencies"
+	"github.com/render-oss/cli/pkg/pointers"
+	servicetypes "github.com/render-oss/cli/pkg/types/service"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -194,7 +197,7 @@ func (h serviceUpdateHarness) setupCmd() (*cobra.Command, *bytes.Buffer, *bytes.
 	return root, &stdout, &stderr
 }
 
-func TestServiceUpdate_JSONOutput_ReturnsServiceOutEnvelope(t *testing.T) {
+func TestServiceUpdate_JSONOutput_UpdatesTopLevelFieldsAndReturnsEnvelope(t *testing.T) {
 	harness := newServiceUpdateHarness(t)
 	project := harness.server.CreateProject(
 		renderapi.ProjectAttrs{Name: "Website", OwnerId: serviceTestWorkspaceID},
@@ -209,6 +212,8 @@ func TestServiceUpdate_JSONOutput_ReturnsServiceOutEnvelope(t *testing.T) {
 		},
 	}))
 
+	// Per-flag PATCH-body wiring is covered by TestServiceUpdate_FlagWiresIntoPatchBody.
+	// This test owns the JSON output envelope shape, so it sets a single flag.
 	result, err := harness.execute(svc.Id,
 		"--name", "json-service-renamed",
 		"--output", "json",
@@ -216,12 +221,13 @@ func TestServiceUpdate_JSONOutput_ReturnsServiceOutEnvelope(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, harness.server.HasRequest("PATCH", "/services/"+svc.Id))
+	assert.Equal(t, "json-service-renamed", svc.Name)
 
 	body := testrequire.ParseJSONMap(t, result.Stdout)
 	testassert.MapContains(t, body, map[string]any{
 		"data": map[string]any{
 			"id":            svc.Id,
-			"name":          "json-service",
+			"name":          "json-service-renamed",
 			"type":          string(client.WebService),
 			"projectId":     project.Project.Id,
 			"environmentId": envID,
@@ -232,4 +238,216 @@ func TestServiceUpdate_JSONOutput_ReturnsServiceOutEnvelope(t *testing.T) {
 		},
 	})
 	assert.NotContains(t, body, "id")
+}
+
+// addWebService seeds a web service under a new project and returns it.
+func (h serviceUpdateHarness) addWebService(name string) *client.Service {
+	h.t.Helper()
+
+	project := h.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Website", OwnerId: serviceTestWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	return h.server.Services.Add(renderapi.NewWebService(renderapi.WebServiceAttrs{
+		Service: renderapi.CommonServiceAttrs{
+			Name:          name,
+			OwnerID:       serviceTestWorkspaceID,
+			EnvironmentID: project.Env("production").Id,
+		},
+	}))
+}
+
+// TestServiceUpdate_ParseCommand_HappyPath verifies that every flag the update command
+// registers binds to the expected ServiceUpdateInput field with the expected
+// type. It drives the real command's flag set through ParseCommand in memory —
+// but does not invoke the command.
+// It exhaustively covers the CLI flag input <-> `cli:` tag seam that the e2e tests would only exercise indirectly.
+// The input->PATCH-body transform is covered separately in pkg/service/update_test.go.
+func TestServiceUpdate_ParseCommand_HappyPath(t *testing.T) {
+	cmd := newServiceUpdateTestCmd()
+	require.NoError(t, cmd.ParseFlags([]string{
+		"--name", "svc-name",
+		"--repo", "https://github.com/example/repo",
+		"--branch", "main",
+		"--image", "docker.io/library/nginx:alpine",
+		"--plan", "starter",
+		"--runtime", string(servicetypes.ServiceRuntimeGo),
+		"--root-directory", "app",
+		"--build-command", "make build",
+		"--start-command", "./run",
+		"--pre-deploy-command", "bin/migrate",
+		"--health-check-path", "/ready",
+		"--publish-directory", "public",
+		"--cron-command", "echo hi",
+		"--cron-schedule", "0 12 * * *",
+		"--registry-credential", "rc-123",
+		"--auto-deploy=false",
+		"--build-filter-path", "src/**",
+		"--build-filter-path", "go.mod",
+		"--build-filter-ignored-path", "docs/**",
+		"--num-instances", "3",
+		"--max-shutdown-delay", "42",
+		"--previews", string(servicetypes.PreviewsGenerationManual),
+		"--maintenance-mode=true",
+		"--maintenance-mode-uri", "https://status.example.com",
+		"--ip-allow-list", "cidr=203.0.113.5/32,description=office",
+	}))
+
+	var in servicetypes.ServiceUpdateInput
+	require.NoError(t, command.ParseCommand(cmd, []string{"srv-abc123"}, &in))
+
+	previews := servicetypes.PreviewsGenerationManual
+	runtime := servicetypes.ServiceRuntimeGo
+	assert.Equal(t, servicetypes.ServiceUpdateInput{
+		Name:                    "svc-name",
+		Repo:                    pointers.From("https://github.com/example/repo"),
+		Branch:                  pointers.From("main"),
+		Image:                   pointers.From("docker.io/library/nginx:alpine"),
+		Plan:                    pointers.From("starter"),
+		Runtime:                 &runtime,
+		RootDirectory:           pointers.From("app"),
+		BuildCommand:            pointers.From("make build"),
+		StartCommand:            pointers.From("./run"),
+		PreDeployCommand:        pointers.From("bin/migrate"),
+		HealthCheckPath:         pointers.From("/ready"),
+		PublishDirectory:        pointers.From("public"),
+		CronCommand:             pointers.From("echo hi"),
+		CronSchedule:            pointers.From("0 12 * * *"),
+		RegistryCredential:      pointers.From("rc-123"),
+		AutoDeploy:              pointers.From(false),
+		BuildFilterPaths:        []string{"src/**", "go.mod"},
+		BuildFilterIgnoredPaths: []string{"docs/**"},
+		NumInstances:            pointers.From(3),
+		MaxShutdownDelay:        pointers.From(42),
+		Previews:                &previews,
+		MaintenanceMode:         pointers.From(true),
+		MaintenanceModeURI:      pointers.From("https://status.example.com"),
+		IPAllowList:             []string{"cidr=203.0.113.5/32,description=office"},
+		ServiceIDOrName:         "srv-abc123",
+	}, in)
+}
+
+// TestServiceUpdate_FlagWiresIntoPatchBody verifies end-to-end that flags reach
+// the serialized PATCH body and that nothing unspecified comes along for the
+// ride. Each case asserts the *entire* decoded body by equality, so an extra or
+// misplaced field fails the test — stronger than checking individual keys.
+// Cases cover a single top-level field, a single serviceDetails field, a mix of
+// top-level and serviceDetails fields, and multiple serviceDetails fields.
+func TestServiceUpdate_FlagWiresIntoPatchBody(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		wantBody map[string]any
+	}{
+		{
+			name:     "name maps to top-level name only",
+			args:     []string{"--name", "renamed-service"},
+			wantBody: map[string]any{"name": "renamed-service"},
+		},
+		{
+			name: "plan maps into serviceDetails only",
+			args: []string{"--plan", "starter"},
+			wantBody: map[string]any{
+				"serviceDetails": map[string]any{"plan": "starter"},
+			},
+		},
+		{
+			name: "top-level and detail fields coexist without leaking",
+			args: []string{"--name", "renamed-service", "--health-check-path", "/ready"},
+			wantBody: map[string]any{
+				"name":           "renamed-service",
+				"serviceDetails": map[string]any{"healthCheckPath": "/ready"},
+			},
+		},
+		{
+			name: "multiple serviceDetails fields land together",
+			args: []string{"--health-check-path", "/ready", "--plan", "starter"},
+			wantBody: map[string]any{
+				"serviceDetails": map[string]any{
+					"healthCheckPath": "/ready",
+					"plan":            "starter",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			harness := newServiceUpdateHarness(t)
+			svc := harness.addWebService("wire-service")
+
+			args := append([]string{svc.Id}, tt.args...)
+			args = append(args, "--output", "json")
+			_, err := harness.execute(args...)
+			require.NoError(t, err)
+
+			rec, ok := harness.server.LastRequest("PATCH", "/services/"+svc.Id)
+			require.True(t, ok, "expected a PATCH request to be recorded")
+			body := testrequire.ParseJSONMap(t, string(rec.Body))
+			assert.Equal(t, tt.wantBody, body)
+		})
+	}
+}
+
+func TestServiceUpdate_TypeIncompatibleFlag_FailsBeforePatch(t *testing.T) {
+	harness := newServiceUpdateHarness(t)
+	svc := harness.addWebService("web-service")
+
+	// --cron-schedule is rejected only by ValidateForServiceType, which runs
+	// against the fetched service type. The command must fail before writing.
+	_, err := harness.execute(svc.Id, "--cron-schedule", "0 12 * * *", "--output", "json")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--cron-schedule is not supported for web_service")
+	assert.False(t, harness.server.HasRequest("PATCH", "/services/"+svc.Id))
+}
+
+func TestServiceUpdate_DefaultTextOutput(t *testing.T) {
+	harness := newServiceUpdateHarness(t)
+	svc := harness.addWebService("text-service")
+
+	result, err := harness.execute(svc.Id, "--name", "text-service-renamed")
+	require.NoError(t, err)
+
+	assert.True(t, harness.server.HasRequest("PATCH", "/services/"+svc.Id))
+	assert.Contains(t, result.Stdout, "Updated this service")
+	assert.Contains(t, result.Stdout, "text-service-renamed")
+}
+
+func TestServiceUpdate_ServiceDetailsPatchReachesAPI(t *testing.T) {
+	harness := newServiceUpdateHarness(t)
+	svc := harness.addWebService("plan-service")
+
+	// --plan flows into the ServiceDetails union; this exercises that the union
+	// serializes and is accepted end-to-end (the fake decodes the PATCH body).
+	_, err := harness.execute(svc.Id, "--plan", "starter", "--output", "json")
+	require.NoError(t, err)
+
+	assert.True(t, harness.server.HasRequest("PATCH", "/services/"+svc.Id))
+}
+
+func TestServiceUpdate_UnknownService_FailsToResolveBeforePatch(t *testing.T) {
+	harness := newServiceUpdateHarness(t)
+
+	// No service is seeded, so resolving the name finds nothing. The command
+	// must surface a resolve error and never attempt a PATCH.
+	_, err := harness.execute("does-not-exist", "--name", "renamed", "--output", "json")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `failed to resolve service "does-not-exist"`)
+	assert.False(t, harness.server.HasRequest("PATCH", "/services/"))
+}
+
+func TestServiceUpdate_APIError_SurfacesWithoutWriting(t *testing.T) {
+	harness := newServiceUpdateHarness(t)
+	svc := harness.addWebService("api-error-service")
+
+	// The fake drains its error queue FIFO across all service requests, so a
+	// single queued error lands on the first GET the command issues to resolve
+	// and load the service — before any PATCH. This asserts the command
+	// propagates an unexpected API error instead of swallowing it, and does not
+	// write when a pre-PATCH step fails.
+	harness.server.Services.RespondWith(http.StatusInternalServerError)
+
+	_, err := harness.execute(svc.Id, "--name", "renamed", "--output", "json")
+	require.Error(t, err)
+	assert.False(t, harness.server.HasRequest("PATCH", "/services/"+svc.Id))
 }

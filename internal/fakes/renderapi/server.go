@@ -1,8 +1,10 @@
 package renderapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -52,6 +54,9 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 type RecordedRequest struct {
 	Method string
 	URI    string
+	// Body is the raw request body bytes, captured before the route handler
+	// decodes them. Nil when the request had no body.
+	Body []byte
 }
 
 // Resource is a generic in-memory store for any fake API resource type.
@@ -281,7 +286,7 @@ type Server struct {
 	Environments *Resource[*client.Environment]
 	KV           *KVResource
 	Postgres     *PostgresResource
-	Services *ServiceResource
+	Services     *ServiceResource
 }
 
 // ownerByID returns the Owner with the given ID from the seeded owners. The
@@ -317,6 +322,20 @@ func (s *Server) HasRequest(method, uriSubstring string) bool {
 	return false
 }
 
+// LastRequest returns the most recent recorded request matching the given
+// method and URI substring, and whether one was found. Returning the last match
+// is robust when a command issues several requests (e.g. GETs to resolve a
+// service before the PATCH).
+func (s *Server) LastRequest(method, uriSubstring string) (RecordedRequest, bool) {
+	for i := len(s.Requests) - 1; i >= 0; i-- {
+		r := s.Requests[i]
+		if r.Method == method && strings.Contains(r.URI, uriSubstring) {
+			return r, true
+		}
+	}
+	return RecordedRequest{}, false
+}
+
 // HasDeleteRequest returns true if any recorded request used the DELETE method.
 func (s *Server) HasDeleteRequest() bool {
 	for _, r := range s.Requests {
@@ -344,7 +363,15 @@ func NewServer(t *testing.T) *Server {
 	mux := http.NewServeMux()
 
 	record := func(r *http.Request) {
-		s.Requests = append(s.Requests, RecordedRequest{Method: r.Method, URI: r.URL.RequestURI()})
+		rec := RecordedRequest{Method: r.Method, URI: r.URL.RequestURI()}
+		if r.Body != nil {
+			if body, err := io.ReadAll(r.Body); err == nil {
+				rec.Body = body
+				// Restore the body so route handlers can still decode it.
+				r.Body = io.NopCloser(bytes.NewReader(body))
+			}
+		}
+		s.Requests = append(s.Requests, rec)
 	}
 
 	// GET /users - retrieve the authenticated user.
