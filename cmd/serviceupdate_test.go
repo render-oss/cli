@@ -113,6 +113,33 @@ func TestServiceUpdateFlagsRegistration(t *testing.T) {
 	}
 }
 
+// num-instances stays registered so the command can return a helpful
+// "use the dashboard" error rather than Cobra's generic "unknown flag", but it
+// must be hidden from help output since it is never a valid update.
+func TestServiceUpdateNumInstancesFlagIsHidden(t *testing.T) {
+	cmd := newServiceUpdateTestCmd()
+
+	flag := cmd.Flags().Lookup("num-instances")
+	require.NotNil(t, flag, "num-instances flag should still be registered")
+	assert.True(t, flag.Hidden, "num-instances flag should be hidden from help")
+}
+
+// End-to-end check: render the actual --help output and confirm num-instances
+// does not leak into it. --max-shutdown-delay is a sibling visible flag that
+// proves the help text rendered, so the absence assertion can't pass vacuously.
+func TestServiceUpdateHelpOutputOmitsNumInstances(t *testing.T) {
+	cmd := newServiceUpdateTestCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"--help"})
+
+	require.NoError(t, cmd.Execute())
+
+	help := out.String()
+	assert.Contains(t, help, "--max-shutdown-delay", "help output should have rendered visible flags")
+	assert.NotContains(t, help, "--num-instances", "num-instances should be hidden from help output")
+}
+
 func TestServiceUpdateCommandStructure(t *testing.T) {
 	cmd := newServiceUpdateTestCmd()
 

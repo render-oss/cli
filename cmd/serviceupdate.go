@@ -91,6 +91,10 @@ Provide configuration updates with flags.`,
 
 	// Instance and scaling flags
 	cmd.Flags().Int("num-instances", 0, "Number of instances")
+	// num-instances is intentionally rejected for update (see ValidateUpdate).
+	// Keep the flag registered so we can return a helpful "use the dashboard" error
+	// instead of Cobra's generic "unknown flag", but hide it from help output.
+	_ = cmd.Flags().MarkHidden("num-instances")
 	cmd.Flags().Int("max-shutdown-delay", 0, "Max shutdown delay in seconds")
 
 	// Preview and preview generation flags

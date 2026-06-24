@@ -109,13 +109,14 @@ func TestValidateUpdate(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("passes with service ID and num-instances flag", func(t *testing.T) {
+	t.Run("rejects num-instances before any service-type check", func(t *testing.T) {
 		svc := servicetypes.ServiceUpdateInput{
 			NumInstances:    pointers.From(3),
 			ServiceIDOrName: "my-service-id",
 		}
 		err := svc.ValidateUpdate()
-		require.NoError(t, err)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "--num-instances is not supported for update")
 	})
 
 	t.Run("passes with service ID and maintenance-mode flag", func(t *testing.T) {
@@ -279,12 +280,6 @@ func TestValidateForServiceType(t *testing.T) {
 			input:       servicetypes.ServiceUpdateInput{MaintenanceMode: pointers.From(true)},
 			serviceType: servicetypes.ServiceTypePrivateService,
 			errMsg:      "--maintenance-mode is not supported for private_service",
-		},
-		{
-			name:        "num-instances on any type",
-			input:       servicetypes.ServiceUpdateInput{NumInstances: pointers.From(3)},
-			serviceType: servicetypes.ServiceTypeWebService,
-			errMsg:      "--num-instances is not supported for update",
 		},
 		{
 			name:        "plan on static site",

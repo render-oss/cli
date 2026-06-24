@@ -102,6 +102,11 @@ func (s ServiceUpdateInput) ValidateUpdate() error {
 	if !s.hasUpdateFlags() {
 		return errors.New("at least one update flag must be provided")
 	}
+	if s.NumInstances != nil {
+		// GROW-2261 will add `render services scale`. Once that ships, update this
+		// message to recommend that command instead of pointing users to the dashboard.
+		return errors.New("--num-instances is not supported for update (use the dashboard to change instance count)")
+	}
 	if s.Previews != nil {
 		if _, err := ParsePreviewsGeneration(string(*s.Previews)); err != nil {
 			return err
@@ -173,9 +178,6 @@ func (s ServiceUpdateInput) ValidateForServiceType(serviceType ServiceType) erro
 		return fmt.Errorf("--%s is not supported for %s", flag, serviceType)
 	}
 
-	if s.NumInstances != nil {
-		return fmt.Errorf("--num-instances is not supported for update (use the dashboard to change instance count)")
-	}
 	if s.HealthCheckPath != nil {
 		if err := reject("health-check-path", ServiceTypeWebService); err != nil {
 			return err
