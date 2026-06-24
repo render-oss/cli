@@ -105,50 +105,7 @@ func TestBuildCreateRequest_AllFieldsSpecified(t *testing.T) {
 	assert.Equal(t, "internal", (*body.IpAllowList)[0].Description)
 	assert.Equal(t, "203.0.113.5/32", (*body.IpAllowList)[1].CidrBlock)
 	assert.Equal(t, "office", (*body.IpAllowList)[1].Description)
-}
-
-func TestBuildCreateRequest_ParameterOverrides(t *testing.T) {
-	t.Run("parses KEY=VALUE pairs and trims whitespace", func(t *testing.T) {
-		in := minimalInput()
-		in.ParameterOverrides = []string{"max_connections=100", "  shared_buffers = 256MB  "}
-		body, err := postgres.BuildCreateRequest(in)
-		require.NoError(t, err)
-		require.NotNil(t, body.ParameterOverrides)
-		assert.Equal(t, "100", (*body.ParameterOverrides)["max_connections"])
-		assert.Equal(t, "256MB", (*body.ParameterOverrides)["shared_buffers"])
-	})
-
-	t.Run("rejects when any entry is malformed", func(t *testing.T) {
-		in := minimalInput()
-		in.ParameterOverrides = []string{"max_connections=100", "noequals", "shared_buffers=256MB"}
-		_, err := postgres.BuildCreateRequest(in)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), `"noequals"`)
-	})
-
-	t.Run("rejects malformed entries", func(t *testing.T) {
-		cases := []struct {
-			name  string
-			entry string
-		}{
-			{"no equals sign", "noequals"},
-			{"empty string", ""},
-			{"missing key (=VALUE)", "=value"},
-			{"missing value (KEY=)", "max_connections="},
-			{"both sides empty (=)", "="},
-			{"whitespace-only key", "  =value"},
-			{"whitespace-only value", "max_connections=   "},
-		}
-		for _, tc := range cases {
-			t.Run(tc.name, func(t *testing.T) {
-				in := minimalInput()
-				in.ParameterOverrides = []string{tc.entry}
-				_, err := postgres.BuildCreateRequest(in)
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), "KEY=VALUE")
-			})
-		}
-	})
+	assert.Nil(t, body.ParameterOverrides)
 }
 
 func TestBuildCreateRequest_ReadReplicas(t *testing.T) {

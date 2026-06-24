@@ -76,13 +76,6 @@ mutually exclusive.`,
 	cmd.Flags().String("datadog-api-key", "", "Datadog API key for monitoring. Pass an empty string to remove.")
 	cmd.Flags().String("datadog-site", "", "Datadog region/site (e.g. US1, US3, EU)")
 
-	cmd.Flags().StringArray("parameter-override", nil,
-		"Override a Postgres server parameter. Repeat the flag for multiple entries.\n"+
-			"Format: KEY=VALUE\n"+
-			"Example: --parameter-override max_connections=100\n\n"+
-			"Entries not mentioned in the flag are preserved (upsert semantics — keys\n"+
-			"you supply are added or updated; all other existing overrides are kept).\n"+
-			"To remove an individual override, use the Render dashboard.")
 	cmd.Flags().StringArray("ip-allow-list", nil,
 		"Replace the IP allow-list with the supplied entries. Repeat the flag for multiple entries.\n"+
 			"Format: cidr=<range>,description=<label>")

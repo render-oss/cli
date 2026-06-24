@@ -133,6 +133,17 @@ func TestPostgresDetail_IPAllowList(t *testing.T) {
 	})
 }
 
+func TestPostgresDetail_OmitsParameterOverrides(t *testing.T) {
+	overrides := client.PostgresParameterOverrides{"max_connections": "200"}
+	pg := basicPostgres()
+	pg.ParameterOverrides = &overrides
+
+	pgOut := basicPostgresOut(pg)
+
+	assert.NotContains(t, text.PostgresDetail(&pgOut), "Parameter overrides:")
+	assert.NotContains(t, text.PostgresDetail(&pgOut), "max_connections")
+}
+
 func TestPostgresTable(t *testing.T) {
 	list := postgres.NewPostgresListOut([]*postgres.Model{{
 		Postgres: &client.Postgres{
@@ -213,13 +224,13 @@ func TestPostgresUpdateDiff(t *testing.T) {
 		testassert.ContainsInOrder(t, out, "IP allow-list:", "(empty) → 1 entry")
 	})
 
-	t.Run("parameter overrides change", func(t *testing.T) {
+	t.Run("parameter overrides change is hidden", func(t *testing.T) {
 		before := basicPostgres()
 		after := basicPostgres()
 		after.ParameterOverrides = &client.PostgresParameterOverrides{"max_connections": "200"}
 
 		out := text.PostgresUpdateDiff(postgresUpdateDiff(before, after))
-		testassert.ContainsInOrder(t, out, "Parameter overrides:", "updated")
+		assert.Empty(t, out)
 	})
 
 	t.Run("multiple changed fields", func(t *testing.T) {

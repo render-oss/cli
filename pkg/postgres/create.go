@@ -25,22 +25,21 @@ const DefaultPostgresVersion = 18
 // All client-side defaults have been applied and the scope has been resolved to an owner
 // ID + optional environment ID by the time this struct is constructed.
 type CreateRequestInput struct {
-	Name               string
-	OwnerID            string
-	Plan               string
-	Version            int
-	Region             *string
-	EnvironmentID      *string
-	DatabaseName       *string
-	DatabaseUser       *string
-	HighAvailability   *bool
-	DiskSizeGB         *int
-	DiskAutoscaling    *bool
-	DatadogAPIKey      *string
-	DatadogSite        *string
-	IPAllowList        []string
-	ParameterOverrides []string
-	ReadReplicas       []string
+	Name             string
+	OwnerID          string
+	Plan             string
+	Version          int
+	Region           *string
+	EnvironmentID    *string
+	DatabaseName     *string
+	DatabaseUser     *string
+	HighAvailability *bool
+	DiskSizeGB       *int
+	DiskAutoscaling  *bool
+	DatadogAPIKey    *string
+	DatadogSite      *string
+	IPAllowList      []string
+	ReadReplicas     []string
 }
 
 // buildRequestInput applies defaults to CLI input and produces the resolved
@@ -59,22 +58,21 @@ func buildRequestInput(in pgtypes.CreatePostgresInput, ownerID string, environme
 		version = *in.Version
 	}
 	return CreateRequestInput{
-		Name:               name,
-		OwnerID:            ownerID,
-		Plan:               plan,
-		Version:            version,
-		Region:             in.Region,
-		EnvironmentID:      environmentID,
-		DatabaseName:       in.DatabaseName,
-		DatabaseUser:       in.DatabaseUser,
-		HighAvailability:   in.HighAvailability,
-		DiskSizeGB:         in.DiskSizeGB,
-		DiskAutoscaling:    in.DiskAutoscaling,
-		DatadogAPIKey:      in.DatadogAPIKey,
-		DatadogSite:        in.DatadogSite,
-		IPAllowList:        in.IPAllowList,
-		ParameterOverrides: in.ParameterOverrides,
-		ReadReplicas:       in.ReadReplicas,
+		Name:             name,
+		OwnerID:          ownerID,
+		Plan:             plan,
+		Version:          version,
+		Region:           in.Region,
+		EnvironmentID:    environmentID,
+		DatabaseName:     in.DatabaseName,
+		DatabaseUser:     in.DatabaseUser,
+		HighAvailability: in.HighAvailability,
+		DiskSizeGB:       in.DiskSizeGB,
+		DiskAutoscaling:  in.DiskAutoscaling,
+		DatadogAPIKey:    in.DatadogAPIKey,
+		DatadogSite:      in.DatadogSite,
+		IPAllowList:      in.IPAllowList,
+		ReadReplicas:     in.ReadReplicas,
 	}
 }
 
@@ -98,11 +96,6 @@ func BuildCreateRequest(input CreateRequestInput) (client.CreatePostgresJSONRequ
 		return client.CreatePostgresJSONRequestBody{}, err
 	}
 
-	paramOverrides, err := buildParameterOverrides(input.ParameterOverrides)
-	if err != nil {
-		return client.CreatePostgresJSONRequestBody{}, err
-	}
-
 	body := client.CreatePostgresJSONRequestBody{
 		Name:                   input.Name,
 		OwnerId:                input.OwnerID,
@@ -116,7 +109,6 @@ func BuildCreateRequest(input CreateRequestInput) (client.CreatePostgresJSONRequ
 		EnableDiskAutoscaling:  input.DiskAutoscaling,
 		EnableHighAvailability: input.HighAvailability,
 		EnvironmentId:          input.EnvironmentID,
-		ParameterOverrides:     paramOverrides,
 		ReadReplicas:           buildReadReplicas(input.ReadReplicas),
 	}
 

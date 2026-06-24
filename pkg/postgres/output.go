@@ -1,8 +1,6 @@
 package postgres
 
 import (
-	"reflect"
-
 	"github.com/render-oss/cli/internal/ipallowlist"
 	"github.com/render-oss/cli/pkg/client"
 	pgclient "github.com/render-oss/cli/pkg/client/postgres"
@@ -64,13 +62,12 @@ type PostgresUpdateOut struct {
 }
 
 type PostgresUpdateDiff struct {
-	Name                    *PostgresFieldDiff[string]                             `json:"name,omitempty"`
-	Plan                    *PostgresFieldDiff[pgclient.PostgresPlans]             `json:"plan,omitempty"`
-	DiskSizeGB              *PostgresFieldDiff[*int]                               `json:"diskSizeGB,omitempty"`
-	DiskAutoscalingEnabled  *PostgresFieldDiff[bool]                               `json:"diskAutoscalingEnabled,omitempty"`
-	HighAvailabilityEnabled *PostgresFieldDiff[bool]                               `json:"highAvailabilityEnabled,omitempty"`
-	IPAllowList             *PostgresFieldDiff[[]client.CidrBlockAndDescription]   `json:"ipAllowList,omitempty"`
-	ParameterOverrides      *PostgresFieldDiff[*client.PostgresParameterOverrides] `json:"parameterOverrides,omitempty"`
+	Name                    *PostgresFieldDiff[string]                           `json:"name,omitempty"`
+	Plan                    *PostgresFieldDiff[pgclient.PostgresPlans]           `json:"plan,omitempty"`
+	DiskSizeGB              *PostgresFieldDiff[*int]                             `json:"diskSizeGB,omitempty"`
+	DiskAutoscalingEnabled  *PostgresFieldDiff[bool]                             `json:"diskAutoscalingEnabled,omitempty"`
+	HighAvailabilityEnabled *PostgresFieldDiff[bool]                             `json:"highAvailabilityEnabled,omitempty"`
+	IPAllowList             *PostgresFieldDiff[[]client.CidrBlockAndDescription] `json:"ipAllowList,omitempty"`
 }
 
 type PostgresFieldDiff[T any] struct {
@@ -160,14 +157,6 @@ func newPostgresUpdateDiff(before *client.PostgresDetail, after *PostgresOut) Po
 	if !ipallowlist.Equal(before.IpAllowList, after.IpAllowList) {
 		diff.IPAllowList = newPostgresFieldDiff(before.IpAllowList, after.IpAllowList)
 	}
-	beforeOverrides := normalizePostgresParameterOverrides(before.ParameterOverrides)
-	afterOverrides := normalizePostgresParameterOverrides(after.ParameterOverrides)
-	if !reflect.DeepEqual(beforeOverrides, afterOverrides) {
-		diff.ParameterOverrides = newPostgresFieldDiff(
-			beforeOverrides,
-			afterOverrides,
-		)
-	}
 	return diff
 }
 
@@ -194,9 +183,10 @@ func finalizePostgresOut(out *PostgresOut, project *client.Project, env *client.
 	if out.ReadReplicas == nil {
 		out.ReadReplicas = client.ReadReplicas{}
 	}
-	if out.ParameterOverrides != nil && len(*out.ParameterOverrides) == 0 {
-		out.ParameterOverrides = nil
-	}
+	// Parameter overrides are still early in rollout, so keep them out of
+	// CLI-facing output even when the API/client type carries populated values.
+	out.ParameterOverrides = nil
+	hideReadReplicaParameterOverrides(out.ReadReplicas)
 	if env != nil {
 		out.EnvironmentId = &env.Id
 		out.EnvironmentName = env.Name
@@ -214,6 +204,7 @@ func finalizePostgresListItemOut(out *PostgresListItemOut, project *client.Proje
 	if out.ReadReplicas == nil {
 		out.ReadReplicas = client.ReadReplicas{}
 	}
+	hideReadReplicaParameterOverrides(out.ReadReplicas)
 	if env != nil {
 		out.EnvironmentId = &env.Id
 		out.EnvironmentName = env.Name
@@ -231,9 +222,10 @@ func newPostgresFieldDiff[T any](before, after T) *PostgresFieldDiff[T] {
 	}
 }
 
-func normalizePostgresParameterOverrides(overrides *client.PostgresParameterOverrides) *client.PostgresParameterOverrides {
-	if overrides == nil || len(*overrides) == 0 {
-		return nil
+func hideReadReplicaParameterOverrides(replicas client.ReadReplicas) {
+	// Read replicas share the same early-rollout parameter override field, so
+	// omit it from list/detail output until the feature is generally available.
+	for i := range replicas {
+		replicas[i].ParameterOverrides = nil
 	}
-	return overrides
 }

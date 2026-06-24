@@ -51,7 +51,6 @@ func TestPGCreate_AllFlags(t *testing.T) {
 		"--datadog-api-key", "dd-key",
 		"--datadog-site", "US3",
 		"--ip-allow-list", "cidr=10.0.0.0/8,description=internal",
-		"--parameter-override", "max_connections=111",
 		"--read-replica", "analytics-replica-1",
 		"--output", "text",
 	)
@@ -74,8 +73,7 @@ func TestPGCreate_AllFlags(t *testing.T) {
 	assert.Equal(t, "internal", pg.IpAllowList[0].Description)
 	require.Len(t, pg.ReadReplicas, 1)
 	assert.Equal(t, "analytics-replica-1", pg.ReadReplicas[0].Name)
-	require.NotNil(t, pg.ParameterOverrides)
-	assert.Equal(t, "111", (*pg.ParameterOverrides)["max_connections"])
+	assert.Nil(t, pg.ParameterOverrides)
 	assert.Contains(t, result.Stdout, "analytics")
 	assert.Contains(t, result.Stdout, "Read replicas:")
 }
@@ -144,15 +142,15 @@ func TestPGCreate_PostgresAlias(t *testing.T) {
 	assert.Equal(t, "alias-pg", server.Postgres.Instances[0].Name)
 }
 
-func TestPGCreate_InvalidParameterOverride(t *testing.T) {
+func TestPGCreate_ParameterOverrideFlagIsUnknown(t *testing.T) {
 	server := renderapi.NewServer(t)
 	result, err := executePGCreate(t, server,
-		"--parameter-override", "noequals",
+		"--parameter-override", "max_connections=111",
 		"--output", "text",
 	)
 	require.Error(t, err)
 
-	assert.Contains(t, result.Stderr, "expected KEY=VALUE format")
+	assert.Contains(t, result.Stderr, "unknown flag: --parameter-override")
 	assert.Empty(t, server.Postgres.Instances)
 }
 

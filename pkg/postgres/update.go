@@ -25,7 +25,7 @@ type UpdateResult struct {
 //
 // Callers are responsible for validating the input first via
 // UpdatePostgresInput.Validate; BuildUpdateRequest will still surface a CIDR
-// parse error or parameter-override parse error for defense in depth.
+// parse error for defense in depth.
 func BuildUpdateRequest(input pgtypes.UpdatePostgresInput) (client.UpdatePostgresJSONRequestBody, error) {
 	body := client.UpdatePostgresJSONRequestBody{}
 
@@ -56,16 +56,6 @@ func BuildUpdateRequest(input pgtypes.UpdatePostgresInput) (client.UpdatePostgre
 
 	if input.DatadogSite != nil {
 		body.DatadogSite = input.DatadogSite
-	}
-
-	// No --clear-parameter-overrides flag yet: clearing sends an empty map and
-	// can restart the database, so it warrants its own deliberate follow-up.
-	paramOverrides, err := buildParameterOverrides(input.ParameterOverrides)
-	if err != nil {
-		return client.UpdatePostgresJSONRequestBody{}, err
-	}
-	if paramOverrides != nil {
-		body.ParameterOverrides = paramOverrides
 	}
 
 	if len(input.IPAllowList) > 0 {

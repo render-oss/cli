@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	postgrestypes "github.com/render-oss/cli/pkg/types/postgres"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,19 +16,6 @@ func TestCreatePostgresInputValidate(t *testing.T) {
 		require.NoError(t, postgrestypes.CreatePostgresInput{}.Validate(false))
 	})
 
-	t.Run("rejects malformed parameter override", func(t *testing.T) {
-		err := postgrestypes.CreatePostgresInput{
-			ParameterOverrides: []string{"noequals"},
-		}.Validate(false)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "expected KEY=VALUE format")
-	})
-
-	t.Run("accepts valid parameter overrides", func(t *testing.T) {
-		require.NoError(t, postgrestypes.CreatePostgresInput{
-			ParameterOverrides: []string{"max_connections=100", "shared_buffers=256MB"},
-		}.Validate(false))
-	})
 }
 
 func TestValidateDiskSizeGB(t *testing.T) {

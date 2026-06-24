@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/render-oss/cli/pkg/types"
 )
@@ -20,16 +19,15 @@ type UpdatePostgresInput struct {
 	ProjectIDOrName     *string `cli:"project"`
 	EnvironmentIDOrName *string `cli:"environment"`
 
-	Name               *string  `cli:"name"`
-	Plan               *string  `cli:"plan"`
-	HighAvailability   *bool    `cli:"high-availability"`
-	DiskSizeGB         *int     `cli:"disk-size-gb"`
-	DiskAutoscaling    *bool    `cli:"disk-autoscaling"`
-	DatadogAPIKey      *string  `cli:"datadog-api-key"`
-	DatadogSite        *string  `cli:"datadog-site"`
-	ParameterOverrides []string `cli:"parameter-override"`
-	IPAllowList        []string `cli:"ip-allow-list"`
-	ClearIPAllowList   bool     `cli:"clear-ip-allow-list"`
+	Name             *string  `cli:"name"`
+	Plan             *string  `cli:"plan"`
+	HighAvailability *bool    `cli:"high-availability"`
+	DiskSizeGB       *int     `cli:"disk-size-gb"`
+	DiskAutoscaling  *bool    `cli:"disk-autoscaling"`
+	DatadogAPIKey    *string  `cli:"datadog-api-key"`
+	DatadogSite      *string  `cli:"datadog-site"`
+	IPAllowList      []string `cli:"ip-allow-list"`
+	ClearIPAllowList bool     `cli:"clear-ip-allow-list"`
 }
 
 func (u UpdatePostgresInput) Validate(interactive bool) error {
@@ -44,7 +42,6 @@ func (u UpdatePostgresInput) Validate(interactive bool) error {
 		u.DiskAutoscaling != nil ||
 		u.DatadogAPIKey != nil ||
 		u.DatadogSite != nil ||
-		len(u.ParameterOverrides) > 0 ||
 		len(u.IPAllowList) > 0 ||
 		u.ClearIPAllowList
 	if !hasMutation {
@@ -64,10 +61,5 @@ func (u UpdatePostgresInput) Validate(interactive bool) error {
 		}
 	}
 
-	for _, po := range u.ParameterOverrides {
-		if _, _, ok := strings.Cut(po, "="); !ok {
-			return fmt.Errorf("invalid --parameter-override %q: expected KEY=VALUE format", po)
-		}
-	}
 	return nil
 }

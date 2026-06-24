@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/render-oss/cli/pkg/types"
 )
@@ -28,7 +27,6 @@ type CreatePostgresInput struct {
 	DatadogAPIKey       *string  `cli:"datadog-api-key"`
 	DatadogSite         *string  `cli:"datadog-site"`
 	IPAllowList         []string `cli:"ip-allow-list"`
-	ParameterOverrides  []string `cli:"parameter-override"`
 	ReadReplicas        []string `cli:"read-replica"`
 }
 
@@ -39,11 +37,6 @@ func (c CreatePostgresInput) Validate(interactive bool) error {
 	for _, entry := range c.IPAllowList {
 		if _, _, err := types.ParseIPAllowListEntry(entry); err != nil {
 			return err
-		}
-	}
-	for _, po := range c.ParameterOverrides {
-		if _, _, ok := strings.Cut(po, "="); !ok {
-			return fmt.Errorf("invalid --parameter-override %q: expected KEY=VALUE format", po)
 		}
 	}
 	return nil

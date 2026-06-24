@@ -63,29 +63,6 @@ func TestBuildUpdateRequest_ClearIPAllowList(t *testing.T) {
 	assert.Empty(t, *body.IpAllowList)
 }
 
-func TestBuildUpdateRequest_ParameterOverrides(t *testing.T) {
-	input := pgtypes.UpdatePostgresInput{
-		IDOrName:           "my-db",
-		ParameterOverrides: []string{"max_connections=100", "shared_buffers=256MB"},
-	}
-	body, err := postgres.BuildUpdateRequest(input)
-	require.NoError(t, err)
-
-	require.NotNil(t, body.ParameterOverrides)
-	assert.Equal(t, "100", (*body.ParameterOverrides)["max_connections"])
-	assert.Equal(t, "256MB", (*body.ParameterOverrides)["shared_buffers"])
-}
-
-func TestBuildUpdateRequest_MalformedParameterOverride_ReturnsError(t *testing.T) {
-	input := pgtypes.UpdatePostgresInput{
-		IDOrName:           "my-db",
-		ParameterOverrides: []string{"noequals"},
-	}
-	_, err := postgres.BuildUpdateRequest(input)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "KEY=VALUE")
-}
-
 func TestBuildUpdateRequest_MalformedIPAllowList_ReturnsError(t *testing.T) {
 	input := pgtypes.UpdatePostgresInput{
 		IDOrName:    "my-db",
@@ -120,4 +97,5 @@ func TestBuildUpdateRequest_AllScalarFields(t *testing.T) {
 	assert.Equal(t, pointers.From(true), body.EnableHighAvailability)
 	assert.Equal(t, pointers.From("dd-key"), body.DatadogAPIKey)
 	assert.Equal(t, pointers.From("US3"), body.DatadogSite)
+	assert.Nil(t, body.ParameterOverrides)
 }

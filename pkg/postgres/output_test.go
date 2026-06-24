@@ -53,6 +53,7 @@ func TestNewPostgresListOut_ConstructsItems(t *testing.T) {
 
 	expectedPostgres := *pg
 	expectedPostgres.IpAllowList = []client.CidrBlockAndDescription{}
+	expectedPostgres.ReadReplicas[0].ParameterOverrides = nil
 	assert.Equal(t, expectedPostgres, out.Data[0].Postgres)
 	assert.Equal(t, pointers.From("prj-prod"), out.Data[0].ProjectID)
 	assert.Equal(t, "Production Project", out.Data[0].ProjectName)
@@ -132,13 +133,12 @@ func TestNewPostgresGetOut_JSONSerialization(t *testing.T) {
 		"diskAutoscalingEnabled":  true,
 		"highAvailabilityEnabled": true,
 		"ipAllowList":             []any{map[string]any{"cidrBlock": "203.0.113.5/32", "description": "office"}},
-		"readReplicas":            []any{map[string]any{"id": "dpg-replica", "name": "analytics-replica", "parameterOverrides": map[string]any{"work_mem": "64MB"}}},
+		"readReplicas":            []any{map[string]any{"id": "dpg-replica", "name": "analytics-replica"}},
 		"primaryPostgresID":       "dpg-primary",
 		"role":                    "primary",
 		"suspended":               "not_suspended",
 		"suspenders":              []any{},
 		"dashboardUrl":            "https://dashboard.render.com/d/dpg-detail",
-		"parameterOverrides":      map[string]any{"max_connections": "100"},
 		"connectionInfo": map[string]any{
 			"psqlCommand":              "psql postgres://example",
 			"internalConnectionString": "postgres://internal",
@@ -300,11 +300,9 @@ func TestNewPostgresUpdateOut(t *testing.T) {
 			"before": []any{map[string]any{"cidrBlock": "203.0.113.5/32", "description": "office"}},
 			"after":  []any{},
 		},
-		"parameterOverrides": map[string]any{
-			"before": map[string]any{"max_connections": "100"},
-			"after":  map[string]any{"max_connections": "200"},
-		},
 	}, diff)
+	assert.NotContains(t, body, "parameterOverrides")
+	assert.NotContains(t, testrequire.SubMap(t, body, "data"), "parameterOverrides")
 }
 
 func marshalJSONMap(t *testing.T, v any) map[string]any {

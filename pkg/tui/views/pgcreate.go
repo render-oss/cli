@@ -583,14 +583,13 @@ func (m *PostgresCreateModel) createRequestInput() postgres.CreateRequestInput {
 		HighAvailability: &haVal,
 		DiskAutoscaling:  &diskAutoVal,
 		// Flag-only fields carried through from the original parsed input.
-		DiskSizeGB:         m.flagInput.DiskSizeGB,
-		DatabaseName:       m.flagInput.DatabaseName,
-		DatabaseUser:       m.flagInput.DatabaseUser,
-		DatadogAPIKey:      m.flagInput.DatadogAPIKey,
-		DatadogSite:        m.flagInput.DatadogSite,
-		IPAllowList:        m.flagInput.IPAllowList,
-		ParameterOverrides: m.flagInput.ParameterOverrides,
-		ReadReplicas:       m.flagInput.ReadReplicas,
+		DiskSizeGB:    m.flagInput.DiskSizeGB,
+		DatabaseName:  m.flagInput.DatabaseName,
+		DatabaseUser:  m.flagInput.DatabaseUser,
+		DatadogAPIKey: m.flagInput.DatadogAPIKey,
+		DatadogSite:   m.flagInput.DatadogSite,
+		IPAllowList:   m.flagInput.IPAllowList,
+		ReadReplicas:  m.flagInput.ReadReplicas,
 	}
 }
 

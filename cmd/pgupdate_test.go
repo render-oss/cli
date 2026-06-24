@@ -205,35 +205,13 @@ func TestPGUpdate_NoMutationFields_Errors(t *testing.T) {
 	assert.Contains(t, err.Error(), "at least one field")
 }
 
-func TestPGUpdate_ParameterOverrideUpsert(t *testing.T) {
-	harness := newPGUpdateHarness(t)
-	existing := client.PostgresParameterOverrides{"work_mem": "64MB", "max_connections": "100"}
-	pg := harness.server.Postgres.Add(renderapi.NewPostgres(client.PostgresDetail{
-		Name:               "param-db",
-		Owner:              client.Owner{Id: pgActiveWorkspaceID},
-		ParameterOverrides: &existing,
-	}))
-
-	_, err := harness.execute(pg.Id,
-		"--parameter-override", "max_connections=200",
-		"--parameter-override", "lock_timeout=5000",
-		"--output", "text")
-	require.NoError(t, err)
-
-	require.NotNil(t, pg.ParameterOverrides)
-	overrides := *pg.ParameterOverrides
-	assert.Equal(t, "200", overrides["max_connections"], "supplied key should be updated")
-	assert.Equal(t, "5000", overrides["lock_timeout"], "new key should be added")
-	assert.Equal(t, "64MB", overrides["work_mem"], "unsupplied key should be preserved")
-}
-
-func TestPGUpdate_BadParameterOverride_Errors(t *testing.T) {
+func TestPGUpdate_ParameterOverrideFlagIsUnknown(t *testing.T) {
 	harness := newPGUpdateHarness(t)
 	pg := seedPG(harness.server, "my-db")
 
-	_, err := harness.execute(pg.Id, "--parameter-override", "noequals", "--output", "text")
+	result, err := harness.execute(pg.Id, "--parameter-override", "max_connections=111", "--output", "text")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "expected KEY=VALUE format")
+	assert.Contains(t, result.Stderr, "unknown flag: --parameter-override")
 }
 
 func TestPGUpdate_BothIPAllowListAndClearFlags_Errors(t *testing.T) {

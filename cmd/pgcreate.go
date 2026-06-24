@@ -25,9 +25,8 @@ func newPgCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 
 In interactive mode, a wizard guides you through the core choices for the
 database. The wizard owns those prompted values. Flag-only settings, such as
---disk-size-gb, --database-name, --database-user, --ip-allow-list,
---parameter-override, and --read-replica, are still included in the create
-request.
+--disk-size-gb, --database-name, --database-user, --ip-allow-list, and --read-replica,
+are still included in the create request.
 
 Use --confirm to skip the wizard and create immediately from flags and defaults.
 When --confirm is used with the default interactive output mode, output is
@@ -76,10 +75,6 @@ Examples:
 	cmd.Flags().StringArray("ip-allow-list", nil,
 		"Restrict inbound traffic to specific IP ranges. Repeat the flag for multiple entries.\n"+
 			"Format: cidr=<range>,description=<label>")
-	cmd.Flags().StringArray("parameter-override", nil,
-		"Override a Postgres server parameter. Repeat the flag for multiple entries.\n"+
-			"Format: KEY=VALUE\n"+
-			"Example: --parameter-override max_connections=100")
 	cmd.Flags().StringArray("read-replica", nil,
 		"Name of a read replica to create alongside the primary. Repeat the flag for multiple replicas.")
 

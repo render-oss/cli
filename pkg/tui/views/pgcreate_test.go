@@ -38,14 +38,13 @@ func TestPostgresCreateRequestInputPreservesFlagOnlyFields(t *testing.T) {
 	datadogAPIKey := "dd-key"
 	datadogSite := "US3"
 	m := NewPostgresCreateModel(context.Background(), PostgresCreateRepos{}, pgtypes.CreatePostgresInput{
-		DiskSizeGB:         &diskSize,
-		DatabaseName:       &databaseName,
-		DatabaseUser:       &databaseUser,
-		DatadogAPIKey:      &datadogAPIKey,
-		DatadogSite:        &datadogSite,
-		IPAllowList:        []string{"cidr=10.0.0.0/8,description=internal"},
-		ParameterOverrides: []string{"max_connections=111"},
-		ReadReplicas:       []string{"analytics-replica-1"},
+		DiskSizeGB:    &diskSize,
+		DatabaseName:  &databaseName,
+		DatabaseUser:  &databaseUser,
+		DatadogAPIKey: &datadogAPIKey,
+		DatadogSite:   &datadogSite,
+		IPAllowList:   []string{"cidr=10.0.0.0/8,description=internal"},
+		ReadReplicas:  []string{"analytics-replica-1"},
 	})
 	m.draft = pgCreateDraft{
 		workspaceID: "tea-123",
@@ -63,7 +62,6 @@ func TestPostgresCreateRequestInputPreservesFlagOnlyFields(t *testing.T) {
 	assert.Equal(t, &datadogAPIKey, reqInput.DatadogAPIKey)
 	assert.Equal(t, &datadogSite, reqInput.DatadogSite)
 	assert.Equal(t, []string{"cidr=10.0.0.0/8,description=internal"}, reqInput.IPAllowList)
-	assert.Equal(t, []string{"max_connections=111"}, reqInput.ParameterOverrides)
 	assert.Equal(t, []string{"analytics-replica-1"}, reqInput.ReadReplicas)
 }
 

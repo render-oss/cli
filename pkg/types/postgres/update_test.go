@@ -49,25 +49,6 @@ func TestUpdatePostgresInputValidate(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("rejects malformed parameter override", func(t *testing.T) {
-		input := postgrestypes.UpdatePostgresInput{
-			IDOrName:           "dpg-xxx",
-			ParameterOverrides: []string{"noequals"},
-		}
-		err := input.Validate(false)
-		assert.ErrorContains(t, err, "invalid --parameter-override")
-		assert.ErrorContains(t, err, "expected KEY=VALUE format")
-	})
-
-	t.Run("accepts valid parameter override", func(t *testing.T) {
-		input := postgrestypes.UpdatePostgresInput{
-			IDOrName:           "dpg-xxx",
-			ParameterOverrides: []string{"max_connections=100"},
-		}
-		err := input.Validate(false)
-		require.NoError(t, err)
-	})
-
 	t.Run("rejects ip-allow-list and clear-ip-allow-list together", func(t *testing.T) {
 		input := postgrestypes.UpdatePostgresInput{
 			IDOrName:         "dpg-xxx",

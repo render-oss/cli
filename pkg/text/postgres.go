@@ -2,8 +2,6 @@ package text
 
 import (
 	"fmt"
-	"maps"
-	"slices"
 	"strings"
 
 	"github.com/jedib0t/go-pretty/table"
@@ -59,15 +57,6 @@ func PostgresDetail(pg *postgres.PostgresOut) string {
 		lines = append(lines, block)
 	}
 	lines = append(lines, ipAllowListBlock(pg.IpAllowList))
-	if pg.ParameterOverrides != nil && len(*pg.ParameterOverrides) > 0 {
-		keys := slices.Sorted(maps.Keys(*pg.ParameterOverrides))
-		var b strings.Builder
-		b.WriteString("Parameter overrides:")
-		for _, k := range keys {
-			fmt.Fprintf(&b, "\n  %s: %s", k, (*pg.ParameterOverrides)[k])
-		}
-		lines = append(lines, b.String())
-	}
 	return strings.Join(lines, "\n")
 }
 
@@ -145,11 +134,5 @@ func PostgresUpdateDiff(diff postgres.PostgresUpdateDiff) string {
 	if diff.IPAllowList != nil {
 		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "IP allow-list:", ipAllowListLabel(diff.IPAllowList.Before), ipAllowListLabel(diff.IPAllowList.After)))
 	}
-	// ParameterOverrides is a map; rather than a noisy per-key diff we flag that
-	// it changed. The full new state is shown in the PostgresDetail block below.
-	if diff.ParameterOverrides != nil {
-		lines = append(lines, fmt.Sprintf("  %-20s %s", "Parameter overrides:", "updated"))
-	}
-
 	return strings.Join(lines, "\n")
 }
