@@ -2,7 +2,10 @@ package sandbox
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/render-oss/cli/pkg/client"
 	sandboxclient "github.com/render-oss/cli/pkg/client/sandboxes"
@@ -86,29 +89,62 @@ func (r *Repo) GetSandbox(ctx context.Context, id string) (*sandboxclient.Sandbo
 	return resp.JSON200, nil
 }
 
-func (r *Repo) ExecSandbox(ctx context.Context, id string, command string) (*sandboxclient.SandboxExecSyncResponse, error) {
+func (r *Repo) ExecSandboxStream(ctx context.Context, id string, command string, onOutput func(*ExecOutputEvent) error) (int, error) {
 	workspace, err := config.WorkspaceID()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	resp, err := r.client.ExecSandboxSyncWithResponse(ctx, id,
+	resp, err := r.client.ExecSandboxSync(ctx, id,
 		&client.ExecSandboxSyncParams{OwnerId: workspace},
 		client.ExecSandboxSyncJSONRequestBody{Command: command},
+		func(_ context.Context, req *http.Request) error {
+			req.Header.Set("Accept", "text/event-stream")
+			return nil
+		},
 	)
 	if err != nil {
-		return nil, err
+		return 0, err
+	}
+	if resp == nil || resp.Body == nil {
+		return 0, fmt.Errorf("exec sandbox stream: success response missing body")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return 0, errFromStreamResponse(resp)
 	}
 
-	if err := client.ErrorFromResponse(resp); err != nil {
-		return nil, err
+	return readSandboxExecStream(resp.Body, onOutput)
+}
+
+// errFromStreamResponse parses an error out of a raw streaming response body.
+// client.ErrorFromResponse reflects over the generated *WithResponse structs and
+// can't be used on the raw *http.Response returned by ExecSandboxSync, so this
+// mirrors its behavior: map the standard auth codes to shared sentinels and
+// surface the API's structured error message where present.
+func errFromStreamResponse(resp *http.Response) error {
+	if resp.StatusCode == http.StatusUnauthorized {
+		return client.ErrUnauthorized
+	}
+	if resp.StatusCode == http.StatusForbidden {
+		return client.ErrForbidden
 	}
 
-	if resp.JSON200 == nil {
-		return nil, fmt.Errorf("exec sandbox: success response missing body")
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("received response code %d", resp.StatusCode)
 	}
 
-	return resp.JSON200, nil
+	var apiErr client.Error
+	if err := json.Unmarshal(body, &apiErr); err == nil && apiErr.Message != nil && *apiErr.Message != "" {
+		return fmt.Errorf("received response code %d: %s", resp.StatusCode, *apiErr.Message)
+	}
+
+	if len(body) > 0 {
+		return fmt.Errorf("received response code %d: %s", resp.StatusCode, body)
+	}
+	return fmt.Errorf("received response code %d", resp.StatusCode)
 }
 
 func (r *Repo) TerminateSandbox(ctx context.Context, id string) error {

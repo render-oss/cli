@@ -81,9 +81,10 @@ func (s *Service) Get(ctx context.Context, id string) (*sandboxclient.Sandbox, e
 	return s.repo.GetSandbox(ctx, id)
 }
 
-// Exec runs a command in a running sandbox and returns its result.
-func (s *Service) Exec(ctx context.Context, id string, command string) (*sandboxclient.SandboxExecSyncResponse, error) {
-	return s.repo.ExecSandbox(ctx, id, command)
+// ExecStream runs a command in a running sandbox, streams output events, and
+// returns the remote process exit code.
+func (s *Service) ExecStream(ctx context.Context, id string, command string, onOutput func(*ExecOutputEvent) error) (int, error) {
+	return s.repo.ExecSandboxStream(ctx, id, command, onOutput)
 }
 
 // Terminate terminates a running sandbox.

@@ -1,61 +1,10 @@
 package cmd
 
 import (
-	"bytes"
-	"context"
 	"testing"
 
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
-
-	sandboxclient "github.com/render-oss/cli/pkg/client/sandboxes"
-	"github.com/render-oss/cli/pkg/command"
 )
-
-func TestWriteSandboxExecResultRawOutput(t *testing.T) {
-	cmd, stdout, stderr := newSandboxExecTestCommand(command.TEXT)
-	result := &sandboxclient.SandboxExecSyncResponse{
-		Stdout:   "hello\n",
-		Stderr:   "warning\n",
-		ExitCode: 7,
-	}
-
-	require.NoError(t, writeSandboxExecResult(cmd, result))
-	require.Equal(t, "hello\n", stdout.String())
-	require.Equal(t, "warning\n", stderr.String())
-}
-
-func TestWriteSandboxExecResultJSONOutput(t *testing.T) {
-	cmd, stdout, stderr := newSandboxExecTestCommand(command.JSON)
-	result := &sandboxclient.SandboxExecSyncResponse{
-		Stdout:   "hello\n",
-		Stderr:   "warning\n",
-		ExitCode: 7,
-	}
-
-	require.NoError(t, writeSandboxExecResult(cmd, result))
-	require.JSONEq(t, `{"stdout":"hello\n","stderr":"warning\n","exitCode":7}`, stdout.String())
-	require.Empty(t, stderr.String())
-}
-
-func TestWriteSandboxExecResultYAMLOutput(t *testing.T) {
-	cmd, stdout, stderr := newSandboxExecTestCommand(command.YAML)
-	result := &sandboxclient.SandboxExecSyncResponse{
-		Stdout:   "hello\n",
-		Stderr:   "warning\n",
-		ExitCode: 7,
-	}
-
-	require.NoError(t, writeSandboxExecResult(cmd, result))
-
-	var got map[string]any
-	require.NoError(t, yaml.Unmarshal(stdout.Bytes(), &got))
-	require.Equal(t, "hello\n", got["stdout"])
-	require.Equal(t, "warning\n", got["stderr"])
-	require.Equal(t, 7, got["exitCode"])
-	require.Empty(t, stderr.String())
-}
 
 func TestExitSandboxExecUsesRemoteExitCode(t *testing.T) {
 	oldExit := sandboxExecExit
@@ -103,14 +52,4 @@ func TestJoinShellCommand(t *testing.T) {
 			require.Equal(t, tt.want, joinShellCommand(tt.args))
 		})
 	}
-}
-
-func newSandboxExecTestCommand(output command.Output) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
-	cmd := &cobra.Command{Use: "exec"}
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	cmd.SetOut(stdout)
-	cmd.SetErr(stderr)
-	cmd.SetContext(command.SetFormatInContext(context.Background(), &output))
-	return cmd, stdout, stderr
 }
