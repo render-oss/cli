@@ -35,6 +35,23 @@ func TestKVGet_ByID_TextOutput(t *testing.T) {
 	assert.False(t, server.HasRequest("GET", "/connection-info"), "no connection info request without flag")
 }
 
+func TestKVGet_TextOutput_IncludesWorkspaceProjectAndEnvironment(t *testing.T) {
+	server := renderapi.NewServer(t)
+	project := server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: kvTestWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	env := project.Env("production")
+	kv := seedKVInEnv(server, "project-cache", env.Id)
+
+	result, err := executeKVGet(t, server, kv.Id, "--output", "text")
+	require.NoError(t, err)
+
+	assert.Contains(t, result.Stdout, "Workspace: Test Workspace ("+kvTestWorkspaceID+")")
+	assert.Contains(t, result.Stdout, "Project: My Project ("+project.Project.Id+")")
+	assert.Contains(t, result.Stdout, "Environment: production ("+env.Id+")")
+}
+
 func TestKVGet_ByName_TextOutput(t *testing.T) {
 	server := renderapi.NewServer(t)
 	kv := seedKV(server, "by-name-cache")

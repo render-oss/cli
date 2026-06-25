@@ -18,6 +18,7 @@ type KeyValueOut struct {
 	Version         string                           `json:"version,omitempty"`
 	OwnerID         string                           `json:"ownerId"`
 	OwnerType       client.OwnerType                 `json:"ownerType,omitempty"`
+	WorkspaceName   string                           `json:"-"`
 	ProjectID       *string                          `json:"projectId"`
 	ProjectName     string                           `json:"-"`
 	EnvironmentID   *string                          `json:"environmentId"`
@@ -83,17 +84,18 @@ func NewKeyValueOut(resolved *ResolvedKeyValue) KeyValueOut {
 
 	kv := resolved.KeyValue
 	out := KeyValueOut{
-		ID:          kv.Id,
-		Name:        kv.Name,
-		Plan:        kv.Plan,
-		Region:      kv.Region,
-		Status:      kv.Status,
-		CreatedAt:   kv.CreatedAt,
-		UpdatedAt:   kv.UpdatedAt,
-		Version:     kv.Version,
-		OwnerID:     kv.Owner.Id,
-		OwnerType:   kv.Owner.Type,
-		IPAllowList: kv.IpAllowList,
+		ID:            kv.Id,
+		Name:          kv.Name,
+		Plan:          kv.Plan,
+		Region:        kv.Region,
+		Status:        kv.Status,
+		CreatedAt:     kv.CreatedAt,
+		UpdatedAt:     kv.UpdatedAt,
+		Version:       kv.Version,
+		OwnerID:       kv.Owner.Id,
+		OwnerType:     kv.Owner.Type,
+		WorkspaceName: kv.Owner.Name,
+		IPAllowList:   kv.IpAllowList,
 	}
 	if out.IPAllowList == nil {
 		out.IPAllowList = []client.CidrBlockAndDescription{}
@@ -130,17 +132,18 @@ func NewKeyValueOutFromModel(model *Model) KeyValueOut {
 
 	kv := model.KeyValue
 	out := KeyValueOut{
-		ID:          kv.Id,
-		Name:        kv.Name,
-		Plan:        kv.Plan,
-		Region:      kv.Region,
-		Status:      kv.Status,
-		CreatedAt:   kv.CreatedAt,
-		UpdatedAt:   kv.UpdatedAt,
-		Version:     kv.Version,
-		OwnerID:     kv.Owner.Id,
-		OwnerType:   kv.Owner.Type,
-		IPAllowList: kv.IpAllowList,
+		ID:            kv.Id,
+		Name:          kv.Name,
+		Plan:          kv.Plan,
+		Region:        kv.Region,
+		Status:        kv.Status,
+		CreatedAt:     kv.CreatedAt,
+		UpdatedAt:     kv.UpdatedAt,
+		Version:       kv.Version,
+		OwnerID:       kv.Owner.Id,
+		OwnerType:     kv.Owner.Type,
+		WorkspaceName: kv.Owner.Name,
+		IPAllowList:   kv.IpAllowList,
 	}
 	if out.IPAllowList == nil {
 		out.IPAllowList = []client.CidrBlockAndDescription{}

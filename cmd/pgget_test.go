@@ -48,6 +48,23 @@ func TestPGGet_ByID(t *testing.T) {
 	assert.False(t, harness.server.HasRequest("GET", "/connection-info"), "no connection info request without flag")
 }
 
+func TestPGGet_TextOutput_IncludesWorkspaceProjectAndEnvironment(t *testing.T) {
+	harness := newPGGetHarness(t)
+	project := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "My Project", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	env := project.Env("production")
+	pg := seedPGInEnv(harness.server, "project-db", env.Id)
+
+	result, err := harness.execute(pg.Id, "--output", "text")
+	require.NoError(t, err)
+
+	assert.Contains(t, result.Stdout, "Workspace: Test Workspace ("+pgActiveWorkspaceID+")")
+	assert.Contains(t, result.Stdout, "Project: My Project ("+project.Project.Id+")")
+	assert.Contains(t, result.Stdout, "Environment: production ("+env.Id+")")
+}
+
 func TestPGGet_ByName(t *testing.T) {
 	harness := newPGGetHarness(t)
 	pg := seedPG(harness.server, "by-name-db")

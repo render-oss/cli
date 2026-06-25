@@ -52,12 +52,51 @@ func TestPostgresDetail_BasicFields(t *testing.T) {
 	assert.Contains(t, out, "Dashboard: https://dashboard.render.com/d/dpg-abc123")
 }
 
+func TestPostgresDetail_HappyPath(t *testing.T) {
+	projectID := "prj-project"
+	envID := "evm-production"
+	out := postgres.NewPostgresGetOut(&postgres.ResolvedPostgres{
+		Postgres: basicPostgres(),
+		Project: &client.Project{
+			Id:   projectID,
+			Name: "My Project",
+		},
+		Environment: &client.Environment{
+			Id:   envID,
+			Name: "production",
+		},
+	}).Data
+	out.Owner.Id = "tea-workspace"
+	out.Owner.Name = "My Workspace"
+
+	detail := text.PostgresDetail(&out)
+
+	testassert.ContainsInOrder(t, detail,
+		"Name: my-pg",
+		"ID: dpg-abc123",
+		"Workspace: My Workspace (tea-workspace)",
+		"Project: My Project (prj-project)",
+		"Environment: production (evm-production)",
+		"Plan: free",
+		"Version: 18",
+		"Region: oregon",
+		"Status: available",
+		"Database: appdb",
+		"User: appuser",
+	)
+}
+
 func TestPostgresDetail_OptionalFields(t *testing.T) {
-	t.Run("omits disk size and environment ID when unset", func(t *testing.T) {
-		pg := basicPostgresOut(basicPostgres())
+	t.Run("omits disk size, project, and environment when unset", func(t *testing.T) {
+		input := basicPostgres()
+		input.Owner.Id = "tea-workspace"
+		input.Owner.Name = "My Workspace"
+		pg := basicPostgresOut(input)
 		out := text.PostgresDetail(&pg)
+
 		assert.NotContains(t, out, "Disk size:")
-		assert.NotContains(t, out, "Environment ID:")
+		assert.NotContains(t, out, "Project:")
+		assert.NotContains(t, out, "Environment:")
 	})
 
 	t.Run("includes disk size when set", func(t *testing.T) {
@@ -67,11 +106,11 @@ func TestPostgresDetail_OptionalFields(t *testing.T) {
 		assert.Contains(t, text.PostgresDetail(&out), "Disk size: 100 GB")
 	})
 
-	t.Run("includes environment ID when set", func(t *testing.T) {
+	t.Run("includes environment when set", func(t *testing.T) {
 		pg := basicPostgres()
 		pg.EnvironmentId = pointers.From("evm-123")
 		out := basicPostgresOut(pg)
-		assert.Contains(t, text.PostgresDetail(&out), "Environment ID: evm-123")
+		assert.Contains(t, text.PostgresDetail(&out), "Environment: evm-123")
 	})
 }
 

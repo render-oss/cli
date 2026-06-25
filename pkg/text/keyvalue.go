@@ -7,6 +7,8 @@ import (
 	"github.com/jedib0t/go-pretty/table"
 
 	"github.com/render-oss/cli/pkg/keyvalue"
+	"github.com/render-oss/cli/pkg/pointers"
+	rstrings "github.com/render-oss/cli/pkg/strings"
 )
 
 func KeyValueTable(v []keyvalue.KeyValueOut) string {
@@ -30,10 +32,21 @@ func KeyValueDetail(kv *keyvalue.KeyValueOut) string {
 	lines := []string{
 		fmt.Sprintf("Name: %s", kv.Name),
 		fmt.Sprintf("ID: %s", kv.ID),
+	}
+	if line := workspaceLine(kv.WorkspaceName, kv.OwnerID); line != "" {
+		lines = append(lines, line)
+	}
+	if label := rstrings.ResourceLabel(kv.ProjectName, pointers.StringValue(kv.ProjectID)); label != "" {
+		lines = append(lines, fmt.Sprintf("Project: %s", label))
+	}
+	if label := rstrings.ResourceLabel(kv.EnvironmentName, pointers.StringValue(kv.EnvironmentID)); label != "" {
+		lines = append(lines, fmt.Sprintf("Environment: %s", label))
+	}
+	lines = append(lines,
 		fmt.Sprintf("Plan: %s", string(kv.Plan)),
 		fmt.Sprintf("Region: %s", string(kv.Region)),
 		fmt.Sprintf("Status: %s", string(kv.Status)),
-	}
+	)
 	if kv.MaxmemoryPolicy != nil {
 		lines = append(lines, fmt.Sprintf("Memory policy: %s", *kv.MaxmemoryPolicy))
 	}

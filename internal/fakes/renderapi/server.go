@@ -301,6 +301,37 @@ func (s *Server) ownerByID(id string) (client.Owner, bool) {
 	return client.Owner{}, false
 }
 
+// hydrateOwner returns the registered Owner for resources that store only an
+// owner ID. Real API detail responses include the expanded owner object; the
+// fake keeps fixtures lightweight by letting tests seed resource.Owner.Id and
+// server.Owners separately. Callers should assign the result to a response
+// copy, not the stored fixture, so GET handlers do not mutate seeded state.
+func (s *Server) hydrateOwner(owner client.Owner) client.Owner {
+	if owner.Id == "" {
+		return owner
+	}
+	hydrated, ok := s.ownerByID(owner.Id)
+	if !ok {
+		return owner
+	}
+	if hydrated.Type == "" {
+		hydrated.Type = owner.Type
+	}
+	return hydrated
+}
+
+func (s *Server) keyValueDetailResponse(kv *client.KeyValueDetail) client.KeyValueDetail {
+	detail := *kv
+	detail.Owner = s.hydrateOwner(detail.Owner)
+	return detail
+}
+
+func (s *Server) postgresDetailResponse(pg *client.PostgresDetail) client.PostgresDetail {
+	detail := *pg
+	detail.Owner = s.hydrateOwner(detail.Owner)
+	return detail
+}
+
 // URL returns the base URL of the fake server.
 func (s *Server) URL() string {
 	return s.server.URL
@@ -614,7 +645,7 @@ func NewServer(t *testing.T) *Server {
 		}
 		s.KV.Instances = append(s.KV.Instances, kv)
 
-		writeJSON(w, http.StatusCreated, kv)
+		writeJSON(w, http.StatusCreated, s.keyValueDetailResponse(kv))
 	})
 
 	// GET /key-value/{id} — retrieve a KV instance
@@ -627,7 +658,7 @@ func NewServer(t *testing.T) *Server {
 		}
 		for _, kv := range s.KV.Instances {
 			if kv.Id == id {
-				writeJSON(w, http.StatusOK, kv)
+				writeJSON(w, http.StatusOK, s.keyValueDetailResponse(kv))
 				return
 			}
 		}
@@ -683,7 +714,7 @@ func NewServer(t *testing.T) *Server {
 			kv.IpAllowList = *body.IpAllowList
 		}
 		kv.UpdatedAt = time.Now()
-		writeJSON(w, http.StatusOK, kv)
+		writeJSON(w, http.StatusOK, s.keyValueDetailResponse(kv))
 	})
 
 	// POST /key-value/{id}/suspend — suspend a KV instance
@@ -833,7 +864,7 @@ func NewServer(t *testing.T) *Server {
 		}
 
 		s.Postgres.Instances = append(s.Postgres.Instances, pg)
-		writeJSON(w, http.StatusCreated, pg)
+		writeJSON(w, http.StatusCreated, s.postgresDetailResponse(pg))
 	})
 
 	// GET /postgres/{id} — retrieve a Postgres instance
@@ -846,7 +877,7 @@ func NewServer(t *testing.T) *Server {
 		}
 		for _, pg := range s.Postgres.Instances {
 			if pg.Id == id {
-				writeJSON(w, http.StatusOK, pg)
+				writeJSON(w, http.StatusOK, s.postgresDetailResponse(pg))
 				return
 			}
 		}
@@ -970,7 +1001,7 @@ func NewServer(t *testing.T) *Server {
 			pg.IpAllowList = *body.IpAllowList
 		}
 		pg.UpdatedAt = time.Now()
-		writeJSON(w, http.StatusOK, pg)
+		writeJSON(w, http.StatusOK, s.postgresDetailResponse(pg))
 	})
 
 	registerServiceRoutes(mux, s, record)
