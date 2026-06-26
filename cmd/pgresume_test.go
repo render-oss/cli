@@ -29,11 +29,11 @@ func newPGResumeHarness(t *testing.T) pgResumeHarness {
 	return pgResumeHarness{t: t, server: server}
 }
 
-// execute invokes `render ea pg resume`, passing through all extraArgs.
+// execute invokes `render pg resume`, passing through all extraArgs.
 func (h pgResumeHarness) execute(extraArgs ...string) (CommandResult, error) {
 	h.t.Helper()
 
-	return executePGCommand(h.t, h.server, append([]string{"ea", "pg", "resume"}, extraArgs...)...)
+	return executePGCommand(h.t, h.server, append([]string{"pg", "resume"}, extraArgs...)...)
 }
 
 // seedSuspendedPG seeds a Postgres pre-set to Suspended so resume tests can assert

@@ -32,10 +32,10 @@ func newPGUpdateHarness(t *testing.T) pgUpdateHarness {
 	return pgUpdateHarness{t: t, server: server}
 }
 
-// execute invokes the `render ea pg update` command, passing through all extraArgs.
+// execute invokes the `render pg update` command, passing through all extraArgs.
 func (h pgUpdateHarness) execute(extraArgs ...string) (CommandResult, error) {
 	h.t.Helper()
-	return executePGCommand(h.t, h.server, append([]string{"ea", "pg", "update"}, extraArgs...)...)
+	return executePGCommand(h.t, h.server, append([]string{"pg", "update"}, extraArgs...)...)
 }
 
 func TestPGUpdate_ByID_RendersDiff(t *testing.T) {

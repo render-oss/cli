@@ -582,7 +582,7 @@ func TestIsRootVersionRequest(t *testing.T) {
 		{"version after global -o flag", []string{"-o", "text", "--version"}, true},
 		{"version after --output= flag", []string{"--output=text", "--version"}, true},
 		{"version after --confirm bool flag", []string{"--confirm", "--version"}, true},
-		{"version after subcommand should not match", []string{"ea", "pg", "create", "--version", "17"}, false},
+		{"version after subcommand should not match", []string{"pg", "create", "--version", "17"}, false},
 		{"output alone", []string{"--output=text"}, false},
 		{"version flag form via equals", []string{"--version=true"}, true},
 		{"multi-char single-dash arg falls through to cobra", []string{"-output", "text", "--version"}, false},

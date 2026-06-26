@@ -27,11 +27,11 @@ func newPGListHarness(t *testing.T) pgListHarness {
 	return pgListHarness{t: t, server: server}
 }
 
-// execute invokes the `render ea pg list` command, passing through all extraArgs
+// execute invokes the `render pg list` command, passing through all extraArgs
 func (h pgListHarness) execute(extraArgs ...string) (CommandResult, error) {
 	h.t.Helper()
 
-	return executePGCommand(h.t, h.server, append([]string{"ea", "pg", "list"}, extraArgs...)...)
+	return executePGCommand(h.t, h.server, append([]string{"pg", "list"}, extraArgs...)...)
 }
 
 func TestPGList_NoDatabases(t *testing.T) {

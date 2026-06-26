@@ -32,21 +32,21 @@ Use --confirm to skip the wizard and create immediately from flags and defaults.
 When --confirm is used with the default interactive output mode, output is
 printed as text. Use --output json, yaml, or text for non-interactive output.`,
 		Example: `  # Launch the interactive wizard
-  render ea pg create
+  render pg create
 
   # Create immediately with defaults and text output
-  render ea pg create --confirm
+  render pg create --confirm
 
   # Create immediately with explicit values
-  render ea pg create --confirm --name analytics --plan pro_8gb --version 17 --region ohio
+  render pg create --confirm --name analytics --plan pro_8gb --version 17 --region ohio
 
   # Include flag-only settings while using the wizard for prompted values
-  render ea pg create \
+  render pg create \
     --ip-allow-list "cidr=203.0.113.5/32,description=office" \
     --ip-allow-list "cidr=10.0.0.0/8,description=internal"
 
   # Machine-readable output
-  render ea pg create --output json`,
+  render pg create --output json`,
 	}
 
 	cmd.Flags().String("name", "", "Set the database name (generated if not provided)")

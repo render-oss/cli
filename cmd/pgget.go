@@ -27,22 +27,22 @@ Name lookup is scoped to your active workspace. If a name isn't found, switch
 workspaces with 'render workspace set <name|ID>' and try again, or pass the
 Postgres ID instead (which works across workspaces).`,
 		Example: `  # Get by ID
-  render ea pg get dpg-abc123def456ghi789jkl0
+  render pg get dpg-abc123def456ghi789jkl0
 
   # Get by name
-  render ea pg get my-db
+  render pg get my-db
 
   # Include connection strings (contains credentials)
-  render ea pg get my-db --include-sensitive-connection-info
+  render pg get my-db --include-sensitive-connection-info
 
   # Disambiguate by project
-  render ea pg get my-db --project my-project
+  render pg get my-db --project my-project
 
   # Disambiguate a name that exists in multiple environments
-  render ea pg get my-db --environment production
+  render pg get my-db --environment production
 
   # JSON output
-  render ea pg get dpg-abc123def456ghi789jkl0 --output json`,
+  render pg get dpg-abc123def456ghi789jkl0 --output json`,
 	}
 
 	cmd.Flags().String("project", "",

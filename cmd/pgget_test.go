@@ -28,11 +28,11 @@ func newPGGetHarness(t *testing.T) pgGetHarness {
 	return pgGetHarness{t: t, server: server}
 }
 
-// execute invokes the `render ea pg get` command, passing through all extraArgs
+// execute invokes the `render pg get` command, passing through all extraArgs
 func (h pgGetHarness) execute(extraArgs ...string) (CommandResult, error) {
 	h.t.Helper()
 
-	return executePGCommand(h.t, h.server, append([]string{"ea", "pg", "get"}, extraArgs...)...)
+	return executePGCommand(h.t, h.server, append([]string{"pg", "get"}, extraArgs...)...)
 }
 
 func TestPGGet_ByID(t *testing.T) {

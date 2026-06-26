@@ -42,27 +42,27 @@ The --ip-allow-list flag replaces the server-side list; pass it once per entry.
 To remove all allow-list entries, pass --clear-ip-allow-list. The two flags are
 mutually exclusive.`,
 		Example: `  # Rename
-  render ea pg update dpg-abc123def456ghi789jkl0 --name application_db
+  render pg update dpg-abc123def456ghi789jkl0 --name application_db
 
   # Change plan
-  render ea pg update my-db --plan pro_4gb
+  render pg update my-db --plan pro_4gb
 
   # Grow the disk and enable autoscaling
-  render ea pg update my-db --disk-size-gb 50 --disk-autoscaling
+  render pg update my-db --disk-size-gb 50 --disk-autoscaling
 
   # Replace the IP allow-list (entire list, not append)
-  render ea pg update my-db \
+  render pg update my-db \
     --ip-allow-list "cidr=203.0.113.5/32,description=office" \
     --ip-allow-list "cidr=10.0.0.0/8,description=internal"
 
   # Clear the IP allow-list
-  render ea pg update my-db --clear-ip-allow-list
+  render pg update my-db --clear-ip-allow-list
 
   # Disambiguate a name that exists in multiple environments
-  render ea pg update my-db --environment production --plan pro_8gb
+  render pg update my-db --environment production --plan pro_8gb
 
   # JSON output
-  render ea pg update dpg-abc123def456ghi789jkl0 --plan pro_4gb --output json`,
+  render pg update dpg-abc123def456ghi789jkl0 --plan pro_4gb --output json`,
 	}
 
 	cmd.Flags().String("project", "",

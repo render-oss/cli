@@ -23,19 +23,19 @@ Use --project to narrow results to a single project, --environment to narrow
 to a single environment, or both — when both are supplied, the environment is
 resolved within that project.`,
 		Example: `  # List all Postgres databases in the active workspace
-  render ea pg list
+  render pg list
 
   # List all Postgres databases in a project
-  render ea pg list --project my-project
+  render pg list --project my-project
 
   # Filter by environment name
-  render ea pg list --environment production
+  render pg list --environment production
 
   # Disambiguate an environment name by project
-  render ea pg list --project my-project --environment production
+  render pg list --project my-project --environment production
 
   # JSON output
-  render ea pg list --output json`,
+  render pg list --output json`,
 	}
 
 	cmd.Flags().String("project", "",

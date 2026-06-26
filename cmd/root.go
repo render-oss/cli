@@ -154,8 +154,8 @@ func setupWorkspaceCommands(deps *dependencies.Dependencies) {
 	workspaceCmd.AddCommand(deps.Commands.Workspace.WorkspaceSetCmd)
 }
 
-func setupPGCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
-	earlyAccess.AddCommand(newPgCmd(newPgCreateCmd(deps), newPgDeleteCmd(deps), newPgGetCmd(deps), newPgListCmd(deps), newPgUpdateCmd(deps), newPgSuspendCmd(deps), newPgResumeCmd(deps)))
+func setupPGCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
+	parent.AddCommand(newPgCmd(newPgCreateCmd(deps), newPgDeleteCmd(deps), newPgGetCmd(deps), newPgListCmd(deps), newPgUpdateCmd(deps), newPgSuspendCmd(deps), newPgResumeCmd(deps)))
 }
 
 func setupKVCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
@@ -190,7 +190,7 @@ func SetupCommands() error {
 	setupWorkspaceCommands(deps)
 	setupServiceCommands(deps)
 	setupKVCommands(rootCmd, deps)
-	setupPGCommands(EarlyAccessCmd, deps)
+	setupPGCommands(rootCmd, deps)
 	setupSandboxCommands(EarlyAccessCmd, deps)
 	setupRootCmdPersistentRun(rootCmd, deps)
 

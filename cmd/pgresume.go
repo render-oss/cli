@@ -26,19 +26,19 @@ Name lookup is scoped to your active workspace. If a name isn't found, switch
 workspaces with 'render workspace set <name|ID>' and try again, or pass the
 Postgres ID instead (which works across workspaces).`,
 		Example: `  # Resume by ID
-  render ea pg resume dpg-abc123def456ghi789jkl0
+  render pg resume dpg-abc123def456ghi789jkl0
 
   # Resume by name
-  render ea pg resume my-db
+  render pg resume my-db
 
   # Disambiguate a name that exists in multiple environments
-  render ea pg resume my-db --environment production
+  render pg resume my-db --environment production
 
   # Disambiguate a name that exists in multiple projects
-  render ea pg resume my-db --project analytics
+  render pg resume my-db --project analytics
 
   # JSON output
-  render ea pg resume dpg-abc123def456ghi789jkl0 --output json`,
+  render pg resume dpg-abc123def456ghi789jkl0 --output json`,
 	}
 
 	cmd.Flags().String("project", "",

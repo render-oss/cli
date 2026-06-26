@@ -29,22 +29,22 @@ Name lookup is scoped to your active workspace. If a name isn't found, switch
 workspaces with 'render workspace set <name|ID>' and try again, or pass the
 Postgres ID instead (which works across workspaces).`,
 		Example: `  # Preview suspension (no changes made)
-  render ea pg suspend dpg-abc123def456ghi789jkl0
+  render pg suspend dpg-abc123def456ghi789jkl0
 
   # Suspend by ID
-  render ea pg suspend dpg-abc123def456ghi789jkl0 --confirm
+  render pg suspend dpg-abc123def456ghi789jkl0 --confirm
 
   # Suspend by name
-  render ea pg suspend my-db --confirm
+  render pg suspend my-db --confirm
 
   # Disambiguate a name that exists in multiple environments
-  render ea pg suspend my-db --environment production --confirm
+  render pg suspend my-db --environment production --confirm
 
   # Disambiguate a name that exists in multiple projects
-  render ea pg suspend my-db --project analytics --confirm
+  render pg suspend my-db --project analytics --confirm
 
   # JSON output
-  render ea pg suspend dpg-abc123def456ghi789jkl0 --confirm --output json`,
+  render pg suspend dpg-abc123def456ghi789jkl0 --confirm --output json`,
 	}
 
 	cmd.Flags().String("project", "",

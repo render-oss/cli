@@ -16,7 +16,7 @@ func executePGDelete(t *testing.T, server *renderapi.Server, extraArgs ...string
 	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: pgActiveWorkspaceID, Name: "Test Workspace"}))
 	t.Setenv("RENDER_WORKSPACE", pgActiveWorkspaceID)
 
-	return executePGCommand(t, server, append([]string{"ea", "pg", "delete"}, extraArgs...)...)
+	return executePGCommand(t, server, append([]string{"pg", "delete"}, extraArgs...)...)
 }
 
 func TestPGDelete_PreviewByID_DoesNotDelete(t *testing.T) {

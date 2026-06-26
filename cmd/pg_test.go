@@ -34,9 +34,7 @@ func executePGCommand(t *testing.T, server *renderapi.Server, args ...string) (C
 	}
 
 	root := newRootCmd()
-	ea := newEarlyAccessCmd()
-	root.AddCommand(ea)
-	setupPGCommands(ea, deps)
+	setupPGCommands(root, deps)
 	setupRootCmdPersistentRun(root, deps)
 
 	var stdout, stderr bytes.Buffer

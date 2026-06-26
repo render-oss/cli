@@ -29,11 +29,11 @@ func newPGSuspendHarness(t *testing.T) pgSuspendHarness {
 	return pgSuspendHarness{t: t, server: server}
 }
 
-// execute invokes `render ea pg suspend`, passing through all extraArgs.
+// execute invokes `render pg suspend`, passing through all extraArgs.
 func (h pgSuspendHarness) execute(extraArgs ...string) (CommandResult, error) {
 	h.t.Helper()
 
-	return executePGCommand(h.t, h.server, append([]string{"ea", "pg", "suspend"}, extraArgs...)...)
+	return executePGCommand(h.t, h.server, append([]string{"pg", "suspend"}, extraArgs...)...)
 }
 
 func TestPGSuspend_PreviewByID_DoesNotSuspend(t *testing.T) {

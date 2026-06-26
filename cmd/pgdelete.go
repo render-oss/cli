@@ -41,22 +41,22 @@ Name lookup is scoped to your active workspace. If a name isn't found, switch
 workspaces with 'render workspace set <name|ID>' and try again, or pass the
 Postgres ID instead (which works across workspaces).`,
 		Example: `  # Preview deletion (no changes made)
-  render ea pg delete dpg-abc123def456ghi789jkl0
+  render pg delete dpg-abc123def456ghi789jkl0
 
   # Delete by ID
-  render ea pg delete dpg-abc123def456ghi789jkl0 --confirm
+  render pg delete dpg-abc123def456ghi789jkl0 --confirm
 
   # Delete by name
-  render ea pg delete my-db --confirm
+  render pg delete my-db --confirm
 
   # Disambiguate a name that exists in multiple environments
-  render ea pg delete my-db --environment production --confirm
+  render pg delete my-db --environment production --confirm
 
   # Disambiguate a name that exists in multiple projects
-  render ea pg delete my-db --project analytics --confirm
+  render pg delete my-db --project analytics --confirm
 
   # JSON output
-  render ea pg delete dpg-abc123def456ghi789jkl0 --confirm --output json`,
+  render pg delete dpg-abc123def456ghi789jkl0 --confirm --output json`,
 	}
 
 	cmd.Flags().String("project", "",
