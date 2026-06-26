@@ -42,7 +42,7 @@ func seedKVInEnv(server *renderapi.Server, name, envID string) *client.KeyValueD
 	return kv
 }
 
-// executeKVCommand runs an `ea kv` command with the default active workspace
+// executeKVCommand runs a `kv` command with the default active workspace
 // seeded in the test config. Use this for ordinary KV command tests.
 func executeKVCommand(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()
@@ -52,7 +52,7 @@ func executeKVCommand(t *testing.T, server *renderapi.Server, extraArgs ...strin
 	}, extraArgs...)
 }
 
-// executeKVCommandWithoutActiveWorkspace runs an `ea kv` command without
+// executeKVCommandWithoutActiveWorkspace runs a `kv` command without
 // seeding the active workspace config. Prefer executeKVCommand unless the test
 // specifically covers missing-workspace behavior or workspace derivation.
 func executeKVCommandWithoutActiveWorkspace(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
@@ -87,15 +87,13 @@ func executeKVCommandWithConfig(t *testing.T, server *renderapi.Server, cfg *con
 	}
 
 	root := newRootCmd()
-	ea := newEarlyAccessCmd()
-	root.AddCommand(ea)
-	setupKVCommands(ea, deps)
+	setupKVCommands(root, deps)
 	setupRootCmdPersistentRun(root, deps)
 
 	var stdout, stderr bytes.Buffer
 	root.SetOut(&stdout)
 	root.SetErr(&stderr)
-	root.SetArgs(append([]string{"ea", "kv"}, extraArgs...))
+	root.SetArgs(append([]string{"kv"}, extraArgs...))
 
 	execErr := root.Execute()
 	return CommandResult{Stdout: stdout.String(), Stderr: stderr.String()}, execErr

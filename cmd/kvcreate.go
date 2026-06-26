@@ -26,19 +26,19 @@ In non-interactive mode (--output text/json/yaml), flags use defaults if not sup
 Use --confirm to skip all prompts (including final confirmation) and create immediately.
 Output will be human-readable; use --output json/yaml/text for machine-readable output.`,
 		Example: `  # Interactive wizard (guided prompts for each option)
-  render ea kv create
+  render kv create
 
   # Specify all options; wizard still asks for confirmation before creating
-  render ea kv create --name my-cache --plan starter --region oregon
+  render kv create --name my-cache --plan starter --region oregon
 
   # Skip all prompts and create immediately (no confirmation)
-  render ea kv create --name my-cache --plan free --confirm
+  render kv create --name my-cache --plan free --confirm
 
   # Machine-readable output (non-interactive, no prompts)
-  render ea kv create --name my-cache --plan starter --output json
+  render kv create --name my-cache --plan starter --output json
 
   # With IP allow-listing (repeat the flag for multiple entries)
-  render ea kv create --name my-cache \
+  render kv create --name my-cache \
     --ip-allow-list "cidr=203.0.113.5/32,description=office" \
     --ip-allow-list "cidr=10.0.0.0/8,description=internal"`,
 	}

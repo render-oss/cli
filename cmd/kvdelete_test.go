@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// executeKVDelete runs `render ea kv delete <args>` against the fake server.
+// executeKVDelete runs `render kv delete <args>` against the fake server.
 // Seeds and selects an active workspace before running the command.
 func executeKVDelete(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()

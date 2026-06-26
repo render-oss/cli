@@ -29,19 +29,19 @@ Name lookup is scoped to your active workspace. If a name isn't found, switch
 workspaces with 'render workspace set <name|ID>' and try again, or pass the
 Key Value ID instead (which works across workspaces).`,
 		Example: `  # Preview deletion (no changes made)
-  render ea kv delete red-abc123def456ghi789jkl0
+  render kv delete red-abc123def456ghi789jkl0
 
   # Delete by ID
-  render ea kv delete red-abc123def456ghi789jkl0 --confirm
+  render kv delete red-abc123def456ghi789jkl0 --confirm
 
   # Delete by name
-  render ea kv delete my-cache --confirm
+  render kv delete my-cache --confirm
 
   # Disambiguate a name that exists in multiple environments
-  render ea kv delete my-cache --environment production --confirm
+  render kv delete my-cache --environment production --confirm
 
   # JSON output
-  render ea kv delete red-abc123def456ghi789jkl0 --confirm --output json`,
+  render kv delete red-abc123def456ghi789jkl0 --confirm --output json`,
 	}
 
 	cmd.Flags().String("environment", "",

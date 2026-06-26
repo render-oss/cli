@@ -26,16 +26,16 @@ Name lookup is scoped to your active workspace. If a name isn't found, switch
 workspaces with 'render workspace set <name|ID>' and try again, or pass the
 Key Value ID instead (which works across workspaces).`,
 		Example: `  # Resume by ID
-  render ea kv resume red-abc123def456ghi789jkl0
+  render kv resume red-abc123def456ghi789jkl0
 
   # Resume by name
-  render ea kv resume my-cache
+  render kv resume my-cache
 
   # Disambiguate a name that exists in multiple environments
-  render ea kv resume my-cache --environment production
+  render kv resume my-cache --environment production
 
   # JSON output
-  render ea kv resume red-abc123def456ghi789jkl0 --output json`,
+  render kv resume red-abc123def456ghi789jkl0 --output json`,
 	}
 
 	cmd.Flags().String("environment", "",

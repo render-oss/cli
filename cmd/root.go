@@ -158,8 +158,8 @@ func setupPGCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies
 	earlyAccess.AddCommand(newPgCmd(newPgCreateCmd(deps), newPgDeleteCmd(deps), newPgGetCmd(deps), newPgListCmd(deps), newPgUpdateCmd(deps), newPgSuspendCmd(deps), newPgResumeCmd(deps)))
 }
 
-func setupKVCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
-	earlyAccess.AddCommand(newKVCmd(newKVCreateCmd(deps), newKVDeleteCmd(deps), newKVGetCmd(deps), newKVListCmd(deps), newKVResumeCmd(deps), newKVSuspendCmd(deps), newKVUpdateCmd(deps)))
+func setupKVCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
+	parent.AddCommand(newKVCmd(newKVCreateCmd(deps), newKVDeleteCmd(deps), newKVGetCmd(deps), newKVListCmd(deps), newKVResumeCmd(deps), newKVSuspendCmd(deps), newKVUpdateCmd(deps)))
 }
 
 func setupSandboxCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
@@ -189,7 +189,7 @@ func SetupCommands() error {
 	setupLogCommands(deps)
 	setupWorkspaceCommands(deps)
 	setupServiceCommands(deps)
-	setupKVCommands(EarlyAccessCmd, deps)
+	setupKVCommands(rootCmd, deps)
 	setupPGCommands(EarlyAccessCmd, deps)
 	setupSandboxCommands(EarlyAccessCmd, deps)
 	setupRootCmdPersistentRun(rootCmd, deps)

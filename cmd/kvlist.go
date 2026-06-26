@@ -26,19 +26,19 @@ Use --project to narrow results to a single project, --environment to narrow
 to a single environment, or both — when both are supplied, the environment is
 resolved within that project.`,
 		Example: `  # List all Key Value instances in the active workspace
-  render ea kv list
+  render kv list
 
   # List all Key Value instances in a project
-  render ea kv list --project my-project
+  render kv list --project my-project
 
   # Filter by environment name
-  render ea kv list --environment production
+  render kv list --environment production
 
   # Disambiguate an environment name by project
-  render ea kv list --project my-project --environment production
+  render kv list --project my-project --environment production
 
   # JSON output
-  render ea kv list --output json`,
+  render kv list --output json`,
 	}
 
 	cmd.Flags().String("project", "",

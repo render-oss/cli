@@ -27,22 +27,22 @@ Name lookup is scoped to your active workspace. If a name isn't found, switch
 workspaces with 'render workspace set <name|ID>' and try again, or pass the
 Key Value ID instead (which works across workspaces).`,
 		Example: `  # Get by ID
-  render ea kv get red-abc123def456ghi789jkl0
+  render kv get red-abc123def456ghi789jkl0
 
   # Get by name
-  render ea kv get my-cache
+  render kv get my-cache
 
   # Include connection strings (contains credentials)
-  render ea kv get my-cache --include-sensitive-connection-info
+  render kv get my-cache --include-sensitive-connection-info
 
   # Disambiguate by project
-  render ea kv get my-cache --project my-project
+  render kv get my-cache --project my-project
 
   # Disambiguate a name that exists in multiple environments
-  render ea kv get my-cache --environment production
+  render kv get my-cache --environment production
 
   # JSON output
-  render ea kv get red-abc123def456ghi789jkl0 --output json`,
+  render kv get red-abc123def456ghi789jkl0 --output json`,
 	}
 
 	cmd.Flags().String("project", "",

@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// executeKVCreate runs `render ea kv create <extraArgs>` against the fake server.
+// executeKVCreate runs `render kv create <extraArgs>` against the fake server.
 // It seeds and selects a default workspace before running the create command.
 // Pass --workspace explicitly in extraArgs for tests that exercise the workspace flag.
 func executeKVCreate(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {

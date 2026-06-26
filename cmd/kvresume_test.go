@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// executeKVResume runs `render ea kv resume <args>` against the fake server.
+// executeKVResume runs `render kv resume <args>` against the fake server.
 // Seeds and selects an active workspace before running the command.
 func executeKVResume(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()

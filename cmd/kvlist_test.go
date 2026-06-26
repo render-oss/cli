@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// executeKVList runs `render ea kv list <args>` against the fake server.
+// executeKVList runs `render kv list <args>` against the fake server.
 // Seeds and selects an active workspace before running the command.
 func executeKVList(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()

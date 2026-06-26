@@ -38,24 +38,24 @@ The --ip-allow-list flag replaces the server-side list; pass it once per entry.
 To remove all allow-list entries, pass --clear-ip-allow-list. The two flags are
 mutually exclusive.`,
 		Example: `  # Rename
-  render ea kv update red-abc123def456ghi789jkl0 --name new-cache-name
+  render kv update red-abc123def456ghi789jkl0 --name new-cache-name
 
   # Change plan
-  render ea kv update my-cache --plan standard
+  render kv update my-cache --plan standard
 
   # Replace the IP allow-list (entire list, not append)
-  render ea kv update my-cache \
+  render kv update my-cache \
     --ip-allow-list "cidr=203.0.113.5/32,description=office" \
     --ip-allow-list "cidr=10.0.0.0/8,description=internal"
 
   # Clear the IP allow-list
-  render ea kv update my-cache --clear-ip-allow-list
+  render kv update my-cache --clear-ip-allow-list
 
   # Disambiguate a name that exists in multiple environments
-  render ea kv update my-cache --environment production --memory-policy queue
+  render kv update my-cache --environment production --memory-policy queue
 
   # JSON output
-  render ea kv update red-abc123def456ghi789jkl0 --plan pro --output json`,
+  render kv update red-abc123def456ghi789jkl0 --plan pro --output json`,
 	}
 
 	memoryPolicyDesc := `Set the eviction policy used when the instance runs out of memory.

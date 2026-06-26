@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// executeKVSuspend runs `render ea kv suspend <args>` against the fake server.
+// executeKVSuspend runs `render kv suspend <args>` against the fake server.
 // Seeds and selects an active workspace before running the command.
 func executeKVSuspend(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()

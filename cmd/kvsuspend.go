@@ -29,19 +29,19 @@ Name lookup is scoped to your active workspace. If a name isn't found, switch
 workspaces with 'render workspace set <name|ID>' and try again, or pass the
 Key Value ID instead (which works across workspaces).`,
 		Example: `  # Preview suspension (no changes made)
-  render ea kv suspend red-abc123def456ghi789jkl0
+  render kv suspend red-abc123def456ghi789jkl0
 
   # Suspend by ID
-  render ea kv suspend red-abc123def456ghi789jkl0 --confirm
+  render kv suspend red-abc123def456ghi789jkl0 --confirm
 
   # Suspend by name
-  render ea kv suspend my-cache --confirm
+  render kv suspend my-cache --confirm
 
   # Disambiguate a name that exists in multiple environments
-  render ea kv suspend my-cache --environment production --confirm
+  render kv suspend my-cache --environment production --confirm
 
   # JSON output
-  render ea kv suspend red-abc123def456ghi789jkl0 --confirm --output json`,
+  render kv suspend red-abc123def456ghi789jkl0 --confirm --output json`,
 	}
 
 	cmd.Flags().String("environment", "",

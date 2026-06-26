@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// executeKVGet runs `render ea kv get <args>` against the fake server.
+// executeKVGet runs `render kv get <args>` against the fake server.
 // Seeds and selects an active workspace before running the command.
 func executeKVGet(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()

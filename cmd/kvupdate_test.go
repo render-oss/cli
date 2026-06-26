@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// executeKVUpdate runs `render ea kv update <args>` against the fake server.
+// executeKVUpdate runs `render kv update <args>` against the fake server.
 // Seeds and selects an active workspace before running the command.
 func executeKVUpdate(t *testing.T, server *renderapi.Server, extraArgs ...string) (CommandResult, error) {
 	t.Helper()
