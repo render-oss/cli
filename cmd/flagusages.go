@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/render-oss/cli/pkg/style"
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
@@ -29,9 +30,47 @@ func setAnnotationBestEffort(flags *pflag.FlagSet, flagName, key string, values 
 }
 
 // setFlagPlaceholder applies help-output placeholder metadata to a flag.
-// Returns true when the placeholder was applied successfully, false otherwise.
-func setFlagPlaceholder(flags *pflag.FlagSet, flagName, placeholder string) bool {
-	return setAnnotationBestEffort(flags, flagName, flagPlaceholderAnnotation, []string{placeholder})
+// Panics when called with an invalid flag name so command wiring mistakes (e.g., wrong flag name) fail loudly in dev and test
+func setFlagPlaceholder(flags *pflag.FlagSet, flagName, placeholder string) {
+	if flags == nil {
+		panic("setFlagPlaceholder called with nil flag set")
+	}
+	if flags.Lookup(flagName) == nil {
+		panic(fmt.Sprintf("setFlagPlaceholder called with unknown flag %q", flagName))
+	}
+	_ = flags.SetAnnotation(flagName, flagPlaceholderAnnotation, []string{placeholder})
+}
+
+// setAllFlagPlaceholders applies help-output placeholder metadata to every local value flag.
+// Panics when any visible value flag is missing a placeholder or any placeholder names an invalid flag.
+// These panics happen during command construction, so they are intended as a dev and test aid.
+func setAllFlagPlaceholders(cmd *cobra.Command, placeholders map[string]string) {
+	if cmd == nil {
+		panic("setAllFlagPlaceholders called with nil command")
+	}
+	if len(placeholders) == 0 {
+		panic("setAllFlagPlaceholders called with no placeholders")
+	}
+	for flagName, placeholder := range placeholders {
+		setFlagPlaceholder(cmd.Flags(), flagName, placeholder)
+	}
+	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
+		if flag.Hidden || isBoolFlag(flag) {
+			return
+		}
+		if _, ok := placeholders[flag.Name]; !ok {
+			panic(fmt.Sprintf("setAllFlagPlaceholders missing placeholder for flag %q", flag.Name))
+		}
+	})
+}
+
+func isBoolFlag(flag *pflag.Flag) bool {
+	switch flag.Value.Type() {
+	case "bool", "boolfunc":
+		return true
+	default:
+		return false
+	}
 }
 
 func placeholderFromAnnotation(flag *pflag.Flag) (string, bool) {

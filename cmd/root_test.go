@@ -402,7 +402,7 @@ func TestRootHelpOmitsEmptyGroupHeaders(t *testing.T) {
 func TestGetDescriptiveTypeNameUsesAnnotationWhenPresent(t *testing.T) {
 	flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
 	flags.String("region", "", "Filter by region.")
-	require.True(t, setFlagPlaceholder(flags, "region", "REGION"))
+	setFlagPlaceholder(flags, "region", "REGION")
 
 	require.Equal(t, "REGION", getDescriptiveTypeName(flags.Lookup("region"), "string"))
 	require.Equal(t, "string", getDescriptiveTypeName(flags.Lookup("missing"), "string"))
@@ -426,6 +426,96 @@ func TestServicesEnvironmentIDsFlagHasPlaceholderAnnotation(t *testing.T) {
 	require.Equal(t, placeholderEnvIDs, placeholder)
 }
 
+func requireFlagPlaceholder(t *testing.T, flags *pflag.FlagSet, flagName, expected string) {
+	t.Helper()
+
+	require.NotNil(t, flags)
+	flag := flags.Lookup(flagName)
+	require.NotNil(t, flag)
+	placeholder, ok := placeholderFromAnnotation(flag)
+	require.True(t, ok)
+	require.Equal(t, expected, placeholder)
+}
+
+func TestSetAllFlagPlaceholders(t *testing.T) {
+	t.Run("applies placeholders for all value flags", func(t *testing.T) {
+		cmd := &cobra.Command{Use: "test"}
+		cmd.Flags().String("region", "", "region")
+		cmd.Flags().String("plan", "", "plan")
+
+		setAllFlagPlaceholders(cmd, map[string]string{
+			"region": "REGION",
+			"plan":   "PLAN",
+		})
+
+		requireFlagPlaceholder(t, cmd.Flags(), "region", "REGION")
+		requireFlagPlaceholder(t, cmd.Flags(), "plan", "PLAN")
+	})
+
+	t.Run("requires placeholders for local value flags only", func(t *testing.T) {
+		root := &cobra.Command{Use: "root"}
+		root.PersistentFlags().String("output", "", "output")
+		cmd := &cobra.Command{Use: "test"}
+		cmd.Flags().String("region", "", "region")
+		cmd.Flags().Bool("confirm", false, "confirm")
+		cmd.Flags().String("hidden", "", "hidden")
+		require.NoError(t, cmd.Flags().MarkHidden("hidden"))
+		root.AddCommand(cmd)
+
+		setAllFlagPlaceholders(cmd, map[string]string{
+			"region": "REGION",
+		})
+
+		requireFlagPlaceholder(t, cmd.Flags(), "region", "REGION")
+	})
+
+	t.Run("panics when a value flag is missing a placeholder", func(t *testing.T) {
+		cmd := &cobra.Command{Use: "test"}
+		cmd.Flags().String("region", "", "region")
+		cmd.Flags().String("plan", "", "plan")
+
+		require.Panics(t, func() {
+			setAllFlagPlaceholders(cmd, map[string]string{
+				"region": "REGION",
+			})
+		})
+	})
+
+	t.Run("panics when any flag does not exist", func(t *testing.T) {
+		cmd := &cobra.Command{Use: "test"}
+
+		require.Panics(t, func() {
+			setAllFlagPlaceholders(cmd, map[string]string{
+				"missing": "MISSING",
+			})
+		})
+	})
+
+	t.Run("panics for empty placeholder set", func(t *testing.T) {
+		cmd := &cobra.Command{Use: "test"}
+
+		require.Panics(t, func() {
+			setAllFlagPlaceholders(cmd, map[string]string{})
+		})
+	})
+
+	t.Run("panics for nil placeholder set", func(t *testing.T) {
+		cmd := &cobra.Command{Use: "test"}
+
+		require.Panics(t, func() {
+			setAllFlagPlaceholders(cmd, nil)
+		})
+	})
+
+	t.Run("panics for nil command", func(t *testing.T) {
+		require.Panics(t, func() {
+			setAllFlagPlaceholders(nil, map[string]string{
+				"region": "REGION",
+			})
+		})
+	})
+}
+
 func TestSetAnnotationBestEffort(t *testing.T) {
 	t.Run("returns true for existing flag", func(t *testing.T) {
 		flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
@@ -440,13 +530,38 @@ func TestSetAnnotationBestEffort(t *testing.T) {
 		flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
 
 		require.NotPanics(t, func() {
-			ok := setFlagPlaceholder(flags, "missing", "FORMAT")
+			ok := setAnnotationBestEffort(flags, "missing", flagPlaceholderAnnotation, []string{"FORMAT"})
 			require.False(t, ok)
 		})
 	})
 
 	t.Run("returns false for nil flagset", func(t *testing.T) {
-		require.False(t, setFlagPlaceholder(nil, "output", "FORMAT"))
+		require.False(t, setAnnotationBestEffort(nil, "output", flagPlaceholderAnnotation, []string{"FORMAT"}))
+	})
+}
+
+func TestSetFlagPlaceholder(t *testing.T) {
+	t.Run("applies placeholder to existing flag", func(t *testing.T) {
+		flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
+		flags.String("output", "", "output format")
+
+		setFlagPlaceholder(flags, "output", "FORMAT")
+
+		requireFlagPlaceholder(t, flags, "output", "FORMAT")
+	})
+
+	t.Run("panics for missing flag", func(t *testing.T) {
+		flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
+
+		require.Panics(t, func() {
+			setFlagPlaceholder(flags, "missing", "FORMAT")
+		})
+	})
+
+	t.Run("panics for nil flagset", func(t *testing.T) {
+		require.Panics(t, func() {
+			setFlagPlaceholder(nil, "output", "FORMAT")
+		})
 	})
 }
 
