@@ -66,7 +66,7 @@ In interactive mode, you will be prompted to:
 
 	versionReleaseCmd.Flags().String("commit", "", "Release the specified commit ID")
 	versionReleaseCmd.Flags().Bool("wait", false, "Wait for release completion and exit non-zero if release fails")
-	setAnnotationBestEffort(versionReleaseCmd.Flags(), "commit", command.FlagPlaceholderAnnotation, []string{"COMMIT_ID"})
+	setFlagPlaceholder(versionReleaseCmd.Flags(), "commit", "COMMIT_ID")
 	// optionally, image backed is not in scope for alpha, native env only
 	// versionReleaseCmd.Flags().String("image", "", "The Docker image URL to release")
 

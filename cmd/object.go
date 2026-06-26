@@ -1,9 +1,6 @@
 package cmd
 
-import (
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 var objectCmd = &cobra.Command{
 	Use:   "objects",
@@ -32,7 +29,7 @@ func init() {
 	// Add persistent flags shared by all object commands
 	objectCmd.PersistentFlags().String("region", "", "Set target region (or set the RENDER_REGION env var)")
 	objectCmd.PersistentFlags().Bool("local", false, "Use local storage (.render/objects/) instead of cloud storage")
-	setAnnotationBestEffort(objectCmd.PersistentFlags(), "region", command.FlagPlaceholderAnnotation, []string{"REGION"})
+	setFlagPlaceholder(objectCmd.PersistentFlags(), "region", "REGION")
 
 	EarlyAccessCmd.AddCommand(objectCmd)
 }

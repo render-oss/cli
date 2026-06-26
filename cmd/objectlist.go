@@ -95,7 +95,7 @@ func listObjects(cmd *cobra.Command, input ObjectListInput) ([]storage.ObjectInf
 
 func init() {
 	objectListCmd.Flags().Int("limit", 100, "Limit the number of objects returned")
-	setAnnotationBestEffort(objectListCmd.Flags(), "limit", command.FlagPlaceholderAnnotation, []string{"COUNT"})
+	setFlagPlaceholder(objectListCmd.Flags(), "limit", "COUNT")
 
 	objectCmd.AddCommand(objectListCmd)
 }

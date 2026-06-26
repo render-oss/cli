@@ -105,8 +105,8 @@ func init() {
 	deployCreateCmd.Flags().String("commit", "", "Deploy the specified commit ID")
 	deployCreateCmd.Flags().String("image", "", "Deploy the specified Docker image URL")
 	deployCreateCmd.Flags().Bool("wait", false, "Wait for deploy completion and exit non-zero if deploy fails")
-	setAnnotationBestEffort(deployCreateCmd.Flags(), "commit", command.FlagPlaceholderAnnotation, []string{"COMMIT_ID"})
-	setAnnotationBestEffort(deployCreateCmd.Flags(), "image", command.FlagPlaceholderAnnotation, []string{"IMAGE_URL"})
+	setFlagPlaceholder(deployCreateCmd.Flags(), "commit", "COMMIT_ID")
+	setFlagPlaceholder(deployCreateCmd.Flags(), "image", "IMAGE_URL")
 
 	deployCmd.AddCommand(deployCreateCmd)
 	rootCmd.AddCommand(deployCmd)

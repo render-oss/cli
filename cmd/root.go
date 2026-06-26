@@ -85,7 +85,7 @@ func newRootCmd() *cobra.Command {
 	root.Version = cfg.Version
 	root.CompletionOptions.DisableDefaultCmd = true
 	root.PersistentFlags().StringP("output", "o", "interactive", "Set output format to interactive, json, yaml, or text. Auto-switches to text on non-TTY")
-	setAnnotationBestEffort(root.PersistentFlags(), "output", command.FlagPlaceholderAnnotation, []string{command.OutputPlaceholder})
+	setFlagPlaceholder(root.PersistentFlags(), "output", command.OutputPlaceholder)
 	root.PersistentFlags().Bool(command.ConfirmFlag, false, "Skip all confirmation prompts")
 
 	// Flags from the old CLI that we error with a helpful message.

@@ -285,7 +285,7 @@ func init() {
 	}
 
 	servicesCmd.Flags().StringSliceP("environment-ids", "e", nil, "Filter services by comma-separated environment IDs")
-	setAnnotationBestEffort(servicesCmd.Flags(), "environment-ids", command.FlagPlaceholderAnnotation, []string{placeholderEnvIDs})
+	setFlagPlaceholder(servicesCmd.Flags(), "environment-ids", placeholderEnvIDs)
 	servicesCmd.Flags().Bool("include-previews", false, "Include preview environments")
 
 	// Flags from the old CLI that we error with a helpful message

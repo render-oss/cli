@@ -69,7 +69,7 @@ In interactive mode, you will be prompted to select a task if not provided.`,
 	}
 
 	runListCmd.Flags().String("task", "", "ID or slug of the task whose runs to list (alternative to the positional argument)")
-	setAnnotationBestEffort(runListCmd.Flags(), "task", command.FlagPlaceholderAnnotation, []string{"TASK"})
+	setFlagPlaceholder(runListCmd.Flags(), "task", "TASK")
 
 	return runListCmd
 }

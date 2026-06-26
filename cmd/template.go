@@ -70,7 +70,7 @@ var CommandTemplateListCmd = &cobra.Command{
 //
 // 	// Define flags inline. Use kebab-case names and action-verb descriptions without trailing periods.
 // 	myCommandCmd.Flags().StringSliceP("environment-ids", "e", nil, "Filter by the specified environment IDs")
-// 	setAnnotationBestEffort(myCommandCmd.Flags(), "environment-ids", command.FlagPlaceholderAnnotation, []string{"ENV_IDS"})
+// 	setFlagPlaceholder(myCommandCmd.Flags(), "environment-ids", "ENV_IDS")
 //
 // 	myCommandCmd.Flags().Bool("include-previews", false, "Include preview environments in the list")
 //

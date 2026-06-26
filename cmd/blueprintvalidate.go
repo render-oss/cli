@@ -46,7 +46,7 @@ Validates:
 func init() {
 	blueprintsCmd.AddCommand(blueprintValidateCmd)
 	blueprintValidateCmd.Flags().StringP("workspace", "w", "", "Validate against the specified workspace ID (defaults to current workspace)")
-	setAnnotationBestEffort(blueprintValidateCmd.Flags(), "workspace", command.FlagPlaceholderAnnotation, []string{"WORKSPACE_ID"})
+	setFlagPlaceholder(blueprintValidateCmd.Flags(), "workspace", "WORKSPACE_ID")
 }
 
 func runBlueprintValidate(ctx context.Context, cmd *cobra.Command, args []string) error {

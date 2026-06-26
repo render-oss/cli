@@ -27,9 +27,9 @@ const defaultEnvFile = ".env"
 const defaultTaskAPIPort = 8120
 
 var WorkflowsCmd = &cobra.Command{
-	Use:   "workflows",
-	Short: "Manage Render Workflows in your workspace",
-	Long: `Manage workflow services for the active workspace. List workflows, browse versions and tasks, start task runs, and trigger releases.`,
+	Use:     "workflows",
+	Short:   "Manage Render Workflows in your workspace",
+	Long:    `Manage workflow services for the active workspace. List workflows, browse versions and tasks, start task runs, and trigger releases.`,
 	GroupID: GroupCore.ID,
 	Example: `  # List workflows
   render workflows list
@@ -210,8 +210,8 @@ func init() {
 	workflowDevCmd.Flags().Int("port", defaultTaskAPIPort, "Set the port of the local task server")
 	workflowDevCmd.Flags().Bool("debug", false, "Print detailed workflow task execution events")
 	workflowDevCmd.Flags().StringSlice("env-file", []string{defaultEnvFile}, "Path to an env file to load into the workflow subprocess. Repeat to load multiple files (later files override earlier ones).")
-	setAnnotationBestEffort(workflowDevCmd.Flags(), "port", command.FlagPlaceholderAnnotation, []string{"PORT"})
-	setAnnotationBestEffort(workflowDevCmd.Flags(), "env-file", command.FlagPlaceholderAnnotation, []string{"PATH"})
+	setFlagPlaceholder(workflowDevCmd.Flags(), "port", "PORT")
+	setFlagPlaceholder(workflowDevCmd.Flags(), "env-file", "PATH")
 
 	rootCmd.AddCommand(WorkflowsCmd)
 	WorkflowsCmd.AddCommand(workflowDevCmd)

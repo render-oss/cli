@@ -3,7 +3,6 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/skills"
 	"github.com/render-oss/cli/pkg/tui"
 	"github.com/render-oss/cli/pkg/tui/views"
@@ -56,5 +55,5 @@ func init() {
 	skillsCmd.AddCommand(skillsUpdateCmd)
 	skillsUpdateCmd.Flags().Bool("force", false, "Reinstall all skills even if already up to date")
 	skillsUpdateCmd.Flags().String("scope", "", "Update skills at the specified scope (user or project)")
-	setAnnotationBestEffort(skillsUpdateCmd.Flags(), "scope", command.FlagPlaceholderAnnotation, []string{"SCOPE"})
+	setFlagPlaceholder(skillsUpdateCmd.Flags(), "scope", "SCOPE")
 }

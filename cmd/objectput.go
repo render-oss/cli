@@ -108,7 +108,7 @@ func init() {
 	objectPutCmd.Flags().StringP("file", "f", "", "Path to the local file to upload (Required)")
 	objectPutCmd.MarkFlagRequired("file")
 	objectPutCmd.MarkFlagFilename("file")
-	setAnnotationBestEffort(objectPutCmd.Flags(), "file", command.FlagPlaceholderAnnotation, []string{"PATH"})
+	setFlagPlaceholder(objectPutCmd.Flags(), "file", "PATH")
 
 	objectCmd.AddCommand(objectPutCmd)
 }

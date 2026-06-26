@@ -3,7 +3,6 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/skills"
 	"github.com/render-oss/cli/pkg/tui"
 	"github.com/render-oss/cli/pkg/tui/views"
@@ -49,5 +48,5 @@ Use --scope to filter by installation scope (user or project).`,
 func init() {
 	skillsCmd.AddCommand(skillsListCmd)
 	skillsListCmd.Flags().String("scope", "", "Filter skills by installation scope (user or project)")
-	setAnnotationBestEffort(skillsListCmd.Flags(), "scope", command.FlagPlaceholderAnnotation, []string{"SCOPE"})
+	setFlagPlaceholder(skillsListCmd.Flags(), "scope", "SCOPE")
 }

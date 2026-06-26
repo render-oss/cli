@@ -6,13 +6,14 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/style"
 	"github.com/spf13/pflag"
 )
 
 const (
 	placeholderEnvIDs = "ENV_IDS"
+
+	flagPlaceholderAnnotation = "render.placeholder"
 )
 
 // setAnnotationBestEffort applies annotation metadata without failing command initialization.
@@ -27,11 +28,17 @@ func setAnnotationBestEffort(flags *pflag.FlagSet, flagName, key string, values 
 	return flags.SetAnnotation(flagName, key, values) == nil
 }
 
+// setFlagPlaceholder applies help-output placeholder metadata to a flag.
+// Returns true when the placeholder was applied successfully, false otherwise.
+func setFlagPlaceholder(flags *pflag.FlagSet, flagName, placeholder string) bool {
+	return setAnnotationBestEffort(flags, flagName, flagPlaceholderAnnotation, []string{placeholder})
+}
+
 func placeholderFromAnnotation(flag *pflag.Flag) (string, bool) {
 	if flag == nil || flag.Annotations == nil {
 		return "", false
 	}
-	values, ok := flag.Annotations[command.FlagPlaceholderAnnotation]
+	values, ok := flag.Annotations[flagPlaceholderAnnotation]
 	if !ok || len(values) == 0 || values[0] == "" {
 		return "", false
 	}

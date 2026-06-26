@@ -47,9 +47,9 @@ func init() {
 	skillsInstallCmd.Flags().StringSlice("skill", nil, "Install specific skills only (use --skill multiple times)")
 	skillsInstallCmd.Flags().Bool("dry-run", false, "Show what would be installed without making changes")
 	skillsInstallCmd.Flags().String("scope", "", "Set installation scope to user or project (defaults to user)")
-	setAnnotationBestEffort(skillsInstallCmd.Flags(), "tool", command.FlagPlaceholderAnnotation, []string{"TOOL"})
-	setAnnotationBestEffort(skillsInstallCmd.Flags(), "skill", command.FlagPlaceholderAnnotation, []string{"SKILL"})
-	setAnnotationBestEffort(skillsInstallCmd.Flags(), "scope", command.FlagPlaceholderAnnotation, []string{"SCOPE"})
+	setFlagPlaceholder(skillsInstallCmd.Flags(), "tool", "TOOL")
+	setFlagPlaceholder(skillsInstallCmd.Flags(), "skill", "SKILL")
+	setFlagPlaceholder(skillsInstallCmd.Flags(), "scope", "SCOPE")
 
 	skillsInstallCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input SkillsInstallInput

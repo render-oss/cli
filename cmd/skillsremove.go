@@ -69,9 +69,9 @@ func init() {
 	skillsRemoveCmd.Flags().String("tool", "", "Remove skills from a specific tool only (claude, codex, opencode, or cursor)")
 	skillsRemoveCmd.Flags().Bool("all", false, "Remove all installed Render skills")
 	skillsRemoveCmd.Flags().String("scope", "", "Remove skills from the specified scope (user or project)")
-	setAnnotationBestEffort(skillsRemoveCmd.Flags(), "skill", command.FlagPlaceholderAnnotation, []string{"SKILL"})
-	setAnnotationBestEffort(skillsRemoveCmd.Flags(), "tool", command.FlagPlaceholderAnnotation, []string{"TOOL"})
-	setAnnotationBestEffort(skillsRemoveCmd.Flags(), "scope", command.FlagPlaceholderAnnotation, []string{"SCOPE"})
+	setFlagPlaceholder(skillsRemoveCmd.Flags(), "skill", "SKILL")
+	setFlagPlaceholder(skillsRemoveCmd.Flags(), "tool", "TOOL")
+	setFlagPlaceholder(skillsRemoveCmd.Flags(), "scope", "SCOPE")
 }
 
 // nonInteractiveSkillsRemove runs the remove flow without prompts.

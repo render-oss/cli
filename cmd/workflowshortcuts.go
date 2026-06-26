@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/tui/flows"
 	"github.com/spf13/cobra"
 )
@@ -12,7 +11,7 @@ import (
 func addLocalServerFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("local", false, "Run against the local workflow development server")
 	cmd.Flags().Int("port", defaultTaskAPIPort, "Set the port of the local task server")
-	setAnnotationBestEffort(cmd.Flags(), "port", command.FlagPlaceholderAnnotation, []string{"PORT"})
+	setFlagPlaceholder(cmd.Flags(), "port", "PORT")
 }
 
 func workflowStartShortcut(deps flows.WorkflowDeps) *cobra.Command {

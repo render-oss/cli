@@ -20,7 +20,7 @@ var ServiceCreateCmd = &cobra.Command{
 	Use:   "create",
 	Args:  cobra.NoArgs,
 	Short: "Create a new service or clone an existing one",
-	Long: `Create a new service on Render. This command only runs in non-interactive modes. Provide configuration options with flags.`,
+	Long:  `Create a new service on Render. This command only runs in non-interactive modes. Provide configuration options with flags.`,
 	Example: `  # Create a service from repository configuration
   render services create --name my-api --type web_service --repo https://github.com/org/repo --runtime node --build-command "npm install" --start-command "npm start" --output json
 
@@ -94,34 +94,34 @@ func init() {
 	ServiceCreateCmd.Flags().String("maintenance-mode-uri", "", "Set the maintenance mode URI")
 	ServiceCreateCmd.Flags().StringArray("ip-allow-list", nil, "Set IP allow list entries in cidr=..., description=... format (can be specified multiple times)")
 
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "name", command.FlagPlaceholderAnnotation, []string{"NAME"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "type", command.FlagPlaceholderAnnotation, []string{"TYPE"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "from", command.FlagPlaceholderAnnotation, []string{"SERVICE_ID"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "repo", command.FlagPlaceholderAnnotation, []string{"REPO_URL"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "branch", command.FlagPlaceholderAnnotation, []string{"BRANCH"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "image", command.FlagPlaceholderAnnotation, []string{"IMAGE_URL"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "region", command.FlagPlaceholderAnnotation, []string{"REGION"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "plan", command.FlagPlaceholderAnnotation, []string{"PLAN"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "runtime", command.FlagPlaceholderAnnotation, []string{"RUNTIME"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "root-directory", command.FlagPlaceholderAnnotation, []string{"PATH"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "build-command", command.FlagPlaceholderAnnotation, []string{"COMMAND"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "start-command", command.FlagPlaceholderAnnotation, []string{"COMMAND"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "health-check-path", command.FlagPlaceholderAnnotation, []string{"PATH"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "publish-directory", command.FlagPlaceholderAnnotation, []string{"PATH"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "cron-command", command.FlagPlaceholderAnnotation, []string{"COMMAND"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "cron-schedule", command.FlagPlaceholderAnnotation, []string{"SCHEDULE"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "environment-id", command.FlagPlaceholderAnnotation, []string{"ENVIRONMENT_ID"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "env-var", command.FlagPlaceholderAnnotation, []string{"KEY_VALUE"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "secret-file", command.FlagPlaceholderAnnotation, []string{"NAME_PATH"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "registry-credential", command.FlagPlaceholderAnnotation, []string{"CREDENTIAL"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "pre-deploy-command", command.FlagPlaceholderAnnotation, []string{"COMMAND"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "build-filter-path", command.FlagPlaceholderAnnotation, []string{"PATHS"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "build-filter-ignored-path", command.FlagPlaceholderAnnotation, []string{"PATHS"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "num-instances", command.FlagPlaceholderAnnotation, []string{"COUNT"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "max-shutdown-delay", command.FlagPlaceholderAnnotation, []string{"SECONDS"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "previews", command.FlagPlaceholderAnnotation, []string{"PREVIEWS"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "maintenance-mode-uri", command.FlagPlaceholderAnnotation, []string{"URI"})
-	setAnnotationBestEffort(ServiceCreateCmd.Flags(), "ip-allow-list", command.FlagPlaceholderAnnotation, []string{"CIDR_DESCRIPTION"})
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "name", "NAME")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "type", "TYPE")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "from", "SERVICE_ID")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "repo", "REPO_URL")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "branch", "BRANCH")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "image", "IMAGE_URL")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "region", "REGION")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "plan", "PLAN")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "runtime", "RUNTIME")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "root-directory", "PATH")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "build-command", "COMMAND")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "start-command", "COMMAND")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "health-check-path", "PATH")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "publish-directory", "PATH")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "cron-command", "COMMAND")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "cron-schedule", "SCHEDULE")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "environment-id", "ENVIRONMENT_ID")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "env-var", "KEY_VALUE")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "secret-file", "NAME_PATH")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "registry-credential", "CREDENTIAL")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "pre-deploy-command", "COMMAND")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "build-filter-path", "PATHS")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "build-filter-ignored-path", "PATHS")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "num-instances", "COUNT")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "max-shutdown-delay", "SECONDS")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "previews", "PREVIEWS")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "maintenance-mode-uri", "URI")
+	setFlagPlaceholder(ServiceCreateCmd.Flags(), "ip-allow-list", "CIDR_DESCRIPTION")
 }
 
 func createServiceNonInteractive(ctx context.Context, cliInput servicetypes.ServiceCreateInput) (*client.Service, error) {

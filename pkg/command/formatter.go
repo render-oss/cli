@@ -11,7 +11,6 @@ import (
 type Output string
 
 const (
-	FlagPlaceholderAnnotation = "render.placeholder"
 	OutputPlaceholder = "FORMAT"
 
 	Interactive Output = "interactive"

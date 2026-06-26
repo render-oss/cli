@@ -70,7 +70,7 @@ func init() {
 	rootCmd.AddCommand(psqlCmd)
 
 	psqlCmd.Flags().StringP("command", "c", "", "Execute a SQL command in non-interactive mode")
-	setAnnotationBestEffort(psqlCmd.Flags(), "command", command.FlagPlaceholderAnnotation, []string{"SQL"})
+	setFlagPlaceholder(psqlCmd.Flags(), "command", "SQL")
 
 	psqlCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()

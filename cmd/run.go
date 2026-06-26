@@ -1,9 +1,6 @@
 package cmd
 
-import (
-	"github.com/render-oss/cli/pkg/command"
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 var runsCmd = &cobra.Command{
 	Use:        "runs",
@@ -22,7 +19,7 @@ To start a new task run, use either:
 func init() {
 	runsCmd.PersistentFlags().Bool("local", false, "Run against the local workflow development server")
 	runsCmd.PersistentFlags().Int("port", defaultTaskAPIPort, "Set the port of the local task server")
-	setAnnotationBestEffort(runsCmd.PersistentFlags(), "port", command.FlagPlaceholderAnnotation, []string{"PORT"})
+	setFlagPlaceholder(runsCmd.PersistentFlags(), "port", "PORT")
 
 	WorkflowsCmd.AddCommand(runsCmd)
 }

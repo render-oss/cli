@@ -112,8 +112,8 @@ func init() {
 	WorkflowCreateCmd.Flags().Var(autoDeployFlag, "auto-deploy-trigger", "Autodeploy behavior (commit, off, checksPass; default: commit)")
 	WorkflowCreateCmd.Flags().StringArray("env-var", nil, "Set environment variables in KEY=VALUE format (can be specified multiple times). Inline values override values loaded from --env-file.")
 	WorkflowCreateCmd.Flags().StringSlice("env-file", nil, "Path to an env file to load. Repeat to load multiple files (later files override earlier ones). Every listed file must exist.")
-	setAnnotationBestEffort(WorkflowCreateCmd.Flags(), "env-var", command.FlagPlaceholderAnnotation, []string{"KEY_VALUE"})
-	setAnnotationBestEffort(WorkflowCreateCmd.Flags(), "env-file", command.FlagPlaceholderAnnotation, []string{"PATH"})
+	setFlagPlaceholder(WorkflowCreateCmd.Flags(), "env-var", "KEY_VALUE")
+	setFlagPlaceholder(WorkflowCreateCmd.Flags(), "env-file", "PATH")
 }
 
 func interactiveWorkflowCreate(cmd *cobra.Command, input *wfviews.WorkflowCreateInput) tea.Cmd {

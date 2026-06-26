@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/logs"
 	"github.com/render-oss/cli/pkg/tasks"
 	"github.com/render-oss/cli/pkg/tui/flows"
@@ -48,7 +47,7 @@ A task run represents a single execution of a task with specific input parameter
 func init() {
 	taskCmd.PersistentFlags().Bool("local", false, "Run against the local workflow development server")
 	taskCmd.PersistentFlags().Int("port", defaultTaskAPIPort, "Set the port of the local task server")
-	setAnnotationBestEffort(taskCmd.PersistentFlags(), "port", command.FlagPlaceholderAnnotation, []string{"PORT"})
+	setFlagPlaceholder(taskCmd.PersistentFlags(), "port", "PORT")
 
 	WorkflowsCmd.AddCommand(taskCmd)
 	taskCmd.AddCommand(tasksRunsCmd)

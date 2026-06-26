@@ -97,6 +97,6 @@ func init() {
 
 	JobCreateCmd.Flags().String("start-command", "", "Set the job start command")
 	JobCreateCmd.Flags().String("plan-id", "", "Set the plan ID for the job (Optional)")
-	setAnnotationBestEffort(JobCreateCmd.Flags(), "start-command", command.FlagPlaceholderAnnotation, []string{"COMMAND"})
-	setAnnotationBestEffort(JobCreateCmd.Flags(), "plan-id", command.FlagPlaceholderAnnotation, []string{"PLAN_ID"})
+	setFlagPlaceholder(JobCreateCmd.Flags(), "start-command", "COMMAND")
+	setFlagPlaceholder(JobCreateCmd.Flags(), "plan-id", "PLAN_ID")
 }

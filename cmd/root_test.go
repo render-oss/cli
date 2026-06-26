@@ -402,7 +402,7 @@ func TestRootHelpOmitsEmptyGroupHeaders(t *testing.T) {
 func TestGetDescriptiveTypeNameUsesAnnotationWhenPresent(t *testing.T) {
 	flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
 	flags.String("region", "", "Filter by region.")
-	require.NoError(t, flags.SetAnnotation("region", command.FlagPlaceholderAnnotation, []string{"REGION"}))
+	require.True(t, setFlagPlaceholder(flags, "region", "REGION"))
 
 	require.Equal(t, "REGION", getDescriptiveTypeName(flags.Lookup("region"), "string"))
 	require.Equal(t, "string", getDescriptiveTypeName(flags.Lookup("missing"), "string"))
@@ -412,18 +412,18 @@ func TestRootOutputFlagHasPlaceholderAnnotation(t *testing.T) {
 	outputFlag := rootCmd.PersistentFlags().Lookup("output")
 	require.NotNil(t, outputFlag)
 
-	values, ok := outputFlag.Annotations[command.FlagPlaceholderAnnotation]
+	placeholder, ok := placeholderFromAnnotation(outputFlag)
 	require.True(t, ok)
-	require.Equal(t, []string{command.OutputPlaceholder}, values)
+	require.Equal(t, command.OutputPlaceholder, placeholder)
 }
 
 func TestServicesEnvironmentIDsFlagHasPlaceholderAnnotation(t *testing.T) {
 	envIDsFlag := servicesCmd.Flags().Lookup("environment-ids")
 	require.NotNil(t, envIDsFlag)
 
-	values, ok := envIDsFlag.Annotations[command.FlagPlaceholderAnnotation]
+	placeholder, ok := placeholderFromAnnotation(envIDsFlag)
 	require.True(t, ok)
-	require.Equal(t, []string{placeholderEnvIDs}, values)
+	require.Equal(t, placeholderEnvIDs, placeholder)
 }
 
 func TestSetAnnotationBestEffort(t *testing.T) {
@@ -431,22 +431,22 @@ func TestSetAnnotationBestEffort(t *testing.T) {
 		flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
 		flags.String("output", "", "output format")
 
-		ok := setAnnotationBestEffort(flags, "output", command.FlagPlaceholderAnnotation, []string{"FORMAT"})
+		ok := setAnnotationBestEffort(flags, "output", "test.annotation", []string{"FORMAT"})
 		require.True(t, ok)
-		require.Equal(t, []string{"FORMAT"}, flags.Lookup("output").Annotations[command.FlagPlaceholderAnnotation])
+		require.Equal(t, []string{"FORMAT"}, flags.Lookup("output").Annotations["test.annotation"])
 	})
 
 	t.Run("returns false for missing flag", func(t *testing.T) {
 		flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
 
 		require.NotPanics(t, func() {
-			ok := setAnnotationBestEffort(flags, "missing", command.FlagPlaceholderAnnotation, []string{"FORMAT"})
+			ok := setFlagPlaceholder(flags, "missing", "FORMAT")
 			require.False(t, ok)
 		})
 	})
 
 	t.Run("returns false for nil flagset", func(t *testing.T) {
-		require.False(t, setAnnotationBestEffort(nil, "output", command.FlagPlaceholderAnnotation, []string{"FORMAT"}))
+		require.False(t, setFlagPlaceholder(nil, "output", "FORMAT"))
 	})
 }
 

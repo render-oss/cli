@@ -99,9 +99,9 @@ In interactive mode, you will be prompted to select the task and provide the inp
 	cmd.Flags().String("input-file", "", "Read task input from a JSON file path")
 	cmd.Flags().String("task", "", "ID or slug of the task to run (alternative to the positional argument)")
 	cmd.MarkFlagFilename("input-file")
-	setAnnotationBestEffort(cmd.Flags(), "input", command.FlagPlaceholderAnnotation, []string{"JSON"})
-	setAnnotationBestEffort(cmd.Flags(), "input-file", command.FlagPlaceholderAnnotation, []string{"PATH"})
-	setAnnotationBestEffort(cmd.Flags(), "task", command.FlagPlaceholderAnnotation, []string{"TASK"})
+	setFlagPlaceholder(cmd.Flags(), "input", "JSON")
+	setFlagPlaceholder(cmd.Flags(), "input-file", "PATH")
+	setFlagPlaceholder(cmd.Flags(), "task", "TASK")
 
 	return cmd
 }
