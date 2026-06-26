@@ -17,7 +17,7 @@ func executePGCreate(t *testing.T, server *renderapi.Server, extraArgs ...string
 	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: pgActiveWorkspaceID, Name: "Test Workspace"}))
 	t.Setenv("RENDER_WORKSPACE", pgActiveWorkspaceID)
 
-	return executePGCommand(t, server, append([]string{"ea", "pg", "create"}, extraArgs...)...)
+	return executePGCommand(t, server, append([]string{"ea", "postgres", "create"}, extraArgs...)...)
 }
 
 func TestPGCreate_ZeroFlags_AppliesDefaults(t *testing.T) {
@@ -126,13 +126,13 @@ func TestPGCreate_InteractiveConfirm_PrintsTextSuccess(t *testing.T) {
 	assert.Contains(t, result.Stdout, pg.Id)
 }
 
-func TestPGCreate_PostgresAlias(t *testing.T) {
+func TestPGCreate_PGAlias(t *testing.T) {
 	server := renderapi.NewServer(t)
 	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: pgActiveWorkspaceID, Name: "Test Workspace"}))
 	t.Setenv("RENDER_WORKSPACE", pgActiveWorkspaceID)
 
 	_, err := executePGCommand(t, server,
-		"ea", "postgres", "create",
+		"ea", "pg", "create",
 		"--name", "alias-pg",
 		"--output", "text",
 	)
@@ -156,7 +156,7 @@ func TestPGCreate_ParameterOverrideFlagIsUnknown(t *testing.T) {
 
 func TestPGCreate_NoWorkspaceConfigured(t *testing.T) {
 	server := renderapi.NewServer(t)
-	result, err := executePGCommand(t, server, "ea", "pg", "create", "--output", "text")
+	result, err := executePGCommand(t, server, "ea", "postgres", "create", "--output", "text")
 	require.Error(t, err)
 	assert.Contains(t, result.Stderr, "no workspace")
 	assert.Empty(t, server.Postgres.Instances)

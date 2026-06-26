@@ -4,9 +4,9 @@ import "github.com/spf13/cobra"
 
 func newPgCmd(children ...*cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "pg",
-		Aliases: []string{"postgres"},
-		Short:   "Manage Render Postgres databases",
+		Use:     "postgres",
+		Aliases: []string{"pg"},
+		Short:   "Manage Render Postgres databases (alias: pg)",
 		Long: `Manage Render Postgres databases.
 
 Lives under 'ea' while the command surface stabilizes. Postgres itself is

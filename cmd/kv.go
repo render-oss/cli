@@ -4,9 +4,9 @@ import "github.com/spf13/cobra"
 
 func newKVCmd(children ...*cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "kv",
-		Aliases: []string{"keyvalues", "keyvalue"},
-		Short:   "Manage Render Key Value instances (early access)",
+		Use:     "keyvalues",
+		Aliases: []string{"kv", "keyvalue"},
+		Short:   "Manage Render Key Value instances (alias: kv)",
 	}
 	cmd.AddCommand(children...)
 	return cmd
