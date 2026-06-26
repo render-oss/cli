@@ -154,9 +154,9 @@ func TestPostgresDetail_ReadReplicas(t *testing.T) {
 }
 
 func TestPostgresDetail_IPAllowList(t *testing.T) {
-	t.Run("renders empty allow-list as (empty)", func(t *testing.T) {
+	t.Run("explains that empty allow-list blocks external connections", func(t *testing.T) {
 		pg := basicPostgresOut(basicPostgres())
-		assert.Contains(t, text.PostgresDetail(&pg), "IP allow-list: (empty)")
+		assert.Contains(t, text.PostgresDetail(&pg), "IP allow-list: empty (external connections blocked)")
 	})
 
 	t.Run("renders populated entries", func(t *testing.T) {

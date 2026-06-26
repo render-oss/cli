@@ -51,9 +51,6 @@ func KeyValueDetail(kv *keyvalue.KeyValueOut) string {
 		lines = append(lines, fmt.Sprintf("Memory policy: %s", *kv.MaxmemoryPolicy))
 	}
 	detail := strings.Join(append(lines, ipAllowListBlock(kv.IPAllowList)), "\n")
-	if len(kv.IPAllowList) == 0 {
-		detail = strings.Replace(detail, "IP allow-list: (empty)", "IP allow-list: (empty, external connections are blocked)", 1)
-	}
 	if kv.ConnectionInfo == nil {
 		return detail
 	}

@@ -10,12 +10,13 @@ import (
 // Shared IP allow-list rendering helpers, used by both Key Value and Postgres
 // text output. The parsing counterpart lives in pkg/types/ipallowlist.go.
 
-// ipAllowListBlock renders the allow-list as either a one-liner ("IP allow-list: (empty)")
-// or a header line followed by indented entries — each "  - <cidr> (<description>)" or
-// "  - <cidr>" when description is empty.
+// ipAllowListBlock renders the allow-list as either a one-liner
+// ("IP allow-list: empty (external connections blocked)") or a header line
+// followed by indented entries — each "  - <cidr> (<description>)", or
+// "  - <cidr>" when the description is empty.
 func ipAllowListBlock(entries []client.CidrBlockAndDescription) string {
 	if len(entries) == 0 {
-		return "IP allow-list: (empty)"
+		return "IP allow-list: empty (external connections blocked)"
 	}
 	var b strings.Builder
 	b.WriteString("IP allow-list:")
