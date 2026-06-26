@@ -17,10 +17,10 @@ import (
 func newKVListCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "list",
-		Short:        "List Key Value store instances",
+		Short:        "List Render Key Value instances",
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
-		Long: `List Key Value store instances in the active workspace.
+		Long: `List Render Key Value instances in the active workspace.
 
 Use --project to narrow results to a single project, --environment to narrow
 to a single environment, or both — when both are supplied, the environment is
@@ -42,9 +42,9 @@ resolved within that project.`,
 	}
 
 	cmd.Flags().String("project", "",
-		"Project ID or name (optional). Narrows results to environments in this project.")
+		"Narrow results to environments in a project (ID or name, optional).")
 	cmd.Flags().String("environment", "",
-		"Environment ID or name (optional). Narrows results to this environment.")
+		"Narrow results to a single environment (ID or name, optional).")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)

@@ -14,10 +14,10 @@ func newPgListCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "list",
 		Aliases:      []string{"ls"},
-		Short:        "List Postgres databases",
+		Short:        "List Render Postgres databases",
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
-		Long: `List Postgres databases in the active workspace.
+		Long: `List Render Postgres databases in the active workspace.
 
 Use --project to narrow results to a single project, --environment to narrow
 to a single environment, or both — when both are supplied, the environment is
@@ -39,9 +39,9 @@ resolved within that project.`,
 	}
 
 	cmd.Flags().String("project", "",
-		"Project ID or name (optional). Narrows results to environments in this project.")
+		"Narrow results to environments in a project (ID or name, optional).")
 	cmd.Flags().String("environment", "",
-		"Environment ID or name (optional). Narrows results to this environment.")
+		"Narrow results to a single environment (ID or name, optional).")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)

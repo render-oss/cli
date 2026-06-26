@@ -17,17 +17,15 @@ import (
 func newKVCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "Create a new Key Value store instance",
+		Short: "Create a new Render Key Value instance",
 		Args:  cobra.NoArgs,
-		Long: `Create a new Key Value store instance on Render.
+		Long: `Create a new Render Key Value instance.
 
 In interactive mode, a prompt guides you through each option one at a time.
 In non-interactive mode (--output text/json/yaml), flags use defaults if not supplied.
 Use --confirm to skip all prompts (including final confirmation) and create immediately.
-Output will be human-readable; use --output json/yaml/text for machine-readable output.
-
-Examples:
-  # Interactive wizard (guided prompts for each option)
+Output will be human-readable; use --output json/yaml/text for machine-readable output.`,
+		Example: `  # Interactive wizard (guided prompts for each option)
   render ea kv create
 
   # Specify all options; wizard still asks for confirmation before creating
@@ -45,27 +43,25 @@ Examples:
     --ip-allow-list "cidr=10.0.0.0/8,description=internal"`,
 	}
 
-	cmd.Flags().String("name", "", "Key Value instance name (generated if not provided)")
-	cmd.Flags().String("workspace", "", "Workspace ID or name. Defaults to the active workspace (set via 'render workspace set').")
-	cmd.Flags().String("project", "", "Project ID or name (optional). Scopes environment lookup; if the project has exactly one environment it is used automatically.")
-	cmd.Flags().String("environment", "", "Environment ID or name (optional). Example: Production or evm-abc123def456")
+	cmd.Flags().String("name", "", "Set the Key Value instance name (generated if not provided)")
+	cmd.Flags().String("workspace", "", "Set the workspace to create the Key Value in (ID or name). Defaults to the active workspace (set via 'render workspace set').")
+	cmd.Flags().String("project", "", "Scope environment lookup to a project (ID or name, optional); if the project has exactly one environment it is used automatically.")
+	cmd.Flags().String("environment", "", "Set the environment to create the Key Value in (ID or name, optional). Example: Production or evm-abc123def456")
 
 	cmd.Flags().String("plan", "",
-		"Plan name. Examples: free | starter | standard | pro | pro_plus. Account-specific plan names are accepted.")
+		"Set the plan to one of: free | starter | standard | pro | pro_plus. Custom enterprise plan names are also accepted.")
 
 	regionFlag := command.NewEnumInput(types.RegionValues(), false)
-	cmd.Flags().Var(regionFlag, "region", "Region: frankfurt | ohio | oregon | singapore | virginia")
+	cmd.Flags().Var(regionFlag, "region", "Set the region: frankfurt | ohio | oregon | singapore | virginia")
 
 	maxmemFlag := command.NewEnumInput(kvtypes.MemoryPolicyInputValues(), false)
 	cmd.Flags().Var(maxmemFlag, "memory-policy",
-		"Controls what the instance does when it runs out of memory to store new data.\n"+
-			"Shortcuts: cache (sets allkeys_lru, recommended for caching) | queue (sets noeviction, recommended for job queues).\n"+
-			"Technical values: noeviction | allkeys_lru | allkeys_lfu | allkeys_random | volatile_lru | volatile_lfu | volatile_random | volatile_ttl")
+		"Set the eviction policy used when the instance runs out of memory.\n"+
+			"Accepts a friendly alias — cache (= allkeys_lru, for caching) or queue (= noeviction, for job queues) —\n"+
+			"or any raw policy: noeviction | allkeys_lru | allkeys_lfu | allkeys_random | volatile_lru | volatile_lfu | volatile_random | volatile_ttl")
 
 	cmd.Flags().StringArray("ip-allow-list", nil,
-		"Restrict inbound traffic to specific IP ranges. Repeat the flag for multiple entries.\n"+
-			"Format: cidr=<range>,description=<label>\n"+
-			"Example: --ip-allow-list \"cidr=203.0.113.5/32,description=office\"")
+		"Restrict inbound traffic to specific IP ranges (format: cidr=<range>,description=<label>). Repeat the flag for multiple entries.")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input kvtypes.KeyValueCreateInput
@@ -123,7 +119,7 @@ func runKVCreateAndPrint(cmd *cobra.Command, deps *dependencies.Dependencies, in
 
 func kvCreateSuccessMessage(kv *keyvalue.KeyValueOut) string {
 	return fmt.Sprintf(
-		"Created Key Value store\n\n%s\n",
+		"Created Render Key Value\n\n%s\n",
 		text.KeyValueDetail(kv),
 	)
 }

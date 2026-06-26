@@ -25,10 +25,10 @@ func normalizePGDeleteInput(input pgDeleteInput) pgDeleteInput {
 func newPgDeleteCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "delete <postgresID|postgresName>",
-		Short:        "Delete a Postgres database",
+		Short:        "Delete a Render Postgres database",
 		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true,
-		Long: `Delete a Postgres database on Render.
+		Long: `Delete a Render Postgres database.
 
 Without --confirm, this command previews what would be deleted and makes no
 changes. Pass --confirm to actually delete the database.
@@ -60,9 +60,9 @@ Postgres ID instead (which works across workspaces).`,
 	}
 
 	cmd.Flags().String("project", "",
-		"Project ID or name (optional). Narrows name lookup when the same Postgres database name exists in multiple projects.")
+		"Narrow lookup to a project (ID or name, optional) when the same Postgres database name exists in multiple projects.")
 	cmd.Flags().String("environment", "",
-		"Environment ID or name (optional). Narrows name lookup when the same Postgres database name exists in multiple environments.")
+		"Narrow lookup to an environment (ID or name, optional) when the same Postgres database name exists in multiple environments.")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)

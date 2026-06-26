@@ -14,10 +14,10 @@ import (
 func newPgGetCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "get <postgresID|postgresName>",
-		Short:        "Get details of a Postgres database",
+		Short:        "Get details of a Render Postgres database",
 		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true,
-		Long: `Get details and connection info for a Postgres database on Render.
+		Long: `Get details and connection info for a Render Postgres database.
 
 The positional argument accepts either a Postgres ID (dpg-...) or a name.
 If the name matches more than one database, narrow the search with
@@ -46,9 +46,9 @@ Postgres ID instead (which works across workspaces).`,
 	}
 
 	cmd.Flags().String("project", "",
-		"Project ID or name (optional). Narrows name lookup within the active workspace.")
+		"Narrow lookup to a project (ID or name, optional) within the active workspace.")
 	cmd.Flags().String("environment", "",
-		"Environment ID or name (optional). Narrows name lookup when the same Postgres database name exists in multiple environments.")
+		"Narrow lookup to an environment (ID or name, optional) when the same Postgres database name exists in multiple environments.")
 	cmd.Flags().Bool("include-sensitive-connection-info", false,
 		"Include connection strings and credentials in the output")
 

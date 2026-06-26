@@ -18,10 +18,10 @@ import (
 func newPgCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "create",
-		Short:        "Create a new Postgres database",
+		Short:        "Create a new Render Postgres database",
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
-		Long: `Create a new Postgres database on Render.
+		Long: `Create a new Render Postgres database.
 
 In interactive mode, a wizard guides you through the core choices for the
 database. The wizard owns those prompted values. Flag-only settings, such as
@@ -30,10 +30,8 @@ are still included in the create request.
 
 Use --confirm to skip the wizard and create immediately from flags and defaults.
 When --confirm is used with the default interactive output mode, output is
-printed as text. Use --output json, yaml, or text for non-interactive output.
-
-Examples:
-  # Launch the interactive wizard
+printed as text. Use --output json, yaml, or text for non-interactive output.`,
+		Example: `  # Launch the interactive wizard
   render ea pg create
 
   # Create immediately with defaults and text output
@@ -51,32 +49,31 @@ Examples:
   render ea pg create --output json`,
 	}
 
-	cmd.Flags().String("name", "", "Database name (generated if not provided)")
-	cmd.Flags().String("workspace", "", "Workspace ID or name. Defaults to the active workspace (set via 'render workspace set').")
-	cmd.Flags().String("project", "", "Project ID or name (optional). Scopes environment lookup; if the project has exactly one environment it is used automatically.")
-	cmd.Flags().String("environment", "", "Environment ID or name (optional). Example: Production or evm-abc123def456")
+	cmd.Flags().String("name", "", "Set the database name (generated if not provided)")
+	cmd.Flags().String("workspace", "", "Set the workspace to create the database in (ID or name). Defaults to the active workspace (set via 'render workspace set').")
+	cmd.Flags().String("project", "", "Scope environment lookup to a project (ID or name, optional); if the project has exactly one environment it is used automatically.")
+	cmd.Flags().String("environment", "", "Set the environment to create the database in (ID or name, optional). Example: Production or evm-abc123def456")
 
-	cmd.Flags().String("plan", "", "Plan name. Examples: "+strings.Join(postgres.ModernPlans, " | "))
-	cmd.Flags().Int("version", 0, fmt.Sprintf("Postgres major version. Defaults to %d.", postgres.DefaultPostgresVersion))
+	cmd.Flags().String("plan", "", "Set the plan to one of: "+strings.Join(postgres.ModernPlans, " | ")+". Custom enterprise plan names are also accepted.")
+	cmd.Flags().Int("version", 0, fmt.Sprintf("Set the Postgres major version. Defaults to %d.", postgres.DefaultPostgresVersion))
 
 	regionFlag := command.NewEnumInput(types.RegionValues(), false)
-	cmd.Flags().Var(regionFlag, "region", "Region: "+strings.Join(types.RegionValues(), " | ")+" (server picks if unset)")
+	cmd.Flags().Var(regionFlag, "region", "Set the region: "+strings.Join(types.RegionValues(), " | ")+" (server picks if unset)")
 
-	cmd.Flags().String("database-name", "", "Postgres database name (server generates one if unset)")
-	cmd.Flags().String("database-user", "", "Postgres database user (server generates one if unset)")
+	cmd.Flags().String("database-name", "", "Set the Postgres database name (server generates one if unset)")
+	cmd.Flags().String("database-user", "", "Set the Postgres database user (server generates one if unset)")
 
-	cmd.Flags().Int("disk-size-gb", 0, "Disk size in GB. Must be 1 or a multiple of 5. Server picks a sensible default based on compute size if unset.")
+	cmd.Flags().Int("disk-size-gb", 0, "Set the disk size in GB. Must be 1 or a multiple of 5. Server picks a sensible default based on compute size if unset.")
 	cmd.Flags().Bool("disk-autoscaling", false, "Enable disk autoscaling")
 	cmd.Flags().Bool("high-availability", false, "Enable high availability (Pro plans and above)")
 
-	cmd.Flags().String("datadog-api-key", "", "Datadog API key for monitoring")
-	cmd.Flags().String("datadog-site", "", "Datadog region/site (e.g. US1, US3, EU). Server default is US1.")
+	cmd.Flags().String("datadog-api-key", "", "Set the Datadog API key for monitoring")
+	cmd.Flags().String("datadog-site", "", "Set the Datadog region/site (e.g. US1, US3, EU). Server default is US1.")
 
 	cmd.Flags().StringArray("ip-allow-list", nil,
-		"Restrict inbound traffic to specific IP ranges. Repeat the flag for multiple entries.\n"+
-			"Format: cidr=<range>,description=<label>")
+		"Restrict inbound traffic to specific IP ranges (format: cidr=<range>,description=<label>). Repeat the flag for multiple entries.")
 	cmd.Flags().StringArray("read-replica", nil,
-		"Name of a read replica to create alongside the primary. Repeat the flag for multiple replicas.")
+		"Create a read replica with the given name alongside the primary. Repeat the flag for multiple replicas.")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if command.GetConfirmFromContext(cmd.Context()) {

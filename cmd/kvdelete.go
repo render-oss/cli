@@ -13,10 +13,10 @@ import (
 func newKVDeleteCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "delete <keyValueID|keyValueName>",
-		Short:        "Delete a Key Value store instance",
+		Short:        "Delete a Render Key Value instance",
 		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true,
-		Long: `Delete a Key Value store instance on Render.
+		Long: `Delete a Render Key Value instance.
 
 Without --confirm, this command previews what would be deleted and makes no
 changes. Pass --confirm to actually delete the instance.
@@ -45,7 +45,7 @@ Key Value ID instead (which works across workspaces).`,
 	}
 
 	cmd.Flags().String("environment", "",
-		"Environment ID or name (optional). Narrows name lookup when the same Key Value name exists in multiple environments.")
+		"Narrow lookup to an environment (ID or name, optional) when the same Key Value name exists in multiple environments.")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		// No interactive flow yet; collapse --output interactive (the default in a TTY)

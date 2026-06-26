@@ -13,10 +13,10 @@ import (
 func newKVGetCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "get <keyValueID|keyValueName>",
-		Short:        "Get details of a Key Value store instance",
+		Short:        "Get details of a Render Key Value instance",
 		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true,
-		Long: `Get details and connection info for a Key Value store instance on Render.
+		Long: `Get details and connection info for a Render Key Value instance.
 
 The positional argument accepts either a Key Value ID (red-...) or a name.
 If the name matches more than one instance, narrow the search with
@@ -46,9 +46,9 @@ Key Value ID instead (which works across workspaces).`,
 	}
 
 	cmd.Flags().String("project", "",
-		"Project ID or name (optional). Narrows name lookup within the active workspace.")
+		"Narrow lookup to a project (ID or name, optional) within the active workspace.")
 	cmd.Flags().String("environment", "",
-		"Environment ID or name (optional). Narrows name lookup when the same Key Value name exists in multiple environments.")
+		"Narrow lookup to an environment (ID or name, optional) when the same Key Value name exists in multiple environments.")
 	cmd.Flags().Bool("include-sensitive-connection-info", false,
 		"Include connection strings and credentials in the output")
 

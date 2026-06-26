@@ -13,10 +13,10 @@ import (
 func newKVSuspendCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "suspend <keyValueID|keyValueName>",
-		Short:        "Suspend a Key Value store instance",
+		Short:        "Suspend a Render Key Value instance",
 		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true,
-		Long: `Suspend a Key Value store instance on Render.
+		Long: `Suspend a Render Key Value instance.
 
 Without --confirm, this command previews what would be suspended and makes no
 changes. Pass --confirm to actually suspend the instance.
@@ -45,7 +45,7 @@ Key Value ID instead (which works across workspaces).`,
 	}
 
 	cmd.Flags().String("environment", "",
-		"Environment ID or name (optional). Narrows name lookup when the same Key Value name exists in multiple environments.")
+		"Narrow lookup to an environment (ID or name, optional) when the same Key Value name exists in multiple environments.")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)

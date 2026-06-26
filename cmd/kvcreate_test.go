@@ -430,7 +430,7 @@ func TestKVCreate_InvalidRegion(t *testing.T) {
 	assert.Contains(t, result.Stderr, `"oregon"`)
 	assert.Contains(t, result.Stderr, `"virginia"`)
 	assert.Contains(t, result.Stdout, "Usage:")
-	assert.Contains(t, result.Stdout, "Region: frankfurt | ohio | oregon | singapore | virginia")
+	assert.Contains(t, result.Stdout, "Set the region: frankfurt | ohio | oregon | singapore | virginia")
 	assert.Empty(t, server.KV.Instances)
 }
 
@@ -446,8 +446,8 @@ func TestKVCreate_InvalidMemoryPolicy(t *testing.T) {
 	assert.Contains(t, result.Stderr, `"queue"`)
 	assert.Contains(t, result.Stderr, `"noeviction"`)
 	assert.Contains(t, result.Stdout, "Usage:")
-	assert.Contains(t, result.Stdout, "Shortcuts: cache")
-	assert.Contains(t, result.Stdout, "Technical values: noeviction")
+	assert.Contains(t, result.Stdout, "Accepts a friendly alias — cache")
+	assert.Contains(t, result.Stdout, "or any raw policy: noeviction")
 	assert.Empty(t, server.KV.Instances)
 }
 

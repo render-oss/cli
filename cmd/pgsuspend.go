@@ -13,10 +13,10 @@ import (
 func newPgSuspendCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "suspend <postgresID|postgresName>",
-		Short:        "Suspend a Postgres database",
+		Short:        "Suspend a Render Postgres database",
 		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true,
-		Long: `Suspend a Postgres database on Render.
+		Long: `Suspend a Render Postgres database.
 
 Without --confirm, this command previews what would be suspended and makes no
 changes. Pass --confirm to actually suspend the database.
@@ -48,9 +48,9 @@ Postgres ID instead (which works across workspaces).`,
 	}
 
 	cmd.Flags().String("project", "",
-		"Project ID or name (optional). Narrows name lookup when the same Postgres database name exists in multiple projects.")
+		"Narrow lookup to a project (ID or name, optional) when the same Postgres database name exists in multiple projects.")
 	cmd.Flags().String("environment", "",
-		"Environment ID or name (optional). Narrows name lookup when the same Postgres database name exists in multiple environments.")
+		"Narrow lookup to an environment (ID or name, optional) when the same Postgres database name exists in multiple environments.")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)

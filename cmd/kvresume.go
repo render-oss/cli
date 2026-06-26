@@ -13,10 +13,10 @@ import (
 func newKVResumeCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "resume <keyValueID|keyValueName>",
-		Short:        "Resume a suspended Key Value store instance",
+		Short:        "Resume a suspended Render Key Value instance",
 		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true,
-		Long: `Resume a suspended Key Value store instance on Render.
+		Long: `Resume a suspended Render Key Value instance.
 
 The positional argument accepts either a Key Value ID (red-...) or a name.
 If the name matches more than one instance, narrow the search with
@@ -39,7 +39,7 @@ Key Value ID instead (which works across workspaces).`,
 	}
 
 	cmd.Flags().String("environment", "",
-		"Environment ID or name (optional). Narrows name lookup when the same Key Value name exists in multiple environments.")
+		"Narrow lookup to an environment (ID or name, optional) when the same Key Value name exists in multiple environments.")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)

@@ -13,10 +13,10 @@ import (
 func newPgResumeCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "resume <postgresID|postgresName>",
-		Short:        "Resume a suspended Postgres database",
+		Short:        "Resume a suspended Render Postgres database",
 		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true,
-		Long: `Resume a suspended Postgres database on Render.
+		Long: `Resume a suspended Render Postgres database.
 
 The positional argument accepts either a Postgres ID (dpg-...) or a name.
 If the name matches more than one database, narrow the search with
@@ -42,9 +42,9 @@ Postgres ID instead (which works across workspaces).`,
 	}
 
 	cmd.Flags().String("project", "",
-		"Project ID or name (optional). Narrows name lookup when the same Postgres database name exists in multiple projects.")
+		"Narrow lookup to a project (ID or name, optional) when the same Postgres database name exists in multiple projects.")
 	cmd.Flags().String("environment", "",
-		"Environment ID or name (optional). Narrows name lookup when the same Postgres database name exists in multiple environments.")
+		"Narrow lookup to an environment (ID or name, optional) when the same Postgres database name exists in multiple environments.")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)

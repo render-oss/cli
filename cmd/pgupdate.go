@@ -17,14 +17,18 @@ import (
 func newPgUpdateCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "update <postgresID|postgresName>",
-		Short:        "Update a Postgres database",
+		Short:        "Update a Render Postgres database",
 		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true,
-		Long: `Update an existing Postgres database on Render.
+		Long: `Update an existing Render Postgres database.
 
 The positional argument is the target database (ID dpg-... or name). At least
 one mutating flag must be supplied. Use --name to rename the database; the
 positional argument always identifies the target and is never the new name.
+
+Environment, project, workspace, and region are immutable. A database cannot be
+moved between them; the --project and --environment flags are for name
+disambiguation only.
 
 Only the fields you pass are changed; everything else is left untouched.
 
@@ -62,23 +66,22 @@ mutually exclusive.`,
 	}
 
 	cmd.Flags().String("project", "",
-		"Project ID or name (optional). Narrows name lookup when the same Postgres database name exists in multiple projects.")
+		"Narrow lookup to a project (ID or name, optional) when the same Postgres database name exists in multiple projects.")
 	cmd.Flags().String("environment", "",
-		"Environment ID or name (optional). Narrows name lookup when the same Postgres database name exists in multiple environments.")
+		"Narrow lookup to an environment (ID or name, optional) when the same Postgres database name exists in multiple environments.")
 
 	cmd.Flags().String("name", "", "Rename the database")
-	cmd.Flags().String("plan", "", "Plan name. Examples: "+strings.Join(postgres.ModernPlans, " | "))
+	cmd.Flags().String("plan", "", "Set the plan to one of: "+strings.Join(postgres.ModernPlans, " | ")+". Custom enterprise plan names are also accepted.")
 
-	cmd.Flags().Int("disk-size-gb", 0, "Disk size in GB. Must be 1 or a multiple of 5.")
+	cmd.Flags().Int("disk-size-gb", 0, "Set the disk size in GB. Must be 1 or a multiple of 5.")
 	cmd.Flags().Bool("disk-autoscaling", false, "Enable disk autoscaling. Pass --disk-autoscaling=false to disable.")
 	cmd.Flags().Bool("high-availability", false, "Enable high availability (Pro plans and above). Pass --high-availability=false to disable.")
 
-	cmd.Flags().String("datadog-api-key", "", "Datadog API key for monitoring. Pass an empty string to remove.")
-	cmd.Flags().String("datadog-site", "", "Datadog region/site (e.g. US1, US3, EU)")
+	cmd.Flags().String("datadog-api-key", "", "Set the Datadog API key for monitoring. Pass an empty string to remove.")
+	cmd.Flags().String("datadog-site", "", "Set the Datadog region/site (e.g. US1, US3, EU)")
 
 	cmd.Flags().StringArray("ip-allow-list", nil,
-		"Replace the IP allow-list with the supplied entries. Repeat the flag for multiple entries.\n"+
-			"Format: cidr=<range>,description=<label>")
+		"Replace the IP allow-list with the supplied entries (format: cidr=<range>,description=<label>). Repeat the flag for multiple entries.")
 	cmd.Flags().Bool("clear-ip-allow-list", false,
 		"Remove all IP allow-list entries. Mutually exclusive with --ip-allow-list")
 
