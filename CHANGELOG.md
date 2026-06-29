@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.21.0] - 2026-06-29
+
+### Added
+
+- Key Value commands are now generally available as top-level `render keyvalues` commands, with `render kv` as a shorthand alias
+- Postgres commands are now generally available as top-level `render postgres` commands, with `render pg` as a shorthand alias
+- `render services delete` command to delete services from the CLI
+- `render ea sandbox` commands to create, list, stop, and run commands in sandboxes
+
+### Changed
+
+- Key Value JSON and YAML output now uses consistent `data` and `meta` envelopes with flattened resource fields across `get`, `create`, `list`, `update`, `delete`, `suspend`, and `resume`; `update` output includes a diff of changed fields
+- Postgres JSON and YAML output now uses a slimmer resource-focused contract across `get`, `create`, `list`, `update`, `delete`, `suspend`, and `resume`; `update` output includes before/after details for changed fields
+- Key Value and Postgres text detail output now includes workspace, project, and environment context when available
+- Key Value and Postgres text detail output now explains when an empty IP allow list blocks external connections
+- `render ea sandbox exec` now streams stdout and stderr by default and propagates the remote command exit code
+
+### Fixed
+
+- `render services update` now applies supported service updates instead of returning unchanged service data
+- Workflow create and task run forms now validate required fields inline in interactive mode
+- Updated `go-git` to address upstream security vulnerabilities
+
 ## [2.20.0] - 2026-06-04
 
 ### Added
