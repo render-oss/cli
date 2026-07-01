@@ -1,6 +1,7 @@
 package views
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -118,7 +119,10 @@ func TestPostgresCreateWizardHappyPathCreatesDatabase(t *testing.T) {
 	tm.Send(tea.KeyMsg{Type: tea.KeyRight})
 	tm.Send(tea.KeyMsg{Type: tea.KeyEnter}) // yes
 
-	testhelper.WaitForContains(t, tm.Output(), "render ea pg get web-app-db")
+	teatest.WaitFor(t, tm.Output(), func(b []byte) bool {
+		return bytes.Contains(b, []byte("render pg get web-app-db")) &&
+			!bytes.Contains(b, []byte("render ea pg"))
+	})
 
 	require.Len(t, server.Postgres.Instances, 1)
 	pg := server.Postgres.Instances[0]

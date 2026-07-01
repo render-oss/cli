@@ -9,7 +9,7 @@ import (
 
 func TestCreatePostgresInputValidate(t *testing.T) {
 	// A zero-value input must pass validation so users can run
-	// `render ea pg create` with no flags and get a working database.
+	// `render pg create` with no flags and get a working database.
 	// Defaults are filled in client-side (name, plan, version, disk size)
 	// and server-side (region, db name, etc.).
 	t.Run("zero-value input is valid", func(t *testing.T) {

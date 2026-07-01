@@ -1,6 +1,6 @@
 package views
 
-// PostgresCreateModel is an inline interactive wizard for `render ea pg create`.
+// PostgresCreateModel is an inline interactive wizard for `render pg create`.
 // The outer tea.Model owns step orchestration via a declarative step pipeline;
 // each individual step is rendered by a huh.Form composed as a child tea.Model.
 //
@@ -782,7 +782,7 @@ func renderPostgresCreateSuccess(pg *client.PostgresDetail) string {
 		Render("Success!")
 
 	return fmt.Sprintf(
-		"\n%s\n\nDatabase %s was created.\n\nRun `render ea pg get %s` to check if it's ready yet.\n",
+		"\n%s\n\nDatabase %s was created.\n\nRun `render pg get %s` to check if it's ready yet.\n",
 		success,
 		rstrings.ResourceLabel(pg.Name, pg.Id),
 		pg.Name,

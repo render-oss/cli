@@ -7,7 +7,7 @@ import (
 )
 
 // CreatePostgresInput is the raw command input parsed from Cobra flags for
-// `render ea pg create`. Every field is optional: a user can run the command
+// `render pg create`. Every field is optional: a user can run the command
 // with no flags and get a working database. Defaults are filled in
 // client-side (name, plan, version, disk size) and server-side
 // (region, db name, db user, etc.).
