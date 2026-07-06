@@ -1366,7 +1366,9 @@ type Plan string
 
 // Postgres defines model for postgres.
 type Postgres struct {
-	CreatedAt time.Time `json:"createdAt"`
+	// ConnectionPool What connection pool to use (if any) out of 'pgbouncer' and 'none'
+	ConnectionPool string    `json:"connectionPool"`
+	CreatedAt      time.Time `json:"createdAt"`
 
 	// DashboardUrl The URL to view the Postgres instance in the Render Dashboard
 	DashboardUrl           string  `json:"dashboardUrl"`
@@ -1404,15 +1406,19 @@ type PostgresSuspended string
 
 // PostgresConnectionInfo defines model for postgresConnectionInfo.
 type PostgresConnectionInfo struct {
-	ExternalConnectionString string `json:"externalConnectionString"`
-	InternalConnectionString string `json:"internalConnectionString"`
-	Password                 string `json:"password"`
-	PsqlCommand              string `json:"psqlCommand"`
+	ExternalConnectionPoolString *string `json:"externalConnectionPoolString,omitempty"`
+	ExternalConnectionString     string  `json:"externalConnectionString"`
+	InternalConnectionPoolString *string `json:"internalConnectionPoolString,omitempty"`
+	InternalConnectionString     string  `json:"internalConnectionString"`
+	Password                     string  `json:"password"`
+	PsqlCommand                  string  `json:"psqlCommand"`
 }
 
 // PostgresDetail defines model for postgresDetail.
 type PostgresDetail struct {
-	CreatedAt time.Time `json:"createdAt"`
+	// ConnectionPool What connection pool to use (if any) out of 'pgbouncer' and 'none'
+	ConnectionPool string    `json:"connectionPool"`
+	CreatedAt      time.Time `json:"createdAt"`
 
 	// DashboardUrl The URL to view the Postgres instance in the Render Dashboard
 	DashboardUrl           string  `json:"dashboardUrl"`
@@ -1452,6 +1458,9 @@ type PostgresDetailSuspended string
 
 // PostgresPATCHInput defines model for postgresPATCHInput.
 type PostgresPATCHInput struct {
+	// ConnectionPool What connection pool to use (if any) out of 'pgbouncer' and 'none'
+	ConnectionPool *string `json:"connectionPool,omitempty"`
+
 	// DatadogAPIKey The Datadog API key for the Datadog agent to monitor the database. Pass empty string to remove. Restarts Postgres on change.
 	DatadogAPIKey *string `json:"datadogAPIKey,omitempty"`
 
@@ -1471,8 +1480,10 @@ type PostgresPATCHInput struct {
 
 // PostgresPOSTInput Input for creating a database
 type PostgresPOSTInput struct {
-	DatabaseName *string `json:"databaseName,omitempty"`
-	DatabaseUser *string `json:"databaseUser,omitempty"`
+	// ConnectionPool What connection pool to use (if any) out of 'pgbouncer' and 'none'
+	ConnectionPool *string `json:"connectionPool,omitempty"`
+	DatabaseName   *string `json:"databaseName,omitempty"`
+	DatabaseUser   *string `json:"databaseUser,omitempty"`
 
 	// DatadogAPIKey The Datadog API key for the Datadog agent to monitor the new database.
 	DatadogAPIKey *string `json:"datadogAPIKey,omitempty"`

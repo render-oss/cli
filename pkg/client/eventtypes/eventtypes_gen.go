@@ -44,6 +44,8 @@ const (
 	EventTypePostgresBackupFailed                  EventType = "postgres_backup_failed"
 	EventTypePostgresBackupStarted                 EventType = "postgres_backup_started"
 	EventTypePostgresClusterLeaderChanged          EventType = "postgres_cluster_leader_changed"
+	EventTypePostgresConnectionPoolChanged         EventType = "postgres_connection_pool_changed"
+	EventTypePostgresConnectionPoolEnabledChanged  EventType = "postgres_connection_pool_enabled_changed"
 	EventTypePostgresCreated                       EventType = "postgres_created"
 	EventTypePostgresDiskAutoscalingEnabledChanged EventType = "postgres_disk_autoscaling_enabled_changed"
 	EventTypePostgresDiskSizeChanged               EventType = "postgres_disk_size_changed"
