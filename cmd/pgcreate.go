@@ -65,6 +65,7 @@ printed as text. Use --output json, yaml, or text for non-interactive output.`,
 
 	cmd.Flags().Int("disk-size-gb", 0, "Set the disk size in GB. Must be 1 or a multiple of 5. Server picks a sensible default based on compute size if unset.")
 	cmd.Flags().Bool("disk-autoscaling", false, "Enable disk autoscaling")
+	cmd.Flags().String("connection-pool", "none", "Set connection pool to 'none' or 'pgbouncer'")
 	cmd.Flags().Bool("high-availability", false, "Enable high availability (Pro plans and above)")
 
 	cmd.Flags().String("datadog-api-key", "", "Set the Datadog API key for monitoring")

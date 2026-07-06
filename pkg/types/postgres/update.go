@@ -24,6 +24,7 @@ type UpdatePostgresInput struct {
 	HighAvailability *bool    `cli:"high-availability"`
 	DiskSizeGB       *int     `cli:"disk-size-gb"`
 	DiskAutoscaling  *bool    `cli:"disk-autoscaling"`
+	ConnectionPool   *string  `cli:"connection-pool"`
 	DatadogAPIKey    *string  `cli:"datadog-api-key"`
 	DatadogSite      *string  `cli:"datadog-site"`
 	IPAllowList      []string `cli:"ip-allow-list"`
@@ -40,6 +41,7 @@ func (u UpdatePostgresInput) Validate(interactive bool) error {
 		u.HighAvailability != nil ||
 		u.DiskSizeGB != nil ||
 		u.DiskAutoscaling != nil ||
+		u.ConnectionPool != nil ||
 		u.DatadogAPIKey != nil ||
 		u.DatadogSite != nil ||
 		len(u.IPAllowList) > 0 ||
@@ -49,6 +51,10 @@ func (u UpdatePostgresInput) Validate(interactive bool) error {
 	}
 
 	if err := ValidateDiskSizeGB(u.DiskSizeGB); err != nil {
+		return err
+	}
+
+	if err := ValidateConnectionPool(u.ConnectionPool); err != nil {
 		return err
 	}
 
