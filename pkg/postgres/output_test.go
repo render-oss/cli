@@ -139,6 +139,7 @@ func TestNewPostgresGetOut_JSONSerialization(t *testing.T) {
 		"suspended":               "not_suspended",
 		"suspenders":              []any{},
 		"dashboardUrl":            "https://dashboard.render.com/d/dpg-detail",
+		"connectionPool":          "",
 		"connectionInfo": map[string]any{
 			"psqlCommand":              "psql postgres://example",
 			"internalConnectionString": "postgres://internal",
