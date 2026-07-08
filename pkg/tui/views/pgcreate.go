@@ -255,7 +255,7 @@ var pgCreateSteps = []pgCreateWizardStep{
 		commit: func(m *PostgresCreateModel) pgStepCommit {
 			plan := m.selectState.value
 			return pgStepCommit{
-				displayValue: pgPlanLabel(plan),
+				displayValue: postgres.PlanLabel(plan),
 				apply:        func(d *pgCreateDraft) { d.plan = plan },
 			}
 		},
@@ -284,7 +284,7 @@ var pgCreateSteps = []pgCreateWizardStep{
 	},
 	{
 		label:     "High Availability",
-		condition: func(m *PostgresCreateModel) bool { return isHAEligiblePlan(m.draft.plan) },
+		condition: func(m *PostgresCreateModel) bool { return postgres.IsHAEligible(m.draft.plan) },
 		buildForm: func(m *PostgresCreateModel) *huh.Form { return m.buildHAForm() },
 		commit: func(m *PostgresCreateModel) pgStepCommit {
 			ha := m.confirmValue
@@ -676,7 +676,7 @@ func (m *PostgresCreateModel) buildNameForm() *huh.Form {
 func (m *PostgresCreateModel) buildPlanForm() *huh.Form {
 	items := make([]pgSelectOption, 0, len(postgres.ModernPlans))
 	for _, p := range postgres.ModernPlans {
-		items = append(items, pgSelectOption{value: p, label: pgPlanLabel(p)})
+		items = append(items, pgSelectOption{value: p, label: postgres.PlanLabel(p)})
 	}
 	options, labels := pgSelectOptions(items)
 	m.selectState = pgSelectState{value: "free", labels: labels}
@@ -751,24 +751,6 @@ func (m *PostgresCreateModel) buildConfirmForm() *huh.Form {
 }
 
 // --- helpers ---
-
-// isHAEligiblePlan reports whether the given plan supports high availability.
-// Pro and Accelerated plans are eligible; Free and Basic plans are not.
-// This mirrors the server-side check in pkg/userdb/plan.go (NoHA flag).
-func isHAEligiblePlan(plan string) bool {
-	return strings.HasPrefix(plan, "pro_") || strings.HasPrefix(plan, "accelerated_")
-}
-
-// pgPlanLabel converts an internal plan identifier to a user-friendly label.
-// "free" → "Free", "pro_4gb" → "Pro 4GB", "accelerated_16gb" → "Accelerated 16GB".
-func pgPlanLabel(plan string) string {
-	parts := strings.SplitN(plan, "_", 2)
-	if len(parts) == 2 {
-		tier := strings.ToUpper(parts[0][:1]) + parts[0][1:]
-		return tier + " " + strings.ToUpper(parts[1])
-	}
-	return strings.ToUpper(plan[:1]) + plan[1:]
-}
 
 func renderCompletedPGStep(c pgBreadcrumb) string {
 	check := lipgloss.NewStyle().Foreground(renderstyle.ColorOK).Render("✓")

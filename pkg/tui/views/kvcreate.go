@@ -495,23 +495,18 @@ func (m *KeyValueCreateModel) buildNameForm() tea.Cmd {
 func (m *KeyValueCreateModel) buildPlanForm() tea.Cmd {
 	m.step = stepPlan
 	m.selectValue = string(kvtypes.PlanFree)
-	m.labelByValue = map[string]string{
-		string(client.KeyValuePlanFree):     "Free",
-		string(client.KeyValuePlanStarter):  "Starter",
-		string(client.KeyValuePlanStandard): "Standard",
-		string(client.KeyValuePlanPro):      "Pro",
-		string(client.KeyValuePlanProPlus):  "Pro Plus",
+	planOptions := keyvalue.PlanOptions()
+	options := make([]huh.Option[string], 0, len(planOptions))
+	labels := make(map[string]string, len(planOptions))
+	for _, p := range planOptions {
+		options = append(options, huh.NewOption(p.Label, p.Value))
+		labels[p.Value] = p.Label
 	}
+	m.labelByValue = labels
 	m.form = huh.NewForm(huh.NewGroup(
 		huh.NewSelect[string]().
 			Title("Plan").
-			Options(
-				huh.NewOption("Free", string(client.KeyValuePlanFree)),
-				huh.NewOption("Starter", string(client.KeyValuePlanStarter)),
-				huh.NewOption("Standard", string(client.KeyValuePlanStandard)),
-				huh.NewOption("Pro", string(client.KeyValuePlanPro)),
-				huh.NewOption("Pro Plus", string(client.KeyValuePlanProPlus)),
-			).
+			Options(options...).
 			Value(&m.selectValue),
 	)).WithShowHelp(false)
 	return m.form.Init()

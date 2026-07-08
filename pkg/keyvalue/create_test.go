@@ -22,6 +22,21 @@ func TestPlanValues(t *testing.T) {
 	assert.Len(t, values, 5)
 }
 
+// TestPlanOptions is a completeness guard: every well-known plan returned by
+// PlanValues() must appear in PlanOptions() with a non-empty display label, in
+// the same order, so a newly added plan can't silently reach the interactive
+// picker without a label.
+func TestPlanOptions(t *testing.T) {
+	options := keyvalue.PlanOptions()
+	values := keyvalue.PlanValues()
+
+	require.Len(t, options, len(values), "PlanOptions must cover every PlanValues entry")
+	for i, opt := range options {
+		assert.Equal(t, values[i], opt.Value, "PlanOptions must preserve PlanValues order")
+		assert.NotEmpty(t, opt.Label, "plan %q is missing a display label", opt.Value)
+	}
+}
+
 func TestBuildCreateRequest_AllowsArbitraryPlanNames(t *testing.T) {
 	input := kvtypes.KeyValueCreateRequestInput{
 		Name:    "my-kv",

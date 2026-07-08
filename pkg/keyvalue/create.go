@@ -115,6 +115,35 @@ func PlanValues() []string {
 	return out
 }
 
+// PlanOption pairs a KV plan value with its human-facing display label.
+type PlanOption struct {
+	Value string
+	Label string
+}
+
+// planLabels maps each well-known KV plan value to its display label. Labels
+// are not derivable from the plan value alone (e.g. "pro_plus" → "Pro Plus"),
+// so they are curated here.
+var planLabels = map[string]string{
+	string(kvtypes.PlanFree):     "Free",
+	string(kvtypes.PlanStarter):  "Starter",
+	string(kvtypes.PlanStandard): "Standard",
+	string(kvtypes.PlanPro):      "Pro",
+	string(kvtypes.PlanProPlus):  "Pro Plus",
+}
+
+// PlanOptions returns the well-known KV plans with display labels for interactive
+// selection. It is derived from wellKnownPlanValues so a newly added plan appears
+// automatically. The API accepts additional custom plan names not listed here, so
+// this must not be used for validation.
+func PlanOptions() []PlanOption {
+	out := make([]PlanOption, 0, len(wellKnownPlanValues))
+	for _, v := range wellKnownPlanValues {
+		out = append(out, PlanOption{Value: v, Label: planLabels[v]})
+	}
+	return out
+}
+
 func validateCreateRequestInput(input kvtypes.KeyValueCreateRequestInput) error {
 	if input.Name == "" {
 		return fmt.Errorf("name is required")

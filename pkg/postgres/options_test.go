@@ -46,3 +46,15 @@ func TestModernPlansAreValidSchemaValues(t *testing.T) {
 		seen[name] = true
 	}
 }
+
+// TestModernPlansHaveMetadata is a completeness guard: every plan offered in the
+// interactive picker (ModernPlans) must carry a display label in the metadata
+// table, so a newly added plan can't silently ship without one. HA eligibility
+// has no "missing" state (the zero value is a valid "not eligible"), so it can't
+// be guarded the same way.
+func TestModernPlansHaveMetadata(t *testing.T) {
+	for _, plan := range postgres.ModernPlans {
+		assert.NotEqual(t, plan, postgres.PlanLabel(plan),
+			"plan %q has no metadata entry (PlanLabel falls back to the raw value)", plan)
+	}
+}
