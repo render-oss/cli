@@ -32,6 +32,7 @@ func TestKVCreate_NonInteractive_AllFlags(t *testing.T) {
 		"--plan", "starter",
 		"--region", "virginia",
 		"--memory-policy", "allkeys_lru",
+		"--persistence-mode", "snapshot",
 		"--workspace", kvTestWorkspaceID,
 		"--output", "text",
 	)
@@ -45,6 +46,8 @@ func TestKVCreate_NonInteractive_AllFlags(t *testing.T) {
 	assert.Equal(t, client.Virginia, kv.Region)
 	require.NotNil(t, kv.Options.MaxmemoryPolicy)
 	assert.Equal(t, client.AllkeysLru, client.MaxmemoryPolicy(*kv.Options.MaxmemoryPolicy))
+	require.NotNil(t, kv.Options.PersistenceMode)
+	assert.Equal(t, client.Snapshot, *kv.Options.PersistenceMode)
 	assert.Nil(t, kv.EnvironmentId)
 
 	assert.Contains(t, result.Stdout, "my-cache")
@@ -67,6 +70,8 @@ func TestKVCreate_NonInteractive_DefaultsApplied(t *testing.T) {
 	assert.Equal(t, client.Oregon, kv.Region)
 	require.NotNil(t, kv.Options.MaxmemoryPolicy)
 	assert.Equal(t, client.AllkeysLru, client.MaxmemoryPolicy(*kv.Options.MaxmemoryPolicy))
+	assert.Nil(t, kv.Options.PersistenceMode,
+		"persistence-mode is omitted when the flag is absent, so the API applies the plan default")
 	assert.Nil(t, kv.EnvironmentId)
 	assert.Contains(t, result.Stdout, "my-kv")
 }
@@ -448,6 +453,20 @@ func TestKVCreate_InvalidMemoryPolicy(t *testing.T) {
 	assert.Contains(t, result.Stdout, "Usage:")
 	assert.Contains(t, result.Stdout, "Accepts a friendly alias — cache")
 	assert.Contains(t, result.Stdout, "or any raw policy: noeviction")
+	assert.Empty(t, server.KV.Instances)
+}
+
+func TestKVCreate_InvalidPersistenceMode(t *testing.T) {
+	server := renderapi.NewServer(t)
+	result, err := executeKVCreate(t, server,
+		"--name", "my-kv", "--plan", "free", "--persistence-mode", "sometimes",
+		"--output", "text",
+	)
+	require.Error(t, err)
+	assert.Contains(t, result.Stderr, `invalid argument "sometimes" for "--persistence-mode" flag`)
+	assert.Contains(t, result.Stderr, `"journal_snapshot"`)
+	assert.Contains(t, result.Stderr, `"off"`)
+	assert.Contains(t, result.Stdout, "Usage:")
 	assert.Empty(t, server.KV.Instances)
 }
 

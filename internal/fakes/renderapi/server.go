@@ -641,7 +641,10 @@ func NewServer(t *testing.T) *Server {
 			UpdatedAt:     time.Now(),
 		}
 		if maxmemoryPolicy != nil {
-			kv.Options = client.KeyValueOptions{MaxmemoryPolicy: maxmemoryPolicy}
+			kv.Options.MaxmemoryPolicy = maxmemoryPolicy
+		}
+		if body.PersistenceMode != nil {
+			kv.Options.PersistenceMode = body.PersistenceMode
 		}
 		s.KV.Instances = append(s.KV.Instances, kv)
 
@@ -708,7 +711,10 @@ func NewServer(t *testing.T) *Server {
 		}
 		if body.MaxmemoryPolicy != nil {
 			mp := string(*body.MaxmemoryPolicy)
-			kv.Options = client.KeyValueOptions{MaxmemoryPolicy: &mp}
+			kv.Options.MaxmemoryPolicy = &mp
+		}
+		if body.PersistenceMode != nil {
+			kv.Options.PersistenceMode = body.PersistenceMode
 		}
 		if body.IpAllowList != nil {
 			kv.IpAllowList = *body.IpAllowList

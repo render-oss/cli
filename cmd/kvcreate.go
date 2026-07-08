@@ -37,6 +37,9 @@ Output will be human-readable; use --output json/yaml/text for machine-readable 
   # Machine-readable output (non-interactive, no prompts)
   render kv create --name my-cache --plan starter --output json
 
+  # Use as a cache with no on-disk persistence
+  render kv create --name my-cache --plan starter --persistence-mode off
+
   # With IP allow-listing (repeat the flag for multiple entries)
   render kv create --name my-cache \
     --ip-allow-list "cidr=203.0.113.5/32,description=office" \
@@ -59,6 +62,10 @@ Output will be human-readable; use --output json/yaml/text for machine-readable 
 		"Set the eviction policy used when the instance runs out of memory.\n"+
 			"Accepts a friendly alias — cache (= allkeys_lru, for caching) or queue (= noeviction, for job queues) —\n"+
 			"or any raw policy: noeviction | allkeys_lru | allkeys_lfu | allkeys_random | volatile_lru | volatile_lfu | volatile_random | volatile_ttl")
+
+	persistenceFlag := command.NewEnumInput(keyvalue.PersistenceModeValues(), false)
+	cmd.Flags().Var(persistenceFlag, "persistence-mode",
+		"Set the on-disk persistence mode: journal_snapshot | snapshot | off (off loses data on restart; omit to use the plan default).")
 
 	cmd.Flags().StringArray("ip-allow-list", nil,
 		"Restrict inbound traffic to specific IP ranges (format: cidr=<range>,description=<label>). Repeat the flag for multiple entries.")

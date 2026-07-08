@@ -46,6 +46,7 @@ func TestBuildCreateRequest_RequiredFields(t *testing.T) {
 	assert.Equal(t, client.KeyValuePlan(kvtypes.PlanFree), body.Plan)
 	assert.Nil(t, body.Region)
 	assert.Nil(t, body.MaxmemoryPolicy)
+	assert.Nil(t, body.PersistenceMode)
 	assert.Nil(t, body.EnvironmentId)
 	assert.Nil(t, body.IpAllowList)
 }
@@ -100,6 +101,7 @@ func TestBuildCreateRequest_MissingRequiredFields(t *testing.T) {
 func TestBuildCreateRequest_OptionalFields(t *testing.T) {
 	region := "virginia"
 	policy := kvtypes.MaxmemoryPolicyAllkeysLru
+	persistence := client.Snapshot
 	envID := testids.EnvironmentID("optional")
 	input := kvtypes.KeyValueCreateRequestInput{
 		Name:            "my-kv",
@@ -107,6 +109,7 @@ func TestBuildCreateRequest_OptionalFields(t *testing.T) {
 		Plan:            kvtypes.PlanPro,
 		Region:          &region,
 		MaxmemoryPolicy: &policy,
+		PersistenceMode: &persistence,
 		EnvironmentID:   &envID,
 	}
 	body, err := keyvalue.BuildCreateRequest(input)
@@ -116,6 +119,8 @@ func TestBuildCreateRequest_OptionalFields(t *testing.T) {
 	assert.Equal(t, client.Region("virginia"), *body.Region)
 	require.NotNil(t, body.MaxmemoryPolicy)
 	assert.Equal(t, client.AllkeysLru, *body.MaxmemoryPolicy)
+	require.NotNil(t, body.PersistenceMode)
+	assert.Equal(t, client.Snapshot, *body.PersistenceMode)
 	require.NotNil(t, body.EnvironmentId)
 	assert.Equal(t, envID, *body.EnvironmentId)
 }

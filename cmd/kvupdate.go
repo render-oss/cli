@@ -54,6 +54,9 @@ mutually exclusive.`,
   # Disambiguate a name that exists in multiple environments
   render kv update my-cache --environment production --memory-policy queue
 
+  # Turn off on-disk persistence
+  render kv update my-cache --persistence-mode off
+
   # JSON output
   render kv update red-abc123def456ghi789jkl0 --plan pro --output json`,
 	}
@@ -61,6 +64,8 @@ mutually exclusive.`,
 	memoryPolicyDesc := `Set the eviction policy used when the instance runs out of memory.
 Accepts a friendly alias — cache (= allkeys_lru, for caching) or queue (= noeviction, for job queues) —
 or any raw policy: noeviction | allkeys_lru | allkeys_lfu | allkeys_random | volatile_lru | volatile_lfu | volatile_random | volatile_ttl`
+
+	persistenceModeDesc := `Set the on-disk persistence mode: journal_snapshot | snapshot | off (off loses data on restart).`
 
 	ipAllowListDesc := `Replace the IP allow-list with the supplied entries (format: cidr=<range>,description=<label>). Repeat the flag for multiple entries.`
 
@@ -73,6 +78,9 @@ or any raw policy: noeviction | allkeys_lru | allkeys_lfu | allkeys_random | vol
 
 	maxmemFlag := command.NewEnumInput(kvtypes.MemoryPolicyInputValues(), false)
 	cmd.Flags().Var(maxmemFlag, "memory-policy", memoryPolicyDesc)
+
+	persistenceFlag := command.NewEnumInput(keyvalue.PersistenceModeValues(), false)
+	cmd.Flags().Var(persistenceFlag, "persistence-mode", persistenceModeDesc)
 
 	cmd.Flags().StringArray("ip-allow-list", nil, ipAllowListDesc)
 	cmd.Flags().Bool("clear-ip-allow-list", false,

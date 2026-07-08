@@ -26,6 +26,7 @@ type KeyValueOut struct {
 	ConnectionInfo  *client.KeyValueConnectionInfo   `json:"connectionInfo,omitempty"`
 	IPAllowList     []client.CidrBlockAndDescription `json:"ipAllowList"`
 	MaxmemoryPolicy *string                          `json:"maxmemoryPolicy,omitempty"`
+	PersistenceMode *string                          `json:"persistenceMode,omitempty"`
 }
 
 type KeyValueGetOut struct {
@@ -69,6 +70,7 @@ type KeyValueUpdateDiff struct {
 	Name            *KeyValueFieldDiff[string]                           `json:"name,omitempty"`
 	Plan            *KeyValueFieldDiff[client.KeyValuePlan]              `json:"plan,omitempty"`
 	MaxmemoryPolicy *KeyValueFieldDiff[*string]                          `json:"maxmemoryPolicy,omitempty"`
+	PersistenceMode *KeyValueFieldDiff[*string]                          `json:"persistenceMode,omitempty"`
 	IPAllowList     *KeyValueFieldDiff[[]client.CidrBlockAndDescription] `json:"ipAllowList,omitempty"`
 }
 
@@ -103,6 +105,7 @@ func NewKeyValueOut(resolved *ResolvedKeyValue) KeyValueOut {
 	if kv.Options.MaxmemoryPolicy != nil {
 		out.MaxmemoryPolicy = kv.Options.MaxmemoryPolicy
 	}
+	out.PersistenceMode = persistenceModeString(kv.Options.PersistenceMode)
 	if kv.EnvironmentId != nil {
 		out.EnvironmentID = kv.EnvironmentId
 	}
@@ -115,6 +118,17 @@ func NewKeyValueOut(resolved *ResolvedKeyValue) KeyValueOut {
 		out.ProjectName = resolved.Project.Name
 	}
 	return out
+}
+
+// persistenceModeString renders an optional client.PersistenceMode as an
+// optional plain string for the output contract, so JSON/text and the update
+// diff share one representation.
+func persistenceModeString(m *client.PersistenceMode) *string {
+	if m == nil {
+		return nil
+	}
+	s := string(*m)
+	return &s
 }
 
 func NewKeyValueListOut(models []*Model) KeyValueListOut {
@@ -151,6 +165,7 @@ func NewKeyValueOutFromModel(model *Model) KeyValueOut {
 	if kv.Options.MaxmemoryPolicy != nil {
 		out.MaxmemoryPolicy = kv.Options.MaxmemoryPolicy
 	}
+	out.PersistenceMode = persistenceModeString(kv.Options.PersistenceMode)
 	if kv.EnvironmentId != nil {
 		out.EnvironmentID = kv.EnvironmentId
 	}

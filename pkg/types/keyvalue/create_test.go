@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/render-oss/cli/internal/testids"
+	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/pointers"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 	"github.com/stretchr/testify/assert"
@@ -23,6 +24,7 @@ func TestNormalizeAndValidateCreateInput(t *testing.T) {
 		assert.Nil(t, got.Region)
 		assert.Nil(t, got.EnvironmentIDOrName)
 		assert.Nil(t, got.MaxmemoryPolicy)
+		assert.Nil(t, got.PersistenceMode)
 	})
 
 	t.Run("Valid input with name, plan, and optional fields passes validation", func(t *testing.T) {
@@ -33,6 +35,7 @@ func TestNormalizeAndValidateCreateInput(t *testing.T) {
 			Region:              pointers.From("oregon"),
 			EnvironmentIDOrName: pointers.From(environmentID),
 			MaxmemoryPolicy:     pointers.From(kvtypes.MaxmemoryPolicyAllkeysLru),
+			PersistenceMode:     pointers.From(client.Snapshot),
 		}
 		got, err := kvtypes.NormalizeAndValidateCreateInput(input)
 		require.NoError(t, err)
@@ -41,6 +44,7 @@ func TestNormalizeAndValidateCreateInput(t *testing.T) {
 		assert.Equal(t, pointers.From("oregon"), got.Region)
 		assert.Equal(t, pointers.From(environmentID), got.EnvironmentIDOrName)
 		assert.Equal(t, pointers.From(kvtypes.MaxmemoryPolicyAllkeysLru), got.MaxmemoryPolicy)
+		assert.Equal(t, pointers.From(client.Snapshot), got.PersistenceMode)
 	})
 
 	t.Run("Input with empty name returns validation error", func(t *testing.T) {
@@ -124,6 +128,17 @@ func TestNormalizeAndValidateCreateInput(t *testing.T) {
 		got, err := kvtypes.NormalizeAndValidateCreateInput(input)
 		require.NoError(t, err)
 		assert.Nil(t, got.MaxmemoryPolicy)
+	})
+
+	t.Run("Whitespace-only optional persistence-mode field is normalized to nil", func(t *testing.T) {
+		input := kvtypes.KeyValueCreateInput{
+			Name:            "my-kv",
+			Plan:            kvtypes.PlanStarter,
+			PersistenceMode: pointers.From(client.PersistenceMode("   ")),
+		}
+		got, err := kvtypes.NormalizeAndValidateCreateInput(input)
+		require.NoError(t, err)
+		assert.Nil(t, got.PersistenceMode)
 	})
 
 	t.Run("Optional fields with valid values are preserved", func(t *testing.T) {

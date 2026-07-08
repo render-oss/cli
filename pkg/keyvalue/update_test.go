@@ -17,6 +17,7 @@ func TestBuildUpdateRequest(t *testing.T) {
 			Name:            pointers.From("renamed"),
 			Plan:            pointers.From("pro"),
 			MaxmemoryPolicy: pointers.From(kvtypes.MaxmemoryPolicyNoeviction),
+			PersistenceMode: pointers.From(client.Off),
 			IPAllowList:     []string{"cidr=10.0.0.0/8"},
 		})
 		require.NoError(t, err)
@@ -26,6 +27,8 @@ func TestBuildUpdateRequest(t *testing.T) {
 		assert.Equal(t, client.KeyValuePlan("pro"), *body.Plan)
 		require.NotNil(t, body.MaxmemoryPolicy)
 		assert.Equal(t, client.Noeviction, *body.MaxmemoryPolicy)
+		require.NotNil(t, body.PersistenceMode)
+		assert.Equal(t, client.Off, *body.PersistenceMode)
 		require.NotNil(t, body.IpAllowList)
 		assert.Len(t, *body.IpAllowList, 1)
 	})
@@ -39,6 +42,7 @@ func TestBuildUpdateRequest(t *testing.T) {
 		require.NoError(t, err)
 		assert.Nil(t, body.Name, "name must be omitted, not sent as empty")
 		assert.Nil(t, body.MaxmemoryPolicy)
+		assert.Nil(t, body.PersistenceMode)
 		assert.Nil(t, body.IpAllowList)
 		require.NotNil(t, body.Plan)
 	})
@@ -74,5 +78,35 @@ func TestBuildUpdateRequest(t *testing.T) {
 			IPAllowList: []string{"not-a-cidr"},
 		})
 		require.Error(t, err)
+	})
+}
+
+func TestNewKeyValueUpdateDiff_PersistenceMode(t *testing.T) {
+	t.Run("records before/after when the mode changes", func(t *testing.T) {
+		before := &client.KeyValueDetail{
+			Name:    "cache",
+			Options: client.KeyValueOptions{PersistenceMode: pointers.From(client.JournalSnapshot)},
+		}
+		after := &keyvalue.KeyValueOut{Name: "cache", PersistenceMode: pointers.From("off")}
+
+		diff := keyvalue.NewKeyValueUpdateDiff(before, after)
+
+		require.NotNil(t, diff.PersistenceMode)
+		require.NotNil(t, diff.PersistenceMode.Before)
+		assert.Equal(t, "journal_snapshot", *diff.PersistenceMode.Before)
+		require.NotNil(t, diff.PersistenceMode.After)
+		assert.Equal(t, "off", *diff.PersistenceMode.After)
+	})
+
+	t.Run("no diff entry when the mode is unchanged", func(t *testing.T) {
+		before := &client.KeyValueDetail{
+			Name:    "cache",
+			Options: client.KeyValueOptions{PersistenceMode: pointers.From(client.Snapshot)},
+		}
+		after := &keyvalue.KeyValueOut{Name: "cache", PersistenceMode: pointers.From("snapshot")}
+
+		diff := keyvalue.NewKeyValueUpdateDiff(before, after)
+
+		assert.Nil(t, diff.PersistenceMode)
 	})
 }

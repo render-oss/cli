@@ -4,19 +4,21 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/render-oss/cli/pkg/client"
 	types "github.com/render-oss/cli/pkg/types"
 )
 
 // KeyValueCreateInput is the raw command input parsed from Cobra flags for KV creation.
 type KeyValueCreateInput struct {
-	Name                string           `cli:"name"`
-	Plan                Plan             `cli:"plan"`
-	Region              *string          `cli:"region"`
-	ProjectIDOrName     *string          `cli:"project"`
-	EnvironmentIDOrName *string          `cli:"environment"`
-	MaxmemoryPolicy     *MaxmemoryPolicy `cli:"memory-policy"`
-	IPAllowList         []string         `cli:"ip-allow-list"`
-	WorkspaceIDOrName   string           `cli:"workspace"`
+	Name                string                  `cli:"name"`
+	Plan                Plan                    `cli:"plan"`
+	Region              *string                 `cli:"region"`
+	ProjectIDOrName     *string                 `cli:"project"`
+	EnvironmentIDOrName *string                 `cli:"environment"`
+	MaxmemoryPolicy     *MaxmemoryPolicy        `cli:"memory-policy"`
+	PersistenceMode     *client.PersistenceMode `cli:"persistence-mode"`
+	IPAllowList         []string                `cli:"ip-allow-list"`
+	WorkspaceIDOrName   string                  `cli:"workspace"`
 }
 
 // KeyValueCreateRequestInput is the resolved, API-ready input for building a create-KV request.
@@ -27,6 +29,7 @@ type KeyValueCreateRequestInput struct {
 	Region          *string
 	EnvironmentID   *string
 	MaxmemoryPolicy *MaxmemoryPolicy
+	PersistenceMode *client.PersistenceMode
 	IPAllowList     []string
 }
 
@@ -51,6 +54,9 @@ func NormalizeCreateInput(input KeyValueCreateInput) KeyValueCreateInput {
 		normalized := NormalizeMemoryPolicy(*input.MaxmemoryPolicy)
 		input.MaxmemoryPolicy = &normalized
 	}
+	// No default is applied: an omitted value lets the API pick the
+	// plan-appropriate default (paid → journal_snapshot, free → none).
+	input.PersistenceMode = types.OptionalAlias(input.PersistenceMode)
 	return input
 }
 

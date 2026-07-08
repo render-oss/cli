@@ -40,6 +40,10 @@ func NewKeyValueUpdateDiff(before *client.KeyValueDetail, after *KeyValueOut) Ke
 			after.MaxmemoryPolicy,
 		)
 	}
+	beforePersistence := persistenceModeString(before.Options.PersistenceMode)
+	if !pointers.Equal(beforePersistence, after.PersistenceMode) {
+		diff.PersistenceMode = newKeyValueFieldDiff(beforePersistence, after.PersistenceMode)
+	}
 	if !ipallowlist.Equal(before.IpAllowList, after.IPAllowList) {
 		diff.IPAllowList = newKeyValueFieldDiff(before.IpAllowList, after.IPAllowList)
 	}
@@ -80,6 +84,10 @@ func BuildUpdateRequest(input kvtypes.KeyValueUpdateInput) (client.UpdateKeyValu
 	if input.MaxmemoryPolicy != nil {
 		p := client.MaxmemoryPolicy(*input.MaxmemoryPolicy)
 		body.MaxmemoryPolicy = &p
+	}
+
+	if input.PersistenceMode != nil {
+		body.PersistenceMode = input.PersistenceMode
 	}
 
 	if len(input.IPAllowList) > 0 {

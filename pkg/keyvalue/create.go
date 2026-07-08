@@ -69,6 +69,7 @@ func (s *Service) create(ctx context.Context, input kvtypes.KeyValueCreateInput)
 		Region:          input.Region,
 		EnvironmentID:   environmentID,
 		MaxmemoryPolicy: input.MaxmemoryPolicy,
+		PersistenceMode: input.PersistenceMode,
 		IPAllowList:     input.IPAllowList,
 	})
 	if err != nil {
@@ -135,6 +136,10 @@ func BuildCreateRequest(input kvtypes.KeyValueCreateRequestInput) (client.Create
 	if input.MaxmemoryPolicy != nil {
 		p := client.MaxmemoryPolicy(*input.MaxmemoryPolicy)
 		body.MaxmemoryPolicy = &p
+	}
+
+	if input.PersistenceMode != nil {
+		body.PersistenceMode = input.PersistenceMode
 	}
 
 	if input.EnvironmentID != nil {

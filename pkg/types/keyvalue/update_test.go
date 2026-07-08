@@ -3,6 +3,7 @@ package keyvalue_test
 import (
 	"testing"
 
+	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/pointers"
 	kvtypes "github.com/render-oss/cli/pkg/types/keyvalue"
 	"github.com/stretchr/testify/assert"
@@ -41,6 +42,26 @@ func TestNormalizeAndValidateUpdateInput(t *testing.T) {
 		assert.Nil(t, got.Name)
 		assert.Nil(t, got.Plan)
 		assert.Equal(t, pointers.From(kvtypes.MaxmemoryPolicyNoeviction), got.MaxmemoryPolicy)
+	})
+
+	t.Run("Update with PersistenceMode field alone passes validation", func(t *testing.T) {
+		input := kvtypes.KeyValueUpdateInput{
+			PersistenceMode: pointers.From(client.Off),
+		}
+		got, err := kvtypes.NormalizeAndValidateUpdateInput(input)
+		require.NoError(t, err)
+		assert.Nil(t, got.Name)
+		assert.Nil(t, got.Plan)
+		assert.Equal(t, pointers.From(client.Off), got.PersistenceMode)
+	})
+
+	t.Run("Whitespace-only PersistenceMode is normalized to nil", func(t *testing.T) {
+		input := kvtypes.KeyValueUpdateInput{
+			PersistenceMode: pointers.From(client.PersistenceMode("   ")),
+		}
+		_, err := kvtypes.NormalizeAndValidateUpdateInput(input)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "at least one field must be provided for update")
 	})
 
 	t.Run("Update with multiple fields passes validation", func(t *testing.T) {

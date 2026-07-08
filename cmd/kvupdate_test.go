@@ -52,6 +52,27 @@ func TestKVUpdate_HappyPath_MultiField(t *testing.T) {
 	assert.Contains(t, result.Stdout, "pro")
 }
 
+// TestKVUpdate_PersistenceMode proves --persistence-mode reaches the server and
+// the change surfaces in text output. The seeded KV has no persistence set, so
+// the diff renders the (none) → off transition.
+func TestKVUpdate_PersistenceMode(t *testing.T) {
+	server := renderapi.NewServer(t)
+	kv := seedKV(server, "cache")
+
+	result, err := executeKVUpdate(t, server,
+		kv.Id,
+		"--persistence-mode", "off",
+		"--output", "text",
+	)
+	require.NoError(t, err)
+
+	require.Len(t, server.KV.Instances, 1)
+	require.NotNil(t, server.KV.Instances[0].Options.PersistenceMode)
+	assert.Equal(t, client.Off, *server.KV.Instances[0].Options.PersistenceMode)
+
+	assert.Contains(t, result.Stdout, "Persistence mode: (none) → off")
+}
+
 func TestKVUpdate_NoMutatingFields_Errors(t *testing.T) {
 	server := renderapi.NewServer(t)
 	kv := seedKV(server, "cache")
@@ -210,6 +231,7 @@ func TestKVUpdate_OutputJSON(t *testing.T) {
 	assert.Equal(t, "after-name", nameDiff["after"])
 	assert.NotContains(t, diff, "plan")
 	assert.NotContains(t, diff, "maxmemoryPolicy")
+	assert.NotContains(t, diff, "persistenceMode")
 	assert.NotContains(t, diff, "ipAllowList")
 
 	assert.NotContains(t, body, "before")

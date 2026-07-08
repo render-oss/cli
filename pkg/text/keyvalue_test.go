@@ -54,6 +54,7 @@ func TestKeyValueDetail_HappyPath(t *testing.T) {
 		Region:          client.Oregon,
 		Status:          client.DatabaseStatusAvailable,
 		MaxmemoryPolicy: pointers.From(memoryPolicy),
+		PersistenceMode: pointers.From("journal_snapshot"),
 	}
 
 	out := text.KeyValueDetail(&kv)
@@ -68,7 +69,27 @@ func TestKeyValueDetail_HappyPath(t *testing.T) {
 		"Region: oregon",
 		"Status: available",
 		"Memory policy: allkeys-lru",
+		"Persistence mode: journal_snapshot",
 	)
+}
+
+func TestKeyValueUpdateDiff_PersistenceMode(t *testing.T) {
+	t.Run("renders before → after", func(t *testing.T) {
+		before := "journal_snapshot"
+		after := "off"
+		diff := keyvalue.KeyValueUpdateDiff{
+			PersistenceMode: &keyvalue.KeyValueFieldDiff[*string]{Before: &before, After: &after},
+		}
+		assert.Contains(t, text.KeyValueUpdateDiff(diff), "Persistence mode: journal_snapshot → off")
+	})
+
+	t.Run("renders (none) when a side is unset", func(t *testing.T) {
+		after := "snapshot"
+		diff := keyvalue.KeyValueUpdateDiff{
+			PersistenceMode: &keyvalue.KeyValueFieldDiff[*string]{Before: nil, After: &after},
+		}
+		assert.Contains(t, text.KeyValueUpdateDiff(diff), "Persistence mode: (none) → snapshot")
+	})
 }
 
 func TestKeyValueDetail_IPAllowList(t *testing.T) {

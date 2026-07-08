@@ -50,6 +50,9 @@ func KeyValueDetail(kv *keyvalue.KeyValueOut) string {
 	if kv.MaxmemoryPolicy != nil {
 		lines = append(lines, fmt.Sprintf("Memory policy: %s", *kv.MaxmemoryPolicy))
 	}
+	if kv.PersistenceMode != nil {
+		lines = append(lines, fmt.Sprintf("Persistence mode: %s", *kv.PersistenceMode))
+	}
 	detail := strings.Join(append(lines, ipAllowListBlock(kv.IPAllowList)), "\n")
 	if kv.ConnectionInfo == nil {
 		return detail
@@ -69,19 +72,31 @@ func KeyValueDetail(kv *keyvalue.KeyValueOut) string {
 func KeyValueUpdateDiff(diff keyvalue.KeyValueUpdateDiff) string {
 	var lines []string
 
+	// Labels are left-padded to a common width so the "before → after" columns
+	// line up; widen labelWidth if a longer label is added.
+	const labelWidth = len("Persistence mode:")
+	row := func(label, before, after string) string {
+		return fmt.Sprintf("  %-*s %s → %s", labelWidth, label, before, after)
+	}
+
 	if diff.Name != nil {
-		lines = append(lines, fmt.Sprintf("  Name:          %s → %s", diff.Name.Before, diff.Name.After))
+		lines = append(lines, row("Name:", diff.Name.Before, diff.Name.After))
 	}
 	if diff.Plan != nil {
-		lines = append(lines, fmt.Sprintf("  Plan:          %s → %s", diff.Plan.Before, diff.Plan.After))
+		lines = append(lines, row("Plan:", string(diff.Plan.Before), string(diff.Plan.After)))
 	}
 	if diff.MaxmemoryPolicy != nil {
-		lines = append(lines, fmt.Sprintf("  Memory policy: %s → %s",
-			memoryPolicyDiffLabel(diff.MaxmemoryPolicy.Before),
-			memoryPolicyDiffLabel(diff.MaxmemoryPolicy.After)))
+		lines = append(lines, row("Memory policy:",
+			optionalDiffLabel(diff.MaxmemoryPolicy.Before),
+			optionalDiffLabel(diff.MaxmemoryPolicy.After)))
+	}
+	if diff.PersistenceMode != nil {
+		lines = append(lines, row("Persistence mode:",
+			optionalDiffLabel(diff.PersistenceMode.Before),
+			optionalDiffLabel(diff.PersistenceMode.After)))
 	}
 	if diff.IPAllowList != nil {
-		lines = append(lines, fmt.Sprintf("  IP allow-list: %s → %s",
+		lines = append(lines, row("IP allow-list:",
 			ipAllowListLabel(diff.IPAllowList.Before),
 			ipAllowListLabel(diff.IPAllowList.After)))
 	}
@@ -89,9 +104,9 @@ func KeyValueUpdateDiff(diff keyvalue.KeyValueUpdateDiff) string {
 	return strings.Join(lines, "\n")
 }
 
-func memoryPolicyDiffLabel(policy *string) string {
-	if policy == nil {
+func optionalDiffLabel(value *string) string {
+	if value == nil {
 		return "(none)"
 	}
-	return *policy
+	return *value
 }

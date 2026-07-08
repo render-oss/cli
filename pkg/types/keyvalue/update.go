@@ -3,6 +3,7 @@ package keyvalue
 import (
 	"errors"
 
+	"github.com/render-oss/cli/pkg/client"
 	types "github.com/render-oss/cli/pkg/types"
 )
 
@@ -15,11 +16,12 @@ type KeyValueUpdateInput struct {
 	IDOrName            string  `cli:"arg:0"`
 	EnvironmentIDOrName *string `cli:"environment"`
 
-	Name             *string          `cli:"name"`
-	Plan             *string          `cli:"plan"`
-	MaxmemoryPolicy  *MaxmemoryPolicy `cli:"memory-policy"`
-	IPAllowList      []string         `cli:"ip-allow-list"`
-	ClearIPAllowList bool             `cli:"clear-ip-allow-list"`
+	Name             *string                 `cli:"name"`
+	Plan             *string                 `cli:"plan"`
+	MaxmemoryPolicy  *MaxmemoryPolicy        `cli:"memory-policy"`
+	PersistenceMode  *client.PersistenceMode `cli:"persistence-mode"`
+	IPAllowList      []string                `cli:"ip-allow-list"`
+	ClearIPAllowList bool                    `cli:"clear-ip-allow-list"`
 }
 
 // NormalizeAndValidateUpdateInput normalizes and validates CLI input for KV update.
@@ -40,6 +42,7 @@ func NormalizeUpdateInput(input KeyValueUpdateInput) KeyValueUpdateInput {
 		normalized := NormalizeMemoryPolicy(*input.MaxmemoryPolicy)
 		input.MaxmemoryPolicy = &normalized
 	}
+	input.PersistenceMode = types.OptionalAlias(input.PersistenceMode)
 	return input
 }
 
@@ -47,6 +50,7 @@ func (s KeyValueUpdateInput) validateNormalized() error {
 	hasMutation := s.Name != nil ||
 		s.Plan != nil ||
 		s.MaxmemoryPolicy != nil ||
+		s.PersistenceMode != nil ||
 		len(s.IPAllowList) > 0 ||
 		s.ClearIPAllowList
 	if !hasMutation {
