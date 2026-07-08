@@ -74,7 +74,7 @@ or any raw policy: noeviction | allkeys_lru | allkeys_lfu | allkeys_random | vol
 
 	cmd.Flags().String("name", "", "Rename the Key Value instance")
 	cmd.Flags().String("plan", "",
-		"Set the plan to one of: free | starter | standard | pro | pro_plus. Custom enterprise plan names are also accepted.")
+		"Set the plan to one of: "+strings.Join(keyvalue.PlanValues(), " | ")+". Custom enterprise plan names are also accepted.")
 
 	maxmemFlag := command.NewEnumInput(kvtypes.MemoryPolicyInputValues(), false)
 	cmd.Flags().Var(maxmemFlag, "memory-policy", memoryPolicyDesc)

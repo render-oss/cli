@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -52,7 +53,7 @@ Output will be human-readable; use --output json/yaml/text for machine-readable 
 	cmd.Flags().String("environment", "", "Set the environment to create the Key Value in (ID or name, optional). Example: Production or evm-abc123def456")
 
 	cmd.Flags().String("plan", "",
-		"Set the plan to one of: free | starter | standard | pro | pro_plus. Custom enterprise plan names are also accepted.")
+		"Set the plan to one of: "+strings.Join(keyvalue.PlanValues(), " | ")+". Custom enterprise plan names are also accepted.")
 
 	regionFlag := command.NewEnumInput(types.RegionValues(), false)
 	cmd.Flags().Var(regionFlag, "region", "Set the region: frankfurt | ohio | oregon | singapore | virginia")

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -22,12 +23,22 @@ func (i *SandboxCreateInput) Validate(_ bool) error {
 	if i.Plan == "" {
 		return nil
 	}
-	switch sandboxclient.SandboxPlan(i.Plan) {
-	case sandboxclient.Starter, sandboxclient.Standard, sandboxclient.Pro:
-		return nil
-	default:
-		return fmt.Errorf("invalid plan %q: use starter, standard, or pro", i.Plan)
+	if !sandboxclient.SandboxPlan(i.Plan).Valid() {
+		return fmt.Errorf("invalid plan %q: use %s", i.Plan, strings.Join(sandboxPlanNames(), ", "))
 	}
+	return nil
+}
+
+// sandboxPlanNames returns the valid sandbox plan names, sourced from the
+// generated SandboxPlanValues() so help and error text stay in sync with the
+// schema. SandboxPlan has no "custom" sentinel, so no filtering is needed.
+func sandboxPlanNames() []string {
+	plans := sandboxclient.SandboxPlanValues()
+	out := make([]string, len(plans))
+	for i, p := range plans {
+		out[i] = string(p)
+	}
+	return out
 }
 
 func newSandboxCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
@@ -43,7 +54,7 @@ Examples:
 `,
 	}
 
-	cmd.Flags().String("plan", "", "Compute plan: starter, standard, pro")
+	cmd.Flags().String("plan", "", "Compute plan: "+strings.Join(sandboxPlanNames(), ", "))
 	cmd.Flags().String("region", "", "Region to run the sandbox in")
 	cmd.Flags().Int("timeout", 0, "Maximum sandbox lifetime in seconds")
 

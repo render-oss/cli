@@ -3,6 +3,7 @@ package keyvalue
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	petname "github.com/dustinkirkland/golang-petname"
 
@@ -87,12 +88,22 @@ func (s *Service) create(ctx context.Context, input kvtypes.KeyValueCreateInput)
 	}, nil
 }
 
-var wellKnownPlanValues = []string{
-	kvtypes.PlanFree,
-	kvtypes.PlanStarter,
-	kvtypes.PlanStandard,
-	kvtypes.PlanPro,
-	kvtypes.PlanProPlus,
+// wellKnownPlanValues lists common KV plan names for help text. It is derived
+// from the generated client.KeyValuePlanValues() so newly added plans appear
+// automatically, with the "custom" sentinel filtered out: custom is not a real
+// plan name but a signal that account-specific plans exist. The API accepts
+// additional plan names not listed here, so this must not be used for validation.
+var wellKnownPlanValues = wellKnownKeyValuePlanNames()
+
+func wellKnownKeyValuePlanNames() []string {
+	plans := slices.DeleteFunc(client.KeyValuePlanValues(), func(p client.KeyValuePlan) bool {
+		return p == client.KeyValuePlanCustom
+	})
+	out := make([]string, len(plans))
+	for i, p := range plans {
+		out[i] = string(p)
+	}
+	return out
 }
 
 // PlanValues returns common KV plan names for help text.
