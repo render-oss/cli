@@ -69,6 +69,7 @@ const (
 	ChangeTeamMemberRoleEvent          AuditLogEvent = "ChangeTeamMemberRoleEvent"
 	ChangeWorkspaceDeployHandlingEvent AuditLogEvent = "ChangeWorkspaceDeployHandlingEvent"
 	ChangeWorkspacePrivacyEvent        AuditLogEvent = "ChangeWorkspacePrivacyEvent"
+	CreateArtifactSourceEvent          AuditLogEvent = "CreateArtifactSourceEvent"
 	CreateCronJobEvent                 AuditLogEvent = "CreateCronJobEvent"
 	CreateEnvVarsEvent                 AuditLogEvent = "CreateEnvVarsEvent"
 	CreateEnvironmentEvent             AuditLogEvent = "CreateEnvironmentEvent"
@@ -164,6 +165,8 @@ func (e AuditLogEvent) Valid() bool {
 	case ChangeWorkspaceDeployHandlingEvent:
 		return true
 	case ChangeWorkspacePrivacyEvent:
+		return true
+	case CreateArtifactSourceEvent:
 		return true
 	case CreateCronJobEvent:
 		return true
@@ -2535,6 +2538,21 @@ type PostgresPOSTInput struct {
 // PostgresParameterOverrides defines model for postgresParameterOverrides.
 type PostgresParameterOverrides map[string]string
 
+// PostgresParameterOverridesWrapper defines model for postgresParameterOverridesWrapper.
+type PostgresParameterOverridesWrapper struct {
+	ParameterOverrides PostgresParameterOverrides `json:"parameterOverrides"`
+}
+
+// PostgresPutParameterOverridesResult defines model for postgresPutParameterOverridesResult.
+type PostgresPutParameterOverridesResult struct {
+	// AffectedDatabases IDs of databases affected by this update (the primary and any read replicas).
+	AffectedDatabases []string                   `json:"affectedDatabases"`
+	AppliedOverrides  PostgresParameterOverrides `json:"appliedOverrides"`
+
+	// RequiresRestart Whether the affected databases must be restarted for the applied overrides to take effect.
+	RequiresRestart bool `json:"requiresRestart"`
+}
+
 // PostgresVersion The PostgreSQL version
 type PostgresVersion string
 
@@ -2957,6 +2975,12 @@ type RouteWithCursor struct {
 	Route  Route  `json:"route"`
 }
 
+// SandboxGroupWithCursor A sandbox group with a cursor
+type SandboxGroupWithCursor struct {
+	Cursor       Cursor                     `json:"cursor"`
+	SandboxGroup externalRef15.SandboxGroup `json:"sandboxGroup"`
+}
+
 // SandboxWithCursor A sandbox with a cursor
 type SandboxWithCursor struct {
 	Cursor  Cursor                `json:"cursor"`
@@ -3062,6 +3086,7 @@ type ServiceList = []ServiceWithCursor
 
 // ServicePATCH defines model for servicePATCH.
 type ServicePATCH struct {
+	ArtifactId *string     `json:"artifactId,omitempty"`
 	AutoDeploy *AutoDeploy `json:"autoDeploy,omitempty"`
 
 	// AutoDeployTrigger Controls autodeploy behavior. commit deploys when a commit is pushed to a branch. checksPass waits for the branch to be green.
@@ -4595,6 +4620,12 @@ type UpdateRegistryCredentialJSONBody struct {
 	Username string                     `json:"username"`
 }
 
+// ListSandboxGroupsParams defines parameters for ListSandboxGroups.
+type ListSandboxGroupsParams struct {
+	// OwnerId The ID of the workspaces to return resources for
+	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
+}
+
 // ListSandboxesParams defines parameters for ListSandboxes.
 type ListSandboxesParams struct {
 	// OwnerId The ID of the workspaces to return resources for
@@ -5187,8 +5218,14 @@ type UpdatePostgresJSONRequestBody = PostgresPATCHInput
 // CreatePostgresUserJSONRequestBody defines body for CreatePostgresUser for application/json ContentType.
 type CreatePostgresUserJSONRequestBody = externalRef14.CredentialCreateInput
 
+// UpdatePostgresParameterOverridesJSONRequestBody defines body for UpdatePostgresParameterOverrides for application/json ContentType.
+type UpdatePostgresParameterOverridesJSONRequestBody = PostgresParameterOverridesWrapper
+
 // RecoverPostgresJSONRequestBody defines body for RecoverPostgres for application/json ContentType.
 type RecoverPostgresJSONRequestBody = externalRef14.RecoveryInput
+
+// SetupPostgresReplicationJSONRequestBody defines body for SetupPostgresReplication for application/json ContentType.
+type SetupPostgresReplicationJSONRequestBody = externalRef14.PostgresReplicationSetupInput
 
 // CreateProjectJSONRequestBody defines body for CreateProject for application/json ContentType.
 type CreateProjectJSONRequestBody = ProjectPOSTInput
@@ -5253,14 +5290,14 @@ type PreviewServiceJSONRequestBody = PreviewInput
 // RollbackDeployJSONRequestBody defines body for RollbackDeploy for application/json ContentType.
 type RollbackDeployJSONRequestBody RollbackDeployJSONBody
 
-// PatchRouteJSONRequestBody defines body for PatchRoute for application/json ContentType.
-type PatchRouteJSONRequestBody = RoutePatch
-
 // AddRouteJSONRequestBody defines body for AddRoute for application/json ContentType.
 type AddRouteJSONRequestBody = RoutePost
 
 // PutRoutesJSONRequestBody defines body for PutRoutes for application/json ContentType.
 type PutRoutesJSONRequestBody = PutRoutesJSONBody
+
+// PatchRouteJSONRequestBody defines body for PatchRoute for application/json ContentType.
+type PatchRouteJSONRequestBody = RoutePatch
 
 // ScaleServiceJSONRequestBody defines body for ScaleService for application/json ContentType.
 type ScaleServiceJSONRequestBody ScaleServiceJSONBody

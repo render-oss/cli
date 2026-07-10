@@ -133,6 +133,27 @@ type CredentialCreateInput struct {
 	Username string `json:"username"`
 }
 
+// PostgresAvailableParameterOverride defines model for postgresAvailableParameterOverride.
+type PostgresAvailableParameterOverride struct {
+	Description string    `json:"description"`
+	Examples    *[]string `json:"examples,omitempty"`
+
+	// MaxValue The maximum value allowed for numeric parameters.
+	MaxValue *float32 `json:"maxValue,omitempty"`
+
+	// MinValue The minimum value allowed for numeric parameters.
+	MinValue *float32 `json:"minValue,omitempty"`
+	Name     string   `json:"name"`
+
+	// RequiresRestart Whether setting this parameter requires a restart to take effect.
+	RequiresRestart bool `json:"requiresRestart"`
+}
+
+// PostgresAvailableParameterOverridesResult defines model for postgresAvailableParameterOverridesResult.
+type PostgresAvailableParameterOverridesResult struct {
+	AvailableParameterOverrides []PostgresAvailableParameterOverride `json:"availableParameterOverrides"`
+}
+
 // PostgresExport defines model for postgresExport.
 type PostgresExport struct {
 	CreatedAt time.Time `json:"createdAt"`
@@ -144,6 +165,105 @@ type PostgresExport struct {
 
 // PostgresPlans defines model for postgresPlans.
 type PostgresPlans string
+
+// PostgresProcess A single live process from pg_stat_activity.
+type PostgresProcess struct {
+	ApplicationName *string    `json:"applicationName,omitempty"`
+	BackendStart    *time.Time `json:"backendStart,omitempty"`
+	ClientAddr      *string    `json:"clientAddr,omitempty"`
+	DatabaseName    *string    `json:"databaseName,omitempty"`
+
+	// Duration Duration of the query, in seconds.
+	Duration *float32 `json:"duration,omitempty"`
+
+	// IsLeader Whether this process is running against the primary instance of a highly available database.
+	IsLeader      *bool      `json:"isLeader,omitempty"`
+	Pid           *int       `json:"pid,omitempty"`
+	Query         *string    `json:"query,omitempty"`
+	QueryStart    *time.Time `json:"queryStart,omitempty"`
+	State         *string    `json:"state,omitempty"`
+	Username      *string    `json:"username,omitempty"`
+	WaitEvent     *string    `json:"waitEvent,omitempty"`
+	WaitEventType *string    `json:"waitEventType,omitempty"`
+}
+
+// PostgresProcessesResult defines model for postgresProcessesResult.
+type PostgresProcessesResult struct {
+	Processes []PostgresProcess `json:"processes"`
+}
+
+// PostgresQueryStatistic A single query from pg_stat_statements.
+type PostgresQueryStatistic struct {
+	Calls               *int     `json:"calls,omitempty"`
+	LocalBlocksDirtied  *int     `json:"localBlocksDirtied,omitempty"`
+	LocalBlocksHit      *int     `json:"localBlocksHit,omitempty"`
+	LocalBlocksRead     *int     `json:"localBlocksRead,omitempty"`
+	LocalBlocksWritten  *int     `json:"localBlocksWritten,omitempty"`
+	MaxTimeMs           *float32 `json:"maxTimeMs,omitempty"`
+	MeanTimeMs          *float32 `json:"meanTimeMs,omitempty"`
+	MinTimeMs           *float32 `json:"minTimeMs,omitempty"`
+	Query               *string  `json:"query,omitempty"`
+	QueryId             *string  `json:"queryId,omitempty"`
+	Rows                *int     `json:"rows,omitempty"`
+	SharedBlocksDirtied *int     `json:"sharedBlocksDirtied,omitempty"`
+	SharedBlocksHit     *int     `json:"sharedBlocksHit,omitempty"`
+	SharedBlocksRead    *int     `json:"sharedBlocksRead,omitempty"`
+	SharedBlocksWritten *int     `json:"sharedBlocksWritten,omitempty"`
+	StddevTimeMs        *float32 `json:"stddevTimeMs,omitempty"`
+	TempBlocksRead      *int     `json:"tempBlocksRead,omitempty"`
+	TempBlocksWritten   *int     `json:"tempBlocksWritten,omitempty"`
+	TotalTimeMs         *float32 `json:"totalTimeMs,omitempty"`
+}
+
+// PostgresReplicationSetupInput defines model for postgresReplicationSetupInput.
+type PostgresReplicationSetupInput struct {
+	// AllTablesPublicationName Publication name to create.
+	AllTablesPublicationName *string `json:"allTablesPublicationName,omitempty"`
+
+	// DatabaseName Database to replicate.
+	DatabaseName string `json:"databaseName"`
+
+	// ReplicationSlotName Replication slot name to create.
+	ReplicationSlotName *string `json:"replicationSlotName,omitempty"`
+
+	// RestartNow Immediately enqueue a restart to apply.
+	RestartNow *bool `json:"restartNow,omitempty"`
+
+	// SchemaName Schema to replicate.
+	SchemaName string `json:"schemaName"`
+}
+
+// PostgresSize The size of an index, table, or database.
+type PostgresSize struct {
+	Bytes    *int    `json:"Bytes,omitempty"`
+	Database *string `json:"Database,omitempty"`
+	Index    *string `json:"Index,omitempty"`
+	Schema   *string `json:"Schema,omitempty"`
+	Table    *string `json:"Table,omitempty"`
+}
+
+// PostgresSizesResult defines model for postgresSizesResult.
+type PostgresSizesResult struct {
+	Sizes []PostgresSize `json:"sizes"`
+}
+
+// PostgresTableScan The number of sequential scans performed against a table.
+type PostgresTableScan struct {
+	Database *string `json:"Database,omitempty"`
+	Scans    *int    `json:"Scans,omitempty"`
+	Schema   *string `json:"Schema,omitempty"`
+	Table    *string `json:"Table,omitempty"`
+}
+
+// PostgresTableScansResult defines model for postgresTableScansResult.
+type PostgresTableScansResult struct {
+	TableScans []PostgresTableScan `json:"tableScans"`
+}
+
+// PostgresTopQueriesResult defines model for postgresTopQueriesResult.
+type PostgresTopQueriesResult struct {
+	TopQueries []PostgresQueryStatistic `json:"topQueries"`
+}
 
 // RecoveryInfo defines model for recoveryInfo.
 type RecoveryInfo struct {

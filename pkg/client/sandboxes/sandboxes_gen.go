@@ -260,6 +260,31 @@ type SandboxFileEntry struct {
 // SandboxFileEntryType Entry type.
 type SandboxFileEntryType string
 
+// SandboxGroup defines model for sandboxGroup.
+type SandboxGroup struct {
+	CreatedAt time.Time `json:"createdAt"`
+
+	// EnvironmentId Environment this group is bound to.
+	EnvironmentId *string        `json:"environmentId,omitempty"`
+	Id            SandboxGroupId `json:"id"`
+
+	// IsDefault Whether this is the workspace's default group. Exactly one group per workspace is the default.
+	IsDefault bool `json:"isDefault"`
+
+	// Name Human-friendly name for the group.
+	Name string `json:"name"`
+
+	// OwnerId The ID of the workspace this group belongs to.
+	OwnerId string `json:"ownerId"`
+
+	// Region Render region the group operates in.
+	Region    string    `json:"region"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// SandboxGroupId defines model for sandboxGroupId.
+type SandboxGroupId = string
+
 // SandboxId defines model for sandboxId.
 type SandboxId = string
 

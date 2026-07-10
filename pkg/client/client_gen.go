@@ -157,15 +157,15 @@ type ClientInterface interface {
 	UpdateSecretFilesForArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateSecretFilesForArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteArtifactSourceSecretFile request
-	DeleteArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveArtifactSourceSecretFile request
-	RetrieveArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RetrieveArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// AddOrUpdateArtifactSourceSecretFileWithBody request with any body
-	AddOrUpdateArtifactSourceSecretFileWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	AddOrUpdateArtifactSourceSecretFileWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	AddOrUpdateArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	AddOrUpdateArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListBlueprints request
 	ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -276,15 +276,15 @@ type ClientInterface interface {
 	UpdateEnvGroupEnvVar(ctx context.Context, envGroupId EnvGroupIdParam, envVarKey EnvVarKeyParam, body UpdateEnvGroupEnvVarJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteEnvGroupSecretFile request
-	DeleteEnvGroupSecretFile(ctx context.Context, envGroupId EnvGroupIdParam, secretFileName SecretFileNameParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteEnvGroupSecretFile(ctx context.Context, envGroupId EnvGroupIdParam, envVarKey SecretFileNameParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveEnvGroupSecretFile request
-	RetrieveEnvGroupSecretFile(ctx context.Context, envGroupId EnvGroupIdParam, secretFileName SecretFileNameParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RetrieveEnvGroupSecretFile(ctx context.Context, envGroupId EnvGroupIdParam, envVarKey SecretFileNameParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateEnvGroupSecretFileWithBody request with any body
-	UpdateEnvGroupSecretFileWithBody(ctx context.Context, envGroupId string, secretFileName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateEnvGroupSecretFileWithBody(ctx context.Context, envGroupId string, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	UpdateEnvGroupSecretFile(ctx context.Context, envGroupId string, secretFileName string, body UpdateEnvGroupSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateEnvGroupSecretFile(ctx context.Context, envGroupId string, envVarKey string, body UpdateEnvGroupSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UnlinkServiceFromEnvGroup request
 	UnlinkServiceFromEnvGroup(ctx context.Context, envGroupId string, serviceId string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -331,24 +331,24 @@ type ClientInterface interface {
 	CreateKeyValue(ctx context.Context, body CreateKeyValueJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteKeyValue request
-	DeleteKeyValue(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteKeyValue(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveKeyValue request
-	RetrieveKeyValue(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RetrieveKeyValue(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateKeyValueWithBody request with any body
-	UpdateKeyValueWithBody(ctx context.Context, keyValueId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateKeyValueWithBody(ctx context.Context, redisId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	UpdateKeyValue(ctx context.Context, keyValueId string, body UpdateKeyValueJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateKeyValue(ctx context.Context, redisId string, body UpdateKeyValueJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveKeyValueConnectionInfo request
-	RetrieveKeyValueConnectionInfo(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RetrieveKeyValueConnectionInfo(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ResumeKeyValue request
-	ResumeKeyValue(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ResumeKeyValue(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SuspendKeyValue request
-	SuspendKeyValue(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	SuspendKeyValue(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListLogs request
 	ListLogs(ctx context.Context, params *ListLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -388,15 +388,15 @@ type ClientInterface interface {
 	ListMaintenance(ctx context.Context, params *ListMaintenanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveMaintenance request
-	RetrieveMaintenance(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RetrieveMaintenance(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateMaintenanceWithBody request with any body
-	UpdateMaintenanceWithBody(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateMaintenanceWithBody(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	UpdateMaintenance(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateMaintenance(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TriggerMaintenance request
-	TriggerMaintenance(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+	TriggerMaintenance(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteOwnerMetricsStream request
 	DeleteOwnerMetricsStream(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -567,6 +567,32 @@ type ClientInterface interface {
 	// FailoverPostgres request
 	FailoverPostgres(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListPostgresParameterOverrides request
+	ListPostgresParameterOverrides(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdatePostgresParameterOverridesWithBody request with any body
+	UpdatePostgresParameterOverridesWithBody(ctx context.Context, postgresId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdatePostgresParameterOverrides(ctx context.Context, postgresId string, body UpdatePostgresParameterOverridesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListAvailablePostgresParameterOverrides request
+	ListAvailablePostgresParameterOverrides(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PromotePostgres request
+	PromotePostgres(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListPostgresProcesses request
+	ListPostgresProcesses(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListPostgresSizes request
+	ListPostgresSizes(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListPostgresTableScans request
+	ListPostgresTableScans(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListPostgresTopQueries request
+	ListPostgresTopQueries(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// RetrievePostgresRecoveryInfo request
 	RetrievePostgresRecoveryInfo(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -574,6 +600,11 @@ type ClientInterface interface {
 	RecoverPostgresWithBody(ctx context.Context, postgresId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	RecoverPostgres(ctx context.Context, postgresId string, body RecoverPostgresJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetupPostgresReplicationWithBody request with any body
+	SetupPostgresReplicationWithBody(ctx context.Context, postgresId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	SetupPostgresReplication(ctx context.Context, postgresId string, body SetupPostgresReplicationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RestartPostgres request
 	RestartPostgres(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -625,6 +656,12 @@ type ClientInterface interface {
 	// RetrieveRedisConnectionInfo request
 	RetrieveRedisConnectionInfo(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ResumeRedis request
+	ResumeRedis(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SuspendRedis request
+	SuspendRedis(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListRegistryCredentials request
 	ListRegistryCredentials(ctx context.Context, params *ListRegistryCredentialsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -643,6 +680,9 @@ type ClientInterface interface {
 	UpdateRegistryCredentialWithBody(ctx context.Context, registryCredentialId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	UpdateRegistryCredential(ctx context.Context, registryCredentialId string, body UpdateRegistryCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListSandboxGroups request
+	ListSandboxGroups(ctx context.Context, params *ListSandboxGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListSandboxes request
 	ListSandboxes(ctx context.Context, params *ListSandboxesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -714,13 +754,13 @@ type ClientInterface interface {
 	CreateCustomDomain(ctx context.Context, serviceId ServiceIdParam, body CreateCustomDomainJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteCustomDomain request
-	DeleteCustomDomain(ctx context.Context, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteCustomDomain(ctx context.Context, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveCustomDomain request
-	RetrieveCustomDomain(ctx context.Context, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RetrieveCustomDomain(ctx context.Context, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RefreshCustomDomain request
-	RefreshCustomDomain(ctx context.Context, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RefreshCustomDomain(ctx context.Context, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListDeploys request
 	ListDeploys(ctx context.Context, serviceId ServiceIdParam, params *ListDeploysParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -815,11 +855,6 @@ type ClientInterface interface {
 	// ListRoutes request
 	ListRoutes(ctx context.Context, serviceId ServiceIdParam, params *ListRoutesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PatchRouteWithBody request with any body
-	PatchRouteWithBody(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PatchRoute(ctx context.Context, serviceId ServiceIdParam, body PatchRouteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// AddRouteWithBody request with any body
 	AddRouteWithBody(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -832,6 +867,11 @@ type ClientInterface interface {
 
 	// DeleteRoute request
 	DeleteRoute(ctx context.Context, serviceId ServiceIdParam, routeId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PatchRouteWithBody request with any body
+	PatchRouteWithBody(ctx context.Context, serviceId ServiceIdParam, routeId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PatchRoute(ctx context.Context, serviceId ServiceIdParam, routeId string, body PatchRouteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ScaleServiceWithBody request with any body
 	ScaleServiceWithBody(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -847,15 +887,15 @@ type ClientInterface interface {
 	UpdateSecretFilesForService(ctx context.Context, serviceId ServiceIdParam, body UpdateSecretFilesForServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteSecretFile request
-	DeleteSecretFile(ctx context.Context, serviceId ServiceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteSecretFile(ctx context.Context, serviceId ServiceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveSecretFile request
-	RetrieveSecretFile(ctx context.Context, serviceId ServiceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RetrieveSecretFile(ctx context.Context, serviceId ServiceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// AddOrUpdateSecretFileWithBody request with any body
-	AddOrUpdateSecretFileWithBody(ctx context.Context, serviceId ServiceIdParam, secretFileName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	AddOrUpdateSecretFileWithBody(ctx context.Context, serviceId ServiceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	AddOrUpdateSecretFile(ctx context.Context, serviceId ServiceIdParam, secretFileName string, body AddOrUpdateSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	AddOrUpdateSecretFile(ctx context.Context, serviceId ServiceIdParam, envVarKey string, body AddOrUpdateSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SuspendService request
 	SuspendService(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1155,8 +1195,8 @@ func (c *Client) UpdateSecretFilesForArtifactSource(ctx context.Context, artifac
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteArtifactSourceSecretFileRequest(c.Server, artifactSourceId, secretFileName)
+func (c *Client) DeleteArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteArtifactSourceSecretFileRequest(c.Server, artifactSourceId, envVarKey)
 	if err != nil {
 		return nil, err
 	}
@@ -1167,8 +1207,8 @@ func (c *Client) DeleteArtifactSourceSecretFile(ctx context.Context, artifactSou
 	return c.Client.Do(req)
 }
 
-func (c *Client) RetrieveArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRetrieveArtifactSourceSecretFileRequest(c.Server, artifactSourceId, secretFileName)
+func (c *Client) RetrieveArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveArtifactSourceSecretFileRequest(c.Server, artifactSourceId, envVarKey)
 	if err != nil {
 		return nil, err
 	}
@@ -1179,8 +1219,8 @@ func (c *Client) RetrieveArtifactSourceSecretFile(ctx context.Context, artifactS
 	return c.Client.Do(req)
 }
 
-func (c *Client) AddOrUpdateArtifactSourceSecretFileWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAddOrUpdateArtifactSourceSecretFileRequestWithBody(c.Server, artifactSourceId, secretFileName, contentType, body)
+func (c *Client) AddOrUpdateArtifactSourceSecretFileWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddOrUpdateArtifactSourceSecretFileRequestWithBody(c.Server, artifactSourceId, envVarKey, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1191,8 +1231,8 @@ func (c *Client) AddOrUpdateArtifactSourceSecretFileWithBody(ctx context.Context
 	return c.Client.Do(req)
 }
 
-func (c *Client) AddOrUpdateArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAddOrUpdateArtifactSourceSecretFileRequest(c.Server, artifactSourceId, secretFileName, body)
+func (c *Client) AddOrUpdateArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddOrUpdateArtifactSourceSecretFileRequest(c.Server, artifactSourceId, envVarKey, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1671,8 +1711,8 @@ func (c *Client) UpdateEnvGroupEnvVar(ctx context.Context, envGroupId EnvGroupId
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteEnvGroupSecretFile(ctx context.Context, envGroupId EnvGroupIdParam, secretFileName SecretFileNameParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteEnvGroupSecretFileRequest(c.Server, envGroupId, secretFileName)
+func (c *Client) DeleteEnvGroupSecretFile(ctx context.Context, envGroupId EnvGroupIdParam, envVarKey SecretFileNameParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteEnvGroupSecretFileRequest(c.Server, envGroupId, envVarKey)
 	if err != nil {
 		return nil, err
 	}
@@ -1683,8 +1723,8 @@ func (c *Client) DeleteEnvGroupSecretFile(ctx context.Context, envGroupId EnvGro
 	return c.Client.Do(req)
 }
 
-func (c *Client) RetrieveEnvGroupSecretFile(ctx context.Context, envGroupId EnvGroupIdParam, secretFileName SecretFileNameParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRetrieveEnvGroupSecretFileRequest(c.Server, envGroupId, secretFileName)
+func (c *Client) RetrieveEnvGroupSecretFile(ctx context.Context, envGroupId EnvGroupIdParam, envVarKey SecretFileNameParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveEnvGroupSecretFileRequest(c.Server, envGroupId, envVarKey)
 	if err != nil {
 		return nil, err
 	}
@@ -1695,8 +1735,8 @@ func (c *Client) RetrieveEnvGroupSecretFile(ctx context.Context, envGroupId EnvG
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateEnvGroupSecretFileWithBody(ctx context.Context, envGroupId string, secretFileName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateEnvGroupSecretFileRequestWithBody(c.Server, envGroupId, secretFileName, contentType, body)
+func (c *Client) UpdateEnvGroupSecretFileWithBody(ctx context.Context, envGroupId string, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateEnvGroupSecretFileRequestWithBody(c.Server, envGroupId, envVarKey, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1707,8 +1747,8 @@ func (c *Client) UpdateEnvGroupSecretFileWithBody(ctx context.Context, envGroupI
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateEnvGroupSecretFile(ctx context.Context, envGroupId string, secretFileName string, body UpdateEnvGroupSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateEnvGroupSecretFileRequest(c.Server, envGroupId, secretFileName, body)
+func (c *Client) UpdateEnvGroupSecretFile(ctx context.Context, envGroupId string, envVarKey string, body UpdateEnvGroupSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateEnvGroupSecretFileRequest(c.Server, envGroupId, envVarKey, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1911,8 +1951,8 @@ func (c *Client) CreateKeyValue(ctx context.Context, body CreateKeyValueJSONRequ
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteKeyValue(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteKeyValueRequest(c.Server, keyValueId)
+func (c *Client) DeleteKeyValue(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteKeyValueRequest(c.Server, redisId)
 	if err != nil {
 		return nil, err
 	}
@@ -1923,8 +1963,8 @@ func (c *Client) DeleteKeyValue(ctx context.Context, keyValueId string, reqEdito
 	return c.Client.Do(req)
 }
 
-func (c *Client) RetrieveKeyValue(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRetrieveKeyValueRequest(c.Server, keyValueId)
+func (c *Client) RetrieveKeyValue(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveKeyValueRequest(c.Server, redisId)
 	if err != nil {
 		return nil, err
 	}
@@ -1935,8 +1975,8 @@ func (c *Client) RetrieveKeyValue(ctx context.Context, keyValueId string, reqEdi
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateKeyValueWithBody(ctx context.Context, keyValueId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateKeyValueRequestWithBody(c.Server, keyValueId, contentType, body)
+func (c *Client) UpdateKeyValueWithBody(ctx context.Context, redisId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateKeyValueRequestWithBody(c.Server, redisId, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1947,8 +1987,8 @@ func (c *Client) UpdateKeyValueWithBody(ctx context.Context, keyValueId string, 
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateKeyValue(ctx context.Context, keyValueId string, body UpdateKeyValueJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateKeyValueRequest(c.Server, keyValueId, body)
+func (c *Client) UpdateKeyValue(ctx context.Context, redisId string, body UpdateKeyValueJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateKeyValueRequest(c.Server, redisId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1959,8 +1999,8 @@ func (c *Client) UpdateKeyValue(ctx context.Context, keyValueId string, body Upd
 	return c.Client.Do(req)
 }
 
-func (c *Client) RetrieveKeyValueConnectionInfo(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRetrieveKeyValueConnectionInfoRequest(c.Server, keyValueId)
+func (c *Client) RetrieveKeyValueConnectionInfo(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveKeyValueConnectionInfoRequest(c.Server, redisId)
 	if err != nil {
 		return nil, err
 	}
@@ -1971,8 +2011,8 @@ func (c *Client) RetrieveKeyValueConnectionInfo(ctx context.Context, keyValueId 
 	return c.Client.Do(req)
 }
 
-func (c *Client) ResumeKeyValue(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewResumeKeyValueRequest(c.Server, keyValueId)
+func (c *Client) ResumeKeyValue(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResumeKeyValueRequest(c.Server, redisId)
 	if err != nil {
 		return nil, err
 	}
@@ -1983,8 +2023,8 @@ func (c *Client) ResumeKeyValue(ctx context.Context, keyValueId string, reqEdito
 	return c.Client.Do(req)
 }
 
-func (c *Client) SuspendKeyValue(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSuspendKeyValueRequest(c.Server, keyValueId)
+func (c *Client) SuspendKeyValue(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSuspendKeyValueRequest(c.Server, redisId)
 	if err != nil {
 		return nil, err
 	}
@@ -2151,8 +2191,8 @@ func (c *Client) ListMaintenance(ctx context.Context, params *ListMaintenancePar
 	return c.Client.Do(req)
 }
 
-func (c *Client) RetrieveMaintenance(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRetrieveMaintenanceRequest(c.Server, maintenanceRunParam)
+func (c *Client) RetrieveMaintenance(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveMaintenanceRequest(c.Server, maintenanceRunID)
 	if err != nil {
 		return nil, err
 	}
@@ -2163,8 +2203,8 @@ func (c *Client) RetrieveMaintenance(ctx context.Context, maintenanceRunParam ex
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateMaintenanceWithBody(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateMaintenanceRequestWithBody(c.Server, maintenanceRunParam, contentType, body)
+func (c *Client) UpdateMaintenanceWithBody(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateMaintenanceRequestWithBody(c.Server, maintenanceRunID, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2175,8 +2215,8 @@ func (c *Client) UpdateMaintenanceWithBody(ctx context.Context, maintenanceRunPa
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateMaintenance(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateMaintenanceRequest(c.Server, maintenanceRunParam, body)
+func (c *Client) UpdateMaintenance(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateMaintenanceRequest(c.Server, maintenanceRunID, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2187,8 +2227,8 @@ func (c *Client) UpdateMaintenance(ctx context.Context, maintenanceRunParam exte
 	return c.Client.Do(req)
 }
 
-func (c *Client) TriggerMaintenance(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewTriggerMaintenanceRequest(c.Server, maintenanceRunParam)
+func (c *Client) TriggerMaintenance(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTriggerMaintenanceRequest(c.Server, maintenanceRunID)
 	if err != nil {
 		return nil, err
 	}
@@ -2907,6 +2947,114 @@ func (c *Client) FailoverPostgres(ctx context.Context, postgresId string, reqEdi
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListPostgresParameterOverrides(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListPostgresParameterOverridesRequest(c.Server, postgresId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdatePostgresParameterOverridesWithBody(ctx context.Context, postgresId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdatePostgresParameterOverridesRequestWithBody(c.Server, postgresId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdatePostgresParameterOverrides(ctx context.Context, postgresId string, body UpdatePostgresParameterOverridesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdatePostgresParameterOverridesRequest(c.Server, postgresId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListAvailablePostgresParameterOverrides(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAvailablePostgresParameterOverridesRequest(c.Server, postgresId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PromotePostgres(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPromotePostgresRequest(c.Server, postgresId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListPostgresProcesses(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListPostgresProcessesRequest(c.Server, postgresId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListPostgresSizes(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListPostgresSizesRequest(c.Server, postgresId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListPostgresTableScans(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListPostgresTableScansRequest(c.Server, postgresId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListPostgresTopQueries(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListPostgresTopQueriesRequest(c.Server, postgresId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) RetrievePostgresRecoveryInfo(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRetrievePostgresRecoveryInfoRequest(c.Server, postgresId)
 	if err != nil {
@@ -2933,6 +3081,30 @@ func (c *Client) RecoverPostgresWithBody(ctx context.Context, postgresId string,
 
 func (c *Client) RecoverPostgres(ctx context.Context, postgresId string, body RecoverPostgresJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRecoverPostgresRequest(c.Server, postgresId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SetupPostgresReplicationWithBody(ctx context.Context, postgresId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetupPostgresReplicationRequestWithBody(c.Server, postgresId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SetupPostgresReplication(ctx context.Context, postgresId string, body SetupPostgresReplicationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetupPostgresReplicationRequest(c.Server, postgresId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3159,6 +3331,30 @@ func (c *Client) RetrieveRedisConnectionInfo(ctx context.Context, redisId string
 	return c.Client.Do(req)
 }
 
+func (c *Client) ResumeRedis(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResumeRedisRequest(c.Server, redisId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SuspendRedis(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSuspendRedisRequest(c.Server, redisId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListRegistryCredentials(ctx context.Context, params *ListRegistryCredentialsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListRegistryCredentialsRequest(c.Server, params)
 	if err != nil {
@@ -3233,6 +3429,18 @@ func (c *Client) UpdateRegistryCredentialWithBody(ctx context.Context, registryC
 
 func (c *Client) UpdateRegistryCredential(ctx context.Context, registryCredentialId string, body UpdateRegistryCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateRegistryCredentialRequest(c.Server, registryCredentialId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListSandboxGroups(ctx context.Context, params *ListSandboxGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSandboxGroupsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -3543,8 +3751,8 @@ func (c *Client) CreateCustomDomain(ctx context.Context, serviceId ServiceIdPara
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteCustomDomain(ctx context.Context, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteCustomDomainRequest(c.Server, serviceId, customDomainIdOrName)
+func (c *Client) DeleteCustomDomain(ctx context.Context, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteCustomDomainRequest(c.Server, serviceId, customDomainNameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -3555,8 +3763,8 @@ func (c *Client) DeleteCustomDomain(ctx context.Context, serviceId ServiceIdPara
 	return c.Client.Do(req)
 }
 
-func (c *Client) RetrieveCustomDomain(ctx context.Context, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRetrieveCustomDomainRequest(c.Server, serviceId, customDomainIdOrName)
+func (c *Client) RetrieveCustomDomain(ctx context.Context, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveCustomDomainRequest(c.Server, serviceId, customDomainNameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -3567,8 +3775,8 @@ func (c *Client) RetrieveCustomDomain(ctx context.Context, serviceId ServiceIdPa
 	return c.Client.Do(req)
 }
 
-func (c *Client) RefreshCustomDomain(ctx context.Context, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRefreshCustomDomainRequest(c.Server, serviceId, customDomainIdOrName)
+func (c *Client) RefreshCustomDomain(ctx context.Context, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRefreshCustomDomainRequest(c.Server, serviceId, customDomainNameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -3987,30 +4195,6 @@ func (c *Client) ListRoutes(ctx context.Context, serviceId ServiceIdParam, param
 	return c.Client.Do(req)
 }
 
-func (c *Client) PatchRouteWithBody(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPatchRouteRequestWithBody(c.Server, serviceId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PatchRoute(ctx context.Context, serviceId ServiceIdParam, body PatchRouteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPatchRouteRequest(c.Server, serviceId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 func (c *Client) AddRouteWithBody(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAddRouteRequestWithBody(c.Server, serviceId, contentType, body)
 	if err != nil {
@@ -4061,6 +4245,30 @@ func (c *Client) PutRoutes(ctx context.Context, serviceId ServiceIdParam, body P
 
 func (c *Client) DeleteRoute(ctx context.Context, serviceId ServiceIdParam, routeId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteRouteRequest(c.Server, serviceId, routeId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PatchRouteWithBody(ctx context.Context, serviceId ServiceIdParam, routeId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchRouteRequestWithBody(c.Server, serviceId, routeId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PatchRoute(ctx context.Context, serviceId ServiceIdParam, routeId string, body PatchRouteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchRouteRequest(c.Server, serviceId, routeId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4131,8 +4339,8 @@ func (c *Client) UpdateSecretFilesForService(ctx context.Context, serviceId Serv
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteSecretFile(ctx context.Context, serviceId ServiceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteSecretFileRequest(c.Server, serviceId, secretFileName)
+func (c *Client) DeleteSecretFile(ctx context.Context, serviceId ServiceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteSecretFileRequest(c.Server, serviceId, envVarKey)
 	if err != nil {
 		return nil, err
 	}
@@ -4143,8 +4351,8 @@ func (c *Client) DeleteSecretFile(ctx context.Context, serviceId ServiceIdParam,
 	return c.Client.Do(req)
 }
 
-func (c *Client) RetrieveSecretFile(ctx context.Context, serviceId ServiceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRetrieveSecretFileRequest(c.Server, serviceId, secretFileName)
+func (c *Client) RetrieveSecretFile(ctx context.Context, serviceId ServiceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveSecretFileRequest(c.Server, serviceId, envVarKey)
 	if err != nil {
 		return nil, err
 	}
@@ -4155,8 +4363,8 @@ func (c *Client) RetrieveSecretFile(ctx context.Context, serviceId ServiceIdPara
 	return c.Client.Do(req)
 }
 
-func (c *Client) AddOrUpdateSecretFileWithBody(ctx context.Context, serviceId ServiceIdParam, secretFileName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAddOrUpdateSecretFileRequestWithBody(c.Server, serviceId, secretFileName, contentType, body)
+func (c *Client) AddOrUpdateSecretFileWithBody(ctx context.Context, serviceId ServiceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddOrUpdateSecretFileRequestWithBody(c.Server, serviceId, envVarKey, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4167,8 +4375,8 @@ func (c *Client) AddOrUpdateSecretFileWithBody(ctx context.Context, serviceId Se
 	return c.Client.Do(req)
 }
 
-func (c *Client) AddOrUpdateSecretFile(ctx context.Context, serviceId ServiceIdParam, secretFileName string, body AddOrUpdateSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAddOrUpdateSecretFileRequest(c.Server, serviceId, secretFileName, body)
+func (c *Client) AddOrUpdateSecretFile(ctx context.Context, serviceId ServiceIdParam, envVarKey string, body AddOrUpdateSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddOrUpdateSecretFileRequest(c.Server, serviceId, envVarKey, body)
 	if err != nil {
 		return nil, err
 	}
@@ -5306,7 +5514,7 @@ func NewUpdateSecretFilesForArtifactSourceRequestWithBody(server string, artifac
 }
 
 // NewDeleteArtifactSourceSecretFileRequest generates requests for DeleteArtifactSourceSecretFile
-func NewDeleteArtifactSourceSecretFileRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string) (*http.Request, error) {
+func NewDeleteArtifactSourceSecretFileRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5318,7 +5526,7 @@ func NewDeleteArtifactSourceSecretFileRequest(server string, artifactSourceId ex
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "secretFileName", secretFileName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -5347,7 +5555,7 @@ func NewDeleteArtifactSourceSecretFileRequest(server string, artifactSourceId ex
 }
 
 // NewRetrieveArtifactSourceSecretFileRequest generates requests for RetrieveArtifactSourceSecretFile
-func NewRetrieveArtifactSourceSecretFileRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string) (*http.Request, error) {
+func NewRetrieveArtifactSourceSecretFileRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5359,7 +5567,7 @@ func NewRetrieveArtifactSourceSecretFileRequest(server string, artifactSourceId 
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "secretFileName", secretFileName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -5388,18 +5596,18 @@ func NewRetrieveArtifactSourceSecretFileRequest(server string, artifactSourceId 
 }
 
 // NewAddOrUpdateArtifactSourceSecretFileRequest calls the generic AddOrUpdateArtifactSourceSecretFile builder with application/json body
-func NewAddOrUpdateArtifactSourceSecretFileRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody) (*http.Request, error) {
+func NewAddOrUpdateArtifactSourceSecretFileRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewAddOrUpdateArtifactSourceSecretFileRequestWithBody(server, artifactSourceId, secretFileName, "application/json", bodyReader)
+	return NewAddOrUpdateArtifactSourceSecretFileRequestWithBody(server, artifactSourceId, envVarKey, "application/json", bodyReader)
 }
 
 // NewAddOrUpdateArtifactSourceSecretFileRequestWithBody generates requests for AddOrUpdateArtifactSourceSecretFile with any type of body
-func NewAddOrUpdateArtifactSourceSecretFileRequestWithBody(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, contentType string, body io.Reader) (*http.Request, error) {
+func NewAddOrUpdateArtifactSourceSecretFileRequestWithBody(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5411,7 +5619,7 @@ func NewAddOrUpdateArtifactSourceSecretFileRequestWithBody(server string, artifa
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "secretFileName", secretFileName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -6986,7 +7194,7 @@ func NewUpdateEnvGroupEnvVarRequestWithBody(server string, envGroupId EnvGroupId
 }
 
 // NewDeleteEnvGroupSecretFileRequest generates requests for DeleteEnvGroupSecretFile
-func NewDeleteEnvGroupSecretFileRequest(server string, envGroupId EnvGroupIdParam, secretFileName SecretFileNameParam) (*http.Request, error) {
+func NewDeleteEnvGroupSecretFileRequest(server string, envGroupId EnvGroupIdParam, envVarKey SecretFileNameParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6998,7 +7206,7 @@ func NewDeleteEnvGroupSecretFileRequest(server string, envGroupId EnvGroupIdPara
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "secretFileName", secretFileName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -7027,7 +7235,7 @@ func NewDeleteEnvGroupSecretFileRequest(server string, envGroupId EnvGroupIdPara
 }
 
 // NewRetrieveEnvGroupSecretFileRequest generates requests for RetrieveEnvGroupSecretFile
-func NewRetrieveEnvGroupSecretFileRequest(server string, envGroupId EnvGroupIdParam, secretFileName SecretFileNameParam) (*http.Request, error) {
+func NewRetrieveEnvGroupSecretFileRequest(server string, envGroupId EnvGroupIdParam, envVarKey SecretFileNameParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7039,7 +7247,7 @@ func NewRetrieveEnvGroupSecretFileRequest(server string, envGroupId EnvGroupIdPa
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "secretFileName", secretFileName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -7068,18 +7276,18 @@ func NewRetrieveEnvGroupSecretFileRequest(server string, envGroupId EnvGroupIdPa
 }
 
 // NewUpdateEnvGroupSecretFileRequest calls the generic UpdateEnvGroupSecretFile builder with application/json body
-func NewUpdateEnvGroupSecretFileRequest(server string, envGroupId string, secretFileName string, body UpdateEnvGroupSecretFileJSONRequestBody) (*http.Request, error) {
+func NewUpdateEnvGroupSecretFileRequest(server string, envGroupId string, envVarKey string, body UpdateEnvGroupSecretFileJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewUpdateEnvGroupSecretFileRequestWithBody(server, envGroupId, secretFileName, "application/json", bodyReader)
+	return NewUpdateEnvGroupSecretFileRequestWithBody(server, envGroupId, envVarKey, "application/json", bodyReader)
 }
 
 // NewUpdateEnvGroupSecretFileRequestWithBody generates requests for UpdateEnvGroupSecretFile with any type of body
-func NewUpdateEnvGroupSecretFileRequestWithBody(server string, envGroupId string, secretFileName string, contentType string, body io.Reader) (*http.Request, error) {
+func NewUpdateEnvGroupSecretFileRequestWithBody(server string, envGroupId string, envVarKey string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7091,7 +7299,7 @@ func NewUpdateEnvGroupSecretFileRequestWithBody(server string, envGroupId string
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "secretFileName", secretFileName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -7922,12 +8130,12 @@ func NewCreateKeyValueRequestWithBody(server string, contentType string, body io
 }
 
 // NewDeleteKeyValueRequest generates requests for DeleteKeyValue
-func NewDeleteKeyValueRequest(server string, keyValueId string) (*http.Request, error) {
+func NewDeleteKeyValueRequest(server string, redisId string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "keyValueId", keyValueId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "redisId", redisId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -7956,12 +8164,12 @@ func NewDeleteKeyValueRequest(server string, keyValueId string) (*http.Request, 
 }
 
 // NewRetrieveKeyValueRequest generates requests for RetrieveKeyValue
-func NewRetrieveKeyValueRequest(server string, keyValueId string) (*http.Request, error) {
+func NewRetrieveKeyValueRequest(server string, redisId string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "keyValueId", keyValueId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "redisId", redisId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -7990,23 +8198,23 @@ func NewRetrieveKeyValueRequest(server string, keyValueId string) (*http.Request
 }
 
 // NewUpdateKeyValueRequest calls the generic UpdateKeyValue builder with application/json body
-func NewUpdateKeyValueRequest(server string, keyValueId string, body UpdateKeyValueJSONRequestBody) (*http.Request, error) {
+func NewUpdateKeyValueRequest(server string, redisId string, body UpdateKeyValueJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewUpdateKeyValueRequestWithBody(server, keyValueId, "application/json", bodyReader)
+	return NewUpdateKeyValueRequestWithBody(server, redisId, "application/json", bodyReader)
 }
 
 // NewUpdateKeyValueRequestWithBody generates requests for UpdateKeyValue with any type of body
-func NewUpdateKeyValueRequestWithBody(server string, keyValueId string, contentType string, body io.Reader) (*http.Request, error) {
+func NewUpdateKeyValueRequestWithBody(server string, redisId string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "keyValueId", keyValueId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "redisId", redisId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -8037,12 +8245,12 @@ func NewUpdateKeyValueRequestWithBody(server string, keyValueId string, contentT
 }
 
 // NewRetrieveKeyValueConnectionInfoRequest generates requests for RetrieveKeyValueConnectionInfo
-func NewRetrieveKeyValueConnectionInfoRequest(server string, keyValueId string) (*http.Request, error) {
+func NewRetrieveKeyValueConnectionInfoRequest(server string, redisId string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "keyValueId", keyValueId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "redisId", redisId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -8071,12 +8279,12 @@ func NewRetrieveKeyValueConnectionInfoRequest(server string, keyValueId string) 
 }
 
 // NewResumeKeyValueRequest generates requests for ResumeKeyValue
-func NewResumeKeyValueRequest(server string, keyValueId string) (*http.Request, error) {
+func NewResumeKeyValueRequest(server string, redisId string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "keyValueId", keyValueId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "redisId", redisId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -8105,12 +8313,12 @@ func NewResumeKeyValueRequest(server string, keyValueId string) (*http.Request, 
 }
 
 // NewSuspendKeyValueRequest generates requests for SuspendKeyValue
-func NewSuspendKeyValueRequest(server string, keyValueId string) (*http.Request, error) {
+func NewSuspendKeyValueRequest(server string, redisId string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "keyValueId", keyValueId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "redisId", redisId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9446,12 +9654,12 @@ func NewListMaintenanceRequest(server string, params *ListMaintenanceParams) (*h
 }
 
 // NewRetrieveMaintenanceRequest generates requests for RetrieveMaintenance
-func NewRetrieveMaintenanceRequest(server string, maintenanceRunParam externalRef11.MaintenanceRunParam) (*http.Request, error) {
+func NewRetrieveMaintenanceRequest(server string, maintenanceRunID externalRef11.MaintenanceRunParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "maintenanceRunParam", maintenanceRunParam, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "maintenanceRunID", maintenanceRunID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9480,23 +9688,23 @@ func NewRetrieveMaintenanceRequest(server string, maintenanceRunParam externalRe
 }
 
 // NewUpdateMaintenanceRequest calls the generic UpdateMaintenance builder with application/json body
-func NewUpdateMaintenanceRequest(server string, maintenanceRunParam externalRef11.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody) (*http.Request, error) {
+func NewUpdateMaintenanceRequest(server string, maintenanceRunID externalRef11.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewUpdateMaintenanceRequestWithBody(server, maintenanceRunParam, "application/json", bodyReader)
+	return NewUpdateMaintenanceRequestWithBody(server, maintenanceRunID, "application/json", bodyReader)
 }
 
 // NewUpdateMaintenanceRequestWithBody generates requests for UpdateMaintenance with any type of body
-func NewUpdateMaintenanceRequestWithBody(server string, maintenanceRunParam externalRef11.MaintenanceRunParam, contentType string, body io.Reader) (*http.Request, error) {
+func NewUpdateMaintenanceRequestWithBody(server string, maintenanceRunID externalRef11.MaintenanceRunParam, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "maintenanceRunParam", maintenanceRunParam, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "maintenanceRunID", maintenanceRunID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9527,12 +9735,12 @@ func NewUpdateMaintenanceRequestWithBody(server string, maintenanceRunParam exte
 }
 
 // NewTriggerMaintenanceRequest generates requests for TriggerMaintenance
-func NewTriggerMaintenanceRequest(server string, maintenanceRunParam externalRef11.MaintenanceRunParam) (*http.Request, error) {
+func NewTriggerMaintenanceRequest(server string, maintenanceRunID externalRef11.MaintenanceRunParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "maintenanceRunParam", maintenanceRunParam, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "maintenanceRunID", maintenanceRunID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -13792,6 +14000,291 @@ func NewFailoverPostgresRequest(server string, postgresId string) (*http.Request
 	return req, nil
 }
 
+// NewListPostgresParameterOverridesRequest generates requests for ListPostgresParameterOverrides
+func NewListPostgresParameterOverridesRequest(server string, postgresId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "postgresId", postgresId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postgres/%s/parameter-overrides", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdatePostgresParameterOverridesRequest calls the generic UpdatePostgresParameterOverrides builder with application/json body
+func NewUpdatePostgresParameterOverridesRequest(server string, postgresId string, body UpdatePostgresParameterOverridesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdatePostgresParameterOverridesRequestWithBody(server, postgresId, "application/json", bodyReader)
+}
+
+// NewUpdatePostgresParameterOverridesRequestWithBody generates requests for UpdatePostgresParameterOverrides with any type of body
+func NewUpdatePostgresParameterOverridesRequestWithBody(server string, postgresId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "postgresId", postgresId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postgres/%s/parameter-overrides", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListAvailablePostgresParameterOverridesRequest generates requests for ListAvailablePostgresParameterOverrides
+func NewListAvailablePostgresParameterOverridesRequest(server string, postgresId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "postgresId", postgresId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postgres/%s/parameter-overrides/available", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPromotePostgresRequest generates requests for PromotePostgres
+func NewPromotePostgresRequest(server string, postgresId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "postgresId", postgresId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postgres/%s/promote", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListPostgresProcessesRequest generates requests for ListPostgresProcesses
+func NewListPostgresProcessesRequest(server string, postgresId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "postgresId", postgresId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postgres/%s/query/processes", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListPostgresSizesRequest generates requests for ListPostgresSizes
+func NewListPostgresSizesRequest(server string, postgresId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "postgresId", postgresId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postgres/%s/query/sizes", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListPostgresTableScansRequest generates requests for ListPostgresTableScans
+func NewListPostgresTableScansRequest(server string, postgresId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "postgresId", postgresId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postgres/%s/query/table-scans", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListPostgresTopQueriesRequest generates requests for ListPostgresTopQueries
+func NewListPostgresTopQueriesRequest(server string, postgresId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "postgresId", postgresId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postgres/%s/query/top-queries", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewRetrievePostgresRecoveryInfoRequest generates requests for RetrievePostgresRecoveryInfo
 func NewRetrievePostgresRecoveryInfoRequest(server string, postgresId string) (*http.Request, error) {
 	var err error
@@ -13854,6 +14347,53 @@ func NewRecoverPostgresRequestWithBody(server string, postgresId string, content
 	}
 
 	operationPath := fmt.Sprintf("/postgres/%s/recovery", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewSetupPostgresReplicationRequest calls the generic SetupPostgresReplication builder with application/json body
+func NewSetupPostgresReplicationRequest(server string, postgresId string, body SetupPostgresReplicationJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetupPostgresReplicationRequestWithBody(server, postgresId, "application/json", bodyReader)
+}
+
+// NewSetupPostgresReplicationRequestWithBody generates requests for SetupPostgresReplication with any type of body
+func NewSetupPostgresReplicationRequestWithBody(server string, postgresId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "postgresId", postgresId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postgres/%s/replication", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -14673,6 +15213,74 @@ func NewRetrieveRedisConnectionInfoRequest(server string, redisId string) (*http
 	return req, nil
 }
 
+// NewResumeRedisRequest generates requests for ResumeRedis
+func NewResumeRedisRequest(server string, redisId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "redisId", redisId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/redis/%s/resume", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSuspendRedisRequest generates requests for SuspendRedis
+func NewSuspendRedisRequest(server string, redisId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "redisId", redisId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/redis/%s/suspend", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListRegistryCredentialsRequest generates requests for ListRegistryCredentials
 func NewListRegistryCredentialsRequest(server string, params *ListRegistryCredentialsParams) (*http.Request, error) {
 	var err error
@@ -15017,6 +15625,55 @@ func NewUpdateRegistryCredentialRequestWithBody(server string, registryCredentia
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListSandboxGroupsRequest generates requests for ListSandboxGroups
+func NewListSandboxGroupsRequest(server string, params *ListSandboxGroupsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandbox-groups")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -16348,7 +17005,7 @@ func NewCreateCustomDomainRequestWithBody(server string, serviceId ServiceIdPara
 }
 
 // NewDeleteCustomDomainRequest generates requests for DeleteCustomDomain
-func NewDeleteCustomDomainRequest(server string, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam) (*http.Request, error) {
+func NewDeleteCustomDomainRequest(server string, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -16360,7 +17017,7 @@ func NewDeleteCustomDomainRequest(server string, serviceId ServiceIdParam, custo
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "customDomainIdOrName", customDomainIdOrName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "customDomainNameOrID", customDomainNameOrID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -16389,7 +17046,7 @@ func NewDeleteCustomDomainRequest(server string, serviceId ServiceIdParam, custo
 }
 
 // NewRetrieveCustomDomainRequest generates requests for RetrieveCustomDomain
-func NewRetrieveCustomDomainRequest(server string, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam) (*http.Request, error) {
+func NewRetrieveCustomDomainRequest(server string, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -16401,7 +17058,7 @@ func NewRetrieveCustomDomainRequest(server string, serviceId ServiceIdParam, cus
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "customDomainIdOrName", customDomainIdOrName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "customDomainNameOrID", customDomainNameOrID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -16430,7 +17087,7 @@ func NewRetrieveCustomDomainRequest(server string, serviceId ServiceIdParam, cus
 }
 
 // NewRefreshCustomDomainRequest generates requests for RefreshCustomDomain
-func NewRefreshCustomDomainRequest(server string, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam) (*http.Request, error) {
+func NewRefreshCustomDomainRequest(server string, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -16442,7 +17099,7 @@ func NewRefreshCustomDomainRequest(server string, serviceId ServiceIdParam, cust
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "customDomainIdOrName", customDomainIdOrName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "customDomainNameOrID", customDomainNameOrID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -18089,53 +18746,6 @@ func NewListRoutesRequest(server string, serviceId ServiceIdParam, params *ListR
 	return req, nil
 }
 
-// NewPatchRouteRequest calls the generic PatchRoute builder with application/json body
-func NewPatchRouteRequest(server string, serviceId ServiceIdParam, body PatchRouteJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPatchRouteRequestWithBody(server, serviceId, "application/json", bodyReader)
-}
-
-// NewPatchRouteRequestWithBody generates requests for PatchRoute with any type of body
-func NewPatchRouteRequestWithBody(server string, serviceId ServiceIdParam, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "serviceId", serviceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/services/%s/routes", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PATCH", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
 // NewAddRouteRequest calls the generic AddRoute builder with application/json body
 func NewAddRouteRequest(server string, serviceId ServiceIdParam, body AddRouteJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -18267,6 +18877,60 @@ func NewDeleteRouteRequest(server string, serviceId ServiceIdParam, routeId stri
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewPatchRouteRequest calls the generic PatchRoute builder with application/json body
+func NewPatchRouteRequest(server string, serviceId ServiceIdParam, routeId string, body PatchRouteJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPatchRouteRequestWithBody(server, serviceId, routeId, "application/json", bodyReader)
+}
+
+// NewPatchRouteRequestWithBody generates requests for PatchRoute with any type of body
+func NewPatchRouteRequestWithBody(server string, serviceId ServiceIdParam, routeId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "serviceId", serviceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "routeId", routeId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/services/%s/routes/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -18438,7 +19102,7 @@ func NewUpdateSecretFilesForServiceRequestWithBody(server string, serviceId Serv
 }
 
 // NewDeleteSecretFileRequest generates requests for DeleteSecretFile
-func NewDeleteSecretFileRequest(server string, serviceId ServiceIdParam, secretFileName string) (*http.Request, error) {
+func NewDeleteSecretFileRequest(server string, serviceId ServiceIdParam, envVarKey string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -18450,7 +19114,7 @@ func NewDeleteSecretFileRequest(server string, serviceId ServiceIdParam, secretF
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "secretFileName", secretFileName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -18479,7 +19143,7 @@ func NewDeleteSecretFileRequest(server string, serviceId ServiceIdParam, secretF
 }
 
 // NewRetrieveSecretFileRequest generates requests for RetrieveSecretFile
-func NewRetrieveSecretFileRequest(server string, serviceId ServiceIdParam, secretFileName string) (*http.Request, error) {
+func NewRetrieveSecretFileRequest(server string, serviceId ServiceIdParam, envVarKey string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -18491,7 +19155,7 @@ func NewRetrieveSecretFileRequest(server string, serviceId ServiceIdParam, secre
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "secretFileName", secretFileName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -18520,18 +19184,18 @@ func NewRetrieveSecretFileRequest(server string, serviceId ServiceIdParam, secre
 }
 
 // NewAddOrUpdateSecretFileRequest calls the generic AddOrUpdateSecretFile builder with application/json body
-func NewAddOrUpdateSecretFileRequest(server string, serviceId ServiceIdParam, secretFileName string, body AddOrUpdateSecretFileJSONRequestBody) (*http.Request, error) {
+func NewAddOrUpdateSecretFileRequest(server string, serviceId ServiceIdParam, envVarKey string, body AddOrUpdateSecretFileJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewAddOrUpdateSecretFileRequestWithBody(server, serviceId, secretFileName, "application/json", bodyReader)
+	return NewAddOrUpdateSecretFileRequestWithBody(server, serviceId, envVarKey, "application/json", bodyReader)
 }
 
 // NewAddOrUpdateSecretFileRequestWithBody generates requests for AddOrUpdateSecretFile with any type of body
-func NewAddOrUpdateSecretFileRequestWithBody(server string, serviceId ServiceIdParam, secretFileName string, contentType string, body io.Reader) (*http.Request, error) {
+func NewAddOrUpdateSecretFileRequestWithBody(server string, serviceId ServiceIdParam, envVarKey string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -18543,7 +19207,7 @@ func NewAddOrUpdateSecretFileRequestWithBody(server string, serviceId ServiceIdP
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "secretFileName", secretFileName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -20018,15 +20682,15 @@ type ClientWithResponsesInterface interface {
 	UpdateSecretFilesForArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateSecretFilesForArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSecretFilesForArtifactSourceResponse, error)
 
 	// DeleteArtifactSourceSecretFileWithResponse request
-	DeleteArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*DeleteArtifactSourceSecretFileResponse, error)
+	DeleteArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*DeleteArtifactSourceSecretFileResponse, error)
 
 	// RetrieveArtifactSourceSecretFileWithResponse request
-	RetrieveArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*RetrieveArtifactSourceSecretFileResponse, error)
+	RetrieveArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*RetrieveArtifactSourceSecretFileResponse, error)
 
 	// AddOrUpdateArtifactSourceSecretFileWithBodyWithResponse request with any body
-	AddOrUpdateArtifactSourceSecretFileWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddOrUpdateArtifactSourceSecretFileResponse, error)
+	AddOrUpdateArtifactSourceSecretFileWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddOrUpdateArtifactSourceSecretFileResponse, error)
 
-	AddOrUpdateArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*AddOrUpdateArtifactSourceSecretFileResponse, error)
+	AddOrUpdateArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*AddOrUpdateArtifactSourceSecretFileResponse, error)
 
 	// ListBlueprintsWithResponse request
 	ListBlueprintsWithResponse(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*ListBlueprintsResponse, error)
@@ -20137,15 +20801,15 @@ type ClientWithResponsesInterface interface {
 	UpdateEnvGroupEnvVarWithResponse(ctx context.Context, envGroupId EnvGroupIdParam, envVarKey EnvVarKeyParam, body UpdateEnvGroupEnvVarJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateEnvGroupEnvVarResponse, error)
 
 	// DeleteEnvGroupSecretFileWithResponse request
-	DeleteEnvGroupSecretFileWithResponse(ctx context.Context, envGroupId EnvGroupIdParam, secretFileName SecretFileNameParam, reqEditors ...RequestEditorFn) (*DeleteEnvGroupSecretFileResponse, error)
+	DeleteEnvGroupSecretFileWithResponse(ctx context.Context, envGroupId EnvGroupIdParam, envVarKey SecretFileNameParam, reqEditors ...RequestEditorFn) (*DeleteEnvGroupSecretFileResponse, error)
 
 	// RetrieveEnvGroupSecretFileWithResponse request
-	RetrieveEnvGroupSecretFileWithResponse(ctx context.Context, envGroupId EnvGroupIdParam, secretFileName SecretFileNameParam, reqEditors ...RequestEditorFn) (*RetrieveEnvGroupSecretFileResponse, error)
+	RetrieveEnvGroupSecretFileWithResponse(ctx context.Context, envGroupId EnvGroupIdParam, envVarKey SecretFileNameParam, reqEditors ...RequestEditorFn) (*RetrieveEnvGroupSecretFileResponse, error)
 
 	// UpdateEnvGroupSecretFileWithBodyWithResponse request with any body
-	UpdateEnvGroupSecretFileWithBodyWithResponse(ctx context.Context, envGroupId string, secretFileName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateEnvGroupSecretFileResponse, error)
+	UpdateEnvGroupSecretFileWithBodyWithResponse(ctx context.Context, envGroupId string, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateEnvGroupSecretFileResponse, error)
 
-	UpdateEnvGroupSecretFileWithResponse(ctx context.Context, envGroupId string, secretFileName string, body UpdateEnvGroupSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateEnvGroupSecretFileResponse, error)
+	UpdateEnvGroupSecretFileWithResponse(ctx context.Context, envGroupId string, envVarKey string, body UpdateEnvGroupSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateEnvGroupSecretFileResponse, error)
 
 	// UnlinkServiceFromEnvGroupWithResponse request
 	UnlinkServiceFromEnvGroupWithResponse(ctx context.Context, envGroupId string, serviceId string, reqEditors ...RequestEditorFn) (*UnlinkServiceFromEnvGroupResponse, error)
@@ -20192,24 +20856,24 @@ type ClientWithResponsesInterface interface {
 	CreateKeyValueWithResponse(ctx context.Context, body CreateKeyValueJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateKeyValueResponse, error)
 
 	// DeleteKeyValueWithResponse request
-	DeleteKeyValueWithResponse(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*DeleteKeyValueResponse, error)
+	DeleteKeyValueWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*DeleteKeyValueResponse, error)
 
 	// RetrieveKeyValueWithResponse request
-	RetrieveKeyValueWithResponse(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*RetrieveKeyValueResponse, error)
+	RetrieveKeyValueWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*RetrieveKeyValueResponse, error)
 
 	// UpdateKeyValueWithBodyWithResponse request with any body
-	UpdateKeyValueWithBodyWithResponse(ctx context.Context, keyValueId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateKeyValueResponse, error)
+	UpdateKeyValueWithBodyWithResponse(ctx context.Context, redisId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateKeyValueResponse, error)
 
-	UpdateKeyValueWithResponse(ctx context.Context, keyValueId string, body UpdateKeyValueJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateKeyValueResponse, error)
+	UpdateKeyValueWithResponse(ctx context.Context, redisId string, body UpdateKeyValueJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateKeyValueResponse, error)
 
 	// RetrieveKeyValueConnectionInfoWithResponse request
-	RetrieveKeyValueConnectionInfoWithResponse(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*RetrieveKeyValueConnectionInfoResponse, error)
+	RetrieveKeyValueConnectionInfoWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*RetrieveKeyValueConnectionInfoResponse, error)
 
 	// ResumeKeyValueWithResponse request
-	ResumeKeyValueWithResponse(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*ResumeKeyValueResponse, error)
+	ResumeKeyValueWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*ResumeKeyValueResponse, error)
 
 	// SuspendKeyValueWithResponse request
-	SuspendKeyValueWithResponse(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*SuspendKeyValueResponse, error)
+	SuspendKeyValueWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*SuspendKeyValueResponse, error)
 
 	// ListLogsWithResponse request
 	ListLogsWithResponse(ctx context.Context, params *ListLogsParams, reqEditors ...RequestEditorFn) (*ListLogsResponse, error)
@@ -20249,15 +20913,15 @@ type ClientWithResponsesInterface interface {
 	ListMaintenanceWithResponse(ctx context.Context, params *ListMaintenanceParams, reqEditors ...RequestEditorFn) (*ListMaintenanceResponse, error)
 
 	// RetrieveMaintenanceWithResponse request
-	RetrieveMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*RetrieveMaintenanceResponse, error)
+	RetrieveMaintenanceWithResponse(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*RetrieveMaintenanceResponse, error)
 
 	// UpdateMaintenanceWithBodyWithResponse request with any body
-	UpdateMaintenanceWithBodyWithResponse(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error)
+	UpdateMaintenanceWithBodyWithResponse(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error)
 
-	UpdateMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error)
+	UpdateMaintenanceWithResponse(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error)
 
 	// TriggerMaintenanceWithResponse request
-	TriggerMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*TriggerMaintenanceResponse, error)
+	TriggerMaintenanceWithResponse(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*TriggerMaintenanceResponse, error)
 
 	// DeleteOwnerMetricsStreamWithResponse request
 	DeleteOwnerMetricsStreamWithResponse(ctx context.Context, ownerId string, reqEditors ...RequestEditorFn) (*DeleteOwnerMetricsStreamResponse, error)
@@ -20428,6 +21092,32 @@ type ClientWithResponsesInterface interface {
 	// FailoverPostgresWithResponse request
 	FailoverPostgresWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*FailoverPostgresResponse, error)
 
+	// ListPostgresParameterOverridesWithResponse request
+	ListPostgresParameterOverridesWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresParameterOverridesResponse, error)
+
+	// UpdatePostgresParameterOverridesWithBodyWithResponse request with any body
+	UpdatePostgresParameterOverridesWithBodyWithResponse(ctx context.Context, postgresId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdatePostgresParameterOverridesResponse, error)
+
+	UpdatePostgresParameterOverridesWithResponse(ctx context.Context, postgresId string, body UpdatePostgresParameterOverridesJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdatePostgresParameterOverridesResponse, error)
+
+	// ListAvailablePostgresParameterOverridesWithResponse request
+	ListAvailablePostgresParameterOverridesWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListAvailablePostgresParameterOverridesResponse, error)
+
+	// PromotePostgresWithResponse request
+	PromotePostgresWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*PromotePostgresResponse, error)
+
+	// ListPostgresProcessesWithResponse request
+	ListPostgresProcessesWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresProcessesResponse, error)
+
+	// ListPostgresSizesWithResponse request
+	ListPostgresSizesWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresSizesResponse, error)
+
+	// ListPostgresTableScansWithResponse request
+	ListPostgresTableScansWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresTableScansResponse, error)
+
+	// ListPostgresTopQueriesWithResponse request
+	ListPostgresTopQueriesWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresTopQueriesResponse, error)
+
 	// RetrievePostgresRecoveryInfoWithResponse request
 	RetrievePostgresRecoveryInfoWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*RetrievePostgresRecoveryInfoResponse, error)
 
@@ -20435,6 +21125,11 @@ type ClientWithResponsesInterface interface {
 	RecoverPostgresWithBodyWithResponse(ctx context.Context, postgresId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecoverPostgresResponse, error)
 
 	RecoverPostgresWithResponse(ctx context.Context, postgresId string, body RecoverPostgresJSONRequestBody, reqEditors ...RequestEditorFn) (*RecoverPostgresResponse, error)
+
+	// SetupPostgresReplicationWithBodyWithResponse request with any body
+	SetupPostgresReplicationWithBodyWithResponse(ctx context.Context, postgresId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetupPostgresReplicationResponse, error)
+
+	SetupPostgresReplicationWithResponse(ctx context.Context, postgresId string, body SetupPostgresReplicationJSONRequestBody, reqEditors ...RequestEditorFn) (*SetupPostgresReplicationResponse, error)
 
 	// RestartPostgresWithResponse request
 	RestartPostgresWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*RestartPostgresResponse, error)
@@ -20486,6 +21181,12 @@ type ClientWithResponsesInterface interface {
 	// RetrieveRedisConnectionInfoWithResponse request
 	RetrieveRedisConnectionInfoWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*RetrieveRedisConnectionInfoResponse, error)
 
+	// ResumeRedisWithResponse request
+	ResumeRedisWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*ResumeRedisResponse, error)
+
+	// SuspendRedisWithResponse request
+	SuspendRedisWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*SuspendRedisResponse, error)
+
 	// ListRegistryCredentialsWithResponse request
 	ListRegistryCredentialsWithResponse(ctx context.Context, params *ListRegistryCredentialsParams, reqEditors ...RequestEditorFn) (*ListRegistryCredentialsResponse, error)
 
@@ -20504,6 +21205,9 @@ type ClientWithResponsesInterface interface {
 	UpdateRegistryCredentialWithBodyWithResponse(ctx context.Context, registryCredentialId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateRegistryCredentialResponse, error)
 
 	UpdateRegistryCredentialWithResponse(ctx context.Context, registryCredentialId string, body UpdateRegistryCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateRegistryCredentialResponse, error)
+
+	// ListSandboxGroupsWithResponse request
+	ListSandboxGroupsWithResponse(ctx context.Context, params *ListSandboxGroupsParams, reqEditors ...RequestEditorFn) (*ListSandboxGroupsResponse, error)
 
 	// ListSandboxesWithResponse request
 	ListSandboxesWithResponse(ctx context.Context, params *ListSandboxesParams, reqEditors ...RequestEditorFn) (*ListSandboxesResponse, error)
@@ -20575,13 +21279,13 @@ type ClientWithResponsesInterface interface {
 	CreateCustomDomainWithResponse(ctx context.Context, serviceId ServiceIdParam, body CreateCustomDomainJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCustomDomainResponse, error)
 
 	// DeleteCustomDomainWithResponse request
-	DeleteCustomDomainWithResponse(ctx context.Context, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*DeleteCustomDomainResponse, error)
+	DeleteCustomDomainWithResponse(ctx context.Context, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*DeleteCustomDomainResponse, error)
 
 	// RetrieveCustomDomainWithResponse request
-	RetrieveCustomDomainWithResponse(ctx context.Context, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*RetrieveCustomDomainResponse, error)
+	RetrieveCustomDomainWithResponse(ctx context.Context, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*RetrieveCustomDomainResponse, error)
 
 	// RefreshCustomDomainWithResponse request
-	RefreshCustomDomainWithResponse(ctx context.Context, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*RefreshCustomDomainResponse, error)
+	RefreshCustomDomainWithResponse(ctx context.Context, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*RefreshCustomDomainResponse, error)
 
 	// ListDeploysWithResponse request
 	ListDeploysWithResponse(ctx context.Context, serviceId ServiceIdParam, params *ListDeploysParams, reqEditors ...RequestEditorFn) (*ListDeploysResponse, error)
@@ -20676,11 +21380,6 @@ type ClientWithResponsesInterface interface {
 	// ListRoutesWithResponse request
 	ListRoutesWithResponse(ctx context.Context, serviceId ServiceIdParam, params *ListRoutesParams, reqEditors ...RequestEditorFn) (*ListRoutesResponse, error)
 
-	// PatchRouteWithBodyWithResponse request with any body
-	PatchRouteWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchRouteResponse, error)
-
-	PatchRouteWithResponse(ctx context.Context, serviceId ServiceIdParam, body PatchRouteJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchRouteResponse, error)
-
 	// AddRouteWithBodyWithResponse request with any body
 	AddRouteWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddRouteResponse, error)
 
@@ -20693,6 +21392,11 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteRouteWithResponse request
 	DeleteRouteWithResponse(ctx context.Context, serviceId ServiceIdParam, routeId string, reqEditors ...RequestEditorFn) (*DeleteRouteResponse, error)
+
+	// PatchRouteWithBodyWithResponse request with any body
+	PatchRouteWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, routeId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchRouteResponse, error)
+
+	PatchRouteWithResponse(ctx context.Context, serviceId ServiceIdParam, routeId string, body PatchRouteJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchRouteResponse, error)
 
 	// ScaleServiceWithBodyWithResponse request with any body
 	ScaleServiceWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ScaleServiceResponse, error)
@@ -20708,15 +21412,15 @@ type ClientWithResponsesInterface interface {
 	UpdateSecretFilesForServiceWithResponse(ctx context.Context, serviceId ServiceIdParam, body UpdateSecretFilesForServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSecretFilesForServiceResponse, error)
 
 	// DeleteSecretFileWithResponse request
-	DeleteSecretFileWithResponse(ctx context.Context, serviceId ServiceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*DeleteSecretFileResponse, error)
+	DeleteSecretFileWithResponse(ctx context.Context, serviceId ServiceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*DeleteSecretFileResponse, error)
 
 	// RetrieveSecretFileWithResponse request
-	RetrieveSecretFileWithResponse(ctx context.Context, serviceId ServiceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*RetrieveSecretFileResponse, error)
+	RetrieveSecretFileWithResponse(ctx context.Context, serviceId ServiceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*RetrieveSecretFileResponse, error)
 
 	// AddOrUpdateSecretFileWithBodyWithResponse request with any body
-	AddOrUpdateSecretFileWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, secretFileName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddOrUpdateSecretFileResponse, error)
+	AddOrUpdateSecretFileWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddOrUpdateSecretFileResponse, error)
 
-	AddOrUpdateSecretFileWithResponse(ctx context.Context, serviceId ServiceIdParam, secretFileName string, body AddOrUpdateSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*AddOrUpdateSecretFileResponse, error)
+	AddOrUpdateSecretFileWithResponse(ctx context.Context, serviceId ServiceIdParam, envVarKey string, body AddOrUpdateSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*AddOrUpdateSecretFileResponse, error)
 
 	// SuspendServiceWithResponse request
 	SuspendServiceWithResponse(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*SuspendServiceResponse, error)
@@ -24506,6 +25210,233 @@ func (r FailoverPostgresResponse) StatusCode() int {
 	return 0
 }
 
+type ListPostgresParameterOverridesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PostgresParameterOverridesWrapper
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListPostgresParameterOverridesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListPostgresParameterOverridesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdatePostgresParameterOverridesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PostgresPutParameterOverridesResult
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON409      *N409Conflict
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdatePostgresParameterOverridesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdatePostgresParameterOverridesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListAvailablePostgresParameterOverridesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef14.PostgresAvailableParameterOverridesResult
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAvailablePostgresParameterOverridesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAvailablePostgresParameterOverridesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PromotePostgresResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON406      *N406NotAcceptable
+	JSON410      *N410Gone
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r PromotePostgresResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PromotePostgresResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListPostgresProcessesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef14.PostgresProcessesResult
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListPostgresProcessesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListPostgresProcessesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListPostgresSizesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef14.PostgresSizesResult
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListPostgresSizesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListPostgresSizesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListPostgresTableScansResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef14.PostgresTableScansResult
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListPostgresTableScansResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListPostgresTableScansResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListPostgresTopQueriesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *externalRef14.PostgresTopQueriesResult
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListPostgresTopQueriesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListPostgresTopQueriesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type RetrievePostgresRecoveryInfoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -24559,6 +25490,37 @@ func (r RecoverPostgresResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r RecoverPostgresResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type SetupPostgresReplicationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *map[string]interface{}
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON406      *N406NotAcceptable
+	JSON410      *N410Gone
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r SetupPostgresReplicationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetupPostgresReplicationResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -24963,6 +25925,66 @@ func (r RetrieveRedisConnectionInfoResponse) StatusCode() int {
 	return 0
 }
 
+type ResumeRedisResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON406      *N406NotAcceptable
+	JSON410      *N410Gone
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ResumeRedisResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ResumeRedisResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type SuspendRedisResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON406      *N406NotAcceptable
+	JSON410      *N410Gone
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r SuspendRedisResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SuspendRedisResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListRegistryCredentialsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -25106,6 +26128,35 @@ func (r UpdateRegistryCredentialResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r UpdateRegistryCredentialResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListSandboxGroupsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]SandboxGroupWithCursor
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSandboxGroupsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSandboxGroupsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -26503,38 +27554,6 @@ func (r ListRoutesResponse) StatusCode() int {
 	return 0
 }
 
-type PatchRouteResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *struct {
-		Headers *Route `json:"headers,omitempty"`
-	}
-	JSON401 *N401Unauthorized
-	JSON403 *N403Forbidden
-	JSON404 *N404NotFound
-	JSON406 *N406NotAcceptable
-	JSON410 *N410Gone
-	JSON429 *N429RateLimit
-	JSON500 *N500InternalServerError
-	JSON503 *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r PatchRouteResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PatchRouteResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type AddRouteResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -26620,6 +27639,38 @@ func (r DeleteRouteResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r DeleteRouteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PatchRouteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		Headers *Route `json:"headers,omitempty"`
+	}
+	JSON401 *N401Unauthorized
+	JSON403 *N403Forbidden
+	JSON404 *N404NotFound
+	JSON406 *N406NotAcceptable
+	JSON410 *N410Gone
+	JSON429 *N429RateLimit
+	JSON500 *N500InternalServerError
+	JSON503 *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r PatchRouteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PatchRouteResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -27605,8 +28656,8 @@ func (c *ClientWithResponses) UpdateSecretFilesForArtifactSourceWithResponse(ctx
 }
 
 // DeleteArtifactSourceSecretFileWithResponse request returning *DeleteArtifactSourceSecretFileResponse
-func (c *ClientWithResponses) DeleteArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*DeleteArtifactSourceSecretFileResponse, error) {
-	rsp, err := c.DeleteArtifactSourceSecretFile(ctx, artifactSourceId, secretFileName, reqEditors...)
+func (c *ClientWithResponses) DeleteArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*DeleteArtifactSourceSecretFileResponse, error) {
+	rsp, err := c.DeleteArtifactSourceSecretFile(ctx, artifactSourceId, envVarKey, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -27614,8 +28665,8 @@ func (c *ClientWithResponses) DeleteArtifactSourceSecretFileWithResponse(ctx con
 }
 
 // RetrieveArtifactSourceSecretFileWithResponse request returning *RetrieveArtifactSourceSecretFileResponse
-func (c *ClientWithResponses) RetrieveArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*RetrieveArtifactSourceSecretFileResponse, error) {
-	rsp, err := c.RetrieveArtifactSourceSecretFile(ctx, artifactSourceId, secretFileName, reqEditors...)
+func (c *ClientWithResponses) RetrieveArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*RetrieveArtifactSourceSecretFileResponse, error) {
+	rsp, err := c.RetrieveArtifactSourceSecretFile(ctx, artifactSourceId, envVarKey, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -27623,16 +28674,16 @@ func (c *ClientWithResponses) RetrieveArtifactSourceSecretFileWithResponse(ctx c
 }
 
 // AddOrUpdateArtifactSourceSecretFileWithBodyWithResponse request with arbitrary body returning *AddOrUpdateArtifactSourceSecretFileResponse
-func (c *ClientWithResponses) AddOrUpdateArtifactSourceSecretFileWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddOrUpdateArtifactSourceSecretFileResponse, error) {
-	rsp, err := c.AddOrUpdateArtifactSourceSecretFileWithBody(ctx, artifactSourceId, secretFileName, contentType, body, reqEditors...)
+func (c *ClientWithResponses) AddOrUpdateArtifactSourceSecretFileWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddOrUpdateArtifactSourceSecretFileResponse, error) {
+	rsp, err := c.AddOrUpdateArtifactSourceSecretFileWithBody(ctx, artifactSourceId, envVarKey, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseAddOrUpdateArtifactSourceSecretFileResponse(rsp)
 }
 
-func (c *ClientWithResponses) AddOrUpdateArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, secretFileName string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*AddOrUpdateArtifactSourceSecretFileResponse, error) {
-	rsp, err := c.AddOrUpdateArtifactSourceSecretFile(ctx, artifactSourceId, secretFileName, body, reqEditors...)
+func (c *ClientWithResponses) AddOrUpdateArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*AddOrUpdateArtifactSourceSecretFileResponse, error) {
+	rsp, err := c.AddOrUpdateArtifactSourceSecretFile(ctx, artifactSourceId, envVarKey, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -27982,8 +29033,8 @@ func (c *ClientWithResponses) UpdateEnvGroupEnvVarWithResponse(ctx context.Conte
 }
 
 // DeleteEnvGroupSecretFileWithResponse request returning *DeleteEnvGroupSecretFileResponse
-func (c *ClientWithResponses) DeleteEnvGroupSecretFileWithResponse(ctx context.Context, envGroupId EnvGroupIdParam, secretFileName SecretFileNameParam, reqEditors ...RequestEditorFn) (*DeleteEnvGroupSecretFileResponse, error) {
-	rsp, err := c.DeleteEnvGroupSecretFile(ctx, envGroupId, secretFileName, reqEditors...)
+func (c *ClientWithResponses) DeleteEnvGroupSecretFileWithResponse(ctx context.Context, envGroupId EnvGroupIdParam, envVarKey SecretFileNameParam, reqEditors ...RequestEditorFn) (*DeleteEnvGroupSecretFileResponse, error) {
+	rsp, err := c.DeleteEnvGroupSecretFile(ctx, envGroupId, envVarKey, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -27991,8 +29042,8 @@ func (c *ClientWithResponses) DeleteEnvGroupSecretFileWithResponse(ctx context.C
 }
 
 // RetrieveEnvGroupSecretFileWithResponse request returning *RetrieveEnvGroupSecretFileResponse
-func (c *ClientWithResponses) RetrieveEnvGroupSecretFileWithResponse(ctx context.Context, envGroupId EnvGroupIdParam, secretFileName SecretFileNameParam, reqEditors ...RequestEditorFn) (*RetrieveEnvGroupSecretFileResponse, error) {
-	rsp, err := c.RetrieveEnvGroupSecretFile(ctx, envGroupId, secretFileName, reqEditors...)
+func (c *ClientWithResponses) RetrieveEnvGroupSecretFileWithResponse(ctx context.Context, envGroupId EnvGroupIdParam, envVarKey SecretFileNameParam, reqEditors ...RequestEditorFn) (*RetrieveEnvGroupSecretFileResponse, error) {
+	rsp, err := c.RetrieveEnvGroupSecretFile(ctx, envGroupId, envVarKey, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -28000,16 +29051,16 @@ func (c *ClientWithResponses) RetrieveEnvGroupSecretFileWithResponse(ctx context
 }
 
 // UpdateEnvGroupSecretFileWithBodyWithResponse request with arbitrary body returning *UpdateEnvGroupSecretFileResponse
-func (c *ClientWithResponses) UpdateEnvGroupSecretFileWithBodyWithResponse(ctx context.Context, envGroupId string, secretFileName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateEnvGroupSecretFileResponse, error) {
-	rsp, err := c.UpdateEnvGroupSecretFileWithBody(ctx, envGroupId, secretFileName, contentType, body, reqEditors...)
+func (c *ClientWithResponses) UpdateEnvGroupSecretFileWithBodyWithResponse(ctx context.Context, envGroupId string, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateEnvGroupSecretFileResponse, error) {
+	rsp, err := c.UpdateEnvGroupSecretFileWithBody(ctx, envGroupId, envVarKey, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseUpdateEnvGroupSecretFileResponse(rsp)
 }
 
-func (c *ClientWithResponses) UpdateEnvGroupSecretFileWithResponse(ctx context.Context, envGroupId string, secretFileName string, body UpdateEnvGroupSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateEnvGroupSecretFileResponse, error) {
-	rsp, err := c.UpdateEnvGroupSecretFile(ctx, envGroupId, secretFileName, body, reqEditors...)
+func (c *ClientWithResponses) UpdateEnvGroupSecretFileWithResponse(ctx context.Context, envGroupId string, envVarKey string, body UpdateEnvGroupSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateEnvGroupSecretFileResponse, error) {
+	rsp, err := c.UpdateEnvGroupSecretFile(ctx, envGroupId, envVarKey, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -28157,8 +29208,8 @@ func (c *ClientWithResponses) CreateKeyValueWithResponse(ctx context.Context, bo
 }
 
 // DeleteKeyValueWithResponse request returning *DeleteKeyValueResponse
-func (c *ClientWithResponses) DeleteKeyValueWithResponse(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*DeleteKeyValueResponse, error) {
-	rsp, err := c.DeleteKeyValue(ctx, keyValueId, reqEditors...)
+func (c *ClientWithResponses) DeleteKeyValueWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*DeleteKeyValueResponse, error) {
+	rsp, err := c.DeleteKeyValue(ctx, redisId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -28166,8 +29217,8 @@ func (c *ClientWithResponses) DeleteKeyValueWithResponse(ctx context.Context, ke
 }
 
 // RetrieveKeyValueWithResponse request returning *RetrieveKeyValueResponse
-func (c *ClientWithResponses) RetrieveKeyValueWithResponse(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*RetrieveKeyValueResponse, error) {
-	rsp, err := c.RetrieveKeyValue(ctx, keyValueId, reqEditors...)
+func (c *ClientWithResponses) RetrieveKeyValueWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*RetrieveKeyValueResponse, error) {
+	rsp, err := c.RetrieveKeyValue(ctx, redisId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -28175,16 +29226,16 @@ func (c *ClientWithResponses) RetrieveKeyValueWithResponse(ctx context.Context, 
 }
 
 // UpdateKeyValueWithBodyWithResponse request with arbitrary body returning *UpdateKeyValueResponse
-func (c *ClientWithResponses) UpdateKeyValueWithBodyWithResponse(ctx context.Context, keyValueId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateKeyValueResponse, error) {
-	rsp, err := c.UpdateKeyValueWithBody(ctx, keyValueId, contentType, body, reqEditors...)
+func (c *ClientWithResponses) UpdateKeyValueWithBodyWithResponse(ctx context.Context, redisId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateKeyValueResponse, error) {
+	rsp, err := c.UpdateKeyValueWithBody(ctx, redisId, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseUpdateKeyValueResponse(rsp)
 }
 
-func (c *ClientWithResponses) UpdateKeyValueWithResponse(ctx context.Context, keyValueId string, body UpdateKeyValueJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateKeyValueResponse, error) {
-	rsp, err := c.UpdateKeyValue(ctx, keyValueId, body, reqEditors...)
+func (c *ClientWithResponses) UpdateKeyValueWithResponse(ctx context.Context, redisId string, body UpdateKeyValueJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateKeyValueResponse, error) {
+	rsp, err := c.UpdateKeyValue(ctx, redisId, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -28192,8 +29243,8 @@ func (c *ClientWithResponses) UpdateKeyValueWithResponse(ctx context.Context, ke
 }
 
 // RetrieveKeyValueConnectionInfoWithResponse request returning *RetrieveKeyValueConnectionInfoResponse
-func (c *ClientWithResponses) RetrieveKeyValueConnectionInfoWithResponse(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*RetrieveKeyValueConnectionInfoResponse, error) {
-	rsp, err := c.RetrieveKeyValueConnectionInfo(ctx, keyValueId, reqEditors...)
+func (c *ClientWithResponses) RetrieveKeyValueConnectionInfoWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*RetrieveKeyValueConnectionInfoResponse, error) {
+	rsp, err := c.RetrieveKeyValueConnectionInfo(ctx, redisId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -28201,8 +29252,8 @@ func (c *ClientWithResponses) RetrieveKeyValueConnectionInfoWithResponse(ctx con
 }
 
 // ResumeKeyValueWithResponse request returning *ResumeKeyValueResponse
-func (c *ClientWithResponses) ResumeKeyValueWithResponse(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*ResumeKeyValueResponse, error) {
-	rsp, err := c.ResumeKeyValue(ctx, keyValueId, reqEditors...)
+func (c *ClientWithResponses) ResumeKeyValueWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*ResumeKeyValueResponse, error) {
+	rsp, err := c.ResumeKeyValue(ctx, redisId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -28210,8 +29261,8 @@ func (c *ClientWithResponses) ResumeKeyValueWithResponse(ctx context.Context, ke
 }
 
 // SuspendKeyValueWithResponse request returning *SuspendKeyValueResponse
-func (c *ClientWithResponses) SuspendKeyValueWithResponse(ctx context.Context, keyValueId string, reqEditors ...RequestEditorFn) (*SuspendKeyValueResponse, error) {
-	rsp, err := c.SuspendKeyValue(ctx, keyValueId, reqEditors...)
+func (c *ClientWithResponses) SuspendKeyValueWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*SuspendKeyValueResponse, error) {
+	rsp, err := c.SuspendKeyValue(ctx, redisId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -28334,8 +29385,8 @@ func (c *ClientWithResponses) ListMaintenanceWithResponse(ctx context.Context, p
 }
 
 // RetrieveMaintenanceWithResponse request returning *RetrieveMaintenanceResponse
-func (c *ClientWithResponses) RetrieveMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*RetrieveMaintenanceResponse, error) {
-	rsp, err := c.RetrieveMaintenance(ctx, maintenanceRunParam, reqEditors...)
+func (c *ClientWithResponses) RetrieveMaintenanceWithResponse(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*RetrieveMaintenanceResponse, error) {
+	rsp, err := c.RetrieveMaintenance(ctx, maintenanceRunID, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -28343,16 +29394,16 @@ func (c *ClientWithResponses) RetrieveMaintenanceWithResponse(ctx context.Contex
 }
 
 // UpdateMaintenanceWithBodyWithResponse request with arbitrary body returning *UpdateMaintenanceResponse
-func (c *ClientWithResponses) UpdateMaintenanceWithBodyWithResponse(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error) {
-	rsp, err := c.UpdateMaintenanceWithBody(ctx, maintenanceRunParam, contentType, body, reqEditors...)
+func (c *ClientWithResponses) UpdateMaintenanceWithBodyWithResponse(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error) {
+	rsp, err := c.UpdateMaintenanceWithBody(ctx, maintenanceRunID, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseUpdateMaintenanceResponse(rsp)
 }
 
-func (c *ClientWithResponses) UpdateMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error) {
-	rsp, err := c.UpdateMaintenance(ctx, maintenanceRunParam, body, reqEditors...)
+func (c *ClientWithResponses) UpdateMaintenanceWithResponse(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, body UpdateMaintenanceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateMaintenanceResponse, error) {
+	rsp, err := c.UpdateMaintenance(ctx, maintenanceRunID, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -28360,8 +29411,8 @@ func (c *ClientWithResponses) UpdateMaintenanceWithResponse(ctx context.Context,
 }
 
 // TriggerMaintenanceWithResponse request returning *TriggerMaintenanceResponse
-func (c *ClientWithResponses) TriggerMaintenanceWithResponse(ctx context.Context, maintenanceRunParam externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*TriggerMaintenanceResponse, error) {
-	rsp, err := c.TriggerMaintenance(ctx, maintenanceRunParam, reqEditors...)
+func (c *ClientWithResponses) TriggerMaintenanceWithResponse(ctx context.Context, maintenanceRunID externalRef11.MaintenanceRunParam, reqEditors ...RequestEditorFn) (*TriggerMaintenanceResponse, error) {
+	rsp, err := c.TriggerMaintenance(ctx, maintenanceRunID, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -28891,6 +29942,86 @@ func (c *ClientWithResponses) FailoverPostgresWithResponse(ctx context.Context, 
 	return ParseFailoverPostgresResponse(rsp)
 }
 
+// ListPostgresParameterOverridesWithResponse request returning *ListPostgresParameterOverridesResponse
+func (c *ClientWithResponses) ListPostgresParameterOverridesWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresParameterOverridesResponse, error) {
+	rsp, err := c.ListPostgresParameterOverrides(ctx, postgresId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListPostgresParameterOverridesResponse(rsp)
+}
+
+// UpdatePostgresParameterOverridesWithBodyWithResponse request with arbitrary body returning *UpdatePostgresParameterOverridesResponse
+func (c *ClientWithResponses) UpdatePostgresParameterOverridesWithBodyWithResponse(ctx context.Context, postgresId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdatePostgresParameterOverridesResponse, error) {
+	rsp, err := c.UpdatePostgresParameterOverridesWithBody(ctx, postgresId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdatePostgresParameterOverridesResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdatePostgresParameterOverridesWithResponse(ctx context.Context, postgresId string, body UpdatePostgresParameterOverridesJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdatePostgresParameterOverridesResponse, error) {
+	rsp, err := c.UpdatePostgresParameterOverrides(ctx, postgresId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdatePostgresParameterOverridesResponse(rsp)
+}
+
+// ListAvailablePostgresParameterOverridesWithResponse request returning *ListAvailablePostgresParameterOverridesResponse
+func (c *ClientWithResponses) ListAvailablePostgresParameterOverridesWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListAvailablePostgresParameterOverridesResponse, error) {
+	rsp, err := c.ListAvailablePostgresParameterOverrides(ctx, postgresId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAvailablePostgresParameterOverridesResponse(rsp)
+}
+
+// PromotePostgresWithResponse request returning *PromotePostgresResponse
+func (c *ClientWithResponses) PromotePostgresWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*PromotePostgresResponse, error) {
+	rsp, err := c.PromotePostgres(ctx, postgresId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePromotePostgresResponse(rsp)
+}
+
+// ListPostgresProcessesWithResponse request returning *ListPostgresProcessesResponse
+func (c *ClientWithResponses) ListPostgresProcessesWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresProcessesResponse, error) {
+	rsp, err := c.ListPostgresProcesses(ctx, postgresId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListPostgresProcessesResponse(rsp)
+}
+
+// ListPostgresSizesWithResponse request returning *ListPostgresSizesResponse
+func (c *ClientWithResponses) ListPostgresSizesWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresSizesResponse, error) {
+	rsp, err := c.ListPostgresSizes(ctx, postgresId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListPostgresSizesResponse(rsp)
+}
+
+// ListPostgresTableScansWithResponse request returning *ListPostgresTableScansResponse
+func (c *ClientWithResponses) ListPostgresTableScansWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresTableScansResponse, error) {
+	rsp, err := c.ListPostgresTableScans(ctx, postgresId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListPostgresTableScansResponse(rsp)
+}
+
+// ListPostgresTopQueriesWithResponse request returning *ListPostgresTopQueriesResponse
+func (c *ClientWithResponses) ListPostgresTopQueriesWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*ListPostgresTopQueriesResponse, error) {
+	rsp, err := c.ListPostgresTopQueries(ctx, postgresId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListPostgresTopQueriesResponse(rsp)
+}
+
 // RetrievePostgresRecoveryInfoWithResponse request returning *RetrievePostgresRecoveryInfoResponse
 func (c *ClientWithResponses) RetrievePostgresRecoveryInfoWithResponse(ctx context.Context, postgresId string, reqEditors ...RequestEditorFn) (*RetrievePostgresRecoveryInfoResponse, error) {
 	rsp, err := c.RetrievePostgresRecoveryInfo(ctx, postgresId, reqEditors...)
@@ -28915,6 +30046,23 @@ func (c *ClientWithResponses) RecoverPostgresWithResponse(ctx context.Context, p
 		return nil, err
 	}
 	return ParseRecoverPostgresResponse(rsp)
+}
+
+// SetupPostgresReplicationWithBodyWithResponse request with arbitrary body returning *SetupPostgresReplicationResponse
+func (c *ClientWithResponses) SetupPostgresReplicationWithBodyWithResponse(ctx context.Context, postgresId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetupPostgresReplicationResponse, error) {
+	rsp, err := c.SetupPostgresReplicationWithBody(ctx, postgresId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetupPostgresReplicationResponse(rsp)
+}
+
+func (c *ClientWithResponses) SetupPostgresReplicationWithResponse(ctx context.Context, postgresId string, body SetupPostgresReplicationJSONRequestBody, reqEditors ...RequestEditorFn) (*SetupPostgresReplicationResponse, error) {
+	rsp, err := c.SetupPostgresReplication(ctx, postgresId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetupPostgresReplicationResponse(rsp)
 }
 
 // RestartPostgresWithResponse request returning *RestartPostgresResponse
@@ -29075,6 +30223,24 @@ func (c *ClientWithResponses) RetrieveRedisConnectionInfoWithResponse(ctx contex
 	return ParseRetrieveRedisConnectionInfoResponse(rsp)
 }
 
+// ResumeRedisWithResponse request returning *ResumeRedisResponse
+func (c *ClientWithResponses) ResumeRedisWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*ResumeRedisResponse, error) {
+	rsp, err := c.ResumeRedis(ctx, redisId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResumeRedisResponse(rsp)
+}
+
+// SuspendRedisWithResponse request returning *SuspendRedisResponse
+func (c *ClientWithResponses) SuspendRedisWithResponse(ctx context.Context, redisId string, reqEditors ...RequestEditorFn) (*SuspendRedisResponse, error) {
+	rsp, err := c.SuspendRedis(ctx, redisId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSuspendRedisResponse(rsp)
+}
+
 // ListRegistryCredentialsWithResponse request returning *ListRegistryCredentialsResponse
 func (c *ClientWithResponses) ListRegistryCredentialsWithResponse(ctx context.Context, params *ListRegistryCredentialsParams, reqEditors ...RequestEditorFn) (*ListRegistryCredentialsResponse, error) {
 	rsp, err := c.ListRegistryCredentials(ctx, params, reqEditors...)
@@ -29134,6 +30300,15 @@ func (c *ClientWithResponses) UpdateRegistryCredentialWithResponse(ctx context.C
 		return nil, err
 	}
 	return ParseUpdateRegistryCredentialResponse(rsp)
+}
+
+// ListSandboxGroupsWithResponse request returning *ListSandboxGroupsResponse
+func (c *ClientWithResponses) ListSandboxGroupsWithResponse(ctx context.Context, params *ListSandboxGroupsParams, reqEditors ...RequestEditorFn) (*ListSandboxGroupsResponse, error) {
+	rsp, err := c.ListSandboxGroups(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSandboxGroupsResponse(rsp)
 }
 
 // ListSandboxesWithResponse request returning *ListSandboxesResponse
@@ -29356,8 +30531,8 @@ func (c *ClientWithResponses) CreateCustomDomainWithResponse(ctx context.Context
 }
 
 // DeleteCustomDomainWithResponse request returning *DeleteCustomDomainResponse
-func (c *ClientWithResponses) DeleteCustomDomainWithResponse(ctx context.Context, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*DeleteCustomDomainResponse, error) {
-	rsp, err := c.DeleteCustomDomain(ctx, serviceId, customDomainIdOrName, reqEditors...)
+func (c *ClientWithResponses) DeleteCustomDomainWithResponse(ctx context.Context, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*DeleteCustomDomainResponse, error) {
+	rsp, err := c.DeleteCustomDomain(ctx, serviceId, customDomainNameOrID, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -29365,8 +30540,8 @@ func (c *ClientWithResponses) DeleteCustomDomainWithResponse(ctx context.Context
 }
 
 // RetrieveCustomDomainWithResponse request returning *RetrieveCustomDomainResponse
-func (c *ClientWithResponses) RetrieveCustomDomainWithResponse(ctx context.Context, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*RetrieveCustomDomainResponse, error) {
-	rsp, err := c.RetrieveCustomDomain(ctx, serviceId, customDomainIdOrName, reqEditors...)
+func (c *ClientWithResponses) RetrieveCustomDomainWithResponse(ctx context.Context, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*RetrieveCustomDomainResponse, error) {
+	rsp, err := c.RetrieveCustomDomain(ctx, serviceId, customDomainNameOrID, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -29374,8 +30549,8 @@ func (c *ClientWithResponses) RetrieveCustomDomainWithResponse(ctx context.Conte
 }
 
 // RefreshCustomDomainWithResponse request returning *RefreshCustomDomainResponse
-func (c *ClientWithResponses) RefreshCustomDomainWithResponse(ctx context.Context, serviceId ServiceIdParam, customDomainIdOrName CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*RefreshCustomDomainResponse, error) {
-	rsp, err := c.RefreshCustomDomain(ctx, serviceId, customDomainIdOrName, reqEditors...)
+func (c *ClientWithResponses) RefreshCustomDomainWithResponse(ctx context.Context, serviceId ServiceIdParam, customDomainNameOrID CustomDomainIdOrNameParam, reqEditors ...RequestEditorFn) (*RefreshCustomDomainResponse, error) {
+	rsp, err := c.RefreshCustomDomain(ctx, serviceId, customDomainNameOrID, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -29679,23 +30854,6 @@ func (c *ClientWithResponses) ListRoutesWithResponse(ctx context.Context, servic
 	return ParseListRoutesResponse(rsp)
 }
 
-// PatchRouteWithBodyWithResponse request with arbitrary body returning *PatchRouteResponse
-func (c *ClientWithResponses) PatchRouteWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchRouteResponse, error) {
-	rsp, err := c.PatchRouteWithBody(ctx, serviceId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePatchRouteResponse(rsp)
-}
-
-func (c *ClientWithResponses) PatchRouteWithResponse(ctx context.Context, serviceId ServiceIdParam, body PatchRouteJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchRouteResponse, error) {
-	rsp, err := c.PatchRoute(ctx, serviceId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePatchRouteResponse(rsp)
-}
-
 // AddRouteWithBodyWithResponse request with arbitrary body returning *AddRouteResponse
 func (c *ClientWithResponses) AddRouteWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddRouteResponse, error) {
 	rsp, err := c.AddRouteWithBody(ctx, serviceId, contentType, body, reqEditors...)
@@ -29737,6 +30895,23 @@ func (c *ClientWithResponses) DeleteRouteWithResponse(ctx context.Context, servi
 		return nil, err
 	}
 	return ParseDeleteRouteResponse(rsp)
+}
+
+// PatchRouteWithBodyWithResponse request with arbitrary body returning *PatchRouteResponse
+func (c *ClientWithResponses) PatchRouteWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, routeId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchRouteResponse, error) {
+	rsp, err := c.PatchRouteWithBody(ctx, serviceId, routeId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePatchRouteResponse(rsp)
+}
+
+func (c *ClientWithResponses) PatchRouteWithResponse(ctx context.Context, serviceId ServiceIdParam, routeId string, body PatchRouteJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchRouteResponse, error) {
+	rsp, err := c.PatchRoute(ctx, serviceId, routeId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePatchRouteResponse(rsp)
 }
 
 // ScaleServiceWithBodyWithResponse request with arbitrary body returning *ScaleServiceResponse
@@ -29783,8 +30958,8 @@ func (c *ClientWithResponses) UpdateSecretFilesForServiceWithResponse(ctx contex
 }
 
 // DeleteSecretFileWithResponse request returning *DeleteSecretFileResponse
-func (c *ClientWithResponses) DeleteSecretFileWithResponse(ctx context.Context, serviceId ServiceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*DeleteSecretFileResponse, error) {
-	rsp, err := c.DeleteSecretFile(ctx, serviceId, secretFileName, reqEditors...)
+func (c *ClientWithResponses) DeleteSecretFileWithResponse(ctx context.Context, serviceId ServiceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*DeleteSecretFileResponse, error) {
+	rsp, err := c.DeleteSecretFile(ctx, serviceId, envVarKey, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -29792,8 +30967,8 @@ func (c *ClientWithResponses) DeleteSecretFileWithResponse(ctx context.Context, 
 }
 
 // RetrieveSecretFileWithResponse request returning *RetrieveSecretFileResponse
-func (c *ClientWithResponses) RetrieveSecretFileWithResponse(ctx context.Context, serviceId ServiceIdParam, secretFileName string, reqEditors ...RequestEditorFn) (*RetrieveSecretFileResponse, error) {
-	rsp, err := c.RetrieveSecretFile(ctx, serviceId, secretFileName, reqEditors...)
+func (c *ClientWithResponses) RetrieveSecretFileWithResponse(ctx context.Context, serviceId ServiceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*RetrieveSecretFileResponse, error) {
+	rsp, err := c.RetrieveSecretFile(ctx, serviceId, envVarKey, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -29801,16 +30976,16 @@ func (c *ClientWithResponses) RetrieveSecretFileWithResponse(ctx context.Context
 }
 
 // AddOrUpdateSecretFileWithBodyWithResponse request with arbitrary body returning *AddOrUpdateSecretFileResponse
-func (c *ClientWithResponses) AddOrUpdateSecretFileWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, secretFileName string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddOrUpdateSecretFileResponse, error) {
-	rsp, err := c.AddOrUpdateSecretFileWithBody(ctx, serviceId, secretFileName, contentType, body, reqEditors...)
+func (c *ClientWithResponses) AddOrUpdateSecretFileWithBodyWithResponse(ctx context.Context, serviceId ServiceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddOrUpdateSecretFileResponse, error) {
+	rsp, err := c.AddOrUpdateSecretFileWithBody(ctx, serviceId, envVarKey, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseAddOrUpdateSecretFileResponse(rsp)
 }
 
-func (c *ClientWithResponses) AddOrUpdateSecretFileWithResponse(ctx context.Context, serviceId ServiceIdParam, secretFileName string, body AddOrUpdateSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*AddOrUpdateSecretFileResponse, error) {
-	rsp, err := c.AddOrUpdateSecretFile(ctx, serviceId, secretFileName, body, reqEditors...)
+func (c *ClientWithResponses) AddOrUpdateSecretFileWithResponse(ctx context.Context, serviceId ServiceIdParam, envVarKey string, body AddOrUpdateSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*AddOrUpdateSecretFileResponse, error) {
+	rsp, err := c.AddOrUpdateSecretFile(ctx, serviceId, envVarKey, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -39003,6 +40178,571 @@ func ParseFailoverPostgresResponse(rsp *http.Response) (*FailoverPostgresRespons
 	return response, nil
 }
 
+// ParseListPostgresParameterOverridesResponse parses an HTTP response from a ListPostgresParameterOverridesWithResponse call
+func ParseListPostgresParameterOverridesResponse(rsp *http.Response) (*ListPostgresParameterOverridesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListPostgresParameterOverridesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PostgresParameterOverridesWrapper
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdatePostgresParameterOverridesResponse parses an HTTP response from a UpdatePostgresParameterOverridesWithResponse call
+func ParseUpdatePostgresParameterOverridesResponse(rsp *http.Response) (*UpdatePostgresParameterOverridesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdatePostgresParameterOverridesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PostgresPutParameterOverridesResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest N409Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListAvailablePostgresParameterOverridesResponse parses an HTTP response from a ListAvailablePostgresParameterOverridesWithResponse call
+func ParseListAvailablePostgresParameterOverridesResponse(rsp *http.Response) (*ListAvailablePostgresParameterOverridesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAvailablePostgresParameterOverridesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef14.PostgresAvailableParameterOverridesResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePromotePostgresResponse parses an HTTP response from a PromotePostgresWithResponse call
+func ParsePromotePostgresResponse(rsp *http.Response) (*PromotePostgresResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PromotePostgresResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListPostgresProcessesResponse parses an HTTP response from a ListPostgresProcessesWithResponse call
+func ParseListPostgresProcessesResponse(rsp *http.Response) (*ListPostgresProcessesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListPostgresProcessesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef14.PostgresProcessesResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListPostgresSizesResponse parses an HTTP response from a ListPostgresSizesWithResponse call
+func ParseListPostgresSizesResponse(rsp *http.Response) (*ListPostgresSizesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListPostgresSizesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef14.PostgresSizesResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListPostgresTableScansResponse parses an HTTP response from a ListPostgresTableScansWithResponse call
+func ParseListPostgresTableScansResponse(rsp *http.Response) (*ListPostgresTableScansResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListPostgresTableScansResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef14.PostgresTableScansResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListPostgresTopQueriesResponse parses an HTTP response from a ListPostgresTopQueriesWithResponse call
+func ParseListPostgresTopQueriesResponse(rsp *http.Response) (*ListPostgresTopQueriesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListPostgresTopQueriesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef14.PostgresTopQueriesResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseRetrievePostgresRecoveryInfoResponse parses an HTTP response from a RetrievePostgresRecoveryInfoWithResponse call
 func ParseRetrievePostgresRecoveryInfoResponse(rsp *http.Response) (*RetrievePostgresRecoveryInfoResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -39091,6 +40831,95 @@ func ParseRecoverPostgresResponse(rsp *http.Response) (*RecoverPostgresResponse,
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetupPostgresReplicationResponse parses an HTTP response from a SetupPostgresReplicationWithResponse call
+func ParseSetupPostgresReplicationResponse(rsp *http.Response) (*SetupPostgresReplicationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetupPostgresReplicationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest map[string]interface{}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest N400BadRequest
@@ -40154,6 +41983,170 @@ func ParseRetrieveRedisConnectionInfoResponse(rsp *http.Response) (*RetrieveRedi
 	return response, nil
 }
 
+// ParseResumeRedisResponse parses an HTTP response from a ResumeRedisWithResponse call
+func ParseResumeRedisResponse(rsp *http.Response) (*ResumeRedisResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ResumeRedisResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSuspendRedisResponse parses an HTTP response from a SuspendRedisWithResponse call
+func ParseSuspendRedisResponse(rsp *http.Response) (*SuspendRedisResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SuspendRedisResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListRegistryCredentialsResponse parses an HTTP response from a ListRegistryCredentialsWithResponse call
 func ParseListRegistryCredentialsResponse(rsp *http.Response) (*ListRegistryCredentialsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -40530,6 +42523,81 @@ func ParseUpdateRegistryCredentialResponse(rsp *http.Response) (*UpdateRegistryC
 			return nil, err
 		}
 		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListSandboxGroupsResponse parses an HTTP response from a ListSandboxGroupsWithResponse call
+func ParseListSandboxGroupsResponse(rsp *http.Response) (*ListSandboxGroupsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSandboxGroupsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []SandboxGroupWithCursor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest N429RateLimit
@@ -44251,90 +46319,6 @@ func ParseListRoutesResponse(rsp *http.Response) (*ListRoutesResponse, error) {
 	return response, nil
 }
 
-// ParsePatchRouteResponse parses an HTTP response from a PatchRouteWithResponse call
-func ParsePatchRouteResponse(rsp *http.Response) (*PatchRouteResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PatchRouteResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Headers *Route `json:"headers,omitempty"`
-		}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
-		var dest N406NotAcceptable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON406 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest N410Gone
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
 // ParseAddRouteResponse parses an HTTP response from a AddRouteWithResponse call
 func ParseAddRouteResponse(rsp *http.Response) (*AddRouteResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -44527,6 +46511,90 @@ func ParseDeleteRouteResponse(rsp *http.Response) (*DeleteRouteResponse, error) 
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePatchRouteResponse parses an HTTP response from a PatchRouteWithResponse call
+func ParsePatchRouteResponse(rsp *http.Response) (*PatchRouteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PatchRouteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Headers *Route `json:"headers,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest N401Unauthorized
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {

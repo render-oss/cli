@@ -37,6 +37,39 @@ func (e ArtifactSourceGitRegion) Valid() bool {
 	}
 }
 
+// Defines values for ArtifactSourceGitRuntime.
+const (
+	ArtifactSourceGitRuntimeDocker ArtifactSourceGitRuntime = "docker"
+	ArtifactSourceGitRuntimeElixir ArtifactSourceGitRuntime = "elixir"
+	ArtifactSourceGitRuntimeGo     ArtifactSourceGitRuntime = "go"
+	ArtifactSourceGitRuntimeNode   ArtifactSourceGitRuntime = "node"
+	ArtifactSourceGitRuntimePython ArtifactSourceGitRuntime = "python"
+	ArtifactSourceGitRuntimeRuby   ArtifactSourceGitRuntime = "ruby"
+	ArtifactSourceGitRuntimeRust   ArtifactSourceGitRuntime = "rust"
+)
+
+// Valid indicates whether the value is a known member of the ArtifactSourceGitRuntime enum.
+func (e ArtifactSourceGitRuntime) Valid() bool {
+	switch e {
+	case ArtifactSourceGitRuntimeDocker:
+		return true
+	case ArtifactSourceGitRuntimeElixir:
+		return true
+	case ArtifactSourceGitRuntimeGo:
+		return true
+	case ArtifactSourceGitRuntimeNode:
+		return true
+	case ArtifactSourceGitRuntimePython:
+		return true
+	case ArtifactSourceGitRuntimeRuby:
+		return true
+	case ArtifactSourceGitRuntimeRust:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ArtifactSourcePATCHGitRegion.
 const (
 	ArtifactSourcePATCHGitRegionFrankfurt ArtifactSourcePATCHGitRegion = "frankfurt"
@@ -58,6 +91,72 @@ func (e ArtifactSourcePATCHGitRegion) Valid() bool {
 	case ArtifactSourcePATCHGitRegionSingapore:
 		return true
 	case ArtifactSourcePATCHGitRegionVirginia:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ArtifactSourcePATCHGitRuntime.
+const (
+	ArtifactSourcePATCHGitRuntimeDocker ArtifactSourcePATCHGitRuntime = "docker"
+	ArtifactSourcePATCHGitRuntimeElixir ArtifactSourcePATCHGitRuntime = "elixir"
+	ArtifactSourcePATCHGitRuntimeGo     ArtifactSourcePATCHGitRuntime = "go"
+	ArtifactSourcePATCHGitRuntimeNode   ArtifactSourcePATCHGitRuntime = "node"
+	ArtifactSourcePATCHGitRuntimePython ArtifactSourcePATCHGitRuntime = "python"
+	ArtifactSourcePATCHGitRuntimeRuby   ArtifactSourcePATCHGitRuntime = "ruby"
+	ArtifactSourcePATCHGitRuntimeRust   ArtifactSourcePATCHGitRuntime = "rust"
+)
+
+// Valid indicates whether the value is a known member of the ArtifactSourcePATCHGitRuntime enum.
+func (e ArtifactSourcePATCHGitRuntime) Valid() bool {
+	switch e {
+	case ArtifactSourcePATCHGitRuntimeDocker:
+		return true
+	case ArtifactSourcePATCHGitRuntimeElixir:
+		return true
+	case ArtifactSourcePATCHGitRuntimeGo:
+		return true
+	case ArtifactSourcePATCHGitRuntimeNode:
+		return true
+	case ArtifactSourcePATCHGitRuntimePython:
+		return true
+	case ArtifactSourcePATCHGitRuntimeRuby:
+		return true
+	case ArtifactSourcePATCHGitRuntimeRust:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BuildRuntime.
+const (
+	Docker BuildRuntime = "docker"
+	Elixir BuildRuntime = "elixir"
+	Go     BuildRuntime = "go"
+	Node   BuildRuntime = "node"
+	Python BuildRuntime = "python"
+	Ruby   BuildRuntime = "ruby"
+	Rust   BuildRuntime = "rust"
+)
+
+// Valid indicates whether the value is a known member of the BuildRuntime enum.
+func (e BuildRuntime) Valid() bool {
+	switch e {
+	case Docker:
+		return true
+	case Elixir:
+		return true
+	case Go:
+		return true
+	case Node:
+		return true
+	case Python:
+		return true
+	case Ruby:
+		return true
+	case Rust:
 		return true
 	default:
 		return false
@@ -146,11 +245,16 @@ type ArtifactSourceGit struct {
 	RegistryCredentialId *string                  `json:"registryCredentialId,omitempty"`
 	RepoUrl              *string                  `json:"repoUrl,omitempty"`
 	RootDir              *string                  `json:"rootDir,omitempty"`
-	Runtime              string                   `json:"runtime"`
+
+	// Runtime Build runtime for the artifact source. Static sites are not supported for artifact sources.
+	Runtime ArtifactSourceGitRuntime `json:"runtime"`
 }
 
 // ArtifactSourceGitRegion Defaults to "oregon"
 type ArtifactSourceGitRegion string
+
+// ArtifactSourceGitRuntime Build runtime for the artifact source. Static sites are not supported for artifact sources.
+type ArtifactSourceGitRuntime string
 
 // ArtifactSourceId defines model for artifactSourceId.
 type ArtifactSourceId = string
@@ -177,11 +281,16 @@ type ArtifactSourcePATCHGit struct {
 	RegistryCredentialId *string                       `json:"registryCredentialId,omitempty"`
 	RepoUrl              *string                       `json:"repoUrl,omitempty"`
 	RootDir              *string                       `json:"rootDir,omitempty"`
-	Runtime              *string                       `json:"runtime,omitempty"`
+
+	// Runtime Build runtime for the artifact source. Static sites are not supported for artifact sources.
+	Runtime *ArtifactSourcePATCHGitRuntime `json:"runtime,omitempty"`
 }
 
 // ArtifactSourcePATCHGitRegion Region for the build. Honored only when this PATCH performs an image→build transition; rejected on a pure build patch (the cluster is pinned for an existing build), and must match the prior build region when switching back to build after time as an external image. Defaults to "oregon" for first-time builds.
 type ArtifactSourcePATCHGitRegion string
+
+// ArtifactSourcePATCHGitRuntime Build runtime for the artifact source. Static sites are not supported for artifact sources.
+type ArtifactSourcePATCHGitRuntime string
 
 // ArtifactSourcePATCHImage Patch shape for an artifact source's image identity. Unset fields are left unchanged on the underlying image reference. ownerId is intentionally omitted — an artifact source's owner is fixed at creation, and changing the image's owner would amount to a different identity.
 type ArtifactSourcePATCHImage struct {
@@ -215,14 +324,17 @@ type ArtifactSourceWithCursor struct {
 
 // Build Present when the artifact source is currently build-based. Mutually exclusive with `image`.
 type Build struct {
-	BuildFinishedAt *time.Time   `json:"buildFinishedAt,omitempty"`
-	BuildStartedAt  *time.Time   `json:"buildStartedAt,omitempty"`
-	CommitId        *string      `json:"commitId,omitempty"`
-	CommitUrl       *string      `json:"commitUrl,omitempty"`
-	Id              string       `json:"id"`
-	Runtime         *string      `json:"runtime,omitempty"`
-	Status          *BuildStatus `json:"status,omitempty"`
+	BuildFinishedAt *time.Time    `json:"buildFinishedAt,omitempty"`
+	BuildStartedAt  *time.Time    `json:"buildStartedAt,omitempty"`
+	CommitId        *string       `json:"commitId,omitempty"`
+	CommitUrl       *string       `json:"commitUrl,omitempty"`
+	Id              string        `json:"id"`
+	Runtime         *BuildRuntime `json:"runtime,omitempty"`
+	Status          *BuildStatus  `json:"status,omitempty"`
 }
+
+// BuildRuntime defines model for Build.Runtime.
+type BuildRuntime string
 
 // BuildStatus defines model for Build.Status.
 type BuildStatus string
