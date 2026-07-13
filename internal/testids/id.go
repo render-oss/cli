@@ -89,6 +89,16 @@ func RandomCronJobID() string {
 	return CronJobID(xid.New().String())
 }
 
+// SandboxGroupID returns a syntactically valid sbg- sandbox group ID for tests.
+func SandboxGroupID(label string) string {
+	return objectID("sbg", label)
+}
+
+// RandomSandboxGroupID returns a syntactically valid sbg- sandbox group ID for tests.
+func RandomSandboxGroupID() string {
+	return SandboxGroupID(xid.New().String())
+}
+
 // objectID returns a deterministic test ID in Render object ID form:
 //
 //	objectID("prj", "Project A!") == "prj-projecta000000000000"

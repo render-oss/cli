@@ -278,15 +278,16 @@ func NewUser(u client.User) client.User {
 // Server is a fake Render API HTTP server for command-level tests.
 // All HTTP plumbing is internal — tests seed state via Add() methods and assert against resource Instances.
 type Server struct {
-	server       *httptest.Server
-	Requests     []RecordedRequest
-	CurrentUser  *client.User
-	Owners       *Resource[*client.Owner]
-	Projects     *Resource[*client.Project]
-	Environments *Resource[*client.Environment]
-	KV           *KVResource
-	Postgres     *PostgresResource
-	Services     *ServiceResource
+	server        *httptest.Server
+	Requests      []RecordedRequest
+	CurrentUser   *client.User
+	Owners        *Resource[*client.Owner]
+	Projects      *Resource[*client.Project]
+	Environments  *Resource[*client.Environment]
+	KV            *KVResource
+	Postgres      *PostgresResource
+	Services      *ServiceResource
+	SandboxGroups *SandboxGroupResource
 }
 
 // ownerByID returns the Owner with the given ID from the seeded owners. The
@@ -383,12 +384,13 @@ func NewServer(t *testing.T) *Server {
 	t.Helper()
 
 	s := &Server{
-		Owners:       &Resource[*client.Owner]{},
-		Projects:     &Resource[*client.Project]{},
-		Environments: &Resource[*client.Environment]{},
-		KV:           &KVResource{},
-		Postgres:     &PostgresResource{},
-		Services:     &ServiceResource{},
+		Owners:        &Resource[*client.Owner]{},
+		Projects:      &Resource[*client.Project]{},
+		Environments:  &Resource[*client.Environment]{},
+		KV:            &KVResource{},
+		Postgres:      &PostgresResource{},
+		Services:      &ServiceResource{},
+		SandboxGroups: &SandboxGroupResource{},
 	}
 
 	mux := http.NewServeMux()
@@ -1011,6 +1013,7 @@ func NewServer(t *testing.T) *Server {
 	})
 
 	registerServiceRoutes(mux, s, record)
+	registerSandboxGroupRoutes(mux, s, record)
 
 	s.server = httptest.NewServer(mux)
 	t.Cleanup(s.server.Close)

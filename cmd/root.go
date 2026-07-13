@@ -166,6 +166,10 @@ func setupSandboxCommands(earlyAccess *cobra.Command, deps *dependencies.Depende
 	earlyAccess.AddCommand(newSandboxCmd(newSandboxCreateCmd(deps), newSandboxExecCmd(deps), newSandboxListCmd(deps), newSandboxStopCmd(deps)))
 }
 
+func setupSandboxGroupsCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
+	earlyAccess.AddCommand(newSandboxGroupsCmd(newSandboxGroupsListCmd(deps)))
+}
+
 func setupServiceCommands(deps *dependencies.Dependencies) {
 	servicesCmd.AddCommand(newServiceDeleteCmd(deps), newServiceUpdateCmd(deps))
 }
@@ -192,6 +196,7 @@ func SetupCommands() error {
 	setupKVCommands(rootCmd, deps)
 	setupPGCommands(rootCmd, deps)
 	setupSandboxCommands(EarlyAccessCmd, deps)
+	setupSandboxGroupsCommands(EarlyAccessCmd, deps)
 	setupRootCmdPersistentRun(rootCmd, deps)
 
 	return nil

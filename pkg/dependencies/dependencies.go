@@ -17,6 +17,7 @@ import (
 	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/sandbox"
+	"github.com/render-oss/cli/pkg/sandboxgroup"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/tasks"
 	"github.com/render-oss/cli/pkg/tui"
@@ -52,6 +53,7 @@ type cachedDependencies struct {
 	registryService     cache[*registry.Service]
 	postgresRepo        cache[*postgres.Repo]
 	sandboxRepo         cache[*sandbox.Repo]
+	sandboxGroupRepo    cache[*sandboxgroup.Repo]
 	keyValueRepo        cache[*keyvalue.Repo]
 	userRepo            cache[*user.Repo]
 	ownerRepo           cache[*owner.Repo]
@@ -60,6 +62,7 @@ type cachedDependencies struct {
 	serviceService      cache[*service.Service]
 	postgresService     cache[*postgres.Service]
 	sandboxService      cache[*sandbox.Service]
+	sandboxGroupService cache[*sandboxgroup.Service]
 	keyValueService     cache[*keyvalue.Service]
 	resourceService     cache[*resource.Service]
 	logRepo             cache[*logs.LogRepo]
@@ -151,6 +154,12 @@ func (d *Dependencies) SandboxRepo() *sandbox.Repo {
 	})
 }
 
+func (d *Dependencies) SandboxGroupRepo() *sandboxgroup.Repo {
+	return d.cache.sandboxGroupRepo.Get(func() *sandboxgroup.Repo {
+		return sandboxgroup.NewRepo(d.client)
+	})
+}
+
 func (d *Dependencies) KeyValueRepo() *keyvalue.Repo {
 	return d.cache.keyValueRepo.Get(func() *keyvalue.Repo {
 		return keyvalue.NewRepo(d.client)
@@ -196,6 +205,12 @@ func (d *Dependencies) PostgresService() *postgres.Service {
 func (d *Dependencies) SandboxService() *sandbox.Service {
 	return d.cache.sandboxService.Get(func() *sandbox.Service {
 		return sandbox.NewService(d.SandboxRepo())
+	})
+}
+
+func (d *Dependencies) SandboxGroupService() *sandboxgroup.Service {
+	return d.cache.sandboxGroupService.Get(func() *sandboxgroup.Service {
+		return sandboxgroup.NewService(d.SandboxGroupRepo())
 	})
 }
 
