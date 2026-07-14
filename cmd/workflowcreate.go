@@ -63,14 +63,6 @@ func init() {
 			return fmt.Errorf("failed to parse input: %w", err)
 		}
 
-		if input.Repo != nil && *input.Repo != "" {
-			resolved, err := utils.ResolveLocalRepoURL(*input.Repo)
-			if err != nil {
-				return fmt.Errorf("--repo %q: %w", *input.Repo, err)
-			}
-			input.Repo = &resolved
-		}
-
 		envFiles, err := cmd.Flags().GetStringSlice("env-file")
 		if err != nil {
 			return fmt.Errorf("failed to get --env-file: %w", err)

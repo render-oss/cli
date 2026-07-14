@@ -16,6 +16,7 @@ import (
 	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/tui"
 	"github.com/render-oss/cli/pkg/types"
+	"github.com/render-oss/cli/pkg/utils"
 	"github.com/render-oss/cli/pkg/workflow"
 )
 
@@ -35,10 +36,19 @@ type WorkflowCreateInput struct {
 	// the view doesn't need to know about env files. Inline --env-var entries
 	// must be appended after file-derived ones so they override on duplicate
 	// keys (resolveEnvVars merges via a map; later writes win).
-	EnvVars 		  []string `cli:"env-var"`
+	EnvVars []string `cli:"env-var"`
 }
 
 func CreateWorkflow(ctx context.Context, input WorkflowCreateInput) (*wfclient.Workflow, error) {
+	// Resolve a local directory path (e.g. ".") to the repo's remote URL.
+	if input.Repo != nil && *input.Repo != "" {
+		resolved, err := utils.ResolveLocalRepoURL(*input.Repo)
+		if err != nil {
+			return nil, fmt.Errorf("repo %q: %w", *input.Repo, err)
+		}
+		input.Repo = &resolved
+	}
+
 	envVars, err := resolveEnvVars(input)
 	if err != nil {
 		return nil, err
