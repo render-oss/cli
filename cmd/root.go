@@ -232,20 +232,17 @@ func rootPersistentPreRun(deps *dependencies.Dependencies) func(cmd *cobra.Comma
 
 		requestedOutput, err := command.StringToOutput(outputFlag)
 		if err != nil {
-			println(err.Error())
-			os.Exit(1)
+			return printRootPreRunError(cmd, err)
 		}
 
 		explicitOutputSet := cmd.Flags().Changed("output")
 		signals, err := deps.DetectRuntimeSignals()
 		if err != nil {
-			println(err.Error())
-			os.Exit(1)
+			return printRootPreRunError(cmd, err)
 		}
 		output, err := command.ResolveAutoOutput(explicitOutputSet, requestedOutput, signals)
 		if err != nil {
-			println(err.Error())
-			os.Exit(1)
+			return printRootPreRunError(cmd, err)
 		}
 
 		ctx = command.SetFormatInContext(ctx, &output)
@@ -262,6 +259,22 @@ func rootPersistentPreRun(deps *dependencies.Dependencies) func(cmd *cobra.Comma
 		cmd.SetContext(ctx)
 
 		return nil
+	}
+}
+
+// printRootPreRunError prints a setup error before returning it to Cobra.
+func printRootPreRunError(cmd *cobra.Command, err error) error {
+	printError(cmd, err)
+	// The error has already been printed above. Returning it still causes Cobra execution
+	// to fail and the top-level executor to return exit code 1.
+	cmd.Root().SilenceErrors = true
+	return err
+}
+
+func printError(cmd *cobra.Command, err error) {
+	_, writeErr := fmt.Fprintln(cmd.ErrOrStderr(), err)
+	if writeErr != nil {
+		panic(writeErr)
 	}
 }
 
@@ -320,24 +333,39 @@ func isRootVersionRequest(args []string, rootFlags *pflag.FlagSet) bool {
 	return false
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+// exitCodeFromError maps Cobra's result to the process exit code. Nil is the only
+// successful result; errors carrying a nonzero ExitCode preserve that exact code,
+// while all other errors map to 1.
+func exitCodeFromError(err error) int {
+	if err == nil {
+		return 0
+	}
+	var exitCoder command.ExitCoder
+	if errors.As(err, &exitCoder) {
+		if exitCode := exitCoder.ExitCode(); exitCode != 0 {
+			return exitCode
+		}
+	}
+	return 1
+}
+
+// Execute is the public entry point for the cmd package.
+// It configures and runs the root command, then returns its process exit code to main.
+func Execute() int {
 	// Check if version flag is explicitly requested before Cobra handles it.
 	// Only treat --version / -v as the CLI's global version flag when it
 	// appears before a subcommand; otherwise let subcommands own their flags.
 	if isRootVersionRequest(os.Args[1:], rootCmd.PersistentFlags()) {
 		printVersionWithUpdateCheck()
-		return
+		return 0
 	}
 
 	if err := SetupCommands(); err != nil {
-		os.Exit(1)
+		printError(rootCmd, err)
+		return 1
 	}
 
-	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+	return exitCodeFromError(rootCmd.Execute())
 }
 
 func init() {

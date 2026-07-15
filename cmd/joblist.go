@@ -39,7 +39,7 @@ var InteractiveJobList = func(ctx context.Context, input views.JobListInput, bre
 	))
 }
 
-func interactiveJobList(cmd *cobra.Command, input views.JobListInput) tea.Cmd {
+func interactiveJobList(cmd *cobra.Command, input views.JobListInput) (tea.Cmd, error) {
 	ctx := cmd.Context()
 	if input.ServiceID == "" {
 		return command.AddToStackFunc(
@@ -55,15 +55,15 @@ func interactiveJobList(cmd *cobra.Command, input views.JobListInput) tea.Cmd {
 				input.ServiceID = r.ID()
 				return InteractiveJobList(ctx, input, resource.BreadcrumbForResource(r))
 			}),
-		)
+		), nil
 	}
 
 	service, err := resource.GetResource(ctx, input.ServiceID)
 	if err != nil {
-		command.Fatal(cmd, err)
+		return nil, err
 	}
 
-	return InteractiveJobList(ctx, input, "Jobs for "+resource.BreadcrumbForResource(service))
+	return InteractiveJobList(ctx, input, "Jobs for "+resource.BreadcrumbForResource(service)), nil
 }
 
 func commandsForJob(deps *dependencies.Dependencies, j *clientjob.Job) []views.PaletteCommand {
@@ -141,7 +141,7 @@ func init() {
 			return nil
 		}
 
-		interactiveJobList(cmd, input)
-		return nil
+		_, err = interactiveJobList(cmd, input)
+		return err
 	}
 }

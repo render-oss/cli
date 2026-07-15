@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"testing"
 	"time"
@@ -259,6 +260,50 @@ func TestRootDeprecatedFlagErrorsStillPrintUsage(t *testing.T) {
 	require.Contains(t, output, "Error: use `--output json` instead of `--pretty-json`")
 	require.Contains(t, output, "Usage:")
 	require.Contains(t, output, "render login [flags]")
+}
+
+func TestExitCodeFromError(t *testing.T) {
+	testCases := []struct {
+		name         string
+		runE         func() error
+		wantExitCode int
+	}{
+		{
+			name:         "success",
+			runE:         func() error { return nil },
+			wantExitCode: 0,
+		},
+		{
+			name:         "ordinary error",
+			runE:         func() error { return errors.New("failed") },
+			wantExitCode: 1,
+		},
+		{
+			name:         "explicit one exit code",
+			runE:         func() error { return command.NewExitError(1, nil) },
+			wantExitCode: 1,
+		},
+		{
+			// NewExitError tolerates runtime-provided zero values without panicking,
+			// but only a nil error may produce a successful process exit.
+			name:         "explicit zero exit code is still an error",
+			runE:         func() error { return command.NewExitError(0, nil) },
+			wantExitCode: 1,
+		},
+		{
+			name: "wrapped explicit exit code",
+			runE: func() error {
+				return fmt.Errorf("command failed: %w", command.NewExitError(7, nil))
+			},
+			wantExitCode: 7,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.wantExitCode, exitCodeFromError(tc.runE()))
+		})
+	}
 }
 
 func newRootCommandForUsageTests() (*cobra.Command, *bytes.Buffer) {

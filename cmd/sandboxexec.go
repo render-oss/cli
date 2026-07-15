@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/sandbox"
 )
@@ -16,8 +16,6 @@ import (
 // unquoted. A token containing one of these is wrapped in single quotes so the
 // remote shell re-splits the command exactly as the user's local shell did.
 var shellUnsafe = regexp.MustCompile(`[^\w@%+=:,./-]`)
-
-var sandboxExecExit = os.Exit
 
 type SandboxExecInput struct {
 	SandboxID string
@@ -73,8 +71,7 @@ Examples:
 			return err
 		}
 
-		exitSandboxExec(exitCode)
-		return nil
+		return exitSandboxExec(cmd, exitCode)
 	}
 
 	return cmd
@@ -104,8 +101,12 @@ func shellQuote(arg string) string {
 	return "'" + strings.ReplaceAll(arg, "'", `'\''`) + "'"
 }
 
-func exitSandboxExec(exitCode int) {
-	if exitCode != 0 {
-		sandboxExecExit(exitCode)
+func exitSandboxExec(cmd *cobra.Command, exitCode int) error {
+	if exitCode == 0 {
+		return nil
 	}
+	// The remote process output was already streamed to the terminal. Preserve its exit
+	// code without adding a CLI-generated error message that the process did not produce.
+	cmd.Root().SilenceErrors = true
+	return command.NewExitError(exitCode, nil)
 }

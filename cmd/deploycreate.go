@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -56,7 +55,7 @@ var InteractiveDeployCreate = func(ctx context.Context, input types.DeployInput,
 		}))
 }
 
-func interactiveDeployCreate(cmd *cobra.Command, input types.DeployInput) tea.Cmd {
+func interactiveDeployCreate(cmd *cobra.Command, input types.DeployInput) (tea.Cmd, error) {
 	ctx := cmd.Context()
 	if input.ServiceID == "" {
 		return command.AddToStackFunc(
@@ -68,15 +67,15 @@ func interactiveDeployCreate(cmd *cobra.Command, input types.DeployInput) tea.Cm
 				input.ServiceID = r.ID()
 				return InteractiveDeployCreate(ctx, input, resource.BreadcrumbForResource(r))
 			}),
-		)
+		), nil
 	}
 
 	service, err := resource.GetResource(ctx, input.ServiceID)
 	if err != nil {
-		command.Fatal(cmd, err)
+		return nil, err
 	}
 
-	return InteractiveDeployCreate(ctx, input, "Create Deploy for "+resource.BreadcrumbForResource(service))
+	return InteractiveDeployCreate(ctx, input, "Create Deploy for "+resource.BreadcrumbForResource(service)), nil
 }
 
 func init() {
@@ -92,13 +91,16 @@ func init() {
 			command.DefaultFormatNonInteractive(cmd)
 		}
 
-		nonInteractive := nonInteractiveDeployCreate(cmd, input)
+		nonInteractive, err := nonInteractiveDeployCreate(cmd, input)
+		if err != nil {
+			return err
+		}
 		if nonInteractive {
 			return nil
 		}
 
-		interactiveDeployCreate(cmd, input)
-		return nil
+		_, err = interactiveDeployCreate(cmd, input)
+		return err
 	}
 
 	deployCreateCmd.Flags().Bool("clear-cache", false, "Clear build cache before deploying")
@@ -112,7 +114,7 @@ func init() {
 	rootCmd.AddCommand(deployCmd)
 }
 
-func nonInteractiveDeployCreate(cmd *cobra.Command, input types.DeployInput) bool {
+func nonInteractiveDeployCreate(cmd *cobra.Command, input types.DeployInput) (bool, error) {
 	var dep *client.Deploy
 	createDeploy := func() (*client.Deploy, error) {
 		d, err := views.CreateDeploy(cmd.Context(), input)
@@ -147,16 +149,16 @@ func nonInteractiveDeployCreate(cmd *cobra.Command, input types.DeployInput) boo
 
 	nonInteractive, err := command.NonInteractiveWithConfirm(cmd, createDeploy, text.Deploy(input.ServiceID), views.DeployCreateConfirm(cmd.Context(), input))
 	if err != nil {
-		fmt.Fprintf(cmd.OutOrStderr(), "%s\n", err.Error())
-		os.Exit(1)
+		return true, err
 	}
 	if !nonInteractive {
-		return false
+		return false, nil
 	}
 
 	if input.Wait && !deploy.IsSuccessful(dep.Status) {
-		os.Exit(1)
+		cmd.Root().SilenceErrors = true
+		return true, command.NewExitError(1, nil)
 	}
 
-	return nonInteractive
+	return nonInteractive, nil
 }

@@ -3,34 +3,24 @@ package cmd
 import (
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
+
+	"github.com/render-oss/cli/pkg/command"
 )
 
 func TestExitSandboxExecUsesRemoteExitCode(t *testing.T) {
-	oldExit := sandboxExecExit
-	defer func() { sandboxExecExit = oldExit }()
-
-	var gotExitCode *int
-	sandboxExecExit = func(code int) {
-		gotExitCode = &code
-	}
-
-	exitSandboxExec(7)
-	require.NotNil(t, gotExitCode)
-	require.Equal(t, 7, *gotExitCode)
+	cmd := &cobra.Command{Use: "exec"}
+	err := exitSandboxExec(cmd, 7)
+	var exitErr command.ExitCoder
+	require.ErrorAs(t, err, &exitErr)
+	require.Equal(t, 7, exitErr.ExitCode())
+	require.True(t, cmd.SilenceErrors)
 }
 
 func TestExitSandboxExecSkipsZeroExitCode(t *testing.T) {
-	oldExit := sandboxExecExit
-	defer func() { sandboxExecExit = oldExit }()
-
-	called := false
-	sandboxExecExit = func(int) {
-		called = true
-	}
-
-	exitSandboxExec(0)
-	require.False(t, called)
+	err := exitSandboxExec(&cobra.Command{Use: "exec"}, 0)
+	require.NoError(t, err)
 }
 
 func TestJoinShellCommand(t *testing.T) {

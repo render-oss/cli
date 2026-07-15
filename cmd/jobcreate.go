@@ -45,7 +45,7 @@ var InteractiveJobCreate = func(ctx context.Context, input *views.JobCreateInput
 	)
 }
 
-func interactiveJobCreate(cmd *cobra.Command, input *views.JobCreateInput) tea.Cmd {
+func interactiveJobCreate(cmd *cobra.Command, input *views.JobCreateInput) (tea.Cmd, error) {
 	ctx := cmd.Context()
 	if input.ServiceID == "" {
 		return command.AddToStackFunc(
@@ -61,15 +61,15 @@ func interactiveJobCreate(cmd *cobra.Command, input *views.JobCreateInput) tea.C
 				input.ServiceID = r.ID()
 				return InteractiveJobCreate(ctx, input, resource.BreadcrumbForResource(r))
 			}),
-		)
+		), nil
 	}
 
 	service, err := resource.GetResource(ctx, input.ServiceID)
 	if err != nil {
-		command.Fatal(cmd, err)
+		return nil, err
 	}
 
-	return InteractiveJobCreate(ctx, input, "Create Job for "+resource.BreadcrumbForResource(service))
+	return InteractiveJobCreate(ctx, input, "Create Job for "+resource.BreadcrumbForResource(service)), nil
 }
 
 func init() {
@@ -91,8 +91,8 @@ func init() {
 			return nil
 		}
 
-		interactiveJobCreate(cmd, &input)
-		return nil
+		_, err = interactiveJobCreate(cmd, &input)
+		return err
 	}
 
 	JobCreateCmd.Flags().String("start-command", "", "Set the job start command")

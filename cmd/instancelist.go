@@ -58,7 +58,7 @@ func loadInstanceList(ctx context.Context, input views.InstanceListInput) ([]*cl
 	return instances, nil
 }
 
-func interactiveInstanceList(cmd *cobra.Command, input views.InstanceListInput) tea.Cmd {
+func interactiveInstanceList(cmd *cobra.Command, input views.InstanceListInput) (tea.Cmd, error) {
 	ctx := cmd.Context()
 	if input.ServiceID == "" {
 		return command.AddToStackFunc(
@@ -68,21 +68,17 @@ func interactiveInstanceList(cmd *cobra.Command, input views.InstanceListInput) 
 			&input,
 			views.NewServiceList(ctx, views.ServiceInput{}, func(ctx context.Context, r resource.Resource) tea.Cmd {
 				input.ServiceID = r.ID()
-				service, err := resource.GetResource(ctx, input.ServiceID)
-				if err != nil {
-					command.Fatal(cmd, err)
-				}
-				return InteractiveInstanceList(ctx, input, service, "Instances for "+resource.BreadcrumbForResource(service))
+				return InteractiveInstanceList(ctx, input, r, "Instances for "+resource.BreadcrumbForResource(r))
 			}),
-		)
+		), nil
 	}
 
 	service, err := resource.GetResource(ctx, input.ServiceID)
 	if err != nil {
-		command.Fatal(cmd, err)
+		return nil, err
 	}
 
-	return InteractiveInstanceList(ctx, input, service, "Instances for "+resource.BreadcrumbForResource(service))
+	return InteractiveInstanceList(ctx, input, service, "Instances for "+resource.BreadcrumbForResource(service)), nil
 }
 
 var InteractiveInstanceList = func(ctx context.Context, input views.InstanceListInput, r resource.Resource, breadcrumb string) tea.Cmd {
@@ -110,7 +106,7 @@ func init() {
 			return nil
 		}
 
-		interactiveInstanceList(cmd, input)
-		return nil
+		_, err = interactiveInstanceList(cmd, input)
+		return err
 	}
 }

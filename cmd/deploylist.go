@@ -40,7 +40,7 @@ var InteractiveDeployList = func(ctx context.Context, input views.DeployListInpu
 	))
 }
 
-func interactiveDeployList(cmd *cobra.Command, input views.DeployListInput) tea.Cmd {
+func interactiveDeployList(cmd *cobra.Command, input views.DeployListInput) (tea.Cmd, error) {
 	ctx := cmd.Context()
 	if input.ServiceID == "" {
 		return command.AddToStackFunc(
@@ -52,15 +52,15 @@ func interactiveDeployList(cmd *cobra.Command, input views.DeployListInput) tea.
 				input.ServiceID = r.ID()
 				return InteractiveDeployList(ctx, input, r, resource.BreadcrumbForResource(r))
 			}),
-		)
+		), nil
 	}
 
 	service, err := resource.GetResource(ctx, input.ServiceID)
 	if err != nil {
-		command.Fatal(cmd, err)
+		return nil, err
 	}
 
-	return InteractiveDeployList(ctx, input, service, "Deploys for "+resource.BreadcrumbForResource(service))
+	return InteractiveDeployList(ctx, input, service, "Deploys for "+resource.BreadcrumbForResource(service)), nil
 }
 
 func commandsForDeploy(deps *dependencies.Dependencies, dep *client.Deploy, serviceID, serviceType string) []views.PaletteCommand {
@@ -136,7 +136,7 @@ func init() {
 			return nil
 		}
 
-		interactiveDeployList(cmd, input)
-		return nil
+		_, err = interactiveDeployList(cmd, input)
+		return err
 	}
 }
