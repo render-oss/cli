@@ -43,8 +43,8 @@ Pass the command after a "--" separator so its own flags aren't parsed by the
 CLI.
 
 Examples:
-  render ea sandbox exec sbx-abc123 -- echo hello
-  render ea sandbox exec sbx-abc123 -- python script.py
+  render ea sandboxes exec sbx-abc123 -- echo hello
+  render ea sandboxes exec sbx-abc123 -- python script.py
 `,
 		Args: cobra.MinimumNArgs(2),
 	}

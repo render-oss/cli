@@ -48,9 +48,9 @@ func newSandboxCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Long: `Create a new sandbox in the current workspace.
 
 Examples:
-  render ea sandbox create
-  render ea sandbox create --plan=standard --region=oregon
-  render ea sandbox create --timeout=3600
+  render ea sandboxes create
+  render ea sandboxes create --plan=standard --region=oregon
+  render ea sandboxes create --timeout=3600
 `,
 	}
 

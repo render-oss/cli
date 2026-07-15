@@ -6,7 +6,7 @@ import (
 
 func newSandboxCmd(children ...*cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "sandbox",
+		Use:   "sandboxes",
 		Short: "Manage sandboxes",
 		Long: `Manage sandboxes for your Render workspace.
 
@@ -19,11 +19,11 @@ Available commands:
   stop     - Terminate a running sandbox
 
 Examples:
-  render ea sandbox create --base=render/sandbox-python
-  render ea sandbox exec sbx-abc123 -- echo hello
-  render ea sandbox list
-  render ea sandbox list --all
-  render ea sandbox stop trn-abc123 --confirm
+  render ea sandboxes create --base=render/sandbox-python
+  render ea sandboxes exec sbx-abc123 -- echo hello
+  render ea sandboxes list
+  render ea sandboxes list --all
+  render ea sandboxes stop trn-abc123 --confirm
 `,
 	}
 	cmd.AddCommand(children...)
