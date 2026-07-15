@@ -2,6 +2,30 @@ version: "2"
 
 linters:
   default: standard
+  enable:
+    - forbidigo
+  settings:
+    forbidigo:
+      analyze-types: true
+      forbid:
+        - pattern: ^os\.Exit$
+          pkg: ^os$
+          msg: os.Exit is only allowed in main.go
+        - pattern: ^log\.Fatal(f|ln)?$
+          pkg: ^log$
+          msg: log.Fatal is forbidden; return an error to the global executor
+  exclusions:
+    rules:
+      - path: ^main\.go$
+        text: os.Exit is only allowed in main.go
+        linters:
+          - forbidigo
+      - path: ^tools/
+        linters:
+          - forbidigo
+      - path: _test\.go$
+        linters:
+          - forbidigo
 
 formatters:
   enable:
