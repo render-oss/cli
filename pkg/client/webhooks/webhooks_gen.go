@@ -9,11 +9,11 @@ package client
 import (
 	"time"
 
-	externalRef8 "github.com/render-oss/cli/pkg/client/eventtypes"
+	externalRef9 "github.com/render-oss/cli/pkg/client/eventtypes"
 )
 
 // EventFilter The event types that will trigger the webhook. An empty list means all event types will trigger the webhook.
-type EventFilter = []externalRef8.EventType
+type EventFilter = []externalRef9.EventType
 
 // Webhook defines model for webhook.
 type Webhook struct {
@@ -34,7 +34,7 @@ type WebhookEvent struct {
 
 	// EventId the id of the event that triggered the webhook
 	EventId   string                 `json:"eventId"`
-	EventType externalRef8.EventType `json:"eventType"`
+	EventType externalRef9.EventType `json:"eventType"`
 
 	// Id the id of the webhook event
 	Id           string    `json:"id"`
