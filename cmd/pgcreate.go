@@ -75,6 +75,23 @@ printed as text. Use --output json, yaml, or text for non-interactive output.`,
 	cmd.Flags().StringArray("read-replica", nil,
 		"Create a read replica with the given name alongside the primary. Repeat the flag for multiple replicas.")
 
+	setAllFlagPlaceholders(cmd, map[string]string{
+		"name":            "NAME",
+		"workspace":       "WORKSPACE",
+		"project":         "PROJECT",
+		"environment":     "ENVIRONMENT",
+		"plan":            "PLAN",
+		"version":         "VERSION",
+		"region":          "REGION",
+		"database-name":   "DATABASE_NAME",
+		"database-user":   "DATABASE_USER",
+		"disk-size-gb":    "DISK_SIZE_GB",
+		"datadog-api-key": "DATADOG_API_KEY",
+		"datadog-site":    "DATADOG_SITE",
+		"ip-allow-list":   "CIDR_DESCRIPTION",
+		"read-replica":    "NAME",
+	})
+
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if command.GetConfirmFromContext(cmd.Context()) {
 			command.DefaultFormatNonInteractive(cmd)

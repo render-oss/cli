@@ -51,6 +51,10 @@ Key Value ID instead (which works across workspaces).`,
 		"Narrow lookup to an environment (ID or name, optional) when the same Key Value name exists in multiple environments.")
 	cmd.Flags().Bool("include-sensitive-connection-info", false,
 		"Include connection strings and credentials in the output")
+	setAllFlagPlaceholders(cmd, map[string]string{
+		"project":     "PROJECT",
+		"environment": "ENVIRONMENT",
+	})
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)

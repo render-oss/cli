@@ -46,6 +46,9 @@ Key Value ID instead (which works across workspaces).`,
 
 	cmd.Flags().String("environment", "",
 		"Narrow lookup to an environment (ID or name, optional) when the same Key Value name exists in multiple environments.")
+	setAllFlagPlaceholders(cmd, map[string]string{
+		"environment": "ENVIRONMENT",
+	})
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		// No interactive flow yet; collapse --output interactive (the default in a TTY)

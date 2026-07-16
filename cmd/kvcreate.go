@@ -71,6 +71,18 @@ Output will be human-readable; use --output json/yaml/text for machine-readable 
 	cmd.Flags().StringArray("ip-allow-list", nil,
 		"Restrict inbound traffic to specific IP ranges (format: cidr=<range>,description=<label>). Repeat the flag for multiple entries.")
 
+	setAllFlagPlaceholders(cmd, map[string]string{
+		"name":             "NAME",
+		"workspace":        "WORKSPACE",
+		"project":          "PROJECT",
+		"environment":      "ENVIRONMENT",
+		"plan":             "PLAN",
+		"region":           "REGION",
+		"memory-policy":    "MAXMEMORY_POLICY",
+		"persistence-mode": "PERSISTENCE_MODE",
+		"ip-allow-list":    "CIDR_DESCRIPTION",
+	})
+
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		var input kvtypes.KeyValueCreateInput
 		if err := command.ParseCommand(cmd, args, &input); err != nil {

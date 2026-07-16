@@ -63,6 +63,10 @@ Postgres ID instead (which works across workspaces).`,
 		"Narrow lookup to a project (ID or name, optional) when the same Postgres database name exists in multiple projects.")
 	cmd.Flags().String("environment", "",
 		"Narrow lookup to an environment (ID or name, optional) when the same Postgres database name exists in multiple environments.")
+	setAllFlagPlaceholders(cmd, map[string]string{
+		"project":     "PROJECT",
+		"environment": "ENVIRONMENT",
+	})
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)

@@ -86,6 +86,15 @@ or any raw policy: noeviction | allkeys_lru | allkeys_lfu | allkeys_random | vol
 	cmd.Flags().Bool("clear-ip-allow-list", false,
 		"Remove all IP allow-list entries. Mutually exclusive with --ip-allow-list")
 
+	setAllFlagPlaceholders(cmd, map[string]string{
+		"environment":      "ENVIRONMENT",
+		"name":             "NAME",
+		"plan":             "PLAN",
+		"memory-policy":    "MAXMEMORY_POLICY",
+		"persistence-mode": "PERSISTENCE_MODE",
+		"ip-allow-list":    "CIDR_DESCRIPTION",
+	})
+
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		// No interactive flow yet; collapse --output interactive onto text so
 		// the standard NonInteractive path handles every format.

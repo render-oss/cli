@@ -590,22 +590,22 @@ func TestSetFlagPlaceholder(t *testing.T) {
 		flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
 		flags.String("output", "", "output format")
 
-		setFlagPlaceholder(flags, "output", "FORMAT")
+		require.True(t, setFlagPlaceholder(flags, "output", "FORMAT"))
 
 		requireFlagPlaceholder(t, flags, "output", "FORMAT")
 	})
 
-	t.Run("panics for missing flag", func(t *testing.T) {
+	t.Run("best-effort: returns false for missing flag without panicking", func(t *testing.T) {
 		flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
 
-		require.Panics(t, func() {
-			setFlagPlaceholder(flags, "missing", "FORMAT")
+		require.NotPanics(t, func() {
+			require.False(t, setFlagPlaceholder(flags, "missing", "FORMAT"))
 		})
 	})
 
-	t.Run("panics for nil flagset", func(t *testing.T) {
-		require.Panics(t, func() {
-			setFlagPlaceholder(nil, "output", "FORMAT")
+	t.Run("best-effort: returns false for nil flagset without panicking", func(t *testing.T) {
+		require.NotPanics(t, func() {
+			require.False(t, setFlagPlaceholder(nil, "output", "FORMAT"))
 		})
 	})
 }

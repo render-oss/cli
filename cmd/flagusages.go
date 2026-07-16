@@ -30,15 +30,11 @@ func setAnnotationBestEffort(flags *pflag.FlagSet, flagName, key string, values 
 }
 
 // setFlagPlaceholder applies help-output placeholder metadata to a flag.
-// Panics when called with an invalid flag name so command wiring mistakes (e.g., wrong flag name) fail loudly in dev and test
-func setFlagPlaceholder(flags *pflag.FlagSet, flagName, placeholder string) {
-	if flags == nil {
-		panic("setFlagPlaceholder called with nil flag set")
-	}
-	if flags.Lookup(flagName) == nil {
-		panic(fmt.Sprintf("setFlagPlaceholder called with unknown flag %q", flagName))
-	}
-	_ = flags.SetAnnotation(flagName, flagPlaceholderAnnotation, []string{placeholder})
+// Returns true when the placeholder was applied successfully, false otherwise.
+// This is best-effort and never panics; use setAllFlagPlaceholders when you want
+// command wiring mistakes to fail loudly in dev and test.
+func setFlagPlaceholder(flags *pflag.FlagSet, flagName, placeholder string) bool {
+	return setAnnotationBestEffort(flags, flagName, flagPlaceholderAnnotation, []string{placeholder})
 }
 
 // setAllFlagPlaceholders applies help-output placeholder metadata to every local value flag.
@@ -52,6 +48,9 @@ func setAllFlagPlaceholders(cmd *cobra.Command, placeholders map[string]string) 
 		panic("setAllFlagPlaceholders called with no placeholders")
 	}
 	for flagName, placeholder := range placeholders {
+		if cmd.Flags().Lookup(flagName) == nil {
+			panic(fmt.Sprintf("setAllFlagPlaceholders called with unknown flag %q", flagName))
+		}
 		setFlagPlaceholder(cmd.Flags(), flagName, placeholder)
 	}
 	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {

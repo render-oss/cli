@@ -85,6 +85,17 @@ mutually exclusive.`,
 	cmd.Flags().Bool("clear-ip-allow-list", false,
 		"Remove all IP allow-list entries. Mutually exclusive with --ip-allow-list")
 
+	setAllFlagPlaceholders(cmd, map[string]string{
+		"project":         "PROJECT",
+		"environment":     "ENVIRONMENT",
+		"name":            "NAME",
+		"plan":            "PLAN",
+		"disk-size-gb":    "DISK_SIZE_GB",
+		"datadog-api-key": "DATADOG_API_KEY",
+		"datadog-site":    "DATADOG_SITE",
+		"ip-allow-list":   "CIDR_DESCRIPTION",
+	})
+
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		// No interactive flow yet; collapse --output interactive onto text so
 		// the standard NonInteractive path handles every format.

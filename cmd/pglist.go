@@ -42,6 +42,10 @@ resolved within that project.`,
 		"Narrow results to environments in a project (ID or name, optional).")
 	cmd.Flags().String("environment", "",
 		"Narrow results to a single environment (ID or name, optional).")
+	setAllFlagPlaceholders(cmd, map[string]string{
+		"project":     "PROJECT",
+		"environment": "ENVIRONMENT",
+	})
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)
