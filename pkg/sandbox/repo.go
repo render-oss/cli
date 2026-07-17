@@ -28,22 +28,31 @@ func (r *Repo) ListSandboxes(ctx context.Context, params *client.ListSandboxesPa
 
 	params.OwnerId = &client.OwnerIdParam{workspace}
 
+	return client.ListAll(ctx, params, r.listSandboxesPage)
+}
+
+func (r *Repo) listSandboxesPage(ctx context.Context, params *client.ListSandboxesParams) ([]*sandboxclient.Sandbox, *client.Cursor, error) {
 	resp, err := r.client.ListSandboxesWithResponse(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := client.ErrorFromResponse(resp); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	sandboxes := make([]*sandboxclient.Sandbox, 0, len(*resp.JSON200))
-	for _, swc := range *resp.JSON200 {
+	if resp.JSON200 == nil || len(*resp.JSON200) == 0 {
+		return nil, nil, nil
+	}
+
+	res := *resp.JSON200
+	sandboxes := make([]*sandboxclient.Sandbox, 0, len(res))
+	for _, swc := range res {
 		sb := swc.Sandbox
 		sandboxes = append(sandboxes, &sb)
 	}
 
-	return sandboxes, nil
+	return sandboxes, &res[len(res)-1].Cursor, nil
 }
 
 func (r *Repo) CreateSandbox(

@@ -27,9 +27,22 @@ type CreateInput struct {
 	Timeout int
 }
 
+// allSandboxStatuses is every sandbox status. --all sends the full set so the
+// server includes terminated sandboxes, which it otherwise excludes unless a
+// status filter names them.
+var allSandboxStatuses = []sandboxclient.SandboxStatus{
+	sandboxclient.SandboxStatusCreating,
+	sandboxclient.SandboxStatusRunning,
+	sandboxclient.SandboxStatusSuspended,
+	sandboxclient.SandboxStatusResuming,
+	sandboxclient.SandboxStatusErrored,
+	sandboxclient.SandboxStatusTerminated,
+}
+
 // List returns sandboxes in the active workspace. When statuses is non-empty it
-// filters by those statuses; otherwise terminated sandboxes are excluded unless
-// all is true.
+// filters by those statuses. Otherwise it sends no status filter, so the server
+// applies its default (exclude terminated) — unless all is true, which requests
+// every status to include terminated sandboxes too.
 func (s *Service) List(ctx context.Context, statuses []string, all bool) ([]*sandboxclient.Sandbox, error) {
 	params := &client.ListSandboxesParams{}
 
@@ -39,13 +52,8 @@ func (s *Service) List(ctx context.Context, statuses []string, all bool) ([]*san
 			filtered[i] = sandboxclient.SandboxStatus(status)
 		}
 		params.Status = &filtered
-	} else if !all {
-		// By default, exclude terminated sandboxes.
-		params.Status = &[]sandboxclient.SandboxStatus{
-			sandboxclient.SandboxStatusCreating,
-			sandboxclient.SandboxStatusRunning,
-			sandboxclient.SandboxStatusErrored,
-		}
+	} else if all {
+		params.Status = &allSandboxStatuses
 	}
 
 	return s.repo.ListSandboxes(ctx, params)

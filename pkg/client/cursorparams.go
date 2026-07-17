@@ -7,6 +7,13 @@ func (p *ListProjectsParams) SetLimit(l int) {
 	p.Limit = &l
 }
 
+func (p *ListSandboxesParams) SetCursor(c *Cursor) {
+	p.Cursor = c
+}
+func (p *ListSandboxesParams) SetLimit(l int) {
+	p.Limit = &l
+}
+
 func (p *ListEnvironmentsParams) SetCursor(c *Cursor) {
 	p.Cursor = c
 }
