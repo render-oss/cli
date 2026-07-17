@@ -308,6 +308,377 @@ func TestExitCodeFromError(t *testing.T) {
 	}
 }
 
+func TestExecutionResultClassifiesCobraOutcomes(t *testing.T) {
+	testCases := []struct {
+		name         string
+		args         []string
+		configure    func(t *testing.T, root, child *cobra.Command)
+		wantExitCode int
+		wantKind     command.CompletionKind
+	}{
+		{
+			name:         "success",
+			args:         []string{"test", "value"},
+			wantExitCode: 0,
+			wantKind:     command.CompletionKindSuccess,
+		},
+		{
+			name:         "command discovery error",
+			args:         []string{"missing"},
+			wantExitCode: 1,
+			wantKind:     command.CompletionKindDiscoveryError,
+		},
+		{
+			name:         "argument validation error",
+			args:         []string{"test"},
+			wantExitCode: 1,
+			wantKind:     command.CompletionKindValidationError,
+		},
+		{
+			name:         "flag validation error",
+			args:         []string{"test", "value", "--missing"},
+			wantExitCode: 1,
+			wantKind:     command.CompletionKindValidationError,
+		},
+		{
+			name:         "required flag validation error",
+			args:         []string{"test", "value"},
+			wantExitCode: 1,
+			wantKind:     command.CompletionKindValidationError,
+			configure: func(t *testing.T, _ *cobra.Command, child *cobra.Command) {
+				child.Flags().String("required", "", "required value")
+				require.NoError(t, child.MarkFlagRequired("required"))
+			},
+		},
+		{
+			name:         "setup error",
+			args:         []string{"test", "value", "--output", "invalid"},
+			wantExitCode: 1,
+			wantKind:     command.CompletionKindSetupError,
+		},
+		{
+			name:         "execution error",
+			args:         []string{"test", "value"},
+			wantExitCode: 1,
+			wantKind:     command.CompletionKindExecutionError,
+			configure: func(_ *testing.T, _ *cobra.Command, child *cobra.Command) {
+				child.RunE = func(_ *cobra.Command, _ []string) error {
+					return errors.New("failed")
+				}
+			},
+		},
+		{
+			name:         "post-run error",
+			args:         []string{"test", "value"},
+			wantExitCode: 1,
+			wantKind:     command.CompletionKindExecutionError,
+			configure: func(_ *testing.T, _ *cobra.Command, child *cobra.Command) {
+				child.PostRunE = func(_ *cobra.Command, _ []string) error {
+					return errors.New("post-run failed")
+				}
+			},
+		},
+		{
+			name:         "explicit exit",
+			args:         []string{"test", "value"},
+			wantExitCode: 7,
+			wantKind:     command.CompletionKindExplicitExit,
+			configure: func(_ *testing.T, _ *cobra.Command, child *cobra.Command) {
+				child.RunE = func(_ *cobra.Command, _ []string) error {
+					return command.NewExitError(7, nil)
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := executeAndClassify(t, tc.args, tc.configure)
+
+			require.Equal(t, tc.wantExitCode, result.ExitCode)
+			require.Equal(t, tc.wantKind, result.CompletionKind)
+			require.GreaterOrEqual(t, result.Duration, time.Duration(0))
+			require.NotNil(t, result.Command)
+		})
+	}
+
+	// Help is classified only when the user explicitly requests it, and the
+	// result's Command must identify whose help was rendered.
+	t.Run("help", func(t *testing.T) {
+		addNonRunnableGroup := func(_ *testing.T, root, _ *cobra.Command) {
+			root.AddCommand(&cobra.Command{Use: "group"})
+		}
+		addNestedGroups := func(_ *testing.T, root, _ *cobra.Command) {
+			sub := &cobra.Command{Use: "sub"}
+			sub.AddCommand(&cobra.Command{
+				Use:  "leaf",
+				RunE: func(_ *cobra.Command, _ []string) error { return nil },
+			})
+			group := &cobra.Command{Use: "group"}
+			group.AddCommand(sub)
+			root.AddCommand(group)
+		}
+		// The `render ea` shape: NoArgs rejects unknown children with a non-zero
+		// exit, and RunE renders help for a bare invocation.
+		addRunnableGroup := func(_ *testing.T, root, _ *cobra.Command) {
+			group := &cobra.Command{
+				Use:  "rgroup",
+				Args: cobra.NoArgs,
+				RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
+			}
+			group.AddCommand(&cobra.Command{
+				Use:  "leaf",
+				RunE: func(_ *cobra.Command, _ []string) error { return nil },
+			})
+			root.AddCommand(group)
+		}
+		helpCases := []struct {
+			name            string
+			args            []string
+			configure       func(t *testing.T, root, child *cobra.Command)
+			wantKind        command.CompletionKind
+			wantCommandPath string
+			wantExitCode    int
+		}{
+			{
+				name:            "root help flag",
+				args:            []string{"--help"},
+				wantKind:        command.CompletionKindHelp,
+				wantCommandPath: "render",
+			},
+			{
+				name:            "subcommand help flag",
+				args:            []string{"test", "--help"},
+				wantKind:        command.CompletionKindHelp,
+				wantCommandPath: "render test",
+			},
+			{
+				name:            "help command targets subcommand",
+				args:            []string{"help", "test"},
+				wantKind:        command.CompletionKindHelp,
+				wantCommandPath: "render test",
+			},
+			{
+				name:            "help command alone shows root help",
+				args:            []string{"help"},
+				wantKind:        command.CompletionKindHelp,
+				wantCommandPath: "render",
+			},
+			{
+				// Cobra prints "Unknown help topic" and root usage without
+				// rendering help, and the help command itself exits zero. The
+				// user failed to name a command, so this is a discovery error.
+				name:            "help command with unknown topic is a discovery error",
+				args:            []string{"help", "bogus"},
+				wantKind:        command.CompletionKindDiscoveryError,
+				wantCommandPath: "render help",
+			},
+			{
+				// Command discovery fails before Cobra ever parses --help.
+				name:            "help flag on unknown command is a discovery error",
+				args:            []string{"bogus", "--help"},
+				wantKind:        command.CompletionKindDiscoveryError,
+				wantCommandPath: "render",
+				wantExitCode:    1,
+			},
+			{
+				name:            "bare root shows help incidentally and is not classified as help",
+				args:            []string{},
+				wantKind:        command.CompletionKindSuccess,
+				wantCommandPath: "render",
+			},
+			{
+				name:            "bare non-runnable group shows help incidentally",
+				args:            []string{"group"},
+				wantKind:        command.CompletionKindSuccess,
+				wantCommandPath: "render group",
+				configure:       addNonRunnableGroup,
+			},
+			{
+				name:            "explicit help for non-runnable group",
+				args:            []string{"group", "--help"},
+				wantKind:        command.CompletionKindHelp,
+				wantCommandPath: "render group",
+				configure:       addNonRunnableGroup,
+			},
+			{
+				// Cobra accepts the unmatched child before rendering group help and
+				// exits zero. The user still named a command that does not exist, so
+				// classify discovery while preserving Cobra's exit code and output.
+				name:            "unknown subcommand of non-runnable group is a discovery error",
+				args:            []string{"group", "bogus"},
+				wantKind:        command.CompletionKindDiscoveryError,
+				wantCommandPath: "render group",
+				configure:       addNonRunnableGroup,
+			},
+			{
+				name:            "unknown subcommand of nested group is a discovery error",
+				args:            []string{"group", "sub", "bogus"},
+				wantKind:        command.CompletionKindDiscoveryError,
+				wantCommandPath: "render group sub",
+				configure:       addNestedGroups,
+			},
+			{
+				name:            "help flag after unknown subcommand is help",
+				args:            []string{"group", "bogus", "--help"},
+				wantKind:        command.CompletionKindHelp,
+				wantCommandPath: "render group",
+				configure:       addNonRunnableGroup,
+			},
+			{
+				name:            "help flag before unknown subcommand is help",
+				args:            []string{"group", "--help", "bogus"},
+				wantKind:        command.CompletionKindHelp,
+				wantCommandPath: "render group",
+				configure:       addNonRunnableGroup,
+			},
+			{
+				// `--` marks everything after it as data, so the token was never a
+				// candidate subcommand.
+				name:            "args after dash terminator are not an unknown subcommand",
+				args:            []string{"group", "--", "bogus"},
+				wantKind:        command.CompletionKindSuccess,
+				wantCommandPath: "render group",
+				configure:       addNonRunnableGroup,
+			},
+			{
+				// The builtin help command resolves as much of the topic as it can
+				// and renders help for the group, ignoring the trailing token.
+				name:            "help command with unknown nested topic targets the group",
+				args:            []string{"help", "group", "bogus"},
+				wantKind:        command.CompletionKindHelp,
+				wantCommandPath: "render group",
+				configure:       addNonRunnableGroup,
+			},
+			{
+				// The Runnable check keeps a manual Help call from a command's own
+				// RunE classified as the success it is.
+				name:            "runnable group rendering help in RunE is a success",
+				args:            []string{"rgroup"},
+				wantKind:        command.CompletionKindSuccess,
+				wantCommandPath: "render rgroup",
+				configure:       addRunnableGroup,
+			},
+			{
+				// A NoArgs runnable group rejects the unknown child during arg
+				// validation instead of rendering help. The user mistake is the
+				// same as with a non-runnable group, so it classifies as
+				// discovery — while keeping this shape's non-zero exit.
+				name:            "unknown subcommand of NoArgs runnable group is a discovery error",
+				args:            []string{"rgroup", "bogus"},
+				wantKind:        command.CompletionKindDiscoveryError,
+				wantCommandPath: "render rgroup",
+				wantExitCode:    1,
+				configure:       addRunnableGroup,
+			},
+		}
+
+		for _, tc := range helpCases {
+			t.Run(tc.name, func(t *testing.T) {
+				result := executeAndClassify(t, tc.args, tc.configure)
+
+				require.Equal(t, tc.wantKind, result.CompletionKind)
+				require.NotNil(t, result.Command)
+				require.Equal(t, tc.wantCommandPath, result.Command.CommandPath())
+				require.Equal(t, tc.wantExitCode, result.ExitCode)
+			})
+		}
+	})
+}
+
+// executeAndClassify executes a fresh root command with a runnable
+// `test <value>` child and returns the classified result, mirroring Execute.
+func executeAndClassify(t *testing.T, args []string, configure func(t *testing.T, root, child *cobra.Command)) command.ExecutionResult {
+	t.Helper()
+
+	root, _ := newRootCommandForUsageTests()
+	child := &cobra.Command{
+		Use:  "test <value>",
+		Args: cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return nil
+		},
+	}
+	if configure != nil {
+		configure(t, root, child)
+	}
+	root.AddCommand(child)
+	root.SetArgs(args)
+
+	observation := prepareExecutionObservation(root)
+	startedAt := time.Now()
+	executed, err := root.ExecuteC()
+	return newClassifiedExecutionResult(executed, err, observation, startedAt)
+}
+
+func TestPrepareExecutionObservationClearsRetainedState(t *testing.T) {
+	root, _ := newRootCommandForUsageTests()
+	root.AddCommand(&cobra.Command{
+		Use:  "test <value>",
+		Args: cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return nil
+		},
+	})
+
+	root.SetArgs([]string{"test"})
+	firstObservation := prepareExecutionObservation(root)
+	executedCommand, err := root.ExecuteC()
+	firstResult := newClassifiedExecutionResult(executedCommand, err, firstObservation, time.Now())
+	require.Equal(t, command.CompletionKindValidationError, firstResult.CompletionKind)
+
+	root.SetArgs([]string{"test", "value"})
+	secondObservation := prepareExecutionObservation(root)
+	require.Same(t, firstObservation, secondObservation)
+	executedCommand, err = root.ExecuteC()
+	secondResult := newClassifiedExecutionResult(executedCommand, err, secondObservation, time.Now())
+	require.Equal(t, command.CompletionKindSuccess, secondResult.CompletionKind)
+	require.Equal(t, setupSucceeded, secondObservation.setup)
+
+	// Preparing again returns setup to its zero value; the classifier relies on
+	// a fresh observation reading as not started.
+	thirdObservation := prepareExecutionObservation(root)
+	require.Same(t, secondObservation, thirdObservation)
+	require.Equal(t, setupNotStarted, thirdObservation.setup)
+}
+
+func TestPrepareExecutionObservationClearsRetainedHelpRequest(t *testing.T) {
+	root, _ := newRootCommandForUsageTests()
+
+	// Cobra retains parsed flag values when a command tree is reused. The E2E
+	// harness and package tests reuse the root tree, so an explicit help request
+	// from one execution must not affect classification of the next execution.
+	root.SetArgs([]string{"--help"})
+	firstObservation := prepareExecutionObservation(root)
+	executedCommand, err := root.ExecuteC()
+	firstResult := newClassifiedExecutionResult(executedCommand, err, firstObservation, time.Now())
+	require.Equal(t, command.CompletionKindHelp, firstResult.CompletionKind)
+
+	// Bare root renders help incidentally and is therefore success, not help.
+	root.SetArgs(nil)
+	secondObservation := prepareExecutionObservation(root)
+	executedCommand, err = root.ExecuteC()
+	secondResult := newClassifiedExecutionResult(executedCommand, err, secondObservation, time.Now())
+	require.Equal(t, command.CompletionKindSuccess, secondResult.CompletionKind)
+}
+
+func TestPrepareExecutionObservationClearsRetainedUnknownSubcommand(t *testing.T) {
+	root, _ := newRootCommandForUsageTests()
+	root.AddCommand(&cobra.Command{Use: "group"})
+
+	root.SetArgs([]string{"group", "bogus"})
+	firstObservation := prepareExecutionObservation(root)
+	executedCommand, err := root.ExecuteC()
+	firstResult := newClassifiedExecutionResult(executedCommand, err, firstObservation, time.Now())
+	require.Equal(t, command.CompletionKindDiscoveryError, firstResult.CompletionKind)
+
+	root.SetArgs([]string{"group"})
+	secondObservation := prepareExecutionObservation(root)
+	executedCommand, err = root.ExecuteC()
+	secondResult := newClassifiedExecutionResult(executedCommand, err, secondObservation, time.Now())
+	require.Equal(t, command.CompletionKindSuccess, secondResult.CompletionKind)
+}
+
 func newRootCommandForUsageTests() (*cobra.Command, *bytes.Buffer) {
 	deps := dependencies.New(nil)
 	deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
@@ -322,6 +693,7 @@ func newRootCommandForUsageTests() (*cobra.Command, *bytes.Buffer) {
 		Use:               "render",
 		PersistentPreRunE: rootPersistentPreRun(deps),
 	}
+	observeCobraValidationAndHelp(root)
 	root.PersistentFlags().StringP("output", "o", "interactive", "interactive, json, yaml, or text")
 	root.PersistentFlags().Bool(command.ConfirmFlag, false, "set to skip confirmation prompts")
 
@@ -330,6 +702,67 @@ func newRootCommandForUsageTests() (*cobra.Command, *bytes.Buffer) {
 	root.SetErr(&out)
 
 	return root, &out
+}
+
+func TestExecuteInvokesOnExecutionComplete(t *testing.T) {
+	// These cases pin callback delivery, not classification (that is
+	// TestExecutionResultClassifiesCobraOutcomes' job). Delivery has exactly two
+	// flavors — Cobra returned nil or an error — and the error case matters most:
+	// Cobra skips post-run hooks on error, which is why completion lives in
+	// Execute rather than a hook.
+	testCases := []struct {
+		name         string
+		args         []string
+		wantKind     command.CompletionKind
+		wantExitCode int
+	}{
+		{
+			name:         "nil-error path",
+			args:         []string{"render", "--help"},
+			wantKind:     command.CompletionKindHelp,
+			wantExitCode: 0,
+		},
+		{
+			name:         "error path",
+			args:         []string{"render", "command-that-does-not-exist"},
+			wantKind:     command.CompletionKindDiscoveryError,
+			wantExitCode: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var callbackParams []command.ExecutionResult
+			spy := func(result command.ExecutionResult) { callbackParams = append(callbackParams, result) }
+			originalCallback := onExecutionComplete
+			onExecutionComplete = spy
+			t.Cleanup(func() { onExecutionComplete = originalCallback })
+
+			// Let SetupCommands build a Render API client without config or network access.
+			t.Setenv("RENDER_API_KEY", "test-api-key")
+			t.Setenv("RENDER_CLI_CONFIG_PATH", filepath.Join(t.TempDir(), "cli.yaml"))
+			t.Setenv("RENDER_LOG_ANALYTICS", "")
+
+			originalArgs := os.Args
+			os.Args = tc.args
+			t.Cleanup(func() { os.Args = originalArgs })
+
+			var out bytes.Buffer
+			rootCmd.SetOut(&out)
+			rootCmd.SetErr(&out)
+			t.Cleanup(func() {
+				rootCmd.SetOut(nil)
+				rootCmd.SetErr(nil)
+			})
+
+			exitCode := Execute()
+
+			require.Equal(t, tc.wantExitCode, exitCode)
+			require.Len(t, callbackParams, 1)
+			require.Equal(t, tc.wantKind, callbackParams[0].CompletionKind)
+			require.Equal(t, exitCode, callbackParams[0].ExitCode)
+		})
+	}
 }
 
 func TestCombinedFlagUsagesIncludesDefaultValue(t *testing.T) {
@@ -637,62 +1070,6 @@ func TestIsRootVersionRequest(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			require.Equal(t, tc.want, isRootVersionRequest(tc.args, flags))
-		})
-	}
-}
-
-func TestExecuteInvokesOnExecutionComplete(t *testing.T) {
-	// These cases pin callback delivery on both flavors of the single exit —
-	// Cobra returned nil or an error. The error case matters most: Cobra skips
-	// post-run hooks on error, which is why completion lives in Execute rather
-	// than a hook.
-	testCases := []struct {
-		name         string
-		args         []string
-		wantExitCode int
-	}{
-		{
-			name:         "nil-error path",
-			args:         []string{"render", "--help"},
-			wantExitCode: 0,
-		},
-		{
-			name:         "error path",
-			args:         []string{"render", "command-that-does-not-exist"},
-			wantExitCode: 1,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			var callbackParams []command.ExecutionResult
-			spy := func(result command.ExecutionResult) { callbackParams = append(callbackParams, result) }
-			originalCallback := onExecutionComplete
-			onExecutionComplete = spy
-			t.Cleanup(func() { onExecutionComplete = originalCallback })
-
-			// Let SetupCommands build a Render API client without config or network access.
-			t.Setenv("RENDER_API_KEY", "test-api-key")
-			t.Setenv("RENDER_CLI_CONFIG_PATH", filepath.Join(t.TempDir(), "cli.yaml"))
-			t.Setenv("RENDER_LOG_ANALYTICS", "")
-
-			originalArgs := os.Args
-			os.Args = tc.args
-			t.Cleanup(func() { os.Args = originalArgs })
-
-			var out bytes.Buffer
-			rootCmd.SetOut(&out)
-			rootCmd.SetErr(&out)
-			t.Cleanup(func() {
-				rootCmd.SetOut(nil)
-				rootCmd.SetErr(nil)
-			})
-
-			exitCode := Execute()
-
-			require.Equal(t, tc.wantExitCode, exitCode)
-			require.Len(t, callbackParams, 1)
-			require.Equal(t, exitCode, callbackParams[0].ExitCode)
 		})
 	}
 }

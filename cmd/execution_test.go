@@ -17,9 +17,10 @@ func TestLogExecutionResult(t *testing.T) {
 		cmd := &cobra.Command{Use: "render"}
 		cmd.SetErr(errOut)
 		return command.ExecutionResult{
-			Command:  cmd,
-			Duration: 250 * time.Millisecond,
-			ExitCode: 0,
+			Command:        cmd,
+			CompletionKind: command.CompletionKindSuccess,
+			Duration:       250 * time.Millisecond,
+			ExitCode:       0,
 		}
 	}
 
@@ -30,7 +31,7 @@ func TestLogExecutionResult(t *testing.T) {
 		logExecutionResult(newResult(&errOut))
 
 		testassert.ContainsInOrder(t, errOut.String(),
-			"execution:", `command="render"`, "exit_code=0", "duration=250ms")
+			"execution:", `command="render"`, "kind=success", "exit_code=0", "duration=250ms")
 	})
 
 	t.Run("logs nothing when disabled", func(t *testing.T) {

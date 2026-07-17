@@ -88,6 +88,7 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().StringP("output", "o", "interactive", "Set output format to interactive, json, yaml, or text. Auto-switches to text on non-TTY")
 	setFlagPlaceholder(root.PersistentFlags(), "output", command.OutputPlaceholder)
 	root.PersistentFlags().Bool(command.ConfirmFlag, false, "Skip all confirmation prompts")
+	observeCobraValidationAndHelp(root)
 
 	// Flags from the old CLI that we error with a helpful message.
 	root.PersistentFlags().Bool("pretty-json", false, "")
@@ -208,8 +209,20 @@ func setupRootCmdPersistentRun(root *cobra.Command, deps *dependencies.Dependenc
 }
 
 func rootPersistentPreRun(deps *dependencies.Dependencies) func(cmd *cobra.Command, args []string) error {
-	return func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) (err error) {
 		ctx := cmd.Context()
+		observation := executionObservationFromContext(ctx)
+		if observation != nil {
+			observation.setup = setupStarted
+			// Records the setup outcome on every exit, success included.
+			defer func() {
+				if err != nil {
+					observation.setup = setupFailed
+				} else {
+					observation.setup = setupSucceeded
+				}
+			}()
+		}
 
 		if err := checkForDeprecatedFlagUsage(cmd); err != nil {
 			return err
@@ -360,7 +373,7 @@ func Execute() int {
 	return result.ExitCode
 }
 
-// execute runs one CLI execution and returns its result.
+// execute runs one CLI execution and returns its classified result.
 func execute() command.ExecutionResult {
 	startedAt := time.Now()
 
@@ -369,19 +382,20 @@ func execute() command.ExecutionResult {
 	// appears before a subcommand; otherwise let subcommands own their flags.
 	if isRootVersionRequest(os.Args[1:], rootCmd.PersistentFlags()) {
 		printVersionWithUpdateCheck()
-		return newExecutionResult(rootCmd, 0, startedAt)
+		return newExecutionResult(rootCmd, command.CompletionKindVersion, 0, startedAt)
 	}
 
 	if err := SetupCommands(); err != nil {
 		printError(rootCmd, err)
-		return newExecutionResult(rootCmd, 1, startedAt)
+		return newExecutionResult(rootCmd, command.CompletionKindSetupError, 1, startedAt)
 	}
 
+	observation := prepareExecutionObservation(rootCmd)
 	// cobra.Command.Execute is just a thin wrapper over cobra.Command.ExecuteC
 	// so we lose nothing by dropping down to this slightly lower-level method
 	// What we gain is the selected + executed sub-command returned back out to us
 	executed, err := rootCmd.ExecuteC()
-	return newExecutionResult(executed, exitCodeFromError(err), startedAt)
+	return newClassifiedExecutionResult(executed, err, observation, startedAt)
 }
 
 func init() {
