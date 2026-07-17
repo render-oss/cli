@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -351,21 +352,36 @@ func exitCodeFromError(err error) int {
 
 // Execute is the public entry point for the cmd package.
 // It configures and runs the root command, then returns its process exit code to main.
+// Every execution funnels through the single onExecutionComplete call here, no
+// matter which path inside execute produced the result.
 func Execute() int {
+	result := execute()
+	onExecutionComplete(result)
+	return result.ExitCode
+}
+
+// execute runs one CLI execution and returns its result.
+func execute() command.ExecutionResult {
+	startedAt := time.Now()
+
 	// Check if version flag is explicitly requested before Cobra handles it.
 	// Only treat --version / -v as the CLI's global version flag when it
 	// appears before a subcommand; otherwise let subcommands own their flags.
 	if isRootVersionRequest(os.Args[1:], rootCmd.PersistentFlags()) {
 		printVersionWithUpdateCheck()
-		return 0
+		return newExecutionResult(rootCmd, 0, startedAt)
 	}
 
 	if err := SetupCommands(); err != nil {
 		printError(rootCmd, err)
-		return 1
+		return newExecutionResult(rootCmd, 1, startedAt)
 	}
 
-	return exitCodeFromError(rootCmd.Execute())
+	// cobra.Command.Execute is just a thin wrapper over cobra.Command.ExecuteC
+	// so we lose nothing by dropping down to this slightly lower-level method
+	// What we gain is the selected + executed sub-command returned back out to us
+	executed, err := rootCmd.ExecuteC()
+	return newExecutionResult(executed, exitCodeFromError(err), startedAt)
 }
 
 func init() {

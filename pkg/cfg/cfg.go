@@ -28,6 +28,12 @@ func GetRegion() string {
 	return os.Getenv("RENDER_REGION")
 }
 
+// ShouldLogAnalytics reports whether the CLI should log analytics to stderr,
+// enabled by RENDER_LOG_ANALYTICS=1.
+func ShouldLogAnalytics() bool {
+	return os.Getenv("RENDER_LOG_ANALYTICS") == "1"
+}
+
 func AddUserAgent(header http.Header) http.Header {
 	header.Add("user-agent", fmt.Sprintf("render-cli/%s (%s)", Version, getOSInfoOnce()))
 	return header

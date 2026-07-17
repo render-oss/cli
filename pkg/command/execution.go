@@ -2,12 +2,26 @@ package command
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/spf13/cobra"
 )
 
 // ExitCoder is an error that specifies the process exit code it represents.
 type ExitCoder interface {
 	error
 	ExitCode() int
+}
+
+// ExecutionResult describes one completed CLI execution.
+type ExecutionResult struct {
+	// Command is the command Cobra selected, or the root command when the
+	// execution never reached Cobra command selection.
+	Command *cobra.Command
+	// Duration is the elapsed wall-clock time for the execution.
+	Duration time.Duration
+	// ExitCode is the process exit code returned by the top-level executor.
+	ExitCode int
 }
 
 // exitError carries a process exit code through Cobra's error-return path.

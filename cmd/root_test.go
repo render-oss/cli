@@ -6,6 +6,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"testing"
 	"time"
@@ -635,6 +637,62 @@ func TestIsRootVersionRequest(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			require.Equal(t, tc.want, isRootVersionRequest(tc.args, flags))
+		})
+	}
+}
+
+func TestExecuteInvokesOnExecutionComplete(t *testing.T) {
+	// These cases pin callback delivery on both flavors of the single exit —
+	// Cobra returned nil or an error. The error case matters most: Cobra skips
+	// post-run hooks on error, which is why completion lives in Execute rather
+	// than a hook.
+	testCases := []struct {
+		name         string
+		args         []string
+		wantExitCode int
+	}{
+		{
+			name:         "nil-error path",
+			args:         []string{"render", "--help"},
+			wantExitCode: 0,
+		},
+		{
+			name:         "error path",
+			args:         []string{"render", "command-that-does-not-exist"},
+			wantExitCode: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var callbackParams []command.ExecutionResult
+			spy := func(result command.ExecutionResult) { callbackParams = append(callbackParams, result) }
+			originalCallback := onExecutionComplete
+			onExecutionComplete = spy
+			t.Cleanup(func() { onExecutionComplete = originalCallback })
+
+			// Let SetupCommands build a Render API client without config or network access.
+			t.Setenv("RENDER_API_KEY", "test-api-key")
+			t.Setenv("RENDER_CLI_CONFIG_PATH", filepath.Join(t.TempDir(), "cli.yaml"))
+			t.Setenv("RENDER_LOG_ANALYTICS", "")
+
+			originalArgs := os.Args
+			os.Args = tc.args
+			t.Cleanup(func() { os.Args = originalArgs })
+
+			var out bytes.Buffer
+			rootCmd.SetOut(&out)
+			rootCmd.SetErr(&out)
+			t.Cleanup(func() {
+				rootCmd.SetOut(nil)
+				rootCmd.SetErr(nil)
+			})
+
+			exitCode := Execute()
+
+			require.Equal(t, tc.wantExitCode, exitCode)
+			require.Len(t, callbackParams, 1)
+			require.Equal(t, exitCode, callbackParams[0].ExitCode)
 		})
 	}
 }
