@@ -30,3 +30,26 @@ func TestShouldLogAnalytics(t *testing.T) {
 		})
 	}
 }
+
+func TestShouldSendAnalytics(t *testing.T) {
+	testCases := []struct {
+		name  string
+		value string
+		want  bool
+	}{
+		{name: "enabled by 1", value: "1", want: true},
+		{name: "unset", value: "", want: false},
+		{name: "zero", value: "0", want: false},
+		{name: "true is not accepted", value: "true", want: false},
+		{name: "yes is not accepted", value: "yes", want: false},
+		{name: "whitespace around 1 is not accepted", value: " 1", want: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", tc.value)
+
+			require.Equal(t, tc.want, cfg.ShouldSendAnalytics())
+		})
+	}
+}

@@ -30,8 +30,16 @@ func GetRegion() string {
 
 // ShouldLogAnalytics reports whether the CLI should log analytics to stderr,
 // enabled by RENDER_LOG_ANALYTICS=1.
+// This is independent of [ShouldSendAnalytics]: both can be toggled on/off independently.
 func ShouldLogAnalytics() bool {
 	return os.Getenv("RENDER_LOG_ANALYTICS") == "1"
+}
+
+// ShouldSendAnalytics reports whether the CLI should send analytics events to
+// the API, enabled by RENDER_TEST_ENABLE_ANALYTICS=1. While developing the telemetry system,
+// sending is off by default and only fire when explicitly opted in.
+func ShouldSendAnalytics() bool {
+	return os.Getenv("RENDER_TEST_ENABLE_ANALYTICS") == "1"
 }
 
 func AddUserAgent(header http.Header) http.Header {
