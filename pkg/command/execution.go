@@ -58,6 +58,22 @@ const (
 	CompletionKindExplicitExit CompletionKind = "explicit_exit"
 )
 
+// CompletionKindValues returns every defined CompletionKind. It is the
+// canonical list used to assert exhaustive coverage against the generated
+// telemetry enum; keep it in sync when adding a CompletionKind.
+func CompletionKindValues() []CompletionKind {
+	return []CompletionKind{
+		CompletionKindSuccess,
+		CompletionKindHelp,
+		CompletionKindVersion,
+		CompletionKindDiscoveryError,
+		CompletionKindValidationError,
+		CompletionKindSetupError,
+		CompletionKindExecutionError,
+		CompletionKindExplicitExit,
+	}
+}
+
 // ExecutionResult describes one completed CLI execution.
 type ExecutionResult struct {
 	// CommandPath is the space-joined path of the command Cobra selected (for

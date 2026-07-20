@@ -3,6 +3,7 @@ package dependencies
 import (
 	"sync"
 
+	"github.com/render-oss/cli/pkg/analytics"
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/config"
@@ -75,13 +76,15 @@ type Dependencies struct {
 	*Commands
 	stack                *tui.StackModel
 	client               *client.ClientWithResponses
+	analytics            *analytics.Sender
 	cache                *cachedDependencies
 	DetectRuntimeSignals func() (command.RuntimeSignals, error)
 }
 
 func New(c *client.ClientWithResponses) *Dependencies {
 	return &Dependencies{
-		client: c,
+		client:    c,
+		analytics: analytics.New(c),
 		Commands: &Commands{
 			Workflow:  &WorkflowCommands{},
 			Logs:      &LogsCommands{},
@@ -90,6 +93,10 @@ func New(c *client.ClientWithResponses) *Dependencies {
 		cache:                &cachedDependencies{},
 		DetectRuntimeSignals: command.DetectRuntimeSignals,
 	}
+}
+
+func (d *Dependencies) Analytics() *analytics.Sender {
+	return d.analytics
 }
 
 func (d *Dependencies) Stack() *tui.StackModel {
