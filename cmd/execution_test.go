@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 
 	"github.com/render-oss/cli/internal/testassert"
@@ -13,22 +12,18 @@ import (
 )
 
 func TestLogExecutionResult(t *testing.T) {
-	newResult := func(errOut *bytes.Buffer) command.ExecutionResult {
-		cmd := &cobra.Command{Use: "render"}
-		cmd.SetErr(errOut)
-		return command.ExecutionResult{
-			Command:        cmd,
-			CompletionKind: command.CompletionKindSuccess,
-			Duration:       250 * time.Millisecond,
-			ExitCode:       0,
-		}
+	result := command.ExecutionResult{
+		CommandPath:    "render",
+		CompletionKind: command.CompletionKindSuccess,
+		Duration:       250 * time.Millisecond,
+		ExitCode:       0,
 	}
 
-	t.Run("logs the result to stderr when enabled", func(t *testing.T) {
+	t.Run("logs the result to the writer when enabled", func(t *testing.T) {
 		t.Setenv("RENDER_LOG_ANALYTICS", "1")
 		var errOut bytes.Buffer
 
-		logExecutionResult(newResult(&errOut))
+		logExecutionResult(result, &errOut)
 
 		testassert.ContainsInOrder(t, errOut.String(),
 			"execution:", `command="render"`, "kind=success", "exit_code=0", "duration=250ms")
@@ -38,7 +33,7 @@ func TestLogExecutionResult(t *testing.T) {
 		t.Setenv("RENDER_LOG_ANALYTICS", "")
 		var errOut bytes.Buffer
 
-		logExecutionResult(newResult(&errOut))
+		logExecutionResult(result, &errOut)
 
 		require.Empty(t, errOut.String())
 	})

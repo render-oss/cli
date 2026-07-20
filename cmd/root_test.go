@@ -398,7 +398,7 @@ func TestExecutionResultClassifiesCobraOutcomes(t *testing.T) {
 			require.Equal(t, tc.wantExitCode, result.ExitCode)
 			require.Equal(t, tc.wantKind, result.CompletionKind)
 			require.GreaterOrEqual(t, result.Duration, time.Duration(0))
-			require.NotNil(t, result.Command)
+			require.NotEmpty(t, result.CommandPath)
 		})
 	}
 
@@ -578,8 +578,8 @@ func TestExecutionResultClassifiesCobraOutcomes(t *testing.T) {
 				result := executeAndClassify(t, tc.args, tc.configure)
 
 				require.Equal(t, tc.wantKind, result.CompletionKind)
-				require.NotNil(t, result.Command)
-				require.Equal(t, tc.wantCommandPath, result.Command.CommandPath())
+				require.NotEmpty(t, result.CommandPath)
+				require.Equal(t, tc.wantCommandPath, result.CommandPath)
 				require.Equal(t, tc.wantExitCode, result.ExitCode)
 			})
 		}

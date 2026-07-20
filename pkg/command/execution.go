@@ -3,8 +3,6 @@ package command
 import (
 	"fmt"
 	"time"
-
-	"github.com/spf13/cobra"
 )
 
 // ExitCoder is an error that specifies the process exit code it represents.
@@ -20,9 +18,9 @@ const (
 	// CompletionKindSuccess indicates that the selected command ran successfully.
 	CompletionKindSuccess CompletionKind = "success"
 	// CompletionKindHelp indicates that the user explicitly requested help, via
-	// the --help / -h flag or the builtin help command. The result's Command is
-	// the command whose help was displayed: the root command for `render --help`,
-	// and the services command for both `render services --help` and
+	// the --help / -h flag or the builtin help command. The result's CommandPath
+	// is the command whose help was displayed: `render` for `render --help`, and
+	// `render services` for both `render services --help` and
 	// `render help services`.
 	//
 	// Help that Cobra displays on its own initiative — such as when a parent
@@ -62,8 +60,13 @@ const (
 
 // ExecutionResult describes one completed CLI execution.
 type ExecutionResult struct {
-	// Command is the command Cobra selected, or the root command when discovery failed.
-	Command *cobra.Command
+	// CommandPath is the space-joined path of the command Cobra selected (for
+	// example "render services list"), or the root command's path ("render")
+	// when discovery failed. It contains only matched command names — never user
+	// arguments or flag values — so it is safe to emit as analytics. Downstream
+	// modeling (trimming the leading binary name, bucketing) belongs in the
+	// warehouse, not here.
+	CommandPath string
 	// CompletionKind classifies the phase and manner in which execution finished.
 	CompletionKind CompletionKind
 	// Duration is the elapsed wall-clock time for the execution.

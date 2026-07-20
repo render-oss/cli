@@ -20,23 +20,17 @@ type onExecutionCompleteFunc func(result commandpkg.ExecutionResult)
 // onExecutionComplete is our hook into the end of an execution
 // Will eventually house telemetry emission
 var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.ExecutionResult) {
-	logExecutionResult(result)
+	logExecutionResult(result, os.Stderr)
 }
 
-// logExecutionResult writes the classified result to stderr when RENDER_LOG_ANALYTICS=1.
-func logExecutionResult(result commandpkg.ExecutionResult) {
+// logExecutionResult writes the classified result to out when RENDER_LOG_ANALYTICS=1.
+func logExecutionResult(result commandpkg.ExecutionResult, out io.Writer) {
 	if !cfg.ShouldLogAnalytics() {
 		return
 	}
 
-	out := io.Writer(os.Stderr)
-	commandPath := ""
-	if result.Command != nil {
-		out = result.Command.ErrOrStderr()
-		commandPath = result.Command.CommandPath()
-	}
 	_, _ = fmt.Fprintf(out, "execution: command=%q kind=%s exit_code=%d duration=%s\n",
-		commandPath, result.CompletionKind, result.ExitCode, result.Duration)
+		result.CommandPath, result.CompletionKind, result.ExitCode, result.Duration)
 }
 
 // executionObservation records the Cobra events needed to classify an execution as a [commandpkg.CompletionKind].
@@ -314,11 +308,20 @@ func completionKind(command *cobra.Command, err error, observation *executionObs
 // newClassifiedExecutionResult when it must be derived from Cobra's outcome.
 func newExecutionResult(command *cobra.Command, kind commandpkg.CompletionKind, exitCode int, startedAt time.Time) commandpkg.ExecutionResult {
 	return commandpkg.ExecutionResult{
-		Command:        command,
+		CommandPath:    commandPath(command),
 		CompletionKind: kind,
 		Duration:       time.Since(startedAt),
 		ExitCode:       exitCode,
 	}
+}
+
+// commandPath returns the space-joined "path" of the command Cobra resolved.
+// e.g., `render postgres list` or `render deploys create`
+func commandPath(command *cobra.Command) string {
+	if command == nil {
+		return ""
+	}
+	return command.CommandPath()
 }
 
 // newClassifiedExecutionResult derives the completion kind and exit code from
