@@ -288,6 +288,7 @@ type Server struct {
 	Postgres      *PostgresResource
 	Services      *ServiceResource
 	SandboxGroups *SandboxGroupResource
+	CliTelemetry  *Resource[client.CreateCliTelemetryEventJSONRequestBody]
 }
 
 // ownerByID returns the Owner with the given ID from the seeded owners. The
@@ -391,6 +392,7 @@ func NewServer(t *testing.T) *Server {
 		Postgres:      &PostgresResource{},
 		Services:      &ServiceResource{},
 		SandboxGroups: &SandboxGroupResource{},
+		CliTelemetry:  &Resource[client.CreateCliTelemetryEventJSONRequestBody]{},
 	}
 
 	mux := http.NewServeMux()
@@ -1014,6 +1016,7 @@ func NewServer(t *testing.T) *Server {
 
 	registerServiceRoutes(mux, s, record)
 	registerSandboxGroupRoutes(mux, s, record)
+	registerCliTelemetryRoutes(mux, s, record)
 
 	s.server = httptest.NewServer(mux)
 	t.Cleanup(s.server.Close)
