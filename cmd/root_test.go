@@ -974,6 +974,28 @@ func TestRootHelpOmitsEmptyGroupHeaders(t *testing.T) {
 	require.NotContains(t, helpOutput, "Unused Group")
 }
 
+func TestRootGeneratesShellCompletions(t *testing.T) {
+	for _, shell := range []string{"bash", "zsh", "fish", "powershell"} {
+		t.Run(shell, func(t *testing.T) {
+			root := newRootCmd()
+			root.PersistentPostRunE = nil
+			root.AddCommand(&cobra.Command{
+				Use:     "placeholder",
+				GroupID: GroupCore.ID,
+				Run:     func(*cobra.Command, []string) {},
+			})
+
+			var output bytes.Buffer
+			root.SetOut(&output)
+			root.SetErr(&output)
+			root.SetArgs([]string{"completion", shell})
+
+			require.NoError(t, root.Execute())
+			require.NotEmpty(t, output.String())
+		})
+	}
+}
+
 func TestGetDescriptiveTypeNameUsesAnnotationWhenPresent(t *testing.T) {
 	flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
 	flags.String("region", "", "Filter by region.")

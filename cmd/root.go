@@ -84,7 +84,6 @@ func newRootCmd() *cobra.Command {
 	root.AddGroup(AllGroups...)
 	root.SetHelpTemplate(CustomHelpTemplate)
 	root.Version = cfg.Version
-	root.CompletionOptions.DisableDefaultCmd = true
 	root.PersistentFlags().StringP("output", "o", "interactive", "Set output format to interactive, json, yaml, or text. Auto-switches to text on non-TTY")
 	setFlagPlaceholder(root.PersistentFlags(), "output", command.OutputPlaceholder)
 	root.PersistentFlags().Bool(command.ConfirmFlag, false, "Skip all confirmation prompts")
