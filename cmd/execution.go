@@ -4,33 +4,25 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/cfg"
 	commandpkg "github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
 )
 
 // onExecutionCompleteFunc runs side effects after a command execution finishes.
-type onExecutionCompleteFunc func(result commandpkg.ExecutionResult)
+type onExecutionCompleteFunc func(result commandpkg.ExecutionResult, deps *dependencies.Dependencies, root *cobra.Command)
 
-// onExecutionComplete is our hook into the end of an execution
-// Will eventually house telemetry emission
-var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.ExecutionResult) {
-	logExecutionResult(result, os.Stderr)
-}
-
-// logExecutionResult writes the classified result to out when RENDER_LOG_ANALYTICS=1.
-func logExecutionResult(result commandpkg.ExecutionResult, out io.Writer) {
-	if !cfg.ShouldLogAnalytics() {
+// onExecutionComplete is the single process-wide hook for completed executions.
+var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.ExecutionResult, deps *dependencies.Dependencies, root *cobra.Command) {
+	// Nil deps means setup failed (or was skipped, as on the --version fast path)
+	// before a client existed, so there is no analytics sender to emit with.
+	if deps == nil {
 		return
 	}
-
-	_, _ = fmt.Fprintf(out, "execution: command=%q kind=%s exit_code=%d duration=%s\n",
-		result.CommandPath, result.CompletionKind, result.ExitCode, result.Duration)
+	deps.Analytics().Send(result, root.ErrOrStderr())
 }
 
 // executionObservation records the Cobra events needed to classify an execution as a [commandpkg.CompletionKind].
@@ -315,8 +307,9 @@ func newExecutionResult(command *cobra.Command, kind commandpkg.CompletionKind, 
 	}
 }
 
-// commandPath returns the space-joined "path" of the command Cobra resolved.
-// e.g., `render postgres list` or `render deploys create`
+// commandPath returns the space-joined path of the command Cobra resolved, the
+// privacy-safe label emitted as analytics. It reports only matched command
+// names, never user arguments or flag values.
 func commandPath(command *cobra.Command) string {
 	if command == nil {
 		return ""
@@ -336,4 +329,17 @@ func newClassifiedExecutionResult(command *cobra.Command, err error, observation
 		resultCommand = observation.helpTarget
 	}
 	return newExecutionResult(resultCommand, kind, exitCodeFromError(err), startedAt)
+}
+
+// runExecution runs a fully configured root command tree and returns the
+// result of that execution. Execute drives it on the process-wide root; tests
+// drive it on a fresh root built for a single invocation, which is why it takes
+// the root rather than reaching for the package global.
+func runExecution(root *cobra.Command, startedAt time.Time) commandpkg.ExecutionResult {
+	observation := prepareExecutionObservation(root)
+	// cobra.Command.Execute is a thin wrapper over ExecuteC; dropping to the
+	// lower-level call hands back the selected + executed sub-command so the
+	// result can be classified against it.
+	executed, err := root.ExecuteC()
+	return newClassifiedExecutionResult(executed, err, observation, startedAt)
 }

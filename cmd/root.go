@@ -176,16 +176,23 @@ func setupServiceCommands(deps *dependencies.Dependencies) {
 	servicesCmd.AddCommand(newServiceDeleteCmd(deps), newServiceUpdateCmd(deps))
 }
 
+// SetupCommands constructs and registers all CLI commands.
 func SetupCommands() error {
+	_, err := setupCommands()
+	return err
+}
+
+// setupCommands constructs dependencies and registers all CLI commands.
+func setupCommands() (*dependencies.Dependencies, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
 		if errors.Is(err, config.ErrLogin) {
 			c, err = client.NotLoggedInClient()
 			if err != nil {
-				return fmt.Errorf("failed to create client: %w", err)
+				return nil, fmt.Errorf("failed to create client: %w", err)
 			}
 		} else {
-			return fmt.Errorf("failed to create client: %w", err)
+			return nil, fmt.Errorf("failed to create client: %w", err)
 		}
 	}
 
@@ -201,7 +208,7 @@ func SetupCommands() error {
 	setupSandboxGroupsCommands(EarlyAccessCmd, deps)
 	setupRootCmdPersistentRun(rootCmd, deps)
 
-	return nil
+	return deps, nil
 }
 
 func setupRootCmdPersistentRun(root *cobra.Command, deps *dependencies.Dependencies) {
@@ -368,34 +375,34 @@ func exitCodeFromError(err error) int {
 // Every execution funnels through the single onExecutionComplete call here, no
 // matter which path inside execute produced the result.
 func Execute() int {
-	result := execute()
-	onExecutionComplete(result)
+	result, deps := execute()
+	onExecutionComplete(result, deps, rootCmd)
 	return result.ExitCode
 }
 
 // execute runs one CLI execution and returns its classified result.
-func execute() command.ExecutionResult {
+func execute() (command.ExecutionResult, *dependencies.Dependencies) {
 	startedAt := time.Now()
 
-	// Check if version flag is explicitly requested before Cobra handles it.
-	// Only treat --version / -v as the CLI's global version flag when it
-	// appears before a subcommand; otherwise let subcommands own their flags.
+	// Resolve --version before building the client. Only treat --version / -v as
+	// the CLI's global version flag when it appears before a subcommand;
+	// otherwise let subcommands own their flags. setupCommands builds the API
+	// client, whose construction can trigger a synchronous OAuth token refresh
+	// (NewDefaultClient -> maybeRefreshAPIToken) that is unbounded and could hang
+	// --version on a bad network. Returning here also means version requests emit
+	// no analytics — an accepted trade-off, signalled by the nil dependencies.
 	if isRootVersionRequest(os.Args[1:], rootCmd.PersistentFlags()) {
 		printVersionWithUpdateCheck()
-		return newExecutionResult(rootCmd, command.CompletionKindVersion, 0, startedAt)
+		return newExecutionResult(rootCmd, command.CompletionKindVersion, 0, startedAt), nil
 	}
 
-	if err := SetupCommands(); err != nil {
+	deps, err := setupCommands()
+	if err != nil {
 		printError(rootCmd, err)
-		return newExecutionResult(rootCmd, command.CompletionKindSetupError, 1, startedAt)
+		return newExecutionResult(rootCmd, command.CompletionKindSetupError, 1, startedAt), nil
 	}
 
-	observation := prepareExecutionObservation(rootCmd)
-	// cobra.Command.Execute is just a thin wrapper over cobra.Command.ExecuteC
-	// so we lose nothing by dropping down to this slightly lower-level method
-	// What we gain is the selected + executed sub-command returned back out to us
-	executed, err := rootCmd.ExecuteC()
-	return newClassifiedExecutionResult(executed, err, observation, startedAt)
+	return runExecution(rootCmd, startedAt), deps
 }
 
 func init() {

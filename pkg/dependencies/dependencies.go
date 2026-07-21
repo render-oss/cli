@@ -95,6 +95,7 @@ func New(c *client.ClientWithResponses) *Dependencies {
 	}
 }
 
+// Analytics returns the process-wide CLI analytics sender.
 func (d *Dependencies) Analytics() *analytics.Sender {
 	return d.analytics
 }

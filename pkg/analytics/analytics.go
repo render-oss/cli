@@ -16,7 +16,7 @@ import (
 	"github.com/render-oss/cli/pkg/command"
 )
 
-const sendTimeout = 250 * time.Millisecond
+const sendTimeout = 500 * time.Millisecond
 
 // Sender turns a completed execution into an analytics event. Sending and
 // logging events are controlled independently by environment variables.

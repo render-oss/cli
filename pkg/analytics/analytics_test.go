@@ -231,7 +231,7 @@ func TestSenderCancelsSendAfterTimeout(t *testing.T) {
 		"blocking request should not be canceled before its deadline: elapsed=%s timeout=%s", elapsed, sendTimeout)
 	require.ErrorIs(t, observation.ctx.Err(), context.DeadlineExceeded,
 		"blocking analytics request should be canceled because its deadline expired")
-	require.Contains(t, stderr.String(), "analytics error: canceling API request after exceeding 250ms timeout")
+	require.Contains(t, stderr.String(), "analytics error: canceling API request after exceeding "+sendTimeout.String()+" timeout")
 }
 
 func TestAnalyticsLogWriteFailureDoesNotPreventRequestOrCleanup(t *testing.T) {

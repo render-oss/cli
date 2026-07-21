@@ -12,6 +12,10 @@ import (
 	"testing"
 	"time"
 
+	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/render-oss/cli/internal/testids"
+	"github.com/render-oss/cli/pkg/client"
+	telemetryclient "github.com/render-oss/cli/pkg/client/clitelemetry"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/tui"
@@ -679,6 +683,95 @@ func TestPrepareExecutionObservationClearsRetainedUnknownSubcommand(t *testing.T
 	require.Equal(t, command.CompletionKindSuccess, secondResult.CompletionKind)
 }
 
+var analyticsWorkspaceID = testids.WorkspaceID("analytics")
+
+// TestCompletedCommandsEmitAnalytics drives real commands through the full
+// classify-and-emit path against the renderapi fake and asserts on the events
+// the server collected. Exhaustive per-outcome classification lives in
+// TestExecutionResultClassifiesCobraOutcomes; this proves the wiring end to end
+// and that the emitted command path is the verbatim, argument-free Cobra path.
+func TestCompletedCommandsEmitAnalytics(t *testing.T) {
+	testCases := []struct {
+		name          string
+		args          []string
+		seedWorkspace bool
+		wantCommand   string
+		wantKind      telemetryclient.CliTelemetryEventPOSTInputCompletionKind
+		wantExitCode  int
+	}{
+		{
+			name:          "success",
+			args:          []string{"postgres", "list", "--output", "json"},
+			seedWorkspace: true,
+			wantCommand:   "render postgres list",
+			wantKind:      telemetryclient.Success,
+		},
+		{
+			name:        "help",
+			args:        []string{"postgres", "list", "--help"},
+			wantCommand: "render postgres list",
+			wantKind:    telemetryclient.Help,
+		},
+		{
+			name:         "discovery error",
+			args:         []string{"bogus"},
+			wantCommand:  "render",
+			wantKind:     telemetryclient.DiscoveryError,
+			wantExitCode: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := renderapi.NewServer(t)
+			if tc.seedWorkspace {
+				server.Owners.Add(renderapi.NewOwner(client.Owner{Id: analyticsWorkspaceID, Name: "Analytics Workspace"}))
+				t.Setenv("RENDER_WORKSPACE", analyticsWorkspaceID)
+			}
+
+			result := executeWithAnalytics(t, server, tc.args...)
+
+			events := server.CliTelemetry.Instances
+			require.Len(t, events, 1)
+			require.Equal(t, tc.wantCommand, events[0].Command)
+			require.Equal(t, tc.wantKind, events[0].CompletionKind)
+			require.Equal(t, tc.wantExitCode, events[0].ExitCode)
+			require.Equal(t, tc.wantExitCode, result.ExitCode)
+		})
+	}
+}
+
+// executeWithAnalytics builds a fresh CLI app whose client and analytics sender
+// both target the fake, runs args through the same runExecution/onExecutionComplete
+// path Execute uses, and returns the classified result. The emitted event lands
+// on server.CliTelemetry.
+func executeWithAnalytics(t *testing.T, server *renderapi.Server, args ...string) command.ExecutionResult {
+	t.Helper()
+	t.Setenv("RENDER_CLI_CONFIG_PATH", newTestConfigPath(t))
+	t.Setenv("RENDER_API_KEY", "test-api-key")
+	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
+
+	c, err := client.NewClientWithResponses(server.URL())
+	require.NoError(t, err)
+	deps := dependencies.New(c)
+	deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
+		return command.RuntimeSignals{}, nil
+	}
+
+	root := newRootCmd()
+	setupPGCommands(root, deps)
+	setupRootCmdPersistentRun(root, deps)
+
+	var stdout, stderr bytes.Buffer
+	root.SetOut(&stdout)
+	root.SetErr(&stderr)
+	root.SetArgs(args)
+
+	result := runExecution(root, time.Now())
+	onExecutionComplete(result, deps, root)
+	return result
+}
+
 func newRootCommandForUsageTests() (*cobra.Command, *bytes.Buffer) {
 	deps := dependencies.New(nil)
 	deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
@@ -733,7 +826,9 @@ func TestExecuteInvokesOnExecutionComplete(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var callbackParams []command.ExecutionResult
-			spy := func(result command.ExecutionResult) { callbackParams = append(callbackParams, result) }
+			spy := func(result command.ExecutionResult, _ *dependencies.Dependencies, _ *cobra.Command) {
+				callbackParams = append(callbackParams, result)
+			}
 			originalCallback := onExecutionComplete
 			onExecutionComplete = spy
 			t.Cleanup(func() { onExecutionComplete = originalCallback })
