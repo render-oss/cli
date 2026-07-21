@@ -4,16 +4,10 @@
 
 ### Added
 
-- `render ea sandbox-groups list` command to list sandbox groups in the active workspace
 - Key Value commands now display persistence mode and support setting it when creating or updating an instance
-
-### Changed
-
-- **Breaking:** Renamed `render ea sandbox` commands to `render ea sandboxes`; the singular form has been removed
 
 ### Fixed
 
-- `render ea sandboxes list` now paginates results, supports multiple status filters, and applies `--all` correctly
 - `render workflows create --repo <local-path>` now resolves local repositories correctly in interactive mode
 
 ## [2.21.0] - 2026-06-29
