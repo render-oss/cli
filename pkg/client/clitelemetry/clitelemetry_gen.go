@@ -44,8 +44,14 @@ func (e CliTelemetryEventPOSTInputCompletionKind) Valid() bool {
 
 // CliTelemetryEventPOSTInput defines model for cliTelemetryEventPOSTInput.
 type CliTelemetryEventPOSTInput struct {
+	// AgentSignals Raw allow-listed AI coding agent environment variable names that were active (e.g., CLAUDECODE, CURSOR)
+	AgentSignals []string `json:"agent_signals"`
+
 	// Arch CPU architecture the CLI was run on (e.g. "amd64", "arm64")
 	Arch string `json:"arch"`
+
+	// CiSignals Raw allow-listed CI environment variable names that were active (e.g., CI, GITHUB_ACTIONS, GITLAB_CI)
+	CiSignals []string `json:"ci_signals"`
 
 	// CliVersion Version of the render CLI that sent this event
 	CliVersion string `json:"cli_version"`
@@ -62,8 +68,29 @@ type CliTelemetryEventPOSTInput struct {
 	// ExitCode Process exit code of the invocation
 	ExitCode int `json:"exit_code"`
 
+	// InstallationId Stable random installation UUID generated and stored by the CLI
+	InstallationId string `json:"installation_id"`
+
+	// IsStderrTty Whether stderr was attached to a TTY at invocation startup
+	IsStderrTty bool `json:"is_stderr_tty"`
+
+	// IsStdinTty Whether stdin was attached to a TTY at invocation startup
+	IsStdinTty bool `json:"is_stdin_tty"`
+
+	// IsStdoutTty Whether stdout was attached to a TTY at invocation startup
+	IsStdoutTty bool `json:"is_stdout_tty"`
+
+	// IsTermDumb Whether the TERM environment variable was set to "dumb" at invocation startup
+	IsTermDumb bool `json:"is_term_dumb"`
+
 	// Os Operating system the CLI was run on (e.g. "darwin", "linux", "windows")
 	Os string `json:"os"`
+
+	// OutputFormat Output mode selected for the CLI invocation (i.e., interactive, text, json, yaml)
+	OutputFormat string `json:"output_format"`
+
+	// TuiRendered Whether the CLI invocation actually rendered the interactive TUI
+	TuiRendered bool `json:"tui_rendered"`
 }
 
 // CliTelemetryEventPOSTInputCompletionKind How the CLI invocation completed
