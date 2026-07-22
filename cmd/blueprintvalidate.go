@@ -45,6 +45,8 @@ Validates:
 
 func init() {
 	blueprintsCmd.AddCommand(blueprintValidateCmd)
+	// The positional arg is a Blueprint file path, so keep file completion.
+	blueprintValidateCmd.CompletionOptions.SetDefaultShellCompDirective(cobra.ShellCompDirectiveDefault)
 	blueprintValidateCmd.Flags().StringP("workspace", "w", "", "Validate against the specified workspace ID (defaults to current workspace)")
 	setFlagPlaceholder(blueprintValidateCmd.Flags(), "workspace", "WORKSPACE_ID")
 }

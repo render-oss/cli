@@ -84,6 +84,10 @@ func newRootCmd() *cobra.Command {
 	root.AddGroup(AllGroups...)
 	root.SetHelpTemplate(CustomHelpTemplate)
 	root.Version = cfg.Version
+	// Most positional args are Render resources, not filesystem paths, so
+	// don't fall back to file completion. Commands that do take paths opt
+	// back in with ShellCompDirectiveDefault at their definition site.
+	root.CompletionOptions.SetDefaultShellCompDirective(cobra.ShellCompDirectiveNoFileComp)
 	root.PersistentFlags().StringP("output", "o", "interactive", "Set output format to interactive, json, yaml, or text. Auto-switches to text on non-TTY")
 	setFlagPlaceholder(root.PersistentFlags(), "output", command.OutputPlaceholder)
 	root.PersistentFlags().Bool(command.ConfirmFlag, false, "Skip all confirmation prompts")

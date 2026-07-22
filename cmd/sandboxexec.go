@@ -48,6 +48,8 @@ Examples:
 `,
 		Args: cobra.MinimumNArgs(2),
 	}
+	// The args after "--" form a shell command, so keep file completion.
+	cmd.CompletionOptions.SetDefaultShellCompDirective(cobra.ShellCompDirectiveDefault)
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		input := SandboxExecInput{

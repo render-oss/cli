@@ -9,6 +9,10 @@ import (
 	"github.com/render-oss/cli/pkg/command"
 )
 
+func TestSandboxExecKeepsFileCompletion(t *testing.T) {
+	requireCompletionDirective(t, []string{"ea", "sandboxes", "exec", ""}, cobra.ShellCompDirectiveDefault)
+}
+
 func TestExitSandboxExecUsesRemoteExitCode(t *testing.T) {
 	cmd := &cobra.Command{Use: "exec"}
 	err := exitSandboxExec(cmd, 7)

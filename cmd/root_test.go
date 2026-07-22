@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -994,6 +996,63 @@ func TestRootGeneratesShellCompletions(t *testing.T) {
 			require.NotEmpty(t, output.String())
 		})
 	}
+}
+
+func TestRootSuppressesFileCompletionByDefault(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{name: "resource positional", args: []string{"workspace", "set", ""}},
+		{name: "command without positionals", args: []string{"logs", ""}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			requireCompletionDirective(t, tc.args, cobra.ShellCompDirectiveNoFileComp)
+		})
+	}
+}
+
+// requireCompletionDirective asserts Cobra's machine-readable completion
+// protocol. The numeric directive is the final stdout line; Cobra separately
+// prints the corresponding Go constant names to stderr as diagnostic text.
+func requireCompletionDirective(t *testing.T, args []string, want cobra.ShellCompDirective) {
+	t.Helper()
+
+	output := strings.TrimSpace(runCompletionRequest(t, args))
+	lines := strings.Split(output, "\n")
+	trailer := lines[len(lines)-1]
+	encoded, ok := strings.CutPrefix(trailer, ":")
+	require.True(t, ok, "completion output must end with a directive trailer")
+	directive, err := strconv.Atoi(encoded)
+	require.NoError(t, err)
+	require.Equal(t, want, cobra.ShellCompDirective(directive))
+}
+
+// runCompletionRequest executes `render __complete <args...>` and returns the
+// completion output, including the directive trailer Cobra prints for shells.
+func runCompletionRequest(t *testing.T, args []string) string {
+	t.Helper()
+
+	t.Setenv("RENDER_API_KEY", "test-api-key")
+	t.Setenv("RENDER_CLI_CONFIG_PATH", filepath.Join(t.TempDir(), "cli.yaml"))
+	t.Setenv("RENDER_LOG_ANALYTICS", "")
+
+	originalArgs := os.Args
+	os.Args = append([]string{"render", "__complete"}, args...)
+	t.Cleanup(func() { os.Args = originalArgs })
+
+	var stdout, diagnostics bytes.Buffer
+	rootCmd.SetOut(&stdout)
+	rootCmd.SetErr(&diagnostics)
+	t.Cleanup(func() {
+		rootCmd.SetOut(nil)
+		rootCmd.SetErr(nil)
+	})
+
+	require.Equal(t, 0, Execute())
+	return stdout.String()
 }
 
 func TestGetDescriptiveTypeNameUsesAnnotationWhenPresent(t *testing.T) {

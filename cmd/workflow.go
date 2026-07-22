@@ -212,6 +212,8 @@ func init() {
 	workflowDevCmd.Flags().StringSlice("env-file", []string{defaultEnvFile}, "Path to an env file to load into the workflow subprocess. Repeat to load multiple files (later files override earlier ones).")
 	setFlagPlaceholder(workflowDevCmd.Flags(), "port", "PORT")
 	setFlagPlaceholder(workflowDevCmd.Flags(), "env-file", "PATH")
+	// The args after "--" form a shell command, so keep file completion.
+	workflowDevCmd.CompletionOptions.SetDefaultShellCompDirective(cobra.ShellCompDirectiveDefault)
 
 	rootCmd.AddCommand(WorkflowsCmd)
 	WorkflowsCmd.AddCommand(workflowDevCmd)
