@@ -9,7 +9,10 @@ on:
 jobs:
   test:
     name: Run Go Tests
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
@@ -21,4 +24,4 @@ jobs:
           cache: true
 
       - name: Test with the Go CLI
-        run: go test $(go list ./... | grep -v e2e)
+        run: go test ./cmd/... ./pkg/... ./internal/...

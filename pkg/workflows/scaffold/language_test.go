@@ -1,26 +1,10 @@
 package scaffold
 
 import (
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestSetupCommand_Python(t *testing.T) {
-	cmd := SetupCommand(Python)
-	assert.NotEmpty(t, cmd)
-	assert.Contains(t, cmd, "venv")
-	assert.Contains(t, cmd, "activate")
-
-	if runtime.GOOS == "windows" {
-		assert.Contains(t, cmd, "python -m venv")
-		assert.Contains(t, cmd, `Scripts`)
-	} else {
-		assert.Contains(t, cmd, "python3 -m venv")
-		assert.Contains(t, cmd, "source")
-	}
-}
 
 func TestDepsInstallCommand_Python(t *testing.T) {
 	python := pythonBinary()

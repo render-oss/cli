@@ -229,7 +229,7 @@ startCommand: npx tsx src/index.ts
 	assert.Equal(t, TypeScript, result.Language)
 	assert.Equal(t, "npx tsx src/index.ts", result.StartCommand)
 
-	expectedFiles := []string{"README.md", "package.json", "src/index.ts", "tsconfig.json", ".gitignore", ".env.example"}
+	expectedFiles := []string{"README.md", "package.json", filepath.Join("src", "index.ts"), "tsconfig.json", ".gitignore", ".env.example"}
 	require.Len(t, result.Files, len(expectedFiles))
 	for _, f := range expectedFiles {
 		assert.Contains(t, result.Files, f)

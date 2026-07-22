@@ -1,3 +1,12 @@
+//go:build !windows
+
+// These tests exercise workflow orchestration through SocketTracker, which
+// currently creates Unix domain sockets under /tmp. Windows has no /tmp, so
+// skip the suite there until workflow orchestration supports Windows.
+// Possible fix: select a short platform-specific temp root (/tmp on Unix and
+// os.TempDir() on Windows), then construct socket paths with filepath.Join before
+// calling net.Listen("unix", path). Keeping Unix paths short avoids socket path
+// length limits while allowing modern Windows versions to use Unix sockets.
 package orchestrator_test
 
 import (

@@ -190,7 +190,8 @@ func TestLocalService_Exists(t *testing.T) {
 }
 
 func TestLocalService_objectPath(t *testing.T) {
-	svc := NewLocalService("/base", "oregon", "usr-123")
+	basePath := t.TempDir()
+	svc := NewLocalService(basePath, "oregon", "usr-123")
 
 	tests := []struct {
 		name string
@@ -200,27 +201,27 @@ func TestLocalService_objectPath(t *testing.T) {
 		{
 			name: "simple key",
 			key:  "file.txt",
-			want: "/base/oregon/usr-123/file.txt",
+			want: filepath.Join(basePath, "oregon", "usr-123", "file.txt"),
 		},
 		{
 			name: "key with path",
 			key:  "path/to/file.txt",
-			want: "/base/oregon/usr-123/path%2Fto%2Ffile.txt",
+			want: filepath.Join(basePath, "oregon", "usr-123", "path%2Fto%2Ffile.txt"),
 		},
 		{
 			name: "key with spaces",
 			key:  "file with spaces.txt",
-			want: "/base/oregon/usr-123/file%20with%20spaces.txt",
+			want: filepath.Join(basePath, "oregon", "usr-123", "file%20with%20spaces.txt"),
 		},
 		{
 			name: "key with special chars",
 			key:  "file(1).txt",
-			want: "/base/oregon/usr-123/file%281%29.txt",
+			want: filepath.Join(basePath, "oregon", "usr-123", "file%281%29.txt"),
 		},
 		{
 			name: "key with unicode",
 			key:  "测试/文件.txt",
-			want: "/base/oregon/usr-123/%E6%B5%8B%E8%AF%95%2F%E6%96%87%E4%BB%B6.txt",
+			want: filepath.Join(basePath, "oregon", "usr-123", "%E6%B5%8B%E8%AF%95%2F%E6%96%87%E4%BB%B6.txt"),
 		},
 	}
 

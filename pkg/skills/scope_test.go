@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"path/filepath"
 	"testing"
 )
 
@@ -79,7 +80,7 @@ func TestGetScopedSkillsDir(t *testing.T) {
 		Name:      "Claude Code",
 		SkillsDir: "/home/user/.claude/skills",
 	}
-	repoRoot := "/path/to/repo"
+	repoRoot := t.TempDir()
 
 	// User scope should return the tool's existing skills dir
 	userDir := GetScopedSkillsDir(tool, ScopeUser, repoRoot)
@@ -89,7 +90,7 @@ func TestGetScopedSkillsDir(t *testing.T) {
 
 	// Project scope should return a path under the repo root
 	projectDir := GetScopedSkillsDir(tool, ScopeProject, repoRoot)
-	expected := "/path/to/repo/.claude/skills"
+	expected := filepath.Join(repoRoot, ".claude", "skills")
 	if projectDir != expected {
 		t.Errorf("GetScopedSkillsDir(project) = %q, want %q", projectDir, expected)
 	}
