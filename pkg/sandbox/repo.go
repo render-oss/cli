@@ -1,6 +1,7 @@
 package sandbox
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -99,37 +100,64 @@ func (r *Repo) GetSandbox(ctx context.Context, id string) (*sandboxclient.Sandbo
 }
 
 func (r *Repo) ExecSandboxStream(ctx context.Context, id string, command string, onOutput func(*ExecOutputEvent) error) (int, error) {
-	workspace, err := config.WorkspaceID()
+	conn, err := r.connect(ctx, id)
 	if err != nil {
 		return 0, err
 	}
 
-	resp, err := r.client.ExecSandboxSync(ctx, id,
-		&client.ExecSandboxSyncParams{OwnerId: workspace},
-		client.ExecSandboxSyncJSONRequestBody{Command: command},
-		func(_ context.Context, req *http.Request) error {
-			req.Header.Set("Accept", "text/event-stream")
-			return nil
-		},
-	)
+	body, err := json.Marshal(execCommand{Command: command})
 	if err != nil {
 		return 0, err
 	}
-	if resp == nil || resp.Body == nil {
-		return 0, fmt.Errorf("exec sandbox stream: success response missing body")
+	req, err := http.NewRequestWithContext(ctx, conn.Method, conn.Uri, bytes.NewReader(body))
+	if err != nil {
+		return 0, fmt.Errorf("build exec stream request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+conn.Token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "text/event-stream")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return 0, errFromStreamResponse(resp)
 	}
-
 	return readSandboxExecStream(resp.Body, onOutput)
 }
 
-// errFromStreamResponse parses an error out of a raw streaming response body.
+type execCommand struct {
+	Command string `json:"command"`
+}
+
+func (r *Repo) connect(ctx context.Context, id string) (*sandboxclient.SandboxConnectResponse, error) {
+	workspace, err := config.WorkspaceID()
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := r.client.ConnectSandboxRunWithResponse(ctx, id, "stream", &client.ConnectSandboxRunParams{OwnerId: workspace})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+
+	if resp.JSON201 == nil {
+		return nil, fmt.Errorf("connect sandbox: success response missing connect token")
+	}
+
+	return resp.JSON201, nil
+}
+
+// errFromStreamResponse parses an error out of the raw proxy streaming response.
 // client.ErrorFromResponse reflects over the generated *WithResponse structs and
-// can't be used on the raw *http.Response returned by ExecSandboxSync, so this
+// can't be used on the raw *http.Response from the manual stream request, so this
 // mirrors its behavior: map the standard auth codes to shared sentinels and
 // surface the API's structured error message where present.
 func errFromStreamResponse(resp *http.Response) error {

@@ -10,24 +10,6 @@ import (
 	"time"
 )
 
-// Defines values for SandboxExecStreamOutputEventStream.
-const (
-	SandboxExecStreamOutputEventStreamStderr SandboxExecStreamOutputEventStream = "stderr"
-	SandboxExecStreamOutputEventStreamStdout SandboxExecStreamOutputEventStream = "stdout"
-)
-
-// Valid indicates whether the value is a known member of the SandboxExecStreamOutputEventStream enum.
-func (e SandboxExecStreamOutputEventStream) Valid() bool {
-	switch e {
-	case SandboxExecStreamOutputEventStreamStderr:
-		return true
-	case SandboxExecStreamOutputEventStreamStdout:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for SandboxFileEntryType.
 const (
 	Directory SandboxFileEntryType = "directory"
@@ -81,16 +63,16 @@ func (e SandboxLifecycleEventType) Valid() bool {
 
 // Defines values for SandboxLogEventStream.
 const (
-	SandboxLogEventStreamStderr SandboxLogEventStream = "stderr"
-	SandboxLogEventStreamStdout SandboxLogEventStream = "stdout"
+	Stderr SandboxLogEventStream = "stderr"
+	Stdout SandboxLogEventStream = "stdout"
 )
 
 // Valid indicates whether the value is a known member of the SandboxLogEventStream enum.
 func (e SandboxLogEventStream) Valid() bool {
 	switch e {
-	case SandboxLogEventStreamStderr:
+	case Stderr:
 		return true
-	case SandboxLogEventStreamStdout:
+	case Stdout:
 		return true
 	default:
 		return false
@@ -186,57 +168,32 @@ type Sandbox struct {
 	TimeoutSeconds int `json:"timeoutSeconds"`
 }
 
+// SandboxConnectResponse A minted connect token and the sandbox-proxy endpoint to invoke with it.
+// Send the request (and body, where the operation takes one) to `uri`
+// using `method`, with `token` as a bearer credential.
+type SandboxConnectResponse struct {
+	// ExecutionId Identifier for this execution.
+	ExecutionId string `json:"executionId"`
+
+	// ExpiresAt When `token` stops being valid. Start the run before this time.
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// Method HTTP method to use against `uri`.
+	Method string `json:"method"`
+
+	// Token Short-lived bearer token authorizing exactly this operation against the sandbox.
+	Token string `json:"token"`
+
+	// Uri The sandbox-proxy endpoint to invoke.
+	Uri string `json:"uri"`
+}
+
 // SandboxDirectoryListing Directory listing response.
 type SandboxDirectoryListing struct {
 	Entries []SandboxFileEntry `json:"entries"`
 
 	// Path The absolute path that was listed.
 	Path string `json:"path"`
-}
-
-// SandboxExecStreamErrorEvent Payload for terminal `event: error` in a sandbox exec SSE stream when a runtime or transport failure occurs after streaming has started.
-type SandboxExecStreamErrorEvent struct {
-	// Message Error message.
-	Message string `json:"message"`
-
-	// Status HTTP-style status code for the terminal streaming error.
-	Status int `json:"status"`
-}
-
-// SandboxExecStreamExitEvent Payload for terminal `event: exit` in a sandbox exec SSE stream. Non-zero process exit codes are reported here rather than as HTTP errors.
-type SandboxExecStreamExitEvent struct {
-	// ExitCode Process exit code.
-	ExitCode int `json:"exit_code"`
-}
-
-// SandboxExecStreamOutputEvent Payload for `event: output` in a sandbox exec SSE stream.
-type SandboxExecStreamOutputEvent struct {
-	// Data Output chunk.
-	Data string `json:"data"`
-
-	// Stream Output stream that produced this chunk.
-	Stream SandboxExecStreamOutputEventStream `json:"stream"`
-}
-
-// SandboxExecStreamOutputEventStream Output stream that produced this chunk.
-type SandboxExecStreamOutputEventStream string
-
-// SandboxExecSyncRequest Body of the synchronous exec endpoint.
-type SandboxExecSyncRequest struct {
-	// Command Bash command to run. Passed to `bash -c` in the sandbox.
-	Command string `json:"command"`
-}
-
-// SandboxExecSyncResponse Response from the synchronous exec endpoint. Returned after the command exits.
-type SandboxExecSyncResponse struct {
-	// ExitCode Process exit code.
-	ExitCode int `json:"exitCode"`
-
-	// Stderr Captured stderr.
-	Stderr string `json:"stderr"`
-
-	// Stdout Captured stdout.
-	Stdout string `json:"stdout"`
 }
 
 // SandboxFileEntry A file or directory entry in a sandbox filesystem listing.
@@ -323,6 +280,8 @@ type SandboxNetworkPolicyDefault string
 
 // SandboxPOST defines model for sandboxPOST.
 type SandboxPOST struct {
+	// Env Inline environment variables injected into the sandbox at creation. Treated as secrets; not returned by the API.
+	Env           *map[string]string    `json:"env,omitempty"`
 	NetworkPolicy *SandboxNetworkPolicy `json:"networkPolicy,omitempty"`
 
 	// OwnerId The ID of the workspace the sandbox belongs to.

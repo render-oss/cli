@@ -700,22 +700,17 @@ type ClientInterface interface {
 	// RetrieveSandbox request
 	RetrieveSandbox(ctx context.Context, sandboxId externalRef16.SandboxId, params *RetrieveSandboxParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ExecSandboxSyncWithBody request with any body
-	ExecSandboxSyncWithBody(ctx context.Context, sandboxId externalRef16.SandboxId, params *ExecSandboxSyncParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	ExecSandboxSync(ctx context.Context, sandboxId externalRef16.SandboxId, params *ExecSandboxSyncParams, body ExecSandboxSyncJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// DownloadSandboxFiles request
-	DownloadSandboxFiles(ctx context.Context, sandboxId externalRef16.SandboxId, params *DownloadSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UploadSandboxFilesWithBody request with any body
-	UploadSandboxFilesWithBody(ctx context.Context, sandboxId externalRef16.SandboxId, params *UploadSandboxFilesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// ListSandboxFiles request
 	ListSandboxFiles(ctx context.Context, sandboxId externalRef16.SandboxId, params *ListSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ConnectSandboxFiles request
+	ConnectSandboxFiles(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// StreamSandboxLogs request
 	StreamSandboxLogs(ctx context.Context, sandboxId externalRef16.SandboxId, params *StreamSandboxLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ConnectSandboxRun request
+	ConnectSandboxRun(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxRunParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TerminateSandbox request
 	TerminateSandbox(ctx context.Context, sandboxId externalRef16.SandboxId, params *TerminateSandboxParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3528,54 +3523,6 @@ func (c *Client) RetrieveSandbox(ctx context.Context, sandboxId externalRef16.Sa
 	return c.Client.Do(req)
 }
 
-func (c *Client) ExecSandboxSyncWithBody(ctx context.Context, sandboxId externalRef16.SandboxId, params *ExecSandboxSyncParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewExecSandboxSyncRequestWithBody(c.Server, sandboxId, params, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ExecSandboxSync(ctx context.Context, sandboxId externalRef16.SandboxId, params *ExecSandboxSyncParams, body ExecSandboxSyncJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewExecSandboxSyncRequest(c.Server, sandboxId, params, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) DownloadSandboxFiles(ctx context.Context, sandboxId externalRef16.SandboxId, params *DownloadSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDownloadSandboxFilesRequest(c.Server, sandboxId, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) UploadSandboxFilesWithBody(ctx context.Context, sandboxId externalRef16.SandboxId, params *UploadSandboxFilesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUploadSandboxFilesRequestWithBody(c.Server, sandboxId, params, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 func (c *Client) ListSandboxFiles(ctx context.Context, sandboxId externalRef16.SandboxId, params *ListSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListSandboxFilesRequest(c.Server, sandboxId, params)
 	if err != nil {
@@ -3588,8 +3535,32 @@ func (c *Client) ListSandboxFiles(ctx context.Context, sandboxId externalRef16.S
 	return c.Client.Do(req)
 }
 
+func (c *Client) ConnectSandboxFiles(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConnectSandboxFilesRequest(c.Server, sandboxId, operation, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) StreamSandboxLogs(ctx context.Context, sandboxId externalRef16.SandboxId, params *StreamSandboxLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewStreamSandboxLogsRequest(c.Server, sandboxId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ConnectSandboxRun(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxRunParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConnectSandboxRunRequest(c.Server, sandboxId, operation, params)
 	if err != nil {
 		return nil, err
 	}
@@ -15936,192 +15907,6 @@ func NewRetrieveSandboxRequest(server string, sandboxId externalRef16.SandboxId,
 	return req, nil
 }
 
-// NewExecSandboxSyncRequest calls the generic ExecSandboxSync builder with application/json body
-func NewExecSandboxSyncRequest(server string, sandboxId externalRef16.SandboxId, params *ExecSandboxSyncParams, body ExecSandboxSyncJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewExecSandboxSyncRequestWithBody(server, sandboxId, params, "application/json", bodyReader)
-}
-
-// NewExecSandboxSyncRequestWithBody generates requests for ExecSandboxSync with any type of body
-func NewExecSandboxSyncRequestWithBody(server string, sandboxId externalRef16.SandboxId, params *ExecSandboxSyncParams, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/sandboxes/%s/exec", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	if params != nil {
-
-		if params.Accept != nil {
-			var headerParam0 string
-
-			headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Accept", *params.Accept, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
-			if err != nil {
-				return nil, err
-			}
-
-			req.Header.Set("Accept", headerParam0)
-		}
-
-	}
-
-	return req, nil
-}
-
-// NewDownloadSandboxFilesRequest generates requests for DownloadSandboxFiles
-func NewDownloadSandboxFilesRequest(server string, sandboxId externalRef16.SandboxId, params *DownloadSandboxFilesParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/sandboxes/%s/files", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "path", params.Path, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewUploadSandboxFilesRequestWithBody generates requests for UploadSandboxFiles with any type of body
-func NewUploadSandboxFilesRequestWithBody(server string, sandboxId externalRef16.SandboxId, params *UploadSandboxFilesParams, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/sandboxes/%s/files", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "path", params.Path, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("PUT", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
 // NewListSandboxFilesRequest generates requests for ListSandboxFiles
 func NewListSandboxFilesRequest(server string, sandboxId externalRef16.SandboxId, params *ListSandboxFilesParams) (*http.Request, error) {
 	var err error
@@ -16183,6 +15968,77 @@ func NewListSandboxFilesRequest(server string, sandboxId externalRef16.SandboxId
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewConnectSandboxFilesRequest generates requests for ConnectSandboxFiles
+func NewConnectSandboxFilesRequest(server string, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxFilesParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "operation", operation, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandboxes/%s/files/%s/token", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "path", params.Path, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16288,6 +16144,65 @@ func NewStreamSandboxLogsRequest(server string, sandboxId externalRef16.SandboxI
 			req.Header.Set("Accept", headerParam0)
 		}
 
+	}
+
+	return req, nil
+}
+
+// NewConnectSandboxRunRequest generates requests for ConnectSandboxRun
+func NewConnectSandboxRunRequest(server string, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxRunParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "operation", operation, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandboxes/%s/runs/%s/token", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
 	}
 
 	return req, nil
@@ -21294,22 +21209,17 @@ type ClientWithResponsesInterface interface {
 	// RetrieveSandboxWithResponse request
 	RetrieveSandboxWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *RetrieveSandboxParams, reqEditors ...RequestEditorFn) (*RetrieveSandboxResponse, error)
 
-	// ExecSandboxSyncWithBodyWithResponse request with any body
-	ExecSandboxSyncWithBodyWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *ExecSandboxSyncParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ExecSandboxSyncResponse, error)
-
-	ExecSandboxSyncWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *ExecSandboxSyncParams, body ExecSandboxSyncJSONRequestBody, reqEditors ...RequestEditorFn) (*ExecSandboxSyncResponse, error)
-
-	// DownloadSandboxFilesWithResponse request
-	DownloadSandboxFilesWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *DownloadSandboxFilesParams, reqEditors ...RequestEditorFn) (*DownloadSandboxFilesResponse, error)
-
-	// UploadSandboxFilesWithBodyWithResponse request with any body
-	UploadSandboxFilesWithBodyWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *UploadSandboxFilesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UploadSandboxFilesResponse, error)
-
 	// ListSandboxFilesWithResponse request
 	ListSandboxFilesWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *ListSandboxFilesParams, reqEditors ...RequestEditorFn) (*ListSandboxFilesResponse, error)
 
+	// ConnectSandboxFilesWithResponse request
+	ConnectSandboxFilesWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxFilesParams, reqEditors ...RequestEditorFn) (*ConnectSandboxFilesResponse, error)
+
 	// StreamSandboxLogsWithResponse request
 	StreamSandboxLogsWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *StreamSandboxLogsParams, reqEditors ...RequestEditorFn) (*StreamSandboxLogsResponse, error)
+
+	// ConnectSandboxRunWithResponse request
+	ConnectSandboxRunWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxRunParams, reqEditors ...RequestEditorFn) (*ConnectSandboxRunResponse, error)
 
 	// TerminateSandboxWithResponse request
 	TerminateSandboxWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *TerminateSandboxParams, reqEditors ...RequestEditorFn) (*TerminateSandboxResponse, error)
@@ -26348,93 +26258,6 @@ func (r RetrieveSandboxResponse) StatusCode() int {
 	return 0
 }
 
-type ExecSandboxSyncResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *externalRef16.SandboxExecSyncResponse
-	JSON400      *N400BadRequest
-	JSON401      *N401Unauthorized
-	JSON403      *N403Forbidden
-	JSON404      *N404NotFound
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r ExecSandboxSyncResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ExecSandboxSyncResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type DownloadSandboxFilesResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON400      *N400BadRequest
-	JSON401      *N401Unauthorized
-	JSON403      *N403Forbidden
-	JSON404      *N404NotFound
-	JSON409      *N409Conflict
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r DownloadSandboxFilesResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DownloadSandboxFilesResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type UploadSandboxFilesResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON400      *N400BadRequest
-	JSON401      *N401Unauthorized
-	JSON403      *N403Forbidden
-	JSON404      *N404NotFound
-	JSON409      *N409Conflict
-	JSON429      *N429RateLimit
-	JSON500      *N500InternalServerError
-	JSON503      *N503ServiceUnavailable
-}
-
-// Status returns HTTPResponse.Status
-func (r UploadSandboxFilesResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UploadSandboxFilesResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type ListSandboxFilesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -26465,6 +26288,35 @@ func (r ListSandboxFilesResponse) StatusCode() int {
 	return 0
 }
 
+type ConnectSandboxFilesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *externalRef16.SandboxConnectResponse
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ConnectSandboxFilesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ConnectSandboxFilesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type StreamSandboxLogsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -26486,6 +26338,35 @@ func (r StreamSandboxLogsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r StreamSandboxLogsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ConnectSandboxRunResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *externalRef16.SandboxConnectResponse
+	JSON400      *N400BadRequest
+	JSON401      *N401Unauthorized
+	JSON403      *N403Forbidden
+	JSON404      *N404NotFound
+	JSON429      *N429RateLimit
+	JSON500      *N500InternalServerError
+	JSON503      *N503ServiceUnavailable
+}
+
+// Status returns HTTPResponse.Status
+func (r ConnectSandboxRunResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ConnectSandboxRunResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -30463,41 +30344,6 @@ func (c *ClientWithResponses) RetrieveSandboxWithResponse(ctx context.Context, s
 	return ParseRetrieveSandboxResponse(rsp)
 }
 
-// ExecSandboxSyncWithBodyWithResponse request with arbitrary body returning *ExecSandboxSyncResponse
-func (c *ClientWithResponses) ExecSandboxSyncWithBodyWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *ExecSandboxSyncParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ExecSandboxSyncResponse, error) {
-	rsp, err := c.ExecSandboxSyncWithBody(ctx, sandboxId, params, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseExecSandboxSyncResponse(rsp)
-}
-
-func (c *ClientWithResponses) ExecSandboxSyncWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *ExecSandboxSyncParams, body ExecSandboxSyncJSONRequestBody, reqEditors ...RequestEditorFn) (*ExecSandboxSyncResponse, error) {
-	rsp, err := c.ExecSandboxSync(ctx, sandboxId, params, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseExecSandboxSyncResponse(rsp)
-}
-
-// DownloadSandboxFilesWithResponse request returning *DownloadSandboxFilesResponse
-func (c *ClientWithResponses) DownloadSandboxFilesWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *DownloadSandboxFilesParams, reqEditors ...RequestEditorFn) (*DownloadSandboxFilesResponse, error) {
-	rsp, err := c.DownloadSandboxFiles(ctx, sandboxId, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDownloadSandboxFilesResponse(rsp)
-}
-
-// UploadSandboxFilesWithBodyWithResponse request with arbitrary body returning *UploadSandboxFilesResponse
-func (c *ClientWithResponses) UploadSandboxFilesWithBodyWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *UploadSandboxFilesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UploadSandboxFilesResponse, error) {
-	rsp, err := c.UploadSandboxFilesWithBody(ctx, sandboxId, params, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUploadSandboxFilesResponse(rsp)
-}
-
 // ListSandboxFilesWithResponse request returning *ListSandboxFilesResponse
 func (c *ClientWithResponses) ListSandboxFilesWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *ListSandboxFilesParams, reqEditors ...RequestEditorFn) (*ListSandboxFilesResponse, error) {
 	rsp, err := c.ListSandboxFiles(ctx, sandboxId, params, reqEditors...)
@@ -30507,6 +30353,15 @@ func (c *ClientWithResponses) ListSandboxFilesWithResponse(ctx context.Context, 
 	return ParseListSandboxFilesResponse(rsp)
 }
 
+// ConnectSandboxFilesWithResponse request returning *ConnectSandboxFilesResponse
+func (c *ClientWithResponses) ConnectSandboxFilesWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxFilesParams, reqEditors ...RequestEditorFn) (*ConnectSandboxFilesResponse, error) {
+	rsp, err := c.ConnectSandboxFiles(ctx, sandboxId, operation, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConnectSandboxFilesResponse(rsp)
+}
+
 // StreamSandboxLogsWithResponse request returning *StreamSandboxLogsResponse
 func (c *ClientWithResponses) StreamSandboxLogsWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *StreamSandboxLogsParams, reqEditors ...RequestEditorFn) (*StreamSandboxLogsResponse, error) {
 	rsp, err := c.StreamSandboxLogs(ctx, sandboxId, params, reqEditors...)
@@ -30514,6 +30369,15 @@ func (c *ClientWithResponses) StreamSandboxLogsWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseStreamSandboxLogsResponse(rsp)
+}
+
+// ConnectSandboxRunWithResponse request returning *ConnectSandboxRunResponse
+func (c *ClientWithResponses) ConnectSandboxRunWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxRunParams, reqEditors ...RequestEditorFn) (*ConnectSandboxRunResponse, error) {
+	rsp, err := c.ConnectSandboxRun(ctx, sandboxId, operation, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConnectSandboxRunResponse(rsp)
 }
 
 // TerminateSandboxWithResponse request returning *TerminateSandboxResponse
@@ -43007,234 +42871,6 @@ func ParseRetrieveSandboxResponse(rsp *http.Response) (*RetrieveSandboxResponse,
 	return response, nil
 }
 
-// ParseExecSandboxSyncResponse parses an HTTP response from a ExecSandboxSyncWithResponse call
-func ParseExecSandboxSyncResponse(rsp *http.Response) (*ExecSandboxSyncResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ExecSandboxSyncResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef16.SandboxExecSyncResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	case rsp.StatusCode == 200:
-		// Content-type (text/event-stream) unsupported
-
-	}
-
-	return response, nil
-}
-
-// ParseDownloadSandboxFilesResponse parses an HTTP response from a DownloadSandboxFilesWithResponse call
-func ParseDownloadSandboxFilesResponse(rsp *http.Response) (*DownloadSandboxFilesResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DownloadSandboxFilesResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest N409Conflict
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON409 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseUploadSandboxFilesResponse parses an HTTP response from a UploadSandboxFilesWithResponse call
-func ParseUploadSandboxFilesResponse(rsp *http.Response) (*UploadSandboxFilesResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UploadSandboxFilesResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest N409Conflict
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON409 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
 // ParseListSandboxFilesResponse parses an HTTP response from a ListSandboxFilesWithResponse call
 func ParseListSandboxFilesResponse(rsp *http.Response) (*ListSandboxFilesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -43317,6 +42953,81 @@ func ParseListSandboxFilesResponse(rsp *http.Response) (*ListSandboxFilesRespons
 	return response, nil
 }
 
+// ParseConnectSandboxFilesResponse parses an HTTP response from a ConnectSandboxFilesWithResponse call
+func ParseConnectSandboxFilesResponse(rsp *http.Response) (*ConnectSandboxFilesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ConnectSandboxFilesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest externalRef16.SandboxConnectResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseStreamSandboxLogsResponse parses an HTTP response from a StreamSandboxLogsWithResponse call
 func ParseStreamSandboxLogsResponse(rsp *http.Response) (*StreamSandboxLogsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -43331,6 +43042,81 @@ func ParseStreamSandboxLogsResponse(rsp *http.Response) (*StreamSandboxLogsRespo
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseConnectSandboxRunResponse parses an HTTP response from a ConnectSandboxRunWithResponse call
+func ParseConnectSandboxRunResponse(rsp *http.Response) (*ConnectSandboxRunResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ConnectSandboxRunResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest externalRef16.SandboxConnectResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest N401Unauthorized
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {

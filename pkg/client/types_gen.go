@@ -1404,24 +1404,6 @@ func (e ListPostgresParamsSuspended) Valid() bool {
 	}
 }
 
-// Defines values for ExecSandboxSyncParamsAccept.
-const (
-	ExecSandboxSyncParamsAcceptApplicationjson ExecSandboxSyncParamsAccept = "application/json"
-	ExecSandboxSyncParamsAcceptTexteventStream ExecSandboxSyncParamsAccept = "text/event-stream"
-)
-
-// Valid indicates whether the value is a known member of the ExecSandboxSyncParamsAccept enum.
-func (e ExecSandboxSyncParamsAccept) Valid() bool {
-	switch e {
-	case ExecSandboxSyncParamsAcceptApplicationjson:
-		return true
-	case ExecSandboxSyncParamsAcceptTexteventStream:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for StreamSandboxLogsParamsAccept.
 const (
 	StreamSandboxLogsParamsAcceptTexteventStream StreamSandboxLogsParamsAccept = "text/event-stream"
@@ -1529,13 +1511,13 @@ func (e ListRoutesParamsType) Valid() bool {
 
 // Defines values for StreamTaskRunsEventsParamsAccept.
 const (
-	TexteventStream StreamTaskRunsEventsParamsAccept = "text/event-stream"
+	StreamTaskRunsEventsParamsAcceptTexteventStream StreamTaskRunsEventsParamsAccept = "text/event-stream"
 )
 
 // Valid indicates whether the value is a known member of the StreamTaskRunsEventsParamsAccept enum.
 func (e StreamTaskRunsEventsParamsAccept) Valid() bool {
 	switch e {
-	case TexteventStream:
+	case StreamTaskRunsEventsParamsAcceptTexteventStream:
 		return true
 	default:
 		return false
@@ -1664,8 +1646,9 @@ type BackgroundWorkerDetailsPATCH struct {
 
 // BackgroundWorkerDetailsPOST defines model for backgroundWorkerDetailsPOST.
 type BackgroundWorkerDetailsPOST struct {
-	Autoscaling *externalRef2.AutoscalingConfig `json:"autoscaling,omitempty"`
-	Disk        *ServiceDisk                    `json:"disk,omitempty"`
+	ArtifactSourceId *externalRef0.ArtifactSourceId  `json:"artifactSourceId,omitempty"`
+	Autoscaling      *externalRef2.AutoscalingConfig `json:"autoscaling,omitempty"`
+	Disk             *ServiceDisk                    `json:"disk,omitempty"`
 
 	// Env This field has been deprecated, runtime should be used in its place.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
@@ -1760,6 +1743,8 @@ type CronJobDetailsPATCH struct {
 
 // CronJobDetailsPOST defines model for cronJobDetailsPOST.
 type CronJobDetailsPOST struct {
+	ArtifactSourceId *externalRef0.ArtifactSourceId `json:"artifactSourceId,omitempty"`
+
 	// Env This field has been deprecated, runtime should be used in its place.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Env                *ServiceEnv         `json:"env,omitempty"`
@@ -1893,7 +1878,8 @@ type DedicatedIPStatus string
 
 // Deploy defines model for deploy.
 type Deploy struct {
-	Commit *struct {
+	ArtifactId *string `json:"artifactId,omitempty"`
+	Commit     *struct {
 		CreatedAt *time.Time `json:"createdAt,omitempty"`
 		Id        *string    `json:"id,omitempty"`
 		Message   *string    `json:"message,omitempty"`
@@ -2644,8 +2630,9 @@ type PrivateServiceDetailsPATCH struct {
 
 // PrivateServiceDetailsPOST defines model for privateServiceDetailsPOST.
 type PrivateServiceDetailsPOST struct {
-	Autoscaling *externalRef2.AutoscalingConfig `json:"autoscaling,omitempty"`
-	Disk        *ServiceDisk                    `json:"disk,omitempty"`
+	ArtifactSourceId *externalRef0.ArtifactSourceId  `json:"artifactSourceId,omitempty"`
+	Autoscaling      *externalRef2.AutoscalingConfig `json:"autoscaling,omitempty"`
+	Disk             *ServiceDisk                    `json:"disk,omitempty"`
 
 	// Env This field has been deprecated, runtime should be used in its place.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
@@ -3017,8 +3004,8 @@ type ServerPortProtocol string
 
 // Service defines model for service.
 type Service struct {
-	ArtifactSourceId *string    `json:"artifactSourceId,omitempty"`
-	AutoDeploy       AutoDeploy `json:"autoDeploy"`
+	ArtifactSourceId *externalRef0.ArtifactSourceId `json:"artifactSourceId,omitempty"`
+	AutoDeploy       AutoDeploy                     `json:"autoDeploy"`
 
 	// AutoDeployTrigger Controls autodeploy behavior. commit deploys when a commit is pushed to a branch. checksPass waits for the branch to be green.
 	AutoDeployTrigger *externalRef1.AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
@@ -3087,8 +3074,9 @@ type ServiceList = []ServiceWithCursor
 
 // ServicePATCH defines model for servicePATCH.
 type ServicePATCH struct {
-	ArtifactId *string     `json:"artifactId,omitempty"`
-	AutoDeploy *AutoDeploy `json:"autoDeploy,omitempty"`
+	ArtifactId       *string                        `json:"artifactId,omitempty"`
+	ArtifactSourceId *externalRef0.ArtifactSourceId `json:"artifactSourceId,omitempty"`
+	AutoDeploy       *AutoDeploy                    `json:"autoDeploy,omitempty"`
 
 	// AutoDeployTrigger Controls autodeploy behavior. commit deploys when a commit is pushed to a branch. checksPass waits for the branch to be green.
 	AutoDeployTrigger *externalRef1.AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
@@ -3343,8 +3331,9 @@ type WebServiceDetailsPATCH struct {
 
 // WebServiceDetailsPOST defines model for webServiceDetailsPOST.
 type WebServiceDetailsPOST struct {
-	Autoscaling *externalRef2.AutoscalingConfig `json:"autoscaling,omitempty"`
-	Disk        *ServiceDisk                    `json:"disk,omitempty"`
+	ArtifactSourceId *externalRef0.ArtifactSourceId  `json:"artifactSourceId,omitempty"`
+	Autoscaling      *externalRef2.AutoscalingConfig `json:"autoscaling,omitempty"`
+	Disk             *ServiceDisk                    `json:"disk,omitempty"`
 
 	// Env This field has been deprecated, runtime should be used in its place.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
@@ -4648,30 +4637,6 @@ type RetrieveSandboxParams struct {
 	OwnerId string `form:"ownerId" json:"ownerId"`
 }
 
-// ExecSandboxSyncParams defines parameters for ExecSandboxSync.
-type ExecSandboxSyncParams struct {
-	// OwnerId The ID of the workspace the sandbox belongs to.
-	OwnerId string `form:"ownerId" json:"ownerId"`
-
-	// Accept Set to `text/event-stream` to stream stdout and stderr chunks as server-sent events. Omit or set to `application/json` for the buffered JSON response.
-	Accept *ExecSandboxSyncParamsAccept `json:"Accept,omitempty"`
-}
-
-// ExecSandboxSyncParamsAccept defines parameters for ExecSandboxSync.
-type ExecSandboxSyncParamsAccept string
-
-// DownloadSandboxFilesParams defines parameters for DownloadSandboxFiles.
-type DownloadSandboxFilesParams struct {
-	// Path Absolute path in the sandbox filesystem. For PUT archives, this is the extraction root.
-	Path string `form:"path" json:"path"`
-}
-
-// UploadSandboxFilesParams defines parameters for UploadSandboxFiles.
-type UploadSandboxFilesParams struct {
-	// Path Absolute path in the sandbox filesystem. For PUT archives, this is the extraction root.
-	Path string `form:"path" json:"path"`
-}
-
 // ListSandboxFilesParams defines parameters for ListSandboxFiles.
 type ListSandboxFilesParams struct {
 	// Path Absolute path to a directory in the sandbox.
@@ -4679,6 +4644,15 @@ type ListSandboxFilesParams struct {
 
 	// Depth How many levels of subdirectories to include. 1 = immediate children only. 0 = the entry itself.
 	Depth *int `form:"depth,omitempty" json:"depth,omitempty"`
+}
+
+// ConnectSandboxFilesParams defines parameters for ConnectSandboxFiles.
+type ConnectSandboxFilesParams struct {
+	// OwnerId The ID of the workspace the sandbox belongs to.
+	OwnerId string `form:"ownerId" json:"ownerId"`
+
+	// Path Path in the sandbox this token authorizes. A relative path resolves within the sandbox's home directory ("." is the home directory itself); an absolute path addresses the sandbox filesystem root. For an archive upload, the extraction root; for a download, the file or directory to fetch.
+	Path string `form:"path" json:"path"`
 }
 
 // StreamSandboxLogsParams defines parameters for StreamSandboxLogs.
@@ -4698,6 +4672,12 @@ type StreamSandboxLogsParams struct {
 
 // StreamSandboxLogsParamsAccept defines parameters for StreamSandboxLogs.
 type StreamSandboxLogsParamsAccept string
+
+// ConnectSandboxRunParams defines parameters for ConnectSandboxRun.
+type ConnectSandboxRunParams struct {
+	// OwnerId The ID of sandbox workspace.
+	OwnerId string `form:"ownerId" json:"ownerId"`
+}
 
 // TerminateSandboxParams defines parameters for TerminateSandbox.
 type TerminateSandboxParams struct {
@@ -4820,6 +4800,9 @@ type ListDeploysParams struct {
 
 // CreateDeployJSONBody defines parameters for CreateDeploy.
 type CreateDeployJSONBody struct {
+	// ArtifactId The ID of the artifact to deploy. Cannot be combined with `commitId`, `imageUrl`, or `deployMode`.
+	ArtifactId *string `json:"artifactId,omitempty"`
+
 	// ClearCache If `clear`, Render clears the service's build cache before deploying. This can be useful if you're experiencing issues with your build.
 	ClearCache *CreateDeployJSONBodyClearCache `json:"clearCache,omitempty"`
 
@@ -5251,9 +5234,6 @@ type UpdateRegistryCredentialJSONRequestBody UpdateRegistryCredentialJSONBody
 
 // CreateSandboxJSONRequestBody defines body for CreateSandbox for application/json ContentType.
 type CreateSandboxJSONRequestBody = externalRef16.SandboxPOST
-
-// ExecSandboxSyncJSONRequestBody defines body for ExecSandboxSync for application/json ContentType.
-type ExecSandboxSyncJSONRequestBody = externalRef16.SandboxExecSyncRequest
 
 // CreateServiceJSONRequestBody defines body for CreateService for application/json ContentType.
 type CreateServiceJSONRequestBody = ServicePOST
