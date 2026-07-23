@@ -16,9 +16,8 @@ const (
 	defaultDashboardURL = "https://dashboard.render.com"
 )
 
-var defaultConfigPath string
-
 const (
+	configDirEnvKey  = "RENDER_CLI_CONFIG_DIR"
 	configPathEnvKey = "RENDER_CLI_CONFIG_PATH"
 	workspaceEnvKey  = "RENDER_WORKSPACE"
 )
@@ -45,14 +44,6 @@ type APIConfig struct {
 	ExpiresAt    int64  `yaml:"expires_at,omitempty"`
 	Host         string `json:"host,omitempty"`
 	RefreshToken string `json:"refresh_token,omitempty"`
-}
-
-func init() {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-	defaultConfigPath = filepath.Join(home, ".render", "cli.yaml")
 }
 
 func DefaultAPIConfig() (APIConfig, error) {
@@ -101,11 +92,19 @@ func SetDashboardURL(u string) error {
 	return cfg.Persist()
 }
 
-func getConfigPath() string {
+// getConfigPath resolves the path to the config file. The legacy
+// RENDER_CLI_CONFIG_PATH override wins when set so existing setups keep
+// working; otherwise the file lives at <ConfigDir>/cli.yaml.
+func getConfigPath() (string, error) {
 	if path := os.Getenv(configPathEnvKey); path != "" {
-		return path
+		return expandPath(path)
 	}
-	return defaultConfigPath
+
+	dir, err := ConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "cli.yaml"), nil
 }
 
 func expandPath(path string) (string, error) {
@@ -212,7 +211,7 @@ func getAPIConfig() (APIConfig, error) {
 // Load handles a missing file gracefully, so subsequent calls behave as if starting fresh.
 // This does not affect credentials supplied via the RENDER_API_KEY environment variable.
 func DeleteConfig() error {
-	path, err := expandPath(getConfigPath())
+	path, err := getConfigPath()
 	if err != nil {
 		return err
 	}
@@ -252,7 +251,7 @@ func SetAPIConfig(input APIConfig) error {
 }
 
 func Load() (*Config, error) {
-	path, err := expandPath(getConfigPath())
+	path, err := getConfigPath()
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +277,7 @@ func Load() (*Config, error) {
 }
 
 func (c *Config) Persist() error {
-	path, err := expandPath(getConfigPath())
+	path, err := getConfigPath()
 	if err != nil {
 		return err
 	}
