@@ -47,6 +47,8 @@ type Sender struct {
 	timeout time.Duration
 	// detectTerminalSignals observes terminal attachment and TERM=dumb.
 	detectTerminalSignals func() command.TerminalSignals
+	// detectAgentSignals observes allowlisted agent environment markers.
+	detectAgentSignals func() []string
 }
 
 // New creates a new [Sender].
@@ -56,6 +58,7 @@ func New(apiClient *client.ClientWithResponses) *Sender {
 		cfg.ShouldSendAnalytics() && apiClient != nil,
 		cfg.ShouldLogAnalytics(),
 		command.DetectTerminalSignals,
+		DetectAgentSignals,
 	)
 }
 
@@ -64,6 +67,7 @@ func newSender(
 	shouldSend bool,
 	shouldLog bool,
 	detectTerminalSignals func() command.TerminalSignals,
+	detectAgentSignals func() []string,
 ) *Sender {
 	return &Sender{
 		client:                apiClient,
@@ -74,6 +78,7 @@ func newSender(
 		goarch:                runtime.GOARCH,
 		timeout:               sendTimeout,
 		detectTerminalSignals: detectTerminalSignals,
+		detectAgentSignals:    detectAgentSignals,
 	}
 }
 
@@ -89,7 +94,8 @@ func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
 	}
 
 	terminalSignals := s.detectTerminalSignals()
-	payload := newEventPOSTBody(result, terminalSignals, s.cliVersion, s.goos, s.goarch)
+	agentSignals := s.detectAgentSignals()
+	payload := newEventPOSTBody(result, terminalSignals, agentSignals, s.cliVersion, s.goos, s.goarch)
 
 	if s.shouldLog {
 		payloadJSON, _ := json.Marshal(payload)
@@ -129,11 +135,13 @@ func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
 func newEventPOSTBody(
 	result command.ExecutionResult,
 	terminalSignals command.TerminalSignals,
+	agentSignals []string,
 	cliVersion string,
 	goos string,
 	goarch string,
 ) client.CreateCliTelemetryEventJSONRequestBody {
 	return client.CreateCliTelemetryEventJSONRequestBody{
+		AgentSignals:   agentSignals,
 		Arch:           goarch,
 		CliVersion:     cliVersion,
 		Command:        result.CommandPath,

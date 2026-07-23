@@ -27,6 +27,8 @@ var testTerminalSignals = command.TerminalSignals{
 	StderrTTY: true,
 }
 
+var testAgentSignals = []string{"CLAUDECODE", "CODEX_THREAD_ID"}
+
 func TestSenderSendAndLogGates(t *testing.T) {
 	result := command.ExecutionResult{
 		CommandPath:    "render services list",
@@ -36,6 +38,7 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		OutputFormat:   pointers.From(command.JSON),
 	}
 	wantPayload := client.CreateCliTelemetryEventJSONRequestBody{
+		AgentSignals:   testAgentSignals,
 		Arch:           "test-arch",
 		CliVersion:     "v-test",
 		Command:        "render services list",
@@ -48,7 +51,14 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		Os:             "test-os",
 		OutputFormat:   "json",
 	}
-	payloadJSON, err := json.Marshal(newEventPOSTBody(result, testTerminalSignals, "v-test", "test-os", "test-arch"))
+	payloadJSON, err := json.Marshal(newEventPOSTBody(
+		result,
+		testTerminalSignals,
+		testAgentSignals,
+		"v-test",
+		"test-os",
+		"test-arch",
+	))
 	require.NoError(t, err)
 	payloadLog := string(payloadJSON) + "\n"
 
@@ -124,8 +134,9 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 		CommandPath:    "render services list",
 		CompletionKind: command.CompletionKindSuccess,
 		OutputFormat:   pointers.From(command.YAML),
-	}, terminalSignals, "v-test", "test-os", "test-arch")
+	}, terminalSignals, testAgentSignals, "v-test", "test-os", "test-arch")
 
+	require.Equal(t, testAgentSignals, event.AgentSignals)
 	require.Equal(t, "yaml", event.OutputFormat)
 	require.True(t, event.IsStdinTty)
 	require.False(t, event.IsStdoutTty)
@@ -136,7 +147,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 	encoded, err := json.Marshal(event)
 	require.NoError(t, err)
 	require.JSONEq(t, `{
-		"agent_signals": null,
+		"agent_signals": ["CLAUDECODE", "CODEX_THREAD_ID"],
 		"arch": "test-arch",
 		"ci_signals": null,
 		"cli_version": "v-test",
@@ -155,8 +166,36 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 	}`, string(encoded))
 }
 
+func TestAgentSignalValuesNeverAppearInSerializedAnalyticsEvent(t *testing.T) {
+	const canary = "value-must-not-appear"
+	clearAgentSignalEnvironment(t)
+	t.Setenv("CODEX_THREAD_ID", canary)
+	t.Setenv("CURSOR_AGENT", canary)
+
+	event := newEventPOSTBody(
+		command.ExecutionResult{},
+		command.TerminalSignals{},
+		DetectAgentSignals(),
+		"v-test",
+		"test-os",
+		"test-arch",
+	)
+
+	encoded, err := json.Marshal(event)
+	require.NoError(t, err)
+	require.NotContains(t, string(encoded), canary)
+	require.Equal(t, []string{"CODEX_THREAD_ID", "CURSOR_AGENT"}, event.AgentSignals)
+}
+
 func TestCommandInvokedEventDefaultsUnresolvedOutputToUnknown(t *testing.T) {
-	event := newEventPOSTBody(command.ExecutionResult{}, command.TerminalSignals{}, "v-test", "test-os", "test-arch")
+	event := newEventPOSTBody(
+		command.ExecutionResult{},
+		command.TerminalSignals{},
+		[]string{},
+		"v-test",
+		"test-os",
+		"test-arch",
+	)
 	require.Equal(t, unknownOutputFormat, event.OutputFormat)
 }
 
@@ -197,6 +236,7 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 	require.NoError(t, err)
 	sender := New(apiClient)
 	terminalSignals := command.DetectTerminalSignals()
+	agentSignals := DetectAgentSignals()
 
 	sender.Send(command.ExecutionResult{
 		CommandPath:    "render services list",
@@ -205,6 +245,7 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 	}, io.Discard)
 
 	require.Equal(t, []client.CreateCliTelemetryEventJSONRequestBody{{
+		AgentSignals:   agentSignals,
 		Arch:           runtime.GOARCH,
 		CliVersion:     cfg.Version,
 		Command:        "render services list",
@@ -355,6 +396,9 @@ func newTestSender(apiClient cliTelemetryClient, shouldSend, shouldLog bool) *Se
 		shouldLog,
 		func() command.TerminalSignals {
 			return testTerminalSignals
+		},
+		func() []string {
+			return testAgentSignals
 		},
 	)
 	sender.cliVersion = "v-test"
