@@ -18,9 +18,23 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	telemetryclient "github.com/render-oss/cli/pkg/client/clitelemetry"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/pointers"
 )
 
+var testTerminalSignals = command.TerminalSignals{
+	StdinTTY:  true,
+	StdoutTTY: true,
+	StderrTTY: true,
+}
+
 func TestSenderSendAndLogGates(t *testing.T) {
+	result := command.ExecutionResult{
+		CommandPath:    "render services list",
+		CompletionKind: command.CompletionKindExplicitExit,
+		Duration:       125 * time.Millisecond,
+		ExitCode:       7,
+		OutputFormat:   pointers.From(command.JSON),
+	}
 	wantPayload := client.CreateCliTelemetryEventJSONRequestBody{
 		Arch:           "test-arch",
 		CliVersion:     "v-test",
@@ -28,9 +42,13 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		CompletionKind: telemetryclient.ExplicitExit,
 		DurationMs:     125,
 		ExitCode:       7,
+		IsStdinTty:     true,
+		IsStdoutTty:    true,
+		IsStderrTty:    true,
 		Os:             "test-os",
+		OutputFormat:   "json",
 	}
-	payloadJSON, err := json.Marshal(wantPayload)
+	payloadJSON, err := json.Marshal(newEventPOSTBody(result, testTerminalSignals, "v-test", "test-os", "test-arch"))
 	require.NoError(t, err)
 	payloadLog := string(payloadJSON) + "\n"
 
@@ -83,12 +101,7 @@ func TestSenderSendAndLogGates(t *testing.T) {
 			sender := newTestSender(apiClient, tc.shouldSend, tc.shouldLog)
 			var stderr bytes.Buffer
 
-			sender.Send(command.ExecutionResult{
-				CommandPath:    "render services list",
-				CompletionKind: command.CompletionKindExplicitExit,
-				Duration:       125 * time.Millisecond,
-				ExitCode:       7,
-			}, &stderr)
+			sender.Send(result, &stderr)
 
 			require.Equal(t, tc.want, sendResult{
 				requestCount: apiClient.calls,
@@ -98,6 +111,53 @@ func TestSenderSendAndLogGates(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
+	terminalSignals := command.TerminalSignals{
+		StdinTTY:     true,
+		StdoutTTY:    false,
+		StderrTTY:    true,
+		DumbTerminal: true,
+	}
+	event := newEventPOSTBody(command.ExecutionResult{
+		CommandPath:    "render services list",
+		CompletionKind: command.CompletionKindSuccess,
+		OutputFormat:   pointers.From(command.YAML),
+	}, terminalSignals, "v-test", "test-os", "test-arch")
+
+	require.Equal(t, "yaml", event.OutputFormat)
+	require.True(t, event.IsStdinTty)
+	require.False(t, event.IsStdoutTty)
+	require.True(t, event.IsStderrTty)
+	require.True(t, event.IsTermDumb)
+	require.Equal(t, "render services list", event.Command)
+
+	encoded, err := json.Marshal(event)
+	require.NoError(t, err)
+	require.JSONEq(t, `{
+		"agent_signals": null,
+		"arch": "test-arch",
+		"ci_signals": null,
+		"cli_version": "v-test",
+		"command": "render services list",
+		"completion_kind": "success",
+		"duration_ms": 0,
+		"exit_code": 0,
+		"installation_id": "",
+		"os": "test-os",
+		"output_format": "yaml",
+		"is_stdin_tty": true,
+		"is_stdout_tty": false,
+		"is_stderr_tty": true,
+		"is_term_dumb": true,
+		"tui_rendered": false
+	}`, string(encoded))
+}
+
+func TestCommandInvokedEventDefaultsUnresolvedOutputToUnknown(t *testing.T) {
+	event := newEventPOSTBody(command.ExecutionResult{}, command.TerminalSignals{}, "v-test", "test-os", "test-arch")
+	require.Equal(t, unknownOutputFormat, event.OutputFormat)
 }
 
 func TestNewUsesExactEnvironmentGates(t *testing.T) {
@@ -136,6 +196,7 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 	apiClient, err := client.NewDefaultClient()
 	require.NoError(t, err)
 	sender := New(apiClient)
+	terminalSignals := command.DetectTerminalSignals()
 
 	sender.Send(command.ExecutionResult{
 		CommandPath:    "render services list",
@@ -149,7 +210,12 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 		Command:        "render services list",
 		CompletionKind: telemetryclient.Success,
 		ExitCode:       0,
+		IsStdinTty:     terminalSignals.StdinTTY,
+		IsStdoutTty:    terminalSignals.StdoutTTY,
+		IsStderrTty:    terminalSignals.StderrTTY,
+		IsTermDumb:     terminalSignals.DumbTerminal,
 		Os:             runtime.GOOS,
+		OutputFormat:   unknownOutputFormat,
 	}}, server.CliTelemetry.Instances)
 }
 
@@ -283,15 +349,19 @@ func TestHTTPFailureIsSwallowedWithoutRetry(t *testing.T) {
 // newTestSender builds a Sender with fixed environment fields so tests exercise
 // the gates and transport without depending on the host's cfg/runtime values.
 func newTestSender(apiClient cliTelemetryClient, shouldSend, shouldLog bool) *Sender {
-	return &Sender{
-		client:     apiClient,
-		shouldSend: shouldSend,
-		shouldLog:  shouldLog,
-		cliVersion: "v-test",
-		goos:       "test-os",
-		goarch:     "test-arch",
-		timeout:    sendTimeout,
-	}
+	sender := newSender(
+		apiClient,
+		shouldSend,
+		shouldLog,
+		func() command.TerminalSignals {
+			return testTerminalSignals
+		},
+	)
+	sender.cliVersion = "v-test"
+	sender.goos = "test-os"
+	sender.goarch = "test-arch"
+	sender.timeout = sendTimeout
+	return sender
 }
 
 type fakeTelemetryClient struct {

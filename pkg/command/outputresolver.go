@@ -17,10 +17,28 @@ type RuntimeSignals struct {
 	ForcedOutput *Output
 }
 
+// TerminalSignals are the infallible terminal observations used by analytics.
+type TerminalSignals struct {
+	StdinTTY     bool
+	StdoutTTY    bool
+	StderrTTY    bool
+	DumbTerminal bool
+}
+
 // SupportsInteractive returns true if the runtime environment can support
 // an interactive TUI (all streams are TTYs, not a dumb terminal, not CI).
 func (s RuntimeSignals) SupportsInteractive() bool {
 	return s.StdinTTY && s.StdoutTTY && s.StderrTTY && !s.DumbTerminal && !s.CI
+}
+
+// DetectTerminalSignals observes terminal attachment and TERM=dumb.
+func DetectTerminalSignals() TerminalSignals {
+	return TerminalSignals{
+		StdinTTY:     isTTY(os.Stdin.Fd()),
+		StdoutTTY:    isTTY(os.Stdout.Fd()),
+		StderrTTY:    isTTY(os.Stderr.Fd()),
+		DumbTerminal: os.Getenv("TERM") == "dumb",
+	}
 }
 
 func DetectRuntimeSignals() (RuntimeSignals, error) {
@@ -28,12 +46,13 @@ func DetectRuntimeSignals() (RuntimeSignals, error) {
 	if err != nil {
 		return RuntimeSignals{}, err
 	}
+	terminalSignals := DetectTerminalSignals()
 
 	return RuntimeSignals{
-		StdinTTY:     isTTY(os.Stdin.Fd()),
-		StdoutTTY:    isTTY(os.Stdout.Fd()),
-		StderrTTY:    isTTY(os.Stderr.Fd()),
-		DumbTerminal: os.Getenv("TERM") == "dumb",
+		StdinTTY:     terminalSignals.StdinTTY,
+		StdoutTTY:    terminalSignals.StdoutTTY,
+		StderrTTY:    terminalSignals.StderrTTY,
+		DumbTerminal: terminalSignals.DumbTerminal,
 		CI:           isTruthyEnv(os.Getenv("CI")),
 		ForcedOutput: forcedOutput,
 	}, nil

@@ -134,6 +134,7 @@ func TestDetectRuntimeSignals(t *testing.T) {
 			signals, err := command.DetectRuntimeSignals()
 			if tc.wantErr {
 				require.Error(t, err)
+				require.Zero(t, signals)
 				return
 			}
 

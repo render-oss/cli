@@ -307,6 +307,20 @@ func newExecutionResult(command *cobra.Command, kind commandpkg.CompletionKind, 
 	}
 }
 
+// outputFormatFromExecution returns the final format stored in the command's
+// context. Commands may replace interactive output with text during RunE, so
+// read it after Cobra finishes rather than copying it from persistent pre-run.
+// If persistent pre-run never resolved an output format, leave it absent so
+// analytics can report unknown without reconstructing a value after the fact.
+func outputFormatFromExecution(command *cobra.Command) *commandpkg.Output {
+	if command != nil {
+		if output := commandpkg.GetFormatFromContext(command.Context()); output != nil {
+			return output
+		}
+	}
+	return nil
+}
+
 // commandPath returns the space-joined path of the command Cobra resolved, the
 // privacy-safe label emitted as analytics. It reports only matched command
 // names, never user arguments or flag values.
@@ -328,7 +342,9 @@ func newClassifiedExecutionResult(command *cobra.Command, err error, observation
 		// the help shown belongs to `render services`.
 		resultCommand = observation.helpTarget
 	}
-	return newExecutionResult(resultCommand, kind, exitCodeFromError(err), startedAt)
+	result := newExecutionResult(resultCommand, kind, exitCodeFromError(err), startedAt)
+	result.OutputFormat = outputFormatFromExecution(resultCommand)
+	return result
 }
 
 // runExecution runs a fully configured root command tree and returns the

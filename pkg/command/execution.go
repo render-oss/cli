@@ -89,6 +89,9 @@ type ExecutionResult struct {
 	Duration time.Duration
 	// ExitCode is the process exit code returned by the top-level executor.
 	ExitCode int
+	// OutputFormat is the resolved output format at the end of the invocation.
+	// It is nil when command setup never resolved a format.
+	OutputFormat *Output
 }
 
 // exitError carries a process exit code through Cobra's error-return path.

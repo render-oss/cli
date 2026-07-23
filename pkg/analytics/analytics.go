@@ -18,6 +18,10 @@ import (
 
 const sendTimeout = 500 * time.Millisecond
 
+// unknownOutputFormat identifies invocations that finished before command setup
+// resolved an output format.
+const unknownOutputFormat = "unknown"
+
 // Sender turns a completed execution into an analytics event. Sending and
 // logging events are controlled independently by environment variables.
 //
@@ -41,18 +45,35 @@ type Sender struct {
 	goarch string
 	// timeout limits how long an analytics request may take.
 	timeout time.Duration
+	// detectTerminalSignals observes terminal attachment and TERM=dumb.
+	detectTerminalSignals func() command.TerminalSignals
 }
 
 // New creates a new [Sender].
 func New(apiClient *client.ClientWithResponses) *Sender {
+	return newSender(
+		apiClient,
+		cfg.ShouldSendAnalytics() && apiClient != nil,
+		cfg.ShouldLogAnalytics(),
+		command.DetectTerminalSignals,
+	)
+}
+
+func newSender(
+	apiClient cliTelemetryClient,
+	shouldSend bool,
+	shouldLog bool,
+	detectTerminalSignals func() command.TerminalSignals,
+) *Sender {
 	return &Sender{
-		client:     apiClient,
-		shouldSend: cfg.ShouldSendAnalytics() && apiClient != nil,
-		shouldLog:  cfg.ShouldLogAnalytics(),
-		cliVersion: cfg.Version,
-		goos:       runtime.GOOS,
-		goarch:     runtime.GOARCH,
-		timeout:    sendTimeout,
+		client:                apiClient,
+		shouldSend:            shouldSend,
+		shouldLog:             shouldLog,
+		cliVersion:            cfg.Version,
+		goos:                  runtime.GOOS,
+		goarch:                runtime.GOARCH,
+		timeout:               sendTimeout,
+		detectTerminalSignals: detectTerminalSignals,
 	}
 }
 
@@ -67,15 +88,8 @@ func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
 		return
 	}
 
-	payload := client.CreateCliTelemetryEventJSONRequestBody{
-		Arch:           s.goarch,
-		CliVersion:     s.cliVersion,
-		Command:        result.CommandPath,
-		CompletionKind: telemetryclient.CliTelemetryEventPOSTInputCompletionKind(result.CompletionKind),
-		DurationMs:     result.Duration.Milliseconds(),
-		ExitCode:       result.ExitCode,
-		Os:             s.goos,
-	}
+	terminalSignals := s.detectTerminalSignals()
+	payload := newEventPOSTBody(result, terminalSignals, s.cliVersion, s.goos, s.goarch)
 
 	if s.shouldLog {
 		payloadJSON, _ := json.Marshal(payload)
@@ -110,6 +124,36 @@ func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
 		return
 	}
 	_, _ = fmt.Fprintf(stderr, "analytics response: %s\n", response.Status)
+}
+
+func newEventPOSTBody(
+	result command.ExecutionResult,
+	terminalSignals command.TerminalSignals,
+	cliVersion string,
+	goos string,
+	goarch string,
+) client.CreateCliTelemetryEventJSONRequestBody {
+	return client.CreateCliTelemetryEventJSONRequestBody{
+		Arch:           goarch,
+		CliVersion:     cliVersion,
+		Command:        result.CommandPath,
+		CompletionKind: telemetryclient.CliTelemetryEventPOSTInputCompletionKind(result.CompletionKind),
+		DurationMs:     result.Duration.Milliseconds(),
+		ExitCode:       result.ExitCode,
+		IsStdinTty:     terminalSignals.StdinTTY,
+		IsStdoutTty:    terminalSignals.StdoutTTY,
+		IsStderrTty:    terminalSignals.StderrTTY,
+		IsTermDumb:     terminalSignals.DumbTerminal,
+		Os:             goos,
+		OutputFormat:   analyticsOutputFormat(result.OutputFormat),
+	}
+}
+
+func analyticsOutputFormat(output *command.Output) string {
+	if output == nil {
+		return unknownOutputFormat
+	}
+	return string(*output)
 }
 
 // cliTelemetryClient is the slice of the generated API client that Sender needs.
