@@ -50,6 +50,8 @@ type Sender struct {
 	detectTerminalSignals func() command.TerminalSignals
 	// detectAgentSignals observes allowlisted agent environment markers.
 	detectAgentSignals func() []string
+	// detectCISignals observes allow-listed automated pipeline markers.
+	detectCISignals func() []string
 	// getInstallationID resolves the stable identifier included in each event.
 	getInstallationID func() (string, error)
 }
@@ -62,6 +64,7 @@ func New(apiClient *client.ClientWithResponses) *Sender {
 		cfg.ShouldLogAnalytics(),
 		command.DetectTerminalSignals,
 		DetectAgentSignals,
+		DetectCISignals,
 	)
 }
 
@@ -71,6 +74,7 @@ func newSender(
 	shouldLog bool,
 	detectTerminalSignals func() command.TerminalSignals,
 	detectAgentSignals func() []string,
+	detectCISignals func() []string,
 ) *Sender {
 	return &Sender{
 		client:                apiClient,
@@ -82,6 +86,7 @@ func newSender(
 		timeout:               sendTimeout,
 		detectTerminalSignals: detectTerminalSignals,
 		detectAgentSignals:    detectAgentSignals,
+		detectCISignals:       detectCISignals,
 		getInstallationID:     installid.Resolve,
 	}
 }
@@ -104,7 +109,8 @@ func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
 
 	terminalSignals := s.detectTerminalSignals()
 	agentSignals := s.detectAgentSignals()
-	payload := newEventPOSTBody(result, terminalSignals, agentSignals, installationID, s.cliVersion, s.goos, s.goarch)
+	ciSignals := s.detectCISignals()
+	payload := newEventPOSTBody(result, terminalSignals, agentSignals, ciSignals, installationID, s.cliVersion, s.goos, s.goarch)
 
 	if s.shouldLog {
 		payloadJSON, _ := json.Marshal(payload)
@@ -145,6 +151,7 @@ func newEventPOSTBody(
 	result command.ExecutionResult,
 	terminalSignals command.TerminalSignals,
 	agentSignals []string,
+	ciSignals []string,
 	installationID string,
 	cliVersion string,
 	goos string,
@@ -153,6 +160,7 @@ func newEventPOSTBody(
 	return client.CreateCliTelemetryEventJSONRequestBody{
 		AgentSignals:   agentSignals,
 		Arch:           goarch,
+		CiSignals:      ciSignals,
 		CliVersion:     cliVersion,
 		Command:        result.CommandPath,
 		CompletionKind: telemetryclient.CliTelemetryEventPOSTInputCompletionKind(result.CompletionKind),

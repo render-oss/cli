@@ -28,6 +28,7 @@ var testTerminalSignals = command.TerminalSignals{
 }
 
 var testAgentSignals = []string{"CLAUDECODE", "CODEX_THREAD_ID"}
+var testCISignals = []string{"CI", "GITHUB_ACTIONS"}
 
 const testInstallationID = "188796f8-6d3f-4c11-b87d-5e64fbcfe741"
 
@@ -42,6 +43,7 @@ func TestSenderSendAndLogGates(t *testing.T) {
 	wantPayload := client.CreateCliTelemetryEventJSONRequestBody{
 		AgentSignals:   testAgentSignals,
 		Arch:           "test-arch",
+		CiSignals:      []string{"CI", "GITHUB_ACTIONS"},
 		CliVersion:     "v-test",
 		Command:        "render services list",
 		CompletionKind: telemetryclient.ExplicitExit,
@@ -58,6 +60,7 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		result,
 		testTerminalSignals,
 		testAgentSignals,
+		testCISignals,
 		testInstallationID,
 		"v-test",
 		"test-os",
@@ -138,7 +141,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 		CommandPath:    "render services list",
 		CompletionKind: command.CompletionKindSuccess,
 		OutputFormat:   pointers.From(command.YAML),
-	}, terminalSignals, testAgentSignals, testInstallationID, "v-test", "test-os", "test-arch")
+	}, terminalSignals, testAgentSignals, []string{}, testInstallationID, "v-test", "test-os", "test-arch")
 
 	require.Equal(t, testAgentSignals, event.AgentSignals)
 	require.Equal(t, "yaml", event.OutputFormat)
@@ -153,7 +156,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 	require.JSONEq(t, `{
 		"agent_signals": ["CLAUDECODE", "CODEX_THREAD_ID"],
 		"arch": "test-arch",
-		"ci_signals": null,
+		"ci_signals": [],
 		"cli_version": "v-test",
 		"command": "render services list",
 		"completion_kind": "success",
@@ -180,6 +183,7 @@ func TestAgentSignalValuesNeverAppearInSerializedAnalyticsEvent(t *testing.T) {
 		command.ExecutionResult{},
 		command.TerminalSignals{},
 		DetectAgentSignals(),
+		[]string{},
 		testInstallationID,
 		"v-test",
 		"test-os",
@@ -196,6 +200,7 @@ func TestCommandInvokedEventDefaultsUnresolvedOutputToUnknown(t *testing.T) {
 	event := newEventPOSTBody(
 		command.ExecutionResult{},
 		command.TerminalSignals{},
+		[]string{},
 		[]string{},
 		testInstallationID,
 		"v-test",
@@ -295,6 +300,7 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 	}
 	terminalSignals := command.DetectTerminalSignals()
 	agentSignals := DetectAgentSignals()
+	ciSignals := DetectCISignals()
 
 	sender.Send(command.ExecutionResult{
 		CommandPath:    "render services list",
@@ -305,6 +311,7 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 	require.Equal(t, []client.CreateCliTelemetryEventJSONRequestBody{{
 		AgentSignals:   agentSignals,
 		Arch:           runtime.GOARCH,
+		CiSignals:      ciSignals,
 		CliVersion:     cfg.Version,
 		Command:        "render services list",
 		CompletionKind: telemetryclient.Success,
@@ -458,6 +465,9 @@ func newTestSender(apiClient cliTelemetryClient, shouldSend, shouldLog bool) *Se
 		},
 		func() []string {
 			return testAgentSignals
+		},
+		func() []string {
+			return testCISignals
 		},
 	)
 	sender.cliVersion = "v-test"
