@@ -731,7 +731,7 @@ func TestCompletedCommandsEmitAnalytics(t *testing.T) {
 				t.Setenv("RENDER_WORKSPACE", analyticsWorkspaceID)
 			}
 
-			result := executeWithAnalytics(t, server, tc.args...)
+			result := executeWithAnalytics(t, server, t.TempDir(), true, tc.args...)
 
 			events := server.CliTelemetry.Instances
 			require.Len(t, events, 1)
@@ -743,15 +743,50 @@ func TestCompletedCommandsEmitAnalytics(t *testing.T) {
 	}
 }
 
+func TestInstallationIDCreatedOnlyWhenAnalyticsEnabled(t *testing.T) {
+	server := renderapi.NewServer(t)
+	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: analyticsWorkspaceID, Name: "Analytics Workspace"}))
+	t.Setenv("RENDER_WORKSPACE", analyticsWorkspaceID)
+	configDir := t.TempDir()
+	installationIDPath := filepath.Join(configDir, "state", "installation-id.txt")
+
+	result := executeWithAnalytics(t, server, configDir, false, "postgres", "list", "--output", "json")
+	require.Equal(t, 0, result.ExitCode)
+	require.Empty(t, server.CliTelemetry.Instances, "disabled analytics should not emit an event")
+	_, err := os.Stat(installationIDPath)
+	require.ErrorIs(t, err, os.ErrNotExist, "disabled analytics should not create installation ID state")
+
+	result = executeWithAnalytics(t, server, configDir, true, "postgres", "list", "--output", "json")
+	require.Equal(t, 0, result.ExitCode)
+	require.Len(t, server.CliTelemetry.Instances, 1)
+	contents, err := os.ReadFile(installationIDPath)
+	require.NoError(t, err)
+	installationID := strings.TrimSpace(string(contents))
+	require.NotEmpty(t, installationID)
+	require.Equal(t, installationID, server.CliTelemetry.Instances[0].InstallationId,
+		"the emitted event should carry the persisted installation ID")
+}
+
 // executeWithAnalytics builds a fresh CLI app whose client and analytics sender
 // both target the fake, runs args through the same runExecution/onExecutionComplete
 // path Execute uses, and returns the classified result. The emitted event lands
 // on server.CliTelemetry.
-func executeWithAnalytics(t *testing.T, server *renderapi.Server, args ...string) command.ExecutionResult {
+func executeWithAnalytics(
+	t *testing.T,
+	server *renderapi.Server,
+	configDir string,
+	shouldSend bool,
+	args ...string,
+) command.ExecutionResult {
 	t.Helper()
-	t.Setenv("RENDER_CLI_CONFIG_PATH", newTestConfigPath(t))
+	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
+	t.Setenv("RENDER_CLI_CONFIG_PATH", "")
 	t.Setenv("RENDER_API_KEY", "test-api-key")
-	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
+	if shouldSend {
+		t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
+	} else {
+		t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "")
+	}
 
 	c, err := client.NewClientWithResponses(server.URL())
 	require.NoError(t, err)

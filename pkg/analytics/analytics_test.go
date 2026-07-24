@@ -29,6 +29,8 @@ var testTerminalSignals = command.TerminalSignals{
 
 var testAgentSignals = []string{"CLAUDECODE", "CODEX_THREAD_ID"}
 
+const testInstallationID = "188796f8-6d3f-4c11-b87d-5e64fbcfe741"
+
 func TestSenderSendAndLogGates(t *testing.T) {
 	result := command.ExecutionResult{
 		CommandPath:    "render services list",
@@ -48,6 +50,7 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		IsStdinTty:     true,
 		IsStdoutTty:    true,
 		IsStderrTty:    true,
+		InstallationId: testInstallationID,
 		Os:             "test-os",
 		OutputFormat:   "json",
 	}
@@ -55,6 +58,7 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		result,
 		testTerminalSignals,
 		testAgentSignals,
+		testInstallationID,
 		"v-test",
 		"test-os",
 		"test-arch",
@@ -134,7 +138,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 		CommandPath:    "render services list",
 		CompletionKind: command.CompletionKindSuccess,
 		OutputFormat:   pointers.From(command.YAML),
-	}, terminalSignals, testAgentSignals, "v-test", "test-os", "test-arch")
+	}, terminalSignals, testAgentSignals, testInstallationID, "v-test", "test-os", "test-arch")
 
 	require.Equal(t, testAgentSignals, event.AgentSignals)
 	require.Equal(t, "yaml", event.OutputFormat)
@@ -155,7 +159,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 		"completion_kind": "success",
 		"duration_ms": 0,
 		"exit_code": 0,
-		"installation_id": "",
+		"installation_id": "`+testInstallationID+`",
 		"os": "test-os",
 		"output_format": "yaml",
 		"is_stdin_tty": true,
@@ -176,6 +180,7 @@ func TestAgentSignalValuesNeverAppearInSerializedAnalyticsEvent(t *testing.T) {
 		command.ExecutionResult{},
 		command.TerminalSignals{},
 		DetectAgentSignals(),
+		testInstallationID,
 		"v-test",
 		"test-os",
 		"test-arch",
@@ -192,11 +197,61 @@ func TestCommandInvokedEventDefaultsUnresolvedOutputToUnknown(t *testing.T) {
 		command.ExecutionResult{},
 		command.TerminalSignals{},
 		[]string{},
+		testInstallationID,
 		"v-test",
 		"test-os",
 		"test-arch",
 	)
 	require.Equal(t, unknownOutputFormat, event.OutputFormat)
+}
+
+func TestDisabledSenderDoesNotGetInstallationID(t *testing.T) {
+	sender := newTestSender(&fakeTelemetryClient{}, false, false)
+	called := false
+	sender.getInstallationID = func() (string, error) {
+		called = true
+		return testInstallationID, nil
+	}
+
+	sender.Send(command.ExecutionResult{}, io.Discard)
+
+	require.False(t, called)
+}
+
+func TestInstallationIDResolutionFailureIsBestEffort(t *testing.T) {
+	resolutionErr := errors.New("installation ID unavailable")
+	runFailedResolution := func(t *testing.T, shouldLog bool) string {
+		t.Helper()
+
+		apiClient := &fakeTelemetryClient{
+			response: &http.Response{
+				StatusCode: http.StatusAccepted,
+				Status:     "202 Accepted",
+				Body:       &eventPOSTResponseBody{},
+			},
+		}
+		sender := newTestSender(apiClient, true, shouldLog)
+		sender.getInstallationID = func() (string, error) {
+			return "", resolutionErr
+		}
+		var stderr bytes.Buffer
+
+		sender.Send(command.ExecutionResult{}, &stderr)
+
+		require.Equal(t, 1, apiClient.calls)
+		require.Empty(t, apiClient.payload.InstallationId)
+		return stderr.String()
+	}
+
+	t.Run("logging disabled", func(t *testing.T) {
+		logOutput := runFailedResolution(t, false)
+		require.Empty(t, logOutput)
+	})
+
+	t.Run("logging enabled", func(t *testing.T) {
+		logOutput := runFailedResolution(t, true)
+		require.Contains(t, logOutput, "analytics error: getting installation ID: "+resolutionErr.Error())
+	})
 }
 
 func TestNewUsesExactEnvironmentGates(t *testing.T) {
@@ -235,6 +290,9 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 	apiClient, err := client.NewDefaultClient()
 	require.NoError(t, err)
 	sender := New(apiClient)
+	sender.getInstallationID = func() (string, error) {
+		return testInstallationID, nil
+	}
 	terminalSignals := command.DetectTerminalSignals()
 	agentSignals := DetectAgentSignals()
 
@@ -255,6 +313,7 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 		IsStdoutTty:    terminalSignals.StdoutTTY,
 		IsStderrTty:    terminalSignals.StderrTTY,
 		IsTermDumb:     terminalSignals.DumbTerminal,
+		InstallationId: testInstallationID,
 		Os:             runtime.GOOS,
 		OutputFormat:   unknownOutputFormat,
 	}}, server.CliTelemetry.Instances)
@@ -405,6 +464,9 @@ func newTestSender(apiClient cliTelemetryClient, shouldSend, shouldLog bool) *Se
 	sender.goos = "test-os"
 	sender.goarch = "test-arch"
 	sender.timeout = sendTimeout
+	sender.getInstallationID = func() (string, error) {
+		return testInstallationID, nil
+	}
 	return sender
 }
 

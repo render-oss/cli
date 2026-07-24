@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/render-oss/cli/internal/installid"
 	"github.com/render-oss/cli/pkg/cfg"
 	"github.com/render-oss/cli/pkg/client"
 	telemetryclient "github.com/render-oss/cli/pkg/client/clitelemetry"
@@ -49,6 +50,8 @@ type Sender struct {
 	detectTerminalSignals func() command.TerminalSignals
 	// detectAgentSignals observes allowlisted agent environment markers.
 	detectAgentSignals func() []string
+	// getInstallationID resolves the stable identifier included in each event.
+	getInstallationID func() (string, error)
 }
 
 // New creates a new [Sender].
@@ -79,6 +82,7 @@ func newSender(
 		timeout:               sendTimeout,
 		detectTerminalSignals: detectTerminalSignals,
 		detectAgentSignals:    detectAgentSignals,
+		getInstallationID:     installid.Resolve,
 	}
 }
 
@@ -93,9 +97,14 @@ func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
 		return
 	}
 
+	installationID, err := s.getInstallationID()
+	if err != nil && s.shouldLog {
+		_, _ = fmt.Fprintf(stderr, "analytics error: getting installation ID: %v\n", err)
+	}
+
 	terminalSignals := s.detectTerminalSignals()
 	agentSignals := s.detectAgentSignals()
-	payload := newEventPOSTBody(result, terminalSignals, agentSignals, s.cliVersion, s.goos, s.goarch)
+	payload := newEventPOSTBody(result, terminalSignals, agentSignals, installationID, s.cliVersion, s.goos, s.goarch)
 
 	if s.shouldLog {
 		payloadJSON, _ := json.Marshal(payload)
@@ -136,6 +145,7 @@ func newEventPOSTBody(
 	result command.ExecutionResult,
 	terminalSignals command.TerminalSignals,
 	agentSignals []string,
+	installationID string,
 	cliVersion string,
 	goos string,
 	goarch string,
@@ -152,6 +162,7 @@ func newEventPOSTBody(
 		IsStdoutTty:    terminalSignals.StdoutTTY,
 		IsStderrTty:    terminalSignals.StderrTTY,
 		IsTermDumb:     terminalSignals.DumbTerminal,
+		InstallationId: installationID,
 		Os:             goos,
 		OutputFormat:   analyticsOutputFormat(result.OutputFormat),
 	}

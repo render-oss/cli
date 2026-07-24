@@ -25,6 +25,7 @@ func setupLogoutTest(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 	configPath := filepath.Join(dir, "cli.yaml")
+	t.Setenv("RENDER_CLI_CONFIG_DIR", dir)
 	t.Setenv(configPathEnvKey, configPath)
 	t.Setenv("RENDER_API_KEY", "")
 	return configPath
@@ -99,6 +100,9 @@ func TestLogoutWithEnvVarOnly(t *testing.T) {
 
 func TestLogoutSuccess(t *testing.T) {
 	configPath := setupLogoutTest(t)
+	installIDPath := filepath.Join(filepath.Dir(configPath), "state", "installation-id.txt")
+	require.NoError(t, os.MkdirAll(filepath.Dir(installIDPath), 0o755))
+	require.NoError(t, os.WriteFile(installIDPath, []byte("persistent-state"), 0o600))
 	host, revokeCalled := setupLogoutEndpoint(t, http.StatusNoContent)
 
 	require.NoError(t, config.SetAPIConfig(config.APIConfig{
@@ -113,6 +117,9 @@ func TestLogoutSuccess(t *testing.T) {
 
 	_, statErr := os.Stat(configPath)
 	require.True(t, os.IsNotExist(statErr), "config file should be deleted after logout")
+	state, err := os.ReadFile(installIDPath)
+	require.NoError(t, err)
+	require.Equal(t, "persistent-state", string(state))
 	require.True(t, revokeCalled(), "logout should call the revoke endpoint")
 }
 
