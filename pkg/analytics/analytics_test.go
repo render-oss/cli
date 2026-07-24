@@ -29,6 +29,7 @@ var testTerminalSignals = command.TerminalSignals{
 
 var testAgentSignals = []string{"CLAUDECODE", "CODEX_THREAD_ID"}
 var testCISignals = []string{"CI", "GITHUB_ACTIONS"}
+var exampleStartedAt = time.Date(2026, 7, 23, 12, 0, 0, 0, time.UTC)
 
 const testInstallationID = "188796f8-6d3f-4c11-b87d-5e64fbcfe741"
 
@@ -39,6 +40,7 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		Duration:       125 * time.Millisecond,
 		ExitCode:       7,
 		OutputFormat:   pointers.From(command.JSON),
+		StartedAt:      exampleStartedAt,
 	}
 	wantPayload := client.CreateCliTelemetryEventJSONRequestBody{
 		AgentSignals:   testAgentSignals,
@@ -55,6 +57,7 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		InstallationId: testInstallationID,
 		Os:             "test-os",
 		OutputFormat:   "json",
+		StartedAt:      "2026-07-23T12:00:00Z",
 	}
 	payloadJSON, err := json.Marshal(newEventPOSTBody(
 		result,
@@ -141,6 +144,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 		CommandPath:    "render services list",
 		CompletionKind: command.CompletionKindSuccess,
 		OutputFormat:   pointers.From(command.YAML),
+		StartedAt:      exampleStartedAt,
 	}, terminalSignals, testAgentSignals, []string{}, testInstallationID, "v-test", "test-os", "test-arch")
 
 	require.Equal(t, testAgentSignals, event.AgentSignals)
@@ -150,6 +154,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 	require.True(t, event.IsStderrTty)
 	require.True(t, event.IsTermDumb)
 	require.Equal(t, "render services list", event.Command)
+	require.Equal(t, "2026-07-23T12:00:00Z", event.StartedAt)
 
 	encoded, err := json.Marshal(event)
 	require.NoError(t, err)
@@ -165,6 +170,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 		"installation_id": "`+testInstallationID+`",
 		"os": "test-os",
 		"output_format": "yaml",
+		"started_at": "2026-07-23T12:00:00Z",
 		"is_stdin_tty": true,
 		"is_stdout_tty": false,
 		"is_stderr_tty": true,
@@ -194,6 +200,27 @@ func TestAgentSignalValuesNeverAppearInSerializedAnalyticsEvent(t *testing.T) {
 	require.NoError(t, err)
 	require.NotContains(t, string(encoded), canary)
 	require.Equal(t, []string{"CODEX_THREAD_ID", "CURSOR_AGENT"}, event.AgentSignals)
+}
+
+func TestCommandInvokedEventSerializesStartedAt(t *testing.T) {
+	event := newEventPOSTBody(
+		command.ExecutionResult{StartedAt: exampleStartedAt},
+		command.TerminalSignals{},
+		[]string{},
+		[]string{},
+		testInstallationID,
+		"v-test",
+		"test-os",
+		"test-arch",
+	)
+
+	encoded, err := json.Marshal(event)
+	require.NoError(t, err)
+
+	var payload map[string]any
+	require.NoError(t, json.Unmarshal(encoded, &payload))
+	require.Equal(t, "2026-07-23T12:00:00Z", payload["started_at"],
+		"started_at must be serialized as RFC3339 in the UTC timezone")
 }
 
 func TestCommandInvokedEventDefaultsUnresolvedOutputToUnknown(t *testing.T) {
@@ -306,6 +333,7 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 		CommandPath:    "render services list",
 		CompletionKind: command.CompletionKindSuccess,
 		ExitCode:       0,
+		StartedAt:      exampleStartedAt,
 	}, io.Discard)
 
 	require.Equal(t, []client.CreateCliTelemetryEventJSONRequestBody{{
@@ -323,6 +351,7 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 		InstallationId: testInstallationID,
 		Os:             runtime.GOOS,
 		OutputFormat:   unknownOutputFormat,
+		StartedAt:      "2026-07-23T12:00:00Z",
 	}}, server.CliTelemetry.Instances)
 }
 

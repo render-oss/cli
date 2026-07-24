@@ -173,6 +173,7 @@ func newEventPOSTBody(
 		InstallationId: installationID,
 		Os:             goos,
 		OutputFormat:   analyticsOutputFormat(result.OutputFormat),
+		StartedAt:      result.StartedAt.UTC().Format(time.RFC3339),
 	}
 }
 

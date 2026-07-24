@@ -304,6 +304,7 @@ func newExecutionResult(command *cobra.Command, kind commandpkg.CompletionKind, 
 		CompletionKind: kind,
 		Duration:       time.Since(startedAt),
 		ExitCode:       exitCode,
+		StartedAt:      startedAt,
 	}
 }
 

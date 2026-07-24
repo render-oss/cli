@@ -89,6 +89,9 @@ type CliTelemetryEventPOSTInput struct {
 	// OutputFormat Output mode selected for the CLI invocation (i.e., interactive, text, json, yaml)
 	OutputFormat string `json:"output_format"`
 
+	// StartedAt RFC3339 UTC timestamp of when the CLI command started (client-side clock)
+	StartedAt string `json:"started_at"`
+
 	// TuiRendered Whether the CLI invocation actually rendered the interactive TUI
 	TuiRendered bool `json:"tui_rendered"`
 }
