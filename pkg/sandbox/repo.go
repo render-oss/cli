@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 
 	"github.com/render-oss/cli/pkg/client"
@@ -129,6 +130,89 @@ func (r *Repo) ExecSandboxStream(ctx context.Context, id string, command string,
 	return readSandboxExecStream(resp.Body, onOutput)
 }
 
+// File transfer content types, mirroring the sandbox agent's contract: a
+// single file travels as octet-stream, a directory as a gzipped tar archive.
+const (
+	FileContentTypeOctetStream = "application/octet-stream"
+	FileContentTypeGzip        = "application/gzip"
+)
+
+// FileStream is a downloading file or directory archive. ContentType is
+// FileContentTypeOctetStream for a single file and FileContentTypeGzip
+// (gzipped tar) for a directory archive. The caller must close Body.
+type FileStream struct {
+	ContentType string
+	// Filename is the server-suggested name from Content-Disposition; empty
+	// when the server didn't send one.
+	Filename string
+	Body     io.ReadCloser
+}
+
+// UploadFile mints an upload connect token for remotePath and streams body
+// directly through the sandbox proxy. Pass contentLength -1 when unknown
+// (e.g. a tar stream).
+func (r *Repo) UploadFile(ctx context.Context, id, remotePath, contentType string, contentLength int64, body io.Reader) error {
+	conn, err := r.connectFile(ctx, id, "upload", remotePath)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, conn.Method, conn.Uri, body)
+	if err != nil {
+		return fmt.Errorf("build upload request: %w", err)
+	}
+	req.ContentLength = contentLength
+	req.Header.Set("Authorization", "Bearer "+conn.Token)
+	req.Header.Set("Content-Type", contentType)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Any 2xx, not just the 204 the agent sends today: the API deploys ahead of
+	// the CLI, so pinning the exact code would break on a benign change.
+	if !isSuccess(resp.StatusCode) {
+		return errFromStreamResponse(resp)
+	}
+	return nil
+}
+
+// DownloadFile mints a download connect token for remotePath and returns the
+// streaming body from the sandbox proxy.
+func (r *Repo) DownloadFile(ctx context.Context, id, remotePath string) (*FileStream, error) {
+	conn, err := r.connectFile(ctx, id, "download", remotePath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, conn.Method, conn.Uri, nil)
+	if err != nil {
+		return nil, fmt.Errorf("build download request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+conn.Token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if !isSuccess(resp.StatusCode) {
+		defer resp.Body.Close()
+		return nil, errFromStreamResponse(resp)
+	}
+
+	filename := ""
+	if _, params, err := mime.ParseMediaType(resp.Header.Get("Content-Disposition")); err == nil {
+		filename = params["filename"]
+	}
+	contentType := resp.Header.Get("Content-Type")
+	if mediaType, _, err := mime.ParseMediaType(contentType); err == nil {
+		contentType = mediaType
+	}
+	return &FileStream{ContentType: contentType, Filename: filename, Body: resp.Body}, nil
+}
+
 type execCommand struct {
 	Command string `json:"command"`
 }
@@ -155,9 +239,38 @@ func (r *Repo) connect(ctx context.Context, id string) (*sandboxclient.SandboxCo
 	return resp.JSON201, nil
 }
 
-// errFromStreamResponse parses an error out of the raw proxy streaming response.
+// connectFile mints a connect token for a file operation (upload or download)
+// against remotePath.
+func (r *Repo) connectFile(ctx context.Context, id, operation, remotePath string) (*sandboxclient.SandboxConnectResponse, error) {
+	workspace, err := config.WorkspaceID()
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := r.client.ConnectSandboxFilesWithResponse(ctx, id, operation, &client.ConnectSandboxFilesParams{
+		OwnerId: workspace,
+		Path:    remotePath,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+
+	if resp.JSON201 == nil {
+		return nil, fmt.Errorf("connect sandbox files: success response missing connect token")
+	}
+
+	return resp.JSON201, nil
+}
+
+func isSuccess(statusCode int) bool { return statusCode >= 200 && statusCode < 300 }
+
+// errFromStreamResponse parses an error out of a raw response.
 // client.ErrorFromResponse reflects over the generated *WithResponse structs and
-// can't be used on the raw *http.Response from the manual stream request, so this
+// can't be used on the *http.Response from a hand-built request, so this
 // mirrors its behavior: map the standard auth codes to shared sentinels and
 // surface the API's structured error message where present.
 func errFromStreamResponse(resp *http.Response) error {
