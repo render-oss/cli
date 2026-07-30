@@ -14,9 +14,14 @@ import (
 
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/client/oauth"
 	pgclient "github.com/render-oss/cli/pkg/client/postgres"
 	"github.com/render-oss/cli/pkg/pointers"
 )
+
+// OAuthAccessToken is the access token POST /device-token returns to tests that
+// exercise the OAuth device flow (render login).
+const OAuthAccessToken = "rnd_fake_oauth_token"
 
 // queryListValues returns all values for key, splitting each occurrence on
 // commas. URL.Query already preserves repeated params such as ?k=a&k=b as
@@ -422,6 +427,27 @@ func NewServer(t *testing.T) *Server {
 			return
 		}
 		writeJSON(w, http.StatusOK, s.CurrentUser)
+	})
+
+	// POST /device-grant — start the OAuth device flow (render login).
+	// Interval is in seconds and drives the CLI's poll ticker, so 1 is the
+	// fastest a login test can complete.
+	mux.HandleFunc("POST /device-grant", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		writeJSON(w, http.StatusOK, oauth.DeviceGrant{
+			DeviceCode:              "fake-device-code",
+			UserCode:                "FAKE-CODE",
+			VerificationUri:         s.URL() + "/login",
+			VerificationUriComplete: s.URL() + "/login?code=FAKE-CODE",
+			ExpiresIn:               5,
+			Interval:                1,
+		})
+	})
+
+	// POST /device-token — poll for the OAuth device flow token.
+	mux.HandleFunc("POST /device-token", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		writeJSON(w, http.StatusOK, oauth.DeviceToken{AccessToken: OAuthAccessToken})
 	})
 
 	// GET /owners — list workspaces (supports ?name= filter)

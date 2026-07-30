@@ -35,7 +35,7 @@ func NonInteractiveLogin(cmd *cobra.Command) error {
 		return nil
 	}
 
-	err := login(cmd, dc)
+	err := login(cmd, dc, dashboard.Open)
 	if err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func NonInteractiveLogin(cmd *cobra.Command) error {
 	return nil
 }
 
-func login(cmd *cobra.Command, c *oauth.Client) error {
+func login(cmd *cobra.Command, c *oauth.Client, openBrowser func(url string) error) error {
 	dg, err := c.CreateGrant(cmd.Context())
 	if err != nil {
 		return err
@@ -63,9 +63,8 @@ func login(cmd *cobra.Command, c *oauth.Client) error {
 	}
 
 	command.Println(cmd, "Complete login in the Render Dashboard with code: %s\n\nOpening your browser to:\n\n\t%s\n\n", dg.UserCode, u)
-	err = dashboard.Open(u.String())
-	if err != nil {
-		return err
+	if err := openBrowser(u.String()); err != nil {
+		command.Println(cmd, "Could not open your browser automatically. Open the URL above to continue.\n\n")
 	}
 	command.Println(cmd, "Waiting for login...\n\n")
 
@@ -84,7 +83,8 @@ type LoginView struct {
 	dc *oauth.Client
 	vc *version.Client
 
-	dashURL string
+	dashURL           string
+	browserOpenFailed bool
 }
 
 func NewLoginView(ctx context.Context) *LoginView {
@@ -99,13 +99,14 @@ func NewLoginView(ctx context.Context) *LoginView {
 }
 
 type loginStartedMsg struct {
-	dashURL     string
-	deviceGrant *oauth.DeviceGrant
+	dashURL           string
+	deviceGrant       *oauth.DeviceGrant
+	browserOpenFailed bool
 }
 
 type loginCompleteMsg struct{}
 
-func startLogin(ctx context.Context, dc *oauth.Client) tea.Cmd {
+func startLogin(ctx context.Context, dc *oauth.Client, openBrowser func(url string) error) tea.Cmd {
 	return func() tea.Msg {
 		dg, err := dc.CreateGrant(ctx)
 		if err != nil {
@@ -117,14 +118,15 @@ func startLogin(ctx context.Context, dc *oauth.Client) tea.Cmd {
 			return tui.ErrorMsg{Err: err}
 		}
 
-		err = dashboard.Open(u.String())
-		if err != nil {
-			return tui.ErrorMsg{Err: err}
-		}
+		// Opening the browser is best-effort: the view shows the URL, so login
+		// can still complete when no browser can be launched.
+		dashURL := u.String()
+		openErr := openBrowser(dashURL)
 
 		return loginStartedMsg{
-			dashURL:     u.String(),
-			deviceGrant: dg,
+			dashURL:           dashURL,
+			deviceGrant:       dg,
+			browserOpenFailed: openErr != nil,
 		}
 	}
 }
@@ -164,9 +166,10 @@ func (l *LoginView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case notLoggedInMsg:
 		return l, tea.Sequence(func() tea.Msg {
 			return tui.DoneLoadingDataMsg{}
-		}, startLogin(l.ctx, l.dc))
+		}, startLogin(l.ctx, l.dc, dashboard.Open))
 	case loginStartedMsg:
 		l.dashURL = msg.dashURL
+		l.browserOpenFailed = msg.browserOpenFailed
 		return l, tea.Batch(func() tea.Msg {
 			return tui.LoadingDataMsg{
 				Cmd: tea.Sequence(
@@ -175,7 +178,7 @@ func (l *LoginView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return tui.DoneLoadingDataMsg{}
 					},
 				),
-				LoadingMsgTmpl: fmt.Sprintf("Complete login in the Render Dashboard. Opening your browser to:\n\n\t%s\n\n%%sWaiting for login...\n", l.dashURL),
+				LoadingMsgTmpl: loginPrompt(msg.dashURL, msg.browserOpenFailed) + "%sWaiting for login...\n",
 			}
 		})
 	case loginCompleteMsg:
@@ -185,7 +188,14 @@ func (l *LoginView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (l *LoginView) View() string {
-	return fmt.Sprintf("Complete login in the Render Dashboard. Opening your browser to:\n\n\t%s\n\nWaiting for login...\n", l.dashURL)
+	return loginPrompt(l.dashURL, l.browserOpenFailed) + "Waiting for login...\n"
+}
+
+func loginPrompt(dashURL string, browserOpenFailed bool) string {
+	if browserOpenFailed {
+		return fmt.Sprintf("Complete login in the Render Dashboard. Could not open your browser automatically; open this URL to continue:\n\n\t%s\n\n", dashURL)
+	}
+	return fmt.Sprintf("Complete login in the Render Dashboard. Opening your browser to:\n\n\t%s\n\n", dashURL)
 }
 
 func isAlreadyLoggedIn(ctx context.Context) bool {
