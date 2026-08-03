@@ -43,22 +43,24 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		StartedAt:      exampleStartedAt,
 	}
 	wantPayload := client.CreateCliTelemetryEventJSONRequestBody{
-		AgentSignals:   testAgentSignals,
-		Arch:           "test-arch",
-		CiSignals:      []string{"CI", "GITHUB_ACTIONS"},
-		CliVersion:     "v-test",
-		Command:        "render services list",
-		CompletionKind: telemetryclient.ExplicitExit,
-		DurationMs:     125,
-		ExitCode:       7,
-		IsStdinTty:     true,
-		IsStdoutTty:    true,
-		IsStderrTty:    true,
-		InstallationId: testInstallationID,
-		Os:             "test-os",
-		OutputFormat:   "json",
-		StartedAt:      "2026-07-23T12:00:00Z",
+		AgentSignals:          testAgentSignals,
+		Arch:                  "test-arch",
+		CiSignals:             []string{"CI", "GITHUB_ACTIONS"},
+		CliVersion:            "v-test",
+		Command:               "render services list",
+		CompletionKind:        telemetryclient.ExplicitExit,
+		DurationMs:            125,
+		ExitCode:              7,
+		IsStdinTty:            true,
+		IsStdoutTty:           true,
+		IsStderrTty:           true,
+		InstallationId:        testInstallationID,
+		LaunchedFullScreenTui: pointers.From(false),
+		Os:                    "test-os",
+		OutputFormat:          "json",
+		StartedAt:             "2026-07-23T12:00:00Z",
 	}
+
 	payloadJSON, err := json.Marshal(newEventPOSTBody(
 		result,
 		testTerminalSignals,
@@ -141,10 +143,11 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 		DumbTerminal: true,
 	}
 	event := newEventPOSTBody(command.ExecutionResult{
-		CommandPath:    "render services list",
-		CompletionKind: command.CompletionKindSuccess,
-		OutputFormat:   pointers.From(command.YAML),
-		StartedAt:      exampleStartedAt,
+		CommandPath:           "render services list",
+		CompletionKind:        command.CompletionKindSuccess,
+		LaunchedFullScreenTUI: true,
+		OutputFormat:          pointers.From(command.YAML),
+		StartedAt:             exampleStartedAt,
 	}, terminalSignals, testAgentSignals, []string{}, testInstallationID, "v-test", "test-os", "test-arch")
 
 	require.Equal(t, testAgentSignals, event.AgentSignals)
@@ -155,6 +158,8 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 	require.True(t, event.IsTermDumb)
 	require.Equal(t, "render services list", event.Command)
 	require.Equal(t, "2026-07-23T12:00:00Z", event.StartedAt)
+	require.NotNil(t, event.LaunchedFullScreenTui)
+	require.True(t, *event.LaunchedFullScreenTui)
 
 	encoded, err := json.Marshal(event)
 	require.NoError(t, err)
@@ -175,7 +180,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 		"is_stdout_tty": false,
 		"is_stderr_tty": true,
 		"is_term_dumb": true,
-		"tui_rendered": false
+		"launched_full_screen_tui": true
 	}`, string(encoded))
 }
 
@@ -337,21 +342,22 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 	}, io.Discard)
 
 	require.Equal(t, []client.CreateCliTelemetryEventJSONRequestBody{{
-		AgentSignals:   agentSignals,
-		Arch:           runtime.GOARCH,
-		CiSignals:      ciSignals,
-		CliVersion:     cfg.Version,
-		Command:        "render services list",
-		CompletionKind: telemetryclient.Success,
-		ExitCode:       0,
-		IsStdinTty:     terminalSignals.StdinTTY,
-		IsStdoutTty:    terminalSignals.StdoutTTY,
-		IsStderrTty:    terminalSignals.StderrTTY,
-		IsTermDumb:     terminalSignals.DumbTerminal,
-		InstallationId: testInstallationID,
-		Os:             runtime.GOOS,
-		OutputFormat:   unknownOutputFormat,
-		StartedAt:      "2026-07-23T12:00:00Z",
+		AgentSignals:          agentSignals,
+		Arch:                  runtime.GOARCH,
+		CiSignals:             ciSignals,
+		CliVersion:            cfg.Version,
+		Command:               "render services list",
+		CompletionKind:        telemetryclient.Success,
+		ExitCode:              0,
+		IsStdinTty:            terminalSignals.StdinTTY,
+		IsStdoutTty:           terminalSignals.StdoutTTY,
+		IsStderrTty:           terminalSignals.StderrTTY,
+		IsTermDumb:            terminalSignals.DumbTerminal,
+		InstallationId:        testInstallationID,
+		LaunchedFullScreenTui: pointers.From(false),
+		Os:                    runtime.GOOS,
+		OutputFormat:          unknownOutputFormat,
+		StartedAt:             "2026-07-23T12:00:00Z",
 	}}, server.CliTelemetry.Instances)
 }
 

@@ -83,6 +83,9 @@ type CliTelemetryEventPOSTInput struct {
 	// IsTermDumb Whether the TERM environment variable was set to "dumb" at invocation startup
 	IsTermDumb bool `json:"is_term_dumb"`
 
+	// LaunchedFullScreenTui True if the CLI launched a full-, alt-screen TUI program. (false = did not. null = event did not include this data)
+	LaunchedFullScreenTui *bool `json:"launched_full_screen_tui,omitempty"`
+
 	// Os Operating system the CLI was run on (e.g. "darwin", "linux", "windows")
 	Os string `json:"os"`
 
@@ -91,9 +94,6 @@ type CliTelemetryEventPOSTInput struct {
 
 	// StartedAt RFC3339 UTC timestamp of when the CLI command started (client-side clock)
 	StartedAt string `json:"started_at"`
-
-	// TuiRendered Whether the CLI invocation actually rendered the interactive TUI
-	TuiRendered bool `json:"tui_rendered"`
 }
 
 // CliTelemetryEventPOSTInputCompletionKind How the CLI invocation completed

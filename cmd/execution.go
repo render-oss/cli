@@ -31,6 +31,9 @@ var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.Executi
 type executionObservation struct {
 	// flagValidationFailed reports that Cobra rejected a parsed flag.
 	flagValidationFailed bool
+	// launchedFullScreenTUI reports whether or not the command attempted to launch a full-screen / alt-screen TUI
+	// False if it did not. Note that inline huh.Forms should keep this false.
+	launchedFullScreenTUI bool
 	// helpTarget is the command whose help Cobra rendered, if any. It can differ
 	// from the command ExecuteC returns: `render help services` selects the
 	// builtin help command but renders help for `render services`.
@@ -345,6 +348,7 @@ func newClassifiedExecutionResult(command *cobra.Command, err error, observation
 	}
 	result := newExecutionResult(resultCommand, kind, exitCodeFromError(err), startedAt)
 	result.OutputFormat = outputFormatFromExecution(resultCommand)
+	result.LaunchedFullScreenTUI = observation.launchedFullScreenTUI
 	return result
 }
 

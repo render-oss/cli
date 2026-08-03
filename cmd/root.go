@@ -69,8 +69,7 @@ func newRootCmd() *cobra.Command {
 					m = tui.NewConfigWrapper(m, "Login", views.NewLoginView(ctx))
 				}
 
-				p := tea.NewProgram(m, tea.WithAltScreen())
-				_, err := p.Run()
+				_, err := runFullScreenTUI(ctx, m)
 				if err != nil {
 					panic(fmt.Sprintf("Failed to initialize interface. Use -o to specify a non-interactive output mode: %v", err))
 				}

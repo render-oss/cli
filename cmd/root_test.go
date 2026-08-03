@@ -646,6 +646,16 @@ func TestPrepareExecutionObservationClearsRetainedState(t *testing.T) {
 	thirdObservation := prepareExecutionObservation(root)
 	require.Same(t, secondObservation, thirdObservation)
 	require.Equal(t, setupNotStarted, thirdObservation.setup)
+	require.False(t, thirdObservation.launchedFullScreenTUI)
+}
+
+func TestClassifiedExecutionResultIncludesFullScreenTUILaunch(t *testing.T) {
+	command := &cobra.Command{Use: "test"}
+	observation := &executionObservation{launchedFullScreenTUI: true}
+
+	result := newClassifiedExecutionResult(command, nil, observation, time.Now())
+
+	require.True(t, result.LaunchedFullScreenTUI)
 }
 
 func TestPrepareExecutionObservationClearsRetainedHelpRequest(t *testing.T) {

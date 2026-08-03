@@ -14,6 +14,9 @@ linters:
         - pattern: ^log\.Fatal(f|ln)?$
           pkg: ^log$
           msg: log.Fatal is forbidden; return an error to the global executor
+        - pattern: ^tea\.(WithAltScreen|EnterAltScreen|Program\.EnterAltScreen)$
+          pkg: ^github\.com/charmbracelet/bubbletea$
+          msg: full-screen Bubble Tea programs must launch through runFullScreenTUI
   exclusions:
     rules:
       - path: ^main\.go$
@@ -21,6 +24,10 @@ linters:
         linters:
           - forbidigo
       - path: ^tools/
+        linters:
+          - forbidigo
+      - path: ^cmd/fullscreen\.go$
+        text: full-screen Bubble Tea programs must launch through runFullScreenTUI
         linters:
           - forbidigo
       - path: _test\.go$
