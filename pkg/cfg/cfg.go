@@ -42,6 +42,11 @@ func ShouldSendAnalytics() bool {
 	return os.Getenv("RENDER_TEST_ENABLE_ANALYTICS") == "1"
 }
 
+// AnalyticsStrategy returns the raw configured analytics send strategy.
+func AnalyticsStrategy() string {
+	return os.Getenv("RENDER_CLI_ANALYTICS_STRATEGY")
+}
+
 func AddUserAgent(header http.Header) http.Header {
 	header.Add("user-agent", fmt.Sprintf("render-cli/%s (%s)", Version, getOSInfoOnce()))
 	return header

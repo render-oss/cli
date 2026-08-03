@@ -53,3 +53,9 @@ func TestShouldSendAnalytics(t *testing.T) {
 		})
 	}
 }
+
+func TestAnalyticsStrategyReturnsRawValue(t *testing.T) {
+	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", " sync ")
+
+	require.Equal(t, " sync ", cfg.AnalyticsStrategy())
+}
