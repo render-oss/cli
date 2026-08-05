@@ -21,7 +21,7 @@ const (
 
 // writeEventFile serializes one analytics event to a unique state file and
 // closes it before returning the path. Event files are an implementation
-// detail of Sender's eventual subprocess handoff.
+// detail of Sender's subprocess handoff.
 func writeEventFile(payload client.CreateCliTelemetryEventJSONRequestBody) (string, error) {
 	data, err := json.Marshal(payload)
 	if err != nil {

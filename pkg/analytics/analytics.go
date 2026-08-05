@@ -3,10 +3,10 @@ package analytics
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"runtime"
 	"time"
 
@@ -50,6 +50,13 @@ type Sender struct {
 	detectCISignals func() []string
 	// getInstallationID resolves the stable identifier included in each event.
 	getInstallationID func() (string, error)
+	// newLauncher lazily resolves the subprocess used to send an event file.
+	newLauncher func() (analyticsSubprocessLauncher, error)
+}
+
+type analyticsSubprocessLauncher interface {
+	startDetached(eventFile string) error
+	runSync(ctx context.Context, eventFile string, stderr io.Writer) error
 }
 
 // New creates a new [Sender].
@@ -83,13 +90,17 @@ func newSender(
 		detectAgentSignals:    detectAgentSignals,
 		detectCISignals:       detectCISignals,
 		getInstallationID:     installid.Resolve,
+		newLauncher: func() (analyticsSubprocessLauncher, error) {
+			return newSubprocessLauncher()
+		},
 	}
 }
 
-// Send builds the analytics event for a completed execution and dispatches it
-// after Cobra and its post-run hooks finish. It never returns errors to the
-// command path: sending is best-effort, and failures are only surfaced through
-// logging.
+// Send builds the analytics event for a completed execution, writes it to a
+// state file, and hands that file to a subprocess after Cobra and its post-run
+// hooks finish. It never performs network I/O in the calling process or returns
+// errors to the command path: sending is best-effort, and failures are only
+// surfaced through logging.
 //
 // In the future if we have more than 1 event type to send, we can rename / refactor this function
 func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
@@ -116,23 +127,55 @@ func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), legacySyncSendTimeout)
-	defer cancel()
-
-	_, status, err := s.postEvent(ctx, payload)
-
-	if !s.shouldLog {
+	eventFile, err := writeEventFile(payload)
+	if err != nil {
+		s.logError(stderr, err)
 		return
+	}
+
+	strategy, diagnostic := resolveStrategy(strategyInputs{
+		isCI:               cfg.IsCI(),
+		loggingEnabled:     s.shouldLog,
+		configuredStrategy: cfg.AnalyticsStrategy(),
+	})
+	if diagnostic != "" && s.shouldLog {
+		_, _ = fmt.Fprintln(stderr, diagnostic)
+	}
+
+	launcher, err := s.newLauncher()
+	if err != nil {
+		_ = os.Remove(eventFile)
+		s.logError(stderr, err)
+		return
+	}
+
+	//exhaustive:enforce
+	switch strategy {
+	case strategyDetached:
+		err = launcher.startDetached(eventFile)
+	case strategySync:
+		diagnostics := io.Discard
+		if s.shouldLog {
+			diagnostics = stderr
+		}
+		err = launcher.runSync(context.Background(), eventFile, diagnostics)
+	default:
+		// A strategy this switch does not handle would otherwise leave err nil
+		// and silently orphan the event file.
+		err = fmt.Errorf("unhandled analytics send strategy %d", strategy)
 	}
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			_, _ = fmt.Fprintf(stderr, "analytics error: canceling API request after exceeding %s timeout\n", legacySyncSendTimeout)
-			return
-		}
-		_, _ = fmt.Fprintf(stderr, "analytics error: %v\n", err)
-		return
+		// The child normally removes the file before sending. If it failed before
+		// taking ownership, the parent drops the event instead of orphaning it.
+		_ = os.Remove(eventFile)
+		s.logError(stderr, err)
 	}
-	_, _ = fmt.Fprintf(stderr, "analytics response: %s\n", status)
+}
+
+func (s *Sender) logError(stderr io.Writer, err error) {
+	if s.shouldLog {
+		_, _ = fmt.Fprintf(stderr, "analytics error: %v\n", err)
+	}
 }
 
 func newEventPOSTBody(

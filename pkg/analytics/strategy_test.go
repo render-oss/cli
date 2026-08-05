@@ -14,49 +14,31 @@ func TestResolveStrategy(t *testing.T) {
 		wantDiagnostic string
 	}{
 		{
-			name:         "CI true uses sync",
-			inputs:       strategyInputs{ci: "true"},
+			name:         "CI uses sync",
+			inputs:       strategyInputs{isCI: true},
 			wantStrategy: strategySync,
 		},
 		{
-			name:         "CI true takes precedence",
-			inputs:       strategyInputs{ci: "true", loggingEnabled: true, sendingEnabled: true, configuredStrategy: "banana"},
-			wantStrategy: strategySync,
+			name:           "CI takes precedence",
+			inputs:         strategyInputs{isCI: true, loggingEnabled: true, configuredStrategy: "banana"},
+			wantStrategy:   strategySync,
+			wantDiagnostic: `unknown RENDER_CLI_ANALYTICS_STRATEGY value "banana"; ignoring it`,
 		},
 		{
-			name:         "CI false is not CI",
-			inputs:       strategyInputs{ci: "false"},
-			wantStrategy: strategyDetached,
-		},
-		{
-			name:         "CI 1 is not CI",
-			inputs:       strategyInputs{ci: "1"},
-			wantStrategy: strategyDetached,
-		},
-		{
-			name:         "uppercase CI true is not CI",
-			inputs:       strategyInputs{ci: "TRUE"},
-			wantStrategy: strategyDetached,
-		},
-		{
-			name:         "unset CI and empty strategy use detached",
+			name:         "no CI and empty strategy use detached",
 			inputs:       strategyInputs{},
 			wantStrategy: strategyDetached,
 		},
 		{
-			name:         "logging and sending use sync",
-			inputs:       strategyInputs{loggingEnabled: true, sendingEnabled: true},
-			wantStrategy: strategySync,
-		},
-		{
-			name:         "logging and sending take precedence over configured strategy",
-			inputs:       strategyInputs{loggingEnabled: true, sendingEnabled: true, configuredStrategy: "banana"},
-			wantStrategy: strategySync,
-		},
-		{
-			name:         "logging without sending uses detached",
+			name:         "if logging is enabled, use sync",
 			inputs:       strategyInputs{loggingEnabled: true},
-			wantStrategy: strategyDetached,
+			wantStrategy: strategySync,
+		},
+		{
+			name:           "logging takes precedence over configured strategy",
+			inputs:         strategyInputs{loggingEnabled: true, configuredStrategy: "banana"},
+			wantStrategy:   strategySync,
+			wantDiagnostic: `unknown RENDER_CLI_ANALYTICS_STRATEGY value "banana"; ignoring it`,
 		},
 		{
 			name:         "configured sync uses sync",
@@ -69,21 +51,16 @@ func TestResolveStrategy(t *testing.T) {
 			wantStrategy: strategyDetached,
 		},
 		{
-			name:         "unknown strategy uses detached silently",
-			inputs:       strategyInputs{configuredStrategy: "banana"},
-			wantStrategy: strategyDetached,
-		},
-		{
-			name:           "unknown strategy is diagnosed when logging",
-			inputs:         strategyInputs{loggingEnabled: true, configuredStrategy: "banana"},
+			name:           "unknown strategy uses detached and is diagnosed",
+			inputs:         strategyInputs{configuredStrategy: "banana"},
 			wantStrategy:   strategyDetached,
-			wantDiagnostic: `unknown RENDER_CLI_ANALYTICS_STRATEGY value "banana"; using auto`,
+			wantDiagnostic: `unknown RENDER_CLI_ANALYTICS_STRATEGY value "banana"; ignoring it`,
 		},
 		{
 			name:           "whitespace around strategy is not ignored",
-			inputs:         strategyInputs{loggingEnabled: true, configuredStrategy: " sync "},
+			inputs:         strategyInputs{configuredStrategy: " sync "},
 			wantStrategy:   strategyDetached,
-			wantDiagnostic: `unknown RENDER_CLI_ANALYTICS_STRATEGY value " sync "; using auto`,
+			wantDiagnostic: `unknown RENDER_CLI_ANALYTICS_STRATEGY value " sync "; ignoring it`,
 		},
 	}
 

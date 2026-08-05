@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 )
 
 const RepoURL = "https://api.github.com/repos/render-oss/cli"
@@ -45,6 +46,15 @@ func ShouldSendAnalytics() bool {
 // AnalyticsStrategy returns the raw configured analytics send strategy.
 func AnalyticsStrategy() string {
 	return os.Getenv("RENDER_CLI_ANALYTICS_STRATEGY")
+}
+
+// IsCI reports whether the CLI is running in a CI pipeline, indicated by a
+// truthy CI environment variable ("true" in any case, or "1"). This is the
+// single definition of CI-ness: output resolution and the analytics send
+// strategy must not diverge on it.
+func IsCI() bool {
+	value := os.Getenv("CI")
+	return value == "1" || strings.EqualFold(value, "true")
 }
 
 func AddUserAgent(header http.Header) http.Header {

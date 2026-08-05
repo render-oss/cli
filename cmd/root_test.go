@@ -26,6 +26,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const analyticsSubprocessHelperEnv = "RENDER_CLI_TEST_ANALYTICS_SEND_HELPER"
+
+func TestMain(m *testing.M) {
+	// Sender re-executes the current binary. In these integration tests that is
+	// the cmd test binary, so let the child impersonate the real render entry
+	// point and execute the hidden analytics command against the parent's fake.
+	if os.Getenv(analyticsSubprocessHelperEnv) == "1" {
+		os.Exit(Execute())
+	}
+
+	os.Exit(m.Run())
+}
+
 func TestRootPersistentPreRunOutputResolution(t *testing.T) {
 	testCases := []struct {
 		name             string
@@ -792,6 +805,9 @@ func executeWithAnalytics(
 	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
 	t.Setenv("RENDER_CLI_CONFIG_PATH", "")
 	t.Setenv("RENDER_API_KEY", "test-api-key")
+	t.Setenv("RENDER_HOST", server.URL()+"/")
+	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")
+	t.Setenv(analyticsSubprocessHelperEnv, "1")
 	if shouldSend {
 		t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
 	} else {

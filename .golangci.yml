@@ -3,8 +3,14 @@ version: "2"
 linters:
   default: standard
   enable:
+    - exhaustive
     - forbidigo
   settings:
+    exhaustive:
+      # Only switches annotated with an //exhaustive:enforce comment are
+      # checked. A default arm does not satisfy the check, so an enforced
+      # switch flags any enum constant it does not name explicitly.
+      explicit-exhaustive-switch: true
     forbidigo:
       analyze-types: true
       forbid:

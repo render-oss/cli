@@ -8,14 +8,9 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 )
 
-const (
-	// legacySyncSendTimeout bounds the in-process Sender.Send request used before
-	// subprocess delivery becomes the default.
-	legacySyncSendTimeout = 500 * time.Millisecond
-	// sendFileRequestTimeout bounds the HTTP request made by SendFile. It leaves
-	// headroom inside the synchronous subprocess's three-second lifecycle budget.
-	sendFileRequestTimeout = 2500 * time.Millisecond
-)
+// sendFileRequestTimeout bounds the HTTP request made by SendFile. It leaves
+// headroom inside the synchronous subprocess's three-second lifecycle budget.
+const sendFileRequestTimeout = 2500 * time.Millisecond
 
 // postEvent posts one event using the caller's context and reduces the
 // response to its status line. The body is closed unread: delivery is

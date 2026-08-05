@@ -7,6 +7,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
@@ -27,9 +29,11 @@ var testTerminalSignals = command.TerminalSignals{
 	StderrTTY: true,
 }
 
-var testAgentSignals = []string{"CLAUDECODE", "CODEX_THREAD_ID"}
-var testCISignals = []string{"CI", "GITHUB_ACTIONS"}
-var exampleStartedAt = time.Date(2026, 7, 23, 12, 0, 0, 0, time.UTC)
+var (
+	testAgentSignals = []string{"CLAUDECODE", "CODEX_THREAD_ID"}
+	testCISignals    = []string{"CI", "GITHUB_ACTIONS"}
+	exampleStartedAt = time.Date(2026, 7, 23, 12, 0, 0, 0, time.UTC)
+)
 
 const testInstallationID = "188796f8-6d3f-4c11-b87d-5e64fbcfe741"
 
@@ -42,25 +46,6 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		OutputFormat:   pointers.From(command.JSON),
 		StartedAt:      exampleStartedAt,
 	}
-	wantPayload := client.CreateCliTelemetryEventJSONRequestBody{
-		AgentSignals:          testAgentSignals,
-		Arch:                  "test-arch",
-		CiSignals:             []string{"CI", "GITHUB_ACTIONS"},
-		CliVersion:            "v-test",
-		Command:               "render services list",
-		CompletionKind:        telemetryclient.ExplicitExit,
-		DurationMs:            125,
-		ExitCode:              7,
-		IsStdinTty:            true,
-		IsStdoutTty:           true,
-		IsStderrTty:           true,
-		InstallationId:        testInstallationID,
-		LaunchedFullScreenTui: pointers.From(false),
-		Os:                    "test-os",
-		OutputFormat:          "json",
-		StartedAt:             "2026-07-23T12:00:00Z",
-	}
-
 	payloadJSON, err := json.Marshal(newEventPOSTBody(
 		result,
 		testTerminalSignals,
@@ -74,65 +59,184 @@ func TestSenderSendAndLogGates(t *testing.T) {
 	require.NoError(t, err)
 	payloadLog := string(payloadJSON) + "\n"
 
-	type sendResult struct {
-		requestCount int
-		bodyClosed   bool
-		payload      client.CreateCliTelemetryEventJSONRequestBody
-		logOutput    string
-	}
 	testCases := []struct {
 		name       string
 		shouldSend bool
 		shouldLog  bool
-		want       sendResult
+		wantLog    string
 	}{
 		{name: "disabled"},
 		{
 			name:      "logging alone",
 			shouldLog: true,
-			want:      sendResult{logOutput: payloadLog},
-		},
-		{
-			name:       "send silently",
-			shouldSend: true,
-			want: sendResult{
-				requestCount: 1,
-				bodyClosed:   true,
-				payload:      wantPayload,
-			},
-		},
-		{
-			name:       "send and log",
-			shouldSend: true,
-			shouldLog:  true,
-			want: sendResult{
-				requestCount: 1,
-				bodyClosed:   true,
-				payload:      wantPayload,
-				logOutput:    payloadLog + "analytics response: 202 Accepted\n",
-			},
+			wantLog:   payloadLog,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			body := &eventPOSTResponseBody{}
-			apiClient := &fakeTelemetryClient{
-				response: &http.Response{StatusCode: http.StatusAccepted, Status: "202 Accepted", Body: body},
+			configDir := t.TempDir()
+			t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
+			sender := newTestSender(&fakeTelemetryClient{}, tc.shouldSend, tc.shouldLog)
+			launcherCalls := 0
+			sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
+				launcherCalls++
+				return &fakeEventFileLauncher{}, nil
 			}
-			sender := newTestSender(apiClient, tc.shouldSend, tc.shouldLog)
 			var stderr bytes.Buffer
 
 			sender.Send(result, &stderr)
 
-			require.Equal(t, tc.want, sendResult{
-				requestCount: apiClient.calls,
-				bodyClosed:   body.closed,
-				payload:      apiClient.payload,
-				logOutput:    stderr.String(),
-			})
+			require.Equal(t, tc.wantLog, stderr.String())
+			require.Zero(t, launcherCalls)
+			_, err := os.Stat(filepath.Join(configDir, "state"))
+			require.ErrorIs(t, err, os.ErrNotExist, "a non-sending path must not create state")
 		})
 	}
+}
+
+func TestSenderHandsEventFileToDetachedSubprocess(t *testing.T) {
+	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("CI", "")
+	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "auto")
+
+	var eventPath string
+	launcher := &fakeEventFileLauncher{
+		startDetachedFunc: func(path string) error {
+			eventPath = path
+			info, err := os.Stat(path)
+			require.NoError(t, err)
+			require.True(t, info.Mode().IsRegular())
+			return nil
+		},
+	}
+	sender := newTestSender(&fakeTelemetryClient{}, true, false)
+	sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
+		return launcher, nil
+	}
+
+	sender.Send(command.ExecutionResult{
+		CommandPath:    "render services list",
+		CompletionKind: command.CompletionKindSuccess,
+		StartedAt:      exampleStartedAt,
+	}, io.Discard)
+
+	require.NotEmpty(t, eventPath)
+	require.Equal(t, []string{eventPath}, launcher.detachedPaths)
+	require.Empty(t, launcher.syncPaths)
+	_, err := os.Stat(eventPath)
+	require.NoError(t, err, "the detached child owns the event file after launch")
+
+	data, err := os.ReadFile(eventPath)
+	require.NoError(t, err)
+	var payload client.CreateCliTelemetryEventJSONRequestBody
+	require.NoError(t, json.Unmarshal(data, &payload))
+	require.Equal(t, "render services list", payload.Command)
+	require.Equal(t, telemetryclient.Success, payload.CompletionKind)
+}
+
+func TestSenderRemovesEventFileWhenDetachedLaunchFails(t *testing.T) {
+	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("CI", "")
+	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "auto")
+
+	launchErr := errors.New("launch failed")
+	launcher := &fakeEventFileLauncher{
+		startDetachedFunc: func(string) error { return launchErr },
+	}
+	sender := newTestSender(&fakeTelemetryClient{}, true, false)
+	sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
+		return launcher, nil
+	}
+
+	sender.Send(command.ExecutionResult{}, io.Discard)
+
+	require.Len(t, launcher.detachedPaths, 1)
+	_, err := os.Stat(launcher.detachedPaths[0])
+	require.ErrorIs(t, err, os.ErrNotExist)
+}
+
+func TestSenderReportsEventFileAndLauncherFailuresWhenLogging(t *testing.T) {
+	t.Run("event file", func(t *testing.T) {
+		configDir := t.TempDir()
+		t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
+		require.NoError(t, os.WriteFile(filepath.Join(configDir, "state"), nil, 0o600))
+
+		sender := newTestSender(&fakeTelemetryClient{}, true, true)
+		launcherCalls := 0
+		sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
+			launcherCalls++
+			return &fakeEventFileLauncher{}, nil
+		}
+		var stderr bytes.Buffer
+
+		sender.Send(command.ExecutionResult{}, &stderr)
+
+		require.Zero(t, launcherCalls)
+		require.Contains(t, stderr.String(), "analytics error: write analytics event file:")
+	})
+
+	t.Run("launcher", func(t *testing.T) {
+		configDir := t.TempDir()
+		t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
+		launcherErr := errors.New("executable unavailable")
+		sender := newTestSender(&fakeTelemetryClient{}, true, true)
+		sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
+			return nil, launcherErr
+		}
+		var stderr bytes.Buffer
+
+		sender.Send(command.ExecutionResult{}, &stderr)
+
+		require.Contains(t, stderr.String(), "analytics error: "+launcherErr.Error())
+		entries, err := os.ReadDir(filepath.Join(configDir, "state", "analytics", "events"))
+		require.NoError(t, err)
+		require.Empty(t, entries)
+	})
+}
+
+func TestSenderPassesDiscardedDiagnosticsToSilentSynchronousSubprocess(t *testing.T) {
+	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")
+	syncErr := errors.New("sync failed after consuming event")
+	launcher := &fakeEventFileLauncher{
+		runSyncFunc: func(_ context.Context, path string, diagnostics io.Writer) error {
+			require.Equal(t, io.Discard, diagnostics, "silent callers must pass io.Discard explicitly")
+			require.NoError(t, os.Remove(path))
+			return syncErr
+		},
+	}
+	sender := newTestSender(&fakeTelemetryClient{}, true, false)
+	sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
+		return launcher, nil
+	}
+	var stderr bytes.Buffer
+
+	sender.Send(command.ExecutionResult{}, &stderr)
+
+	require.Len(t, launcher.syncPaths, 1)
+	require.Empty(t, stderr.String())
+	_, err := os.Stat(launcher.syncPaths[0])
+	require.ErrorIs(t, err, os.ErrNotExist, "missing files after child cleanup are expected")
+}
+
+func TestSenderWarnsAboutUnknownStrategyWhenLogging(t *testing.T) {
+	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "banana")
+	launcher := &fakeEventFileLauncher{
+		runSyncFunc: func(_ context.Context, path string, _ io.Writer) error {
+			return os.Remove(path)
+		},
+	}
+	sender := newTestSender(&fakeTelemetryClient{}, true, true)
+	sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
+		return launcher, nil
+	}
+	var stderr bytes.Buffer
+
+	sender.Send(command.ExecutionResult{}, &stderr)
+
+	require.Contains(t, stderr.String(), `unknown RENDER_CLI_ANALYTICS_STRATEGY value "banana"; ignoring it`)
 }
 
 func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
@@ -260,23 +364,30 @@ func TestInstallationIDResolutionFailureIsBestEffort(t *testing.T) {
 	runFailedResolution := func(t *testing.T, shouldLog bool) string {
 		t.Helper()
 
-		apiClient := &fakeTelemetryClient{
-			response: &http.Response{
-				StatusCode: http.StatusAccepted,
-				Status:     "202 Accepted",
-				Body:       &eventPOSTResponseBody{},
-			},
-		}
-		sender := newTestSender(apiClient, true, shouldLog)
+		t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
+		t.Setenv("CI", "")
+		sender := newTestSender(&fakeTelemetryClient{}, true, shouldLog)
 		sender.getInstallationID = func() (string, error) {
 			return "", resolutionErr
+		}
+		var payload client.CreateCliTelemetryEventJSONRequestBody
+		consumeEvent := func(path string) error {
+			payload = readEventPayload(t, path)
+			return os.Remove(path)
+		}
+		sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
+			return &fakeEventFileLauncher{
+				startDetachedFunc: consumeEvent,
+				runSyncFunc: func(_ context.Context, path string, _ io.Writer) error {
+					return consumeEvent(path)
+				},
+			}, nil
 		}
 		var stderr bytes.Buffer
 
 		sender.Send(command.ExecutionResult{}, &stderr)
 
-		require.Equal(t, 1, apiClient.calls)
-		require.Empty(t, apiClient.payload.InstallationId)
+		require.Empty(t, payload.InstallationId)
 		return stderr.String()
 	}
 
@@ -321,6 +432,8 @@ func TestNewUsesExactEnvironmentGates(t *testing.T) {
 
 func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 	server := renderapi.NewServer(t)
+	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")
 	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
 	t.Setenv("RENDER_HOST", server.URL()+"/")
 	t.Setenv("RENDER_API_KEY", "secret-token")
@@ -329,6 +442,14 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 	sender := New(apiClient)
 	sender.getInstallationID = func() (string, error) {
 		return testInstallationID, nil
+	}
+	launcher := &fakeEventFileLauncher{
+		runSyncFunc: func(ctx context.Context, path string, diagnostics io.Writer) error {
+			return sender.SendFile(ctx, path, diagnostics)
+		},
+	}
+	sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
+		return launcher, nil
 	}
 	terminalSignals := command.DetectTerminalSignals()
 	agentSignals := DetectAgentSignals()
@@ -359,6 +480,9 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 		OutputFormat:          unknownOutputFormat,
 		StartedAt:             "2026-07-23T12:00:00Z",
 	}}, server.CliTelemetry.Instances)
+	require.Len(t, launcher.syncPaths, 1)
+	_, err = os.Stat(launcher.syncPaths[0])
+	require.ErrorIs(t, err, os.ErrNotExist)
 }
 
 // TestCompletionKindsAreKnownToTelemetryAPI guards against local/remote enum
@@ -379,85 +503,54 @@ func TestCompletionKindsAreKnownToTelemetryAPI(t *testing.T) {
 	}
 }
 
-func TestSenderCancelsSendAfterTimeout(t *testing.T) {
-	type requestObservation struct {
-		ctx         context.Context
-		deadline    time.Time
-		observedAt  time.Time
-		hasDeadline bool
+func TestSenderCleansUpAfterSynchronousSubprocessTimeout(t *testing.T) {
+	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")
+	timeoutErr := errors.New("analytics subprocess exceeded 3s deadline")
+	launcher := &fakeEventFileLauncher{
+		runSyncFunc: func(_ context.Context, _ string, _ io.Writer) error {
+			return timeoutErr
+		},
 	}
-
-	apiClient := &fakeTelemetryClient{}
-	requestObserved := make(chan requestObservation, 1)
-	releaseRequest := make(chan struct{})
-	defer close(releaseRequest)
-	apiClient.handler = func(ctx context.Context, _ client.CreateCliTelemetryEventJSONRequestBody) (*http.Response, error) {
-		deadline, hasDeadline := ctx.Deadline()
-		requestObserved <- requestObservation{
-			ctx:         ctx,
-			deadline:    deadline,
-			observedAt:  time.Now(),
-			hasDeadline: hasDeadline,
-		}
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-releaseRequest:
-			return nil, errors.New("test released blocking request")
-		}
+	sender := newTestSender(&fakeTelemetryClient{}, true, true)
+	sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
+		return launcher, nil
 	}
-	sender := newTestSender(apiClient, true, true)
 	var stderr bytes.Buffer
-	sendDone := make(chan struct{})
-	startedAt := time.Now()
 
-	go func() {
-		sender.Send(command.ExecutionResult{CommandPath: "render services list"}, &stderr)
-		close(sendDone)
-	}()
+	sender.Send(command.ExecutionResult{CommandPath: "render services list"}, &stderr)
 
-	var observation requestObservation
-	select {
-	case observation = <-requestObserved:
-	case <-time.After(time.Second):
-		t.Fatal("analytics request did not start")
-	}
-
-	select {
-	case <-sendDone:
-	case <-time.After(time.Second):
-		t.Fatal("Sender.Send did not return after the analytics timeout")
-	}
-
-	require.Equal(t, 1, apiClient.calls)
-	require.True(t, observation.hasDeadline, "analytics requests should have a hard deadline")
-	deadlineRemaining := observation.deadline.Sub(observation.observedAt)
-	require.LessOrEqual(t, deadlineRemaining, legacySyncSendTimeout,
-		"request deadline should not exceed the configured timeout: remaining=%s timeout=%s", deadlineRemaining, legacySyncSendTimeout)
-	elapsed := time.Since(startedAt)
-	require.GreaterOrEqual(t, elapsed, legacySyncSendTimeout,
-		"blocking request should not be canceled before its deadline: elapsed=%s timeout=%s", elapsed, legacySyncSendTimeout)
-	require.ErrorIs(t, observation.ctx.Err(), context.DeadlineExceeded,
-		"blocking analytics request should be canceled because its deadline expired")
-	require.Contains(t, stderr.String(), "analytics error: canceling API request after exceeding "+legacySyncSendTimeout.String()+" timeout")
+	require.Len(t, launcher.syncPaths, 1)
+	require.Same(t, &stderr, launcher.syncDiagnostics[0])
+	_, err := os.Stat(launcher.syncPaths[0])
+	require.ErrorIs(t, err, os.ErrNotExist)
+	require.Contains(t, stderr.String(), "analytics error: "+timeoutErr.Error())
 }
 
-func TestAnalyticsLogWriteFailureDoesNotPreventRequestOrCleanup(t *testing.T) {
-	body := &eventPOSTResponseBody{}
-	apiClient := &fakeTelemetryClient{
-		response: &http.Response{StatusCode: http.StatusAccepted, Status: "202 Accepted", Body: body},
+func TestAnalyticsLogWriteFailureDoesNotPreventSubprocessOrCleanup(t *testing.T) {
+	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
+	launcher := &fakeEventFileLauncher{
+		runSyncFunc: func(_ context.Context, path string, _ io.Writer) error {
+			return os.Remove(path)
+		},
 	}
-	sender := newTestSender(apiClient, true, true)
+	sender := newTestSender(&fakeTelemetryClient{}, true, true)
+	sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
+		return launcher, nil
+	}
 
 	sender.Send(command.ExecutionResult{CommandPath: "render services list"}, failingWriter{})
 
-	require.Equal(t, 1, apiClient.calls)
-	require.True(t, body.closed)
+	require.Len(t, launcher.syncPaths, 1)
+	_, err := os.Stat(launcher.syncPaths[0])
+	require.ErrorIs(t, err, os.ErrNotExist)
 }
 
 func TestHTTPFailureIsSwallowedWithoutRetry(t *testing.T) {
 	runFailedSend := func(t *testing.T, shouldLog bool) string {
 		t.Helper()
+		t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
+		t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")
 
 		body := &eventPOSTResponseBody{}
 		apiClient := &fakeTelemetryClient{
@@ -468,6 +561,13 @@ func TestHTTPFailureIsSwallowedWithoutRetry(t *testing.T) {
 			},
 		}
 		sender := newTestSender(apiClient, true, shouldLog)
+		sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
+			return &fakeEventFileLauncher{
+				runSyncFunc: func(ctx context.Context, path string, diagnostics io.Writer) error {
+					return sender.SendFile(ctx, path, diagnostics)
+				},
+			}, nil
+		}
 		var stderr bytes.Buffer
 
 		sender.Send(command.ExecutionResult{CommandPath: "render services list"}, &stderr)
@@ -479,7 +579,7 @@ func TestHTTPFailureIsSwallowedWithoutRetry(t *testing.T) {
 
 	t.Run("logging enabled", func(t *testing.T) {
 		logOutput := runFailedSend(t, true)
-		require.Contains(t, logOutput, "analytics response: 500 Internal Server Error")
+		require.Contains(t, logOutput, "analytics error: send analytics event: unexpected response 500 Internal Server Error")
 	})
 
 	t.Run("logging disabled", func(t *testing.T) {
@@ -548,4 +648,38 @@ type failingWriter struct{}
 
 func (failingWriter) Write([]byte) (int, error) {
 	return 0, errors.New("write failed")
+}
+
+type fakeEventFileLauncher struct {
+	detachedPaths     []string
+	syncPaths         []string
+	syncDiagnostics   []io.Writer
+	startDetachedFunc func(string) error
+	runSyncFunc       func(context.Context, string, io.Writer) error
+}
+
+func (f *fakeEventFileLauncher) startDetached(path string) error {
+	f.detachedPaths = append(f.detachedPaths, path)
+	if f.startDetachedFunc != nil {
+		return f.startDetachedFunc(path)
+	}
+	return nil
+}
+
+func (f *fakeEventFileLauncher) runSync(ctx context.Context, path string, diagnostics io.Writer) error {
+	f.syncPaths = append(f.syncPaths, path)
+	f.syncDiagnostics = append(f.syncDiagnostics, diagnostics)
+	if f.runSyncFunc != nil {
+		return f.runSyncFunc(ctx, path, diagnostics)
+	}
+	return nil
+}
+
+func readEventPayload(t *testing.T, path string) client.CreateCliTelemetryEventJSONRequestBody {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+	var payload client.CreateCliTelemetryEventJSONRequestBody
+	require.NoError(t, json.Unmarshal(data, &payload))
+	return payload
 }

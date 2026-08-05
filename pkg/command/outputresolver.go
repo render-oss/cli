@@ -3,9 +3,10 @@ package command
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/mattn/go-isatty"
+
+	"github.com/render-oss/cli/pkg/cfg"
 )
 
 type RuntimeSignals struct {
@@ -53,7 +54,7 @@ func DetectRuntimeSignals() (RuntimeSignals, error) {
 		StdoutTTY:    terminalSignals.StdoutTTY,
 		StderrTTY:    terminalSignals.StderrTTY,
 		DumbTerminal: terminalSignals.DumbTerminal,
-		CI:           isTruthyEnv(os.Getenv("CI")),
+		CI:           cfg.IsCI(),
 		ForcedOutput: forcedOutput,
 	}, nil
 }
@@ -89,10 +90,6 @@ func isSupportedOutput(output Output) bool {
 	default:
 		return false
 	}
-}
-
-func isTruthyEnv(value string) bool {
-	return value == "1" || strings.EqualFold(value, "true")
 }
 
 func detectForcedOutputFromEnv() (*Output, error) {
