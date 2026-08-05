@@ -30,6 +30,7 @@ DESTINATION_FILES_EXCLUDE = [
   ".github/renovate.json",
   ".github/workflows/copybara-push.yaml",
   ".github/workflows/cli-json-export.yaml",
+  ".github/workflows/claude-code-review.yaml",
   "tools/generate-cli-json-export/**",
 ]
 
