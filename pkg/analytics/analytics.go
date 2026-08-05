@@ -17,8 +17,6 @@ import (
 	"github.com/render-oss/cli/pkg/command"
 )
 
-const sendTimeout = 500 * time.Millisecond
-
 // unknownOutputFormat identifies invocations that finished before command setup
 // resolved an output format.
 const unknownOutputFormat = "unknown"
@@ -44,8 +42,6 @@ type Sender struct {
 	goos string
 	// goarch is the architecture included in each event.
 	goarch string
-	// timeout limits how long an analytics request may take.
-	timeout time.Duration
 	// detectTerminalSignals observes terminal attachment and TERM=dumb.
 	detectTerminalSignals func() command.TerminalSignals
 	// detectAgentSignals observes allowlisted agent environment markers.
@@ -83,7 +79,6 @@ func newSender(
 		cliVersion:            cfg.Version,
 		goos:                  runtime.GOOS,
 		goarch:                runtime.GOARCH,
-		timeout:               sendTimeout,
 		detectTerminalSignals: detectTerminalSignals,
 		detectAgentSignals:    detectAgentSignals,
 		detectCISignals:       detectCISignals,
@@ -121,30 +116,23 @@ func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), legacySyncSendTimeout)
 	defer cancel()
 
-	response, err := s.client.CreateCliTelemetryEvent(ctx, payload)
-	if response != nil && response.Body != nil {
-		defer func() { _ = response.Body.Close() }()
-	}
+	_, status, err := s.postEvent(ctx, payload)
 
 	if !s.shouldLog {
 		return
 	}
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			_, _ = fmt.Fprintf(stderr, "analytics error: canceling API request after exceeding %s timeout\n", s.timeout)
+			_, _ = fmt.Fprintf(stderr, "analytics error: canceling API request after exceeding %s timeout\n", legacySyncSendTimeout)
 			return
 		}
 		_, _ = fmt.Fprintf(stderr, "analytics error: %v\n", err)
 		return
 	}
-	if response == nil {
-		_, _ = fmt.Fprintf(stderr, "analytics error: %v\n", errors.New("empty response"))
-		return
-	}
-	_, _ = fmt.Fprintf(stderr, "analytics response: %s\n", response.Status)
+	_, _ = fmt.Fprintf(stderr, "analytics response: %s\n", status)
 }
 
 func newEventPOSTBody(

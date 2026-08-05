@@ -432,14 +432,14 @@ func TestSenderCancelsSendAfterTimeout(t *testing.T) {
 	require.Equal(t, 1, apiClient.calls)
 	require.True(t, observation.hasDeadline, "analytics requests should have a hard deadline")
 	deadlineRemaining := observation.deadline.Sub(observation.observedAt)
-	require.LessOrEqual(t, deadlineRemaining, sendTimeout,
-		"request deadline should not exceed the configured timeout: remaining=%s timeout=%s", deadlineRemaining, sendTimeout)
+	require.LessOrEqual(t, deadlineRemaining, legacySyncSendTimeout,
+		"request deadline should not exceed the configured timeout: remaining=%s timeout=%s", deadlineRemaining, legacySyncSendTimeout)
 	elapsed := time.Since(startedAt)
-	require.GreaterOrEqual(t, elapsed, sendTimeout,
-		"blocking request should not be canceled before its deadline: elapsed=%s timeout=%s", elapsed, sendTimeout)
+	require.GreaterOrEqual(t, elapsed, legacySyncSendTimeout,
+		"blocking request should not be canceled before its deadline: elapsed=%s timeout=%s", elapsed, legacySyncSendTimeout)
 	require.ErrorIs(t, observation.ctx.Err(), context.DeadlineExceeded,
 		"blocking analytics request should be canceled because its deadline expired")
-	require.Contains(t, stderr.String(), "analytics error: canceling API request after exceeding "+sendTimeout.String()+" timeout")
+	require.Contains(t, stderr.String(), "analytics error: canceling API request after exceeding "+legacySyncSendTimeout.String()+" timeout")
 }
 
 func TestAnalyticsLogWriteFailureDoesNotPreventRequestOrCleanup(t *testing.T) {
@@ -508,7 +508,6 @@ func newTestSender(apiClient cliTelemetryClient, shouldSend, shouldLog bool) *Se
 	sender.cliVersion = "v-test"
 	sender.goos = "test-os"
 	sender.goarch = "test-arch"
-	sender.timeout = sendTimeout
 	sender.getInstallationID = func() (string, error) {
 		return testInstallationID, nil
 	}

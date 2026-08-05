@@ -15,4 +15,6 @@ func TestSetDetachedProcessAttributes(t *testing.T) {
 	setDetachedProcessAttributes(cmd)
 
 	require.True(t, cmd.SysProcAttr.Setsid)
+	require.Empty(t, cmd.Dir,
+		"detaching must not chdir the child: a relative RENDER_CLI_CONFIG_DIR resolves against the parent's cwd")
 }

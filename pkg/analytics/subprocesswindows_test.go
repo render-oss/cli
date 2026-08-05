@@ -20,4 +20,6 @@ func TestSetDetachedProcessAttributes(t *testing.T) {
 		uint32(syscall.CREATE_NEW_PROCESS_GROUP|detachedProcess),
 		cmd.SysProcAttr.CreationFlags,
 	)
+	require.Empty(t, cmd.Dir,
+		"detaching must not chdir the child: a relative RENDER_CLI_CONFIG_DIR resolves against the parent's cwd")
 }

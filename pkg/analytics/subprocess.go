@@ -42,6 +42,10 @@ func newSubprocessLauncher() (subprocessLauncher, error) {
 // Cancelling ctx kills the child.
 func (l subprocessLauncher) newSubprocess(ctx context.Context, eventFile string, stderr io.Writer) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, l.executable, "analytics", "send", eventFile)
+	// cmd.Dir must stay unset: a relative RENDER_CLI_CONFIG_DIR resolves the
+	// events directory against the working directory, so a child running
+	// anywhere but the parent's cwd would reject and orphan its event file.
+	//
 	// leave cmd.Env nil so the child inherits analytics opt-in,
 	// logging configuration, and config dir from its parent. Nil streams are
 	// connected to the null device by os/exec; a stderr override lets a

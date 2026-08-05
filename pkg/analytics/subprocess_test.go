@@ -67,6 +67,8 @@ func TestNewSubprocess(t *testing.T) {
 	require.Nil(t, cmd.Stdout)
 	require.Nil(t, cmd.Stderr)
 	require.Nil(t, cmd.Env, "subprocess must inherit the parent environment")
+	require.Empty(t, cmd.Dir,
+		"subprocess must run in the parent's cwd: a relative RENDER_CLI_CONFIG_DIR resolves against it, and a child launched elsewhere would orphan its event file")
 }
 
 func TestNewSubprocessOverridesStderr(t *testing.T) {

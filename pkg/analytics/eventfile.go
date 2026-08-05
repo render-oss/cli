@@ -28,18 +28,25 @@ func writeEventFile(payload client.CreateCliTelemetryEventJSONRequestBody) (stri
 		return "", fmt.Errorf("serialize analytics event: %w", err)
 	}
 
-	stateDir, err := config.StateDir()
+	eventsDir, err := eventsDirectory()
 	if err != nil {
-		return "", fmt.Errorf("resolve analytics state directory: %w", err)
+		return "", fmt.Errorf("resolve analytics event directory: %w", err)
 	}
-	path := filepath.Join(
-		stateDir,
-		analyticsDirectoryName,
-		eventsDirectoryName,
-		eventFilePrefix+uuid.NewString()+eventFileSuffix,
-	)
+	path := filepath.Join(eventsDir, eventFilePrefix+uuid.NewString()+eventFileSuffix)
 	if err := files.Write(path, data); err != nil {
 		return "", fmt.Errorf("write analytics event file: %w", err)
 	}
 	return path, nil
+}
+
+// eventsDirectory returns the absolute directory that holds analytics event
+// files. Both the writer and SendFile's path validation must derive the
+// directory from here: a relative RENDER_CLI_CONFIG_DIR otherwise yields paths
+// that write fine but fail validation, orphaning every event file.
+func eventsDirectory() (string, error) {
+	stateDir, err := config.StateDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Abs(filepath.Join(stateDir, analyticsDirectoryName, eventsDirectoryName))
 }
