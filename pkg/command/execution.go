@@ -76,6 +76,10 @@ func CompletionKindValues() []CompletionKind {
 
 // ExecutionResult describes one completed CLI execution.
 type ExecutionResult struct {
+	// AnalyticsEligible reports whether command configuration permits this
+	// execution to produce an analytics event. It does not reflect whether the
+	// user has enabled or disabled analytics sending.
+	AnalyticsEligible bool
 	// CommandPath is the space-joined path of the command Cobra selected (for
 	// example "render services list"), or the root command's path ("render")
 	// when discovery failed. It contains only matched command names — never user

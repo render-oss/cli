@@ -12,17 +12,46 @@ import (
 	"github.com/render-oss/cli/pkg/dependencies"
 )
 
+const (
+	analyticsEligibilityAnnotation     = "render.analytics.eligibility"
+	analyticsIneligibleAnnotationValue = "ineligible"
+)
+
 // onExecutionCompleteFunc runs side effects after a command execution finishes.
 type onExecutionCompleteFunc func(result commandpkg.ExecutionResult, deps *dependencies.Dependencies, root *cobra.Command)
 
 // onExecutionComplete is the single process-wide hook for completed executions.
 var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.ExecutionResult, deps *dependencies.Dependencies, root *cobra.Command) {
+	if !result.AnalyticsEligible {
+		return
+	}
+
 	// Nil deps means setup failed (or was skipped, as on the --version fast path)
 	// before a client existed, so there is no analytics sender to emit with.
 	if deps == nil {
 		return
 	}
 	deps.Analytics().Send(result, root.ErrOrStderr())
+}
+
+// markCommandAnalyticsIneligible excludes a command and all of its descendants
+// from analytics eligibility.
+func markCommandAnalyticsIneligible(cmd *cobra.Command) {
+	if cmd.Annotations == nil {
+		cmd.Annotations = make(map[string]string)
+	}
+	cmd.Annotations[analyticsEligibilityAnnotation] = analyticsIneligibleAnnotationValue
+}
+
+// commandIsAnalyticsEligible resolves inherited analytics eligibility for a
+// selected command. A descendant of an ineligible command is always ineligible.
+func commandIsAnalyticsEligible(cmd *cobra.Command) bool {
+	for current := cmd; current != nil; current = current.Parent() {
+		if current.Annotations[analyticsEligibilityAnnotation] == analyticsIneligibleAnnotationValue {
+			return false
+		}
+	}
+	return true
 }
 
 // executionObservation records the Cobra events needed to classify an execution as a [commandpkg.CompletionKind].
@@ -303,11 +332,12 @@ func completionKind(command *cobra.Command, err error, observation *executionObs
 // newClassifiedExecutionResult when it must be derived from Cobra's outcome.
 func newExecutionResult(command *cobra.Command, kind commandpkg.CompletionKind, exitCode int, startedAt time.Time) commandpkg.ExecutionResult {
 	return commandpkg.ExecutionResult{
-		CommandPath:    commandPath(command),
-		CompletionKind: kind,
-		Duration:       time.Since(startedAt),
-		ExitCode:       exitCode,
-		StartedAt:      startedAt,
+		AnalyticsEligible: commandIsAnalyticsEligible(command),
+		CommandPath:       commandPath(command),
+		CompletionKind:    kind,
+		Duration:          time.Since(startedAt),
+		ExitCode:          exitCode,
+		StartedAt:         startedAt,
 	}
 }
 

@@ -17,6 +17,7 @@ func TestNewExecutionResult(t *testing.T) {
 	result := newExecutionResult(&cobra.Command{Use: "test"}, command.CompletionKindExplicitExit, 17, startedAt)
 	durationAfterConstruction := time.Since(startedAt)
 
+	require.True(t, result.AnalyticsEligible)
 	require.Equal(t, "test", result.CommandPath)
 	require.Equal(t, command.CompletionKindExplicitExit, result.CompletionKind)
 	require.Equal(t, 17, result.ExitCode)

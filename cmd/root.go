@@ -201,6 +201,7 @@ func setupCommands() (*dependencies.Dependencies, error) {
 	deps := dependencies.New(c)
 
 	setupWorkflowCommands(deps)
+	setupAnalyticsCommands(rootCmd, deps)
 	setupLogCommands(deps)
 	setupWorkspaceCommands(deps)
 	setupServiceCommands(deps)
