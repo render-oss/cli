@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -23,6 +24,12 @@ const (
 	// decides when the child finishes — or never creates it and leaves the child
 	// to be killed.
 	helperModeWaitOnGateFile = "gate"
+	// helperModeStartDetached starts another helper in detached mode and exits.
+	// The child inherits helperModeMarkAfterGate from this intermediate process.
+	helperModeStartDetached = "start-detached"
+	// helperModeMarkAfterGate waits for its event file, then writes a marker that
+	// proves it remained alive after its launcher exited.
+	helperModeMarkAfterGate = "mark-after-gate"
 )
 
 // helperGateTimeout bounds how long helperModeWaitOnGateFile blocks: long
@@ -105,6 +112,30 @@ func TestStartDetachedDoesNotWait(t *testing.T) {
 	require.NoError(t, os.WriteFile(gate, nil, 0o600))
 }
 
+// testDetachedChildOutlivesLauncherProcess exercises the platform-specific
+// process attributes through a three-process chain: the test waits for an
+// intermediate launcher to exit before allowing its detached child to write a
+// marker. Each supported OS registers this helper from its build-tagged test
+// file so CI runs the lifecycle assertion against that OS's implementation.
+func testDetachedChildOutlivesLauncherProcess(t *testing.T) {
+	t.Helper()
+
+	testDir := t.TempDir()
+	gate := filepath.Join(testDir, "continue")
+	marker := gate + ".completed"
+
+	launcher := exec.Command(os.Args[0], gate)
+	launcher.Env = append(os.Environ(), helperModeEnv+"="+helperModeStartDetached)
+	require.NoError(t, launcher.Run(), "intermediate launcher must start the detached child and exit")
+
+	require.NoError(t, os.WriteFile(gate, nil, 0o600))
+	require.Eventually(t, func() bool {
+		_, err := os.Stat(marker)
+		return err == nil
+	}, helperGateTimeout, 10*time.Millisecond,
+		"detached child must keep running after its launcher exits")
+}
+
 func TestRunSync(t *testing.T) {
 	launcher := newHelperLauncher(t, helperModeSuccess)
 
@@ -164,6 +195,31 @@ func runHelper(mode string) int {
 		deadline := time.Now().Add(helperGateTimeout)
 		for time.Now().Before(deadline) {
 			if _, err := os.Stat(gate); err == nil {
+				return 0
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		return 1
+	case helperModeStartDetached:
+		// Become an intermediate parent that exits immediately after detaching a
+		// second helper. The second helper inherits its new mode from the
+		// environment, just as the real analytics child inherits its settings.
+		if err := os.Setenv(helperModeEnv, helperModeMarkAfterGate); err != nil {
+			return 1
+		}
+		launcher := newTestSubprocessLauncher(os.Args[0])
+		if err := launcher.startDetached(os.Args[len(os.Args)-1]); err != nil {
+			return 1
+		}
+		return 0
+	case helperModeMarkAfterGate:
+		gate := os.Args[len(os.Args)-1]
+		deadline := time.Now().Add(helperGateTimeout)
+		for time.Now().Before(deadline) {
+			if _, err := os.Stat(gate); err == nil {
+				if err := os.WriteFile(gate+".completed", nil, 0o600); err != nil {
+					return 1
+				}
 				return 0
 			}
 			time.Sleep(10 * time.Millisecond)

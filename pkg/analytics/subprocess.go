@@ -56,7 +56,12 @@ func (l subprocessLauncher) newSubprocess(ctx context.Context, eventFile string,
 	return cmd
 }
 
-// startDetached runs "render analytics send <eventFile>" as a background subprocess and then returns without waiting
+// startDetached runs "render analytics send <eventFile>" as a background
+// subprocess and returns without waiting. Process.Release relinquishes this
+// process's tracking resources without terminating the child. Callers must only
+// invoke this immediately before the CLI exits: Unix reparents the child to a
+// system reaper, while Windows has no corresponding parent-side zombie-reaping
+// requirement.
 func (l subprocessLauncher) startDetached(eventFile string) error {
 	// Deliberately unhooked from any caller context: the detached child must
 	// outlive the parent process that launched it.
@@ -86,9 +91,11 @@ func (l subprocessLauncher) runSync(ctx context.Context, eventFile string, stder
 	cmd.WaitDelay = subprocessWaitDelay
 
 	err := cmd.Run()
-	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+	if err != nil && errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		// The deadline that killed the child explains the failure better than the
-		// child's resulting exit error does.
+		// child's resulting exit error does. The context may expire just after the
+		// child exits successfully, so only treat the deadline as the cause when
+		// cmd.Run also reports an error.
 		return fmt.Errorf("analytics subprocess exceeded %s deadline", l.timeout)
 	}
 	if err != nil {

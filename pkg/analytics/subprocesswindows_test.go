@@ -23,3 +23,7 @@ func TestSetDetachedProcessAttributes(t *testing.T) {
 	require.Empty(t, cmd.Dir,
 		"detaching must not chdir the child: a relative RENDER_CLI_CONFIG_DIR resolves against the parent's cwd")
 }
+
+func TestDetachedChildOutlivesLauncherProcess(t *testing.T) {
+	testDetachedChildOutlivesLauncherProcess(t)
+}
