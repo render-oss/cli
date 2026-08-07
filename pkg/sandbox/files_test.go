@@ -242,7 +242,7 @@ func TestServiceUploadDownloadDirectory(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(src, "d", "x.txt"), []byte("content-x"), 0o640))
 
 	require.NoError(t, svc.Upload(context.Background(), sandboxID, src, "/app/src"))
-	assert.Equal(t, FileContentTypeGzip, uploadedType, "a directory must upload as a gzipped tar archive")
+	assert.Equal(t, FileContentTypeTar, uploadedType, "a directory uploads as an x-tar archive")
 	require.NotEmpty(t, uploadedTar)
 	assert.True(t, uploadedTar[0] == 0x1f && uploadedTar[1] == 0x8b, "upload body must be gzipped")
 
@@ -291,6 +291,7 @@ func TestServiceDownloadFileIntoDirectory(t *testing.T) {
 
 type uploadedRequest struct {
 	contentType      string
+	contentEncoding  string
 	contentLength    int64
 	transferEncoding []string
 	body             []byte
@@ -308,6 +309,7 @@ func serveUpload(t *testing.T, sandboxID string, got *uploadedRequest) *Repo {
 	})
 	mux.HandleFunc("/files/upload", func(w http.ResponseWriter, r *http.Request) {
 		got.contentType = r.Header.Get("Content-Type")
+		got.contentEncoding = r.Header.Get("Content-Encoding")
 		got.contentLength = r.ContentLength
 		got.transferEncoding = r.TransferEncoding
 		got.body, _ = io.ReadAll(r.Body)
@@ -354,7 +356,8 @@ func TestServiceUploadDirectoryStreamsChunked(t *testing.T) {
 
 	require.NoError(t, svc.Upload(context.Background(), sandboxID, src, "/app/src"))
 
-	assert.Equal(t, FileContentTypeGzip, got.contentType)
+	assert.Equal(t, FileContentTypeTar, got.contentType)
+	assert.Equal(t, "gzip", got.contentEncoding, "compressed on the wire via Content-Encoding")
 	assert.Equal(t, int64(-1), got.contentLength, "a tar stream has no length to declare")
 	assert.Contains(t, got.transferEncoding, "chunked")
 }

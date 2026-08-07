@@ -159,7 +159,7 @@ func TestUploadFile(t *testing.T) {
 	repo := newTestRepo(t, srv.URL+"/v1/", "api-key-xyz")
 
 	content := "hello, sandbox"
-	err := repo.UploadFile(context.Background(), sandboxID, remotePath, FileContentTypeOctetStream, int64(len(content)), strings.NewReader(content))
+	err := repo.UploadFile(context.Background(), sandboxID, remotePath, FileContentTypeOctetStream, "", int64(len(content)), strings.NewReader(content))
 	require.NoError(t, err)
 
 	assert.Equal(t, "Bearer api-key-xyz", mintAuth, "mint request goes through the authenticated client")
@@ -195,7 +195,7 @@ func TestUploadFileAcceptsAnySuccessStatus(t *testing.T) {
 			t.Setenv("RENDER_WORKSPACE", "tea-workspace")
 
 			repo := newTestRepo(t, srv.URL+"/v1/", "api-key-xyz")
-			err := repo.UploadFile(context.Background(), sandboxID, "/f", FileContentTypeOctetStream, 1, strings.NewReader("x"))
+			err := repo.UploadFile(context.Background(), sandboxID, "/f", FileContentTypeOctetStream, "", 1, strings.NewReader("x"))
 			assert.NoError(t, err)
 		})
 	}
@@ -222,7 +222,7 @@ func TestUploadFileSurfacesAgentError(t *testing.T) {
 
 	repo := newTestRepo(t, srv.URL+"/v1/", "api-key-xyz")
 
-	err := repo.UploadFile(context.Background(), sandboxID, "/f", FileContentTypeOctetStream, 1, strings.NewReader("x"))
+	err := repo.UploadFile(context.Background(), sandboxID, "/f", FileContentTypeOctetStream, "", 1, strings.NewReader("x"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "out of disk space")
 }
@@ -244,7 +244,7 @@ func TestUploadFileMintError(t *testing.T) {
 
 	repo := newTestRepo(t, srv.URL+"/v1/", "api-key-xyz")
 
-	err := repo.UploadFile(context.Background(), sandboxID, "/f", FileContentTypeOctetStream, 1, strings.NewReader("x"))
+	err := repo.UploadFile(context.Background(), sandboxID, "/f", FileContentTypeOctetStream, "", 1, strings.NewReader("x"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "sandbox not found")
 }

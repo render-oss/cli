@@ -130,10 +130,12 @@ func (r *Repo) ExecSandboxStream(ctx context.Context, id string, command string,
 	return readSandboxExecStream(resp.Body, onOutput)
 }
 
-// File transfer content types, mirroring the sandbox agent's contract: a
-// single file travels as octet-stream, a directory as a gzipped tar archive.
+// File transfer content types. On upload a single file travels as octet-stream
+// and a directory as x-tar, with Content-Encoding: gzip carrying wire
+// compression. On download the agent still labels a directory archive as gzip.
 const (
 	FileContentTypeOctetStream = "application/octet-stream"
+	FileContentTypeTar         = "application/x-tar"
 	FileContentTypeGzip        = "application/gzip"
 )
 
@@ -150,8 +152,9 @@ type FileStream struct {
 
 // UploadFile mints an upload connect token for remotePath and streams body
 // directly through the sandbox proxy. Pass contentLength -1 when unknown
-// (e.g. a tar stream).
-func (r *Repo) UploadFile(ctx context.Context, id, remotePath, contentType string, contentLength int64, body io.Reader) error {
+// (e.g. a tar stream). Pass contentEncoding "gzip" to declare a gzip-compressed
+// body, which the server gunzips before handling; empty for none.
+func (r *Repo) UploadFile(ctx context.Context, id, remotePath, contentType, contentEncoding string, contentLength int64, body io.Reader) error {
 	conn, err := r.connectFile(ctx, id, "upload", remotePath)
 	if err != nil {
 		return err
@@ -164,6 +167,9 @@ func (r *Repo) UploadFile(ctx context.Context, id, remotePath, contentType strin
 	req.ContentLength = contentLength
 	req.Header.Set("Authorization", "Bearer "+conn.Token)
 	req.Header.Set("Content-Type", contentType)
+	if contentEncoding != "" {
+		req.Header.Set("Content-Encoding", contentEncoding)
+	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

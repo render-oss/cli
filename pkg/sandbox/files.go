@@ -13,8 +13,9 @@ import (
 )
 
 // Upload copies a local file or directory into the sandbox at remotePath. A
-// directory is streamed as a gzipped tar archive and extracted at remotePath;
-// a file is streamed as raw bytes.
+// directory is streamed as an x-tar archive, gzip-compressed on the wire via
+// Content-Encoding, and the server extracts it at remotePath; a file is
+// streamed as raw bytes.
 func (s *Service) Upload(ctx context.Context, id, localPath, remotePath string) error {
 	info, err := os.Stat(localPath)
 	if err != nil {
@@ -34,7 +35,7 @@ func (s *Service) Upload(ctx context.Context, id, localPath, remotePath string) 
 			}
 			pw.CloseWithError(gz.Close())
 		}()
-		return s.repo.UploadFile(ctx, id, remotePath, FileContentTypeGzip, -1, pr)
+		return s.repo.UploadFile(ctx, id, remotePath, FileContentTypeTar, "gzip", -1, pr)
 	}
 
 	f, err := os.Open(localPath)
@@ -42,7 +43,7 @@ func (s *Service) Upload(ctx context.Context, id, localPath, remotePath string) 
 		return err
 	}
 	defer f.Close()
-	return s.repo.UploadFile(ctx, id, remotePath, FileContentTypeOctetStream, info.Size(), f)
+	return s.repo.UploadFile(ctx, id, remotePath, FileContentTypeOctetStream, "", info.Size(), f)
 }
 
 // Download copies a file or directory from the sandbox at remotePath to
