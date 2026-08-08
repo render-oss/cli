@@ -112,6 +112,13 @@ func TestPostgresDetail_OptionalFields(t *testing.T) {
 		out := basicPostgresOut(pg)
 		assert.Contains(t, text.PostgresDetail(&out), "Environment: evm-123")
 	})
+
+	t.Run("includes connection pool when set", func(t *testing.T) {
+		pg := basicPostgres()
+		pg.ConnectionPool = pointers.From("pgbouncer")
+		out := basicPostgresOut(pg)
+		assert.Contains(t, text.PostgresDetail(&out), "Connection Pool: pgbouncer")
+	})
 }
 
 func TestPostgresDetail_BoolLabels(t *testing.T) {

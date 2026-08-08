@@ -75,6 +75,7 @@ mutually exclusive.`,
 
 	cmd.Flags().Int("disk-size-gb", 0, "Set the disk size in GB. Must be 1 or a multiple of 5.")
 	cmd.Flags().Bool("disk-autoscaling", false, "Enable disk autoscaling. Pass --disk-autoscaling=false to disable.")
+	cmd.Flags().String("connection-pool", "none", "Set connection pool to 'none' or 'pgbouncer'")
 	cmd.Flags().Bool("high-availability", false, "Enable high availability (Pro plans and above). Pass --high-availability=false to disable.")
 
 	cmd.Flags().String("datadog-api-key", "", "Set the Datadog API key for monitoring. Pass an empty string to remove.")
