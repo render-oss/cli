@@ -318,7 +318,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 
 func TestAgentSignalValuesNeverAppearInSerializedAnalyticsEvent(t *testing.T) {
 	const canary = "value-must-not-appear"
-	clearAgentSignalEnvironment(t)
+	ClearSignalEnvVars(t)
 	t.Setenv("CODEX_THREAD_ID", canary)
 	t.Setenv("CURSOR_AGENT", canary)
 

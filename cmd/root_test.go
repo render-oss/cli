@@ -761,6 +761,10 @@ func TestCompletedCommandsEmitAnalytics(t *testing.T) {
 			require.Equal(t, tc.wantKind, events[0].CompletionKind)
 			require.Equal(t, tc.wantExitCode, events[0].ExitCode)
 			require.Equal(t, tc.wantExitCode, result.ExitCode)
+			require.Empty(t, events[0].AgentSignals,
+				"the harness must neutralize agent env so payloads match on any machine")
+			require.Empty(t, events[0].CiSignals,
+				"the harness must neutralize CI env so payloads match locally and on CI")
 		})
 	}
 }
@@ -833,6 +837,9 @@ func executeWithAnalyticsSubprocessPermission(
 	args ...string,
 ) command.ExecutionResult {
 	t.Helper()
+	// Emitted events report signals detected from the real environment, so
+	// without this the payload depends on where the tests run.
+	analytics.ClearSignalEnvVars(t)
 	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
 	t.Setenv("RENDER_CLI_CONFIG_PATH", "")
 	t.Setenv("RENDER_API_KEY", "test-api-key")

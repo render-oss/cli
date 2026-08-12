@@ -6,16 +6,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// clearCISignalEnvironment keeps detection tests hermetic even when the test
-// process itself runs on CI (GitHub Actions sets CI and GITHUB_ACTIONS for this
-// repo's own test runs). t.Setenv restores the original values after each test.
-func clearCISignalEnvironment(t *testing.T) {
-	t.Helper()
-	for _, signal := range supportedCISignals {
-		t.Setenv(signal.envVar, "")
-	}
-}
-
 func TestDetectCISignals(t *testing.T) {
 	testCases := []struct {
 		name string
@@ -128,7 +118,7 @@ func TestDetectCISignals(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			clearCISignalEnvironment(t)
+			ClearSignalEnvVars(t)
 			for key, value := range tc.env {
 				t.Setenv(key, value)
 			}
@@ -148,7 +138,7 @@ func TestDetectCISignalsBooleanMarkers(t *testing.T) {
 	}
 	for _, name := range booleanMarkers {
 		t.Run(name, func(t *testing.T) {
-			clearCISignalEnvironment(t)
+			ClearSignalEnvVars(t)
 
 			t.Setenv(name, "true")
 			require.Equal(t, []string{name}, DetectCISignals())
@@ -162,7 +152,7 @@ func TestDetectCISignalsBooleanMarkers(t *testing.T) {
 // TestDetectCISignalsReturnsNonNilEmptySlice pins the JSON contract:
 // ci_signals must serialize as [] rather than null when nothing is active.
 func TestDetectCISignalsReturnsNonNilEmptySlice(t *testing.T) {
-	clearCISignalEnvironment(t)
+	ClearSignalEnvVars(t)
 
 	got := DetectCISignals()
 	require.NotNil(t, got)

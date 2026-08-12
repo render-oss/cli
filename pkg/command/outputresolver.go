@@ -32,13 +32,17 @@ func (s RuntimeSignals) SupportsInteractive() bool {
 	return s.StdinTTY && s.StdoutTTY && s.StderrTTY && !s.DumbTerminal && !s.CI
 }
 
+// TermEnvVar is the name of the environment variable that specifies the terminal emulator
+// Common example values for the env var: "xterm-256color", "dumb"
+const TermEnvVar = "TERM"
+
 // DetectTerminalSignals observes terminal attachment and TERM=dumb.
 func DetectTerminalSignals() TerminalSignals {
 	return TerminalSignals{
 		StdinTTY:     isTTY(os.Stdin.Fd()),
 		StdoutTTY:    isTTY(os.Stdout.Fd()),
 		StderrTTY:    isTTY(os.Stderr.Fd()),
-		DumbTerminal: os.Getenv("TERM") == "dumb",
+		DumbTerminal: os.Getenv(TermEnvVar) == "dumb",
 	}
 }
 

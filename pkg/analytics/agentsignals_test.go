@@ -7,16 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// clearAgentSignalEnvironment keeps detection tests hermetic when the test
-// process itself runs inside a supported agent. t.Setenv restores the original
-// values after each test.
-func clearAgentSignalEnvironment(t *testing.T) {
-	t.Helper()
-	for _, signal := range supportedAgentSignals {
-		t.Setenv(signal.envVar, "")
-	}
-}
-
 func TestDetectAgentSignals(t *testing.T) {
 	testCases := []struct {
 		name string
@@ -65,7 +55,7 @@ func TestDetectAgentSignals(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			clearAgentSignalEnvironment(t)
+			ClearSignalEnvVars(t)
 			for name, value := range tc.env {
 				t.Setenv(name, value)
 			}
@@ -150,7 +140,7 @@ func TestDetectAgentSignalsActivationSemantics(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.envVar, func(t *testing.T) {
-			clearAgentSignalEnvironment(t)
+			ClearSignalEnvVars(t)
 
 			for _, value := range tc.activating {
 				t.Setenv(tc.envVar, value)
@@ -167,7 +157,7 @@ func TestDetectAgentSignalsActivationSemantics(t *testing.T) {
 }
 
 func TestDetectAgentSignalsReturnsNonNilEmptySlice(t *testing.T) {
-	clearAgentSignalEnvironment(t)
+	ClearSignalEnvVars(t)
 
 	got := DetectAgentSignals()
 
