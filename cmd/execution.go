@@ -25,6 +25,10 @@ var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.Executi
 	if !result.AnalyticsEligible {
 		return
 	}
+	// Do not send analytics before users have a chance to take action based on the analytics notice
+	if result.SkipAnalyticsSend {
+		return
+	}
 
 	// Nil deps means setup failed (or was skipped, as on the --version fast path)
 	// before a client existed, so there is no analytics sender to emit with.
@@ -54,7 +58,8 @@ func commandIsAnalyticsEligible(cmd *cobra.Command) bool {
 	return true
 }
 
-// executionObservation records the Cobra events needed to classify an execution as a [commandpkg.CompletionKind].
+// executionObservation records facts observed while Cobra executes that are
+// needed to describe the completed execution.
 // Its fields are independent observations rather than mutually exclusive phases.
 // The root version path bypasses Cobra and constructs its result directly.
 type executionObservation struct {
@@ -75,6 +80,9 @@ type executionObservation struct {
 	helpTargetHadArgs bool
 	// setup tracks whether root setup ran and how it concluded.
 	setup setupState
+	// skipAnalyticsSend reports that this execution must not send an analytics
+	// event; see [commandpkg.ExecutionResult.SkipAnalyticsSend] for the contract.
+	skipAnalyticsSend bool
 }
 
 // setupState describes what an execution observed of root setup, the
@@ -379,6 +387,7 @@ func newClassifiedExecutionResult(command *cobra.Command, err error, observation
 	result := newExecutionResult(resultCommand, kind, exitCodeFromError(err), startedAt)
 	result.OutputFormat = outputFormatFromExecution(resultCommand)
 	result.LaunchedFullScreenTUI = observation.launchedFullScreenTUI
+	result.SkipAnalyticsSend = observation.skipAnalyticsSend
 	return result
 }
 

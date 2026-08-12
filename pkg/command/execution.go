@@ -99,6 +99,11 @@ type ExecutionResult struct {
 	// OutputFormat is the resolved output format at the end of the invocation.
 	// It is nil when command setup never resolved a format.
 	OutputFormat *Output
+	// SkipAnalyticsSend reports that this execution must not send an analytics
+	// event even when analytics is otherwise enabled and the command is eligible.
+	// Unlike AnalyticsEligible, which classifies the command, this classifies the
+	// individual execution.
+	SkipAnalyticsSend bool
 	// StartedAt is the wall-clock instant the invocation began. It is emitted as
 	// the client-authoritative occurrence time so downstream analytics do not
 	// depend on server receipt time, which drifts once sends become asynchronous.

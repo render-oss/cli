@@ -652,6 +652,8 @@ func TestPrepareExecutionObservationClearsRetainedState(t *testing.T) {
 	secondResult := newClassifiedExecutionResult(executedCommand, err, secondObservation, time.Now())
 	require.Equal(t, command.CompletionKindSuccess, secondResult.CompletionKind)
 	require.Equal(t, setupSucceeded, secondObservation.setup)
+	secondObservation.launchedFullScreenTUI = true
+	secondObservation.skipAnalyticsSend = true
 
 	// Preparing again returns setup to its zero value; the classifier relies on
 	// a fresh observation reading as not started.
@@ -659,15 +661,43 @@ func TestPrepareExecutionObservationClearsRetainedState(t *testing.T) {
 	require.Same(t, secondObservation, thirdObservation)
 	require.Equal(t, setupNotStarted, thirdObservation.setup)
 	require.False(t, thirdObservation.launchedFullScreenTUI)
+	require.False(t, thirdObservation.skipAnalyticsSend)
 }
 
-func TestClassifiedExecutionResultIncludesFullScreenTUILaunch(t *testing.T) {
+func TestRunExecutionOwnsObservationLifecycle(t *testing.T) {
+	root := &cobra.Command{
+		Use:  "render",
+		RunE: func(*cobra.Command, []string) error { return nil },
+	}
+
+	observation := prepareExecutionObservation(root)
+	observation.skipAnalyticsSend = true
+
+	result := runExecution(root, time.Now())
+	require.False(t, result.SkipAnalyticsSend,
+		"runExecution must clear observation state written before Cobra execution")
+
+	root.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
+		observationForCommand(cmd).skipAnalyticsSend = true
+		return nil
+	}
+
+	result = runExecution(root, time.Now())
+	require.True(t, result.SkipAnalyticsSend,
+		"runExecution must retain observation state written during Cobra execution")
+}
+
+func TestClassifiedExecutionResultIncludesExecutionObservation(t *testing.T) {
 	command := &cobra.Command{Use: "test"}
-	observation := &executionObservation{launchedFullScreenTUI: true}
+	observation := &executionObservation{
+		launchedFullScreenTUI: true,
+		skipAnalyticsSend:     true,
+	}
 
 	result := newClassifiedExecutionResult(command, nil, observation, time.Now())
 
 	require.True(t, result.LaunchedFullScreenTUI)
+	require.True(t, result.SkipAnalyticsSend)
 }
 
 func TestPrepareExecutionObservationClearsRetainedHelpRequest(t *testing.T) {
@@ -769,6 +799,51 @@ func TestCompletedCommandsEmitAnalytics(t *testing.T) {
 	}
 }
 
+func TestOnExecutionCompleteHonorsSkipAnalyticsSend(t *testing.T) {
+	testCases := []struct {
+		name       string
+		skip       bool
+		wantEvents int
+	}{
+		{name: "skip requested", skip: true, wantEvents: 0},
+		{name: "normal execution", skip: false, wantEvents: 1},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := renderapi.NewServer(t)
+			configDir := t.TempDir()
+			configureAnalyticsTestEnv(t, server, configDir, true, true)
+			t.Setenv("RENDER_LOG_ANALYTICS", "1")
+
+			c, err := client.NewClientWithResponses(server.URL())
+			require.NoError(t, err)
+			deps := dependencies.New(c)
+			root := newRootCmd()
+			var stderr bytes.Buffer
+			root.SetErr(&stderr)
+			result := command.ExecutionResult{
+				AnalyticsEligible: true,
+				CommandPath:       "render postgres list",
+				CompletionKind:    command.CompletionKindSuccess,
+				SkipAnalyticsSend: tc.skip,
+				StartedAt:         time.Now(),
+			}
+
+			onExecutionComplete(result, deps, root)
+
+			require.Len(t, server.CliTelemetry.Instances, tc.wantEvents)
+			if tc.skip {
+				require.Empty(t, stderr.String(),
+					"a skipped execution must not log an analytics payload or diagnostic")
+				_, err := os.Stat(filepath.Join(configDir, "state"))
+				require.ErrorIs(t, err, os.ErrNotExist,
+					"a skipped execution must not create analytics state")
+			}
+		})
+	}
+}
+
 func TestInstallationIDCreatedOnlyWhenAnalyticsEnabled(t *testing.T) {
 	server := renderapi.NewServer(t)
 	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: analyticsWorkspaceID, Name: "Analytics Workspace"}))
@@ -837,24 +912,7 @@ func executeWithAnalyticsSubprocessPermission(
 	args ...string,
 ) command.ExecutionResult {
 	t.Helper()
-	// Emitted events report signals detected from the real environment, so
-	// without this the payload depends on where the tests run.
-	analytics.ClearSignalEnvVars(t)
-	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
-	t.Setenv("RENDER_CLI_CONFIG_PATH", "")
-	t.Setenv("RENDER_API_KEY", "test-api-key")
-	t.Setenv("RENDER_HOST", server.URL()+"/")
-	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")
-	if allowSubprocess {
-		t.Setenv(analytics.AllowSubprocessInTestsEnv, "1")
-	} else {
-		t.Setenv(analytics.AllowSubprocessInTestsEnv, "")
-	}
-	if shouldSend {
-		t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
-	} else {
-		t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "")
-	}
+	configureAnalyticsTestEnv(t, server, configDir, shouldSend, allowSubprocess)
 
 	c, err := client.NewClientWithResponses(server.URL())
 	require.NoError(t, err)
@@ -875,6 +933,34 @@ func executeWithAnalyticsSubprocessPermission(
 	result := runExecution(root, time.Now())
 	onExecutionComplete(result, deps, root)
 	return result
+}
+
+func configureAnalyticsTestEnv(
+	t *testing.T,
+	server *renderapi.Server,
+	configDir string,
+	shouldSend bool,
+	allowSubprocess bool,
+) {
+	t.Helper()
+	// Emitted events report signals detected from the real environment, so
+	// without this the payload depends on where the tests run.
+	analytics.ClearSignalEnvVars(t)
+	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
+	t.Setenv("RENDER_CLI_CONFIG_PATH", "")
+	t.Setenv("RENDER_API_KEY", "test-api-key")
+	t.Setenv("RENDER_HOST", server.URL()+"/")
+	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")
+	if allowSubprocess {
+		t.Setenv(analytics.AllowSubprocessInTestsEnv, "1")
+	} else {
+		t.Setenv(analytics.AllowSubprocessInTestsEnv, "")
+	}
+	if shouldSend {
+		t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
+	} else {
+		t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "")
+	}
 }
 
 func newRootCommandForUsageTests() (*cobra.Command, *bytes.Buffer) {
