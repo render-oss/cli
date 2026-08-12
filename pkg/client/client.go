@@ -16,6 +16,7 @@ import (
 
 var ErrUnauthorized = errors.New("unauthorized")
 var ErrForbidden = errors.New("forbidden")
+var ErrTooManyRequests = errors.New("too many requests")
 
 const (
 	LocalKey = ""
@@ -98,6 +99,9 @@ func ErrorFromResponse(v any) error {
 	}
 	if responseErr.Code == http.StatusForbidden {
 		return ErrForbidden
+	}
+	if responseErr.Code == http.StatusTooManyRequests {
+		return ErrTooManyRequests
 	}
 
 	if responseErr.Message != nil && *responseErr.Message != "" {

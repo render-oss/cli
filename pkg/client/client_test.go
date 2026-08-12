@@ -26,6 +26,18 @@ func TestErrorFromResponse(t *testing.T) {
 
 		require.ErrorIs(t, err, client.ErrForbidden)
 	})
+	t.Run("status code 429", func(t *testing.T) {
+		// the API usually declares that errors have a `message` and `detail` field.
+		// however, the rate-limit error response does not conform to this standard.
+		// Mimic the API's actual rate-limit body, which uses the nonstandard
+		// {"error": ...} envelope instead of the public REST {"message": ...} one.
+		err := client.ErrorFromResponse(&client.ListSnapshotsResponse{
+			Body:         []byte(`{"error": "rate limit exceeded"}`),
+			HTTPResponse: &http.Response{StatusCode: 429},
+		})
+
+		require.ErrorIs(t, err, client.ErrTooManyRequests)
+	})
 
 	t.Run("status code >= 400", func(t *testing.T) {
 		t.Run("when body is an error type", func(t *testing.T) {
