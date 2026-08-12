@@ -160,39 +160,67 @@ func TestSenderReportsEventFileAndLauncherFailuresWhenLogging(t *testing.T) {
 	t.Run("event file", func(t *testing.T) {
 		configDir := t.TempDir()
 		t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
+		// Make the expected state directory a regular file so creating
+		// state/analytics/events fails.
 		require.NoError(t, os.WriteFile(filepath.Join(configDir, "state"), nil, 0o600))
 
 		sender := newTestSender(&fakeTelemetryClient{}, true, true)
-		launcherCalls := 0
+		launcher := &fakeEventFileLauncher{}
 		sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
-			launcherCalls++
-			return &fakeEventFileLauncher{}, nil
+			return launcher, nil
 		}
 		var stderr bytes.Buffer
 
 		sender.Send(command.ExecutionResult{}, &stderr)
 
-		require.Zero(t, launcherCalls)
 		require.Contains(t, stderr.String(), "analytics error: write analytics event file:")
+		require.Empty(t, launcher.detachedPaths, "should not start a subprocess if no event file was written")
+		require.Empty(t, launcher.syncPaths, "should not start a subprocess if no event file was written")
 	})
 
 	t.Run("launcher", func(t *testing.T) {
 		configDir := t.TempDir()
 		t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
+		t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "banana")
 		launcherErr := errors.New("executable unavailable")
 		sender := newTestSender(&fakeTelemetryClient{}, true, true)
 		sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
 			return nil, launcherErr
+		}
+		installationIDCalls := 0
+		sender.getInstallationID = func() (string, error) {
+			installationIDCalls++
+			return testInstallationID, nil
 		}
 		var stderr bytes.Buffer
 
 		sender.Send(command.ExecutionResult{}, &stderr)
 
 		require.Contains(t, stderr.String(), "analytics error: "+launcherErr.Error())
-		entries, err := os.ReadDir(filepath.Join(configDir, "state", "analytics", "events"))
-		require.NoError(t, err)
-		require.Empty(t, entries)
+		require.Contains(t, stderr.String(), `unknown RENDER_CLI_ANALYTICS_STRATEGY value "banana"; ignoring it`)
+		require.Equal(t, 1, installationIDCalls, "logging still builds the analytics payload before reporting the launcher error")
+		// Send resolves the launcher before writing, so a refused launch leaves no
+		// event file behind — rather than writing one and deleting it again.
+		_, err := os.Stat(filepath.Join(configDir, "state", "analytics", "events"))
+		require.ErrorIs(t, err, os.ErrNotExist)
 	})
+}
+
+func TestSilentLauncherFailureDoesNotResolveInstallationID(t *testing.T) {
+	launcherErr := errors.New("executable unavailable")
+	sender := newTestSender(&fakeTelemetryClient{}, true, false)
+	sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
+		return nil, launcherErr
+	}
+	installationIDCalls := 0
+	sender.getInstallationID = func() (string, error) {
+		installationIDCalls++
+		return testInstallationID, nil
+	}
+
+	sender.Send(command.ExecutionResult{}, io.Discard)
+
+	require.Zero(t, installationIDCalls)
 }
 
 func TestSenderPassesDiscardedDiagnosticsToSilentSynchronousSubprocess(t *testing.T) {

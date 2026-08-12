@@ -108,6 +108,17 @@ func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
 		return
 	}
 
+	var launcher analyticsSubprocessLauncher
+	var launcherErr error
+	if s.shouldSend {
+		// A silent refusal has nothing to report, so stop before resolving the
+		// installation ID or creating analytics state.
+		launcher, launcherErr = s.newLauncher()
+		if launcherErr != nil && !s.shouldLog {
+			return
+		}
+	}
+
 	installationID, err := s.getInstallationID()
 	if err != nil && s.shouldLog {
 		_, _ = fmt.Fprintf(stderr, "analytics error: getting installation ID: %v\n", err)
@@ -127,6 +138,19 @@ func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
 		return
 	}
 
+	if launcherErr != nil {
+		_, diagnostic := resolveStrategy(strategyInputs{
+			isCI:               cfg.IsCI(),
+			loggingEnabled:     s.shouldLog,
+			configuredStrategy: cfg.AnalyticsStrategy(),
+		})
+		if diagnostic != "" {
+			_, _ = fmt.Fprintln(stderr, diagnostic)
+		}
+		s.logError(stderr, launcherErr)
+		return
+	}
+
 	eventFile, err := writeEventFile(payload)
 	if err != nil {
 		s.logError(stderr, err)
@@ -140,13 +164,6 @@ func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
 	})
 	if diagnostic != "" && s.shouldLog {
 		_, _ = fmt.Fprintln(stderr, diagnostic)
-	}
-
-	launcher, err := s.newLauncher()
-	if err != nil {
-		_ = os.Remove(eventFile)
-		s.logError(stderr, err)
-		return
 	}
 
 	//exhaustive:enforce

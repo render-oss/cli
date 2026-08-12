@@ -3,6 +3,7 @@ package analytics
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -46,11 +47,20 @@ func TestMain(m *testing.M) {
 	if mode := os.Getenv(helperModeEnv); mode != "" {
 		os.Exit(runHelper(mode))
 	}
+	// Any launcher created through the test-only opt-in marks its child. Keep
+	// that child from falling through to m.Run even if a future test forgets to
+	// select a helper mode.
+	if IsSendSubprocess() {
+		os.Exit(0)
+	}
 
 	os.Exit(m.Run())
 }
 
 func TestNewSubprocessLauncherUsesTheCurrentExecutable(t *testing.T) {
+	t.Setenv(AllowSubprocessInTestsEnv, "1")
+	t.Setenv(analyticsSubprocessEnv, "")
+
 	launcher, err := newSubprocessLauncher()
 	require.NoError(t, err)
 	executable, err := os.Executable()
@@ -59,7 +69,47 @@ func TestNewSubprocessLauncherUsesTheCurrentExecutable(t *testing.T) {
 	require.Equal(t, executable, launcher.executable)
 }
 
+func TestOptedInSubprocessExitsThroughTestMain(t *testing.T) {
+	t.Setenv(AllowSubprocessInTestsEnv, "1")
+	t.Setenv(analyticsSubprocessEnv, "")
+
+	launcher, err := newSubprocessLauncher()
+	require.NoError(t, err)
+
+	require.NoError(t, launcher.runSync(t.Context(), "event.json", io.Discard))
+}
+
+// TestNewSubprocessLauncherRefusesInTestBinaryWithoutOptIn ensures analytics
+// cannot accidentally re-execute an unprepared test binary and start a growing
+// chain of test processes. See AllowSubprocessInTestsEnv for the safe opt-in.
+func TestNewSubprocessLauncherRefusesInTestBinaryWithoutOptIn(t *testing.T) {
+	t.Setenv(AllowSubprocessInTestsEnv, "")
+	t.Setenv(analyticsSubprocessEnv, "")
+
+	_, err := newSubprocessLauncher()
+
+	require.ErrorContains(t, err, "test binary")
+}
+
+func TestNewSubprocessLauncherRefusesNestedAnalyticsSubprocess(t *testing.T) {
+	t.Setenv(AllowSubprocessInTestsEnv, "1")
+	t.Setenv(analyticsSubprocessEnv, "1")
+
+	_, err := newSubprocessLauncher()
+
+	require.ErrorContains(t, err, "another analytics subprocess")
+}
+
+func TestIsSendSubprocess(t *testing.T) {
+	t.Setenv(analyticsSubprocessEnv, "1")
+	require.True(t, IsSendSubprocess())
+
+	t.Setenv(analyticsSubprocessEnv, "")
+	require.False(t, IsSendSubprocess())
+}
+
 func TestNewSubprocess(t *testing.T) {
+	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
 	launcher := newTestSubprocessLauncher("/path/to/render")
 
 	cmd := launcher.newSubprocess(t.Context(), "/state/event.json", nil)
@@ -73,7 +123,8 @@ func TestNewSubprocess(t *testing.T) {
 	require.Nil(t, cmd.Stdin, "subprocess should read stdin from the null device")
 	require.Nil(t, cmd.Stdout)
 	require.Nil(t, cmd.Stderr)
-	require.Nil(t, cmd.Env, "subprocess must inherit the parent environment")
+	require.Contains(t, cmd.Env, "RENDER_TEST_ENABLE_ANALYTICS=1")
+	require.Contains(t, cmd.Env, analyticsSubprocessEnv+"=1")
 	require.Empty(t, cmd.Dir,
 		"subprocess must run in the parent's cwd: a relative RENDER_CLI_CONFIG_DIR resolves against it, and a child launched elsewhere would orphan its event file")
 }

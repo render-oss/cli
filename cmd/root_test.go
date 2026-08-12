@@ -16,6 +16,7 @@ import (
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
+	"github.com/render-oss/cli/pkg/analytics"
 	"github.com/render-oss/cli/pkg/client"
 	telemetryclient "github.com/render-oss/cli/pkg/client/clitelemetry"
 	"github.com/render-oss/cli/pkg/command"
@@ -26,13 +27,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const analyticsSubprocessHelperEnv = "RENDER_CLI_TEST_ANALYTICS_SEND_HELPER"
-
 func TestMain(m *testing.M) {
 	// Sender re-executes the current binary. In these integration tests that is
 	// the cmd test binary, so let the child impersonate the real render entry
 	// point and execute the hidden analytics command against the parent's fake.
-	if os.Getenv(analyticsSubprocessHelperEnv) == "1" {
+	if analytics.IsSendSubprocess() {
 		os.Exit(Execute())
 	}
 
@@ -790,6 +789,27 @@ func TestInstallationIDCreatedOnlyWhenAnalyticsEnabled(t *testing.T) {
 		"the emitted event should carry the persisted installation ID")
 }
 
+func TestAnalyticsEnabledWithoutSubprocessOptInDoesNotEmit(t *testing.T) {
+	server := renderapi.NewServer(t)
+	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: analyticsWorkspaceID, Name: "Analytics Workspace"}))
+	t.Setenv("RENDER_WORKSPACE", analyticsWorkspaceID)
+	configDir := t.TempDir()
+
+	result := executeWithAnalyticsSubprocessPermission(
+		t,
+		server,
+		configDir,
+		true,
+		false,
+		"postgres", "list", "--output", "json",
+	)
+
+	require.Equal(t, 0, result.ExitCode)
+	require.Empty(t, server.CliTelemetry.Instances)
+	_, err := os.Stat(filepath.Join(configDir, "state"))
+	require.ErrorIs(t, err, os.ErrNotExist, "a refused analytics subprocess must not create analytics state")
+}
+
 // executeWithAnalytics builds a fresh CLI app whose client and analytics sender
 // both target the fake, runs args through the same runExecution/onExecutionComplete
 // path Execute uses, and returns the classified result. The emitted event lands
@@ -801,13 +821,28 @@ func executeWithAnalytics(
 	shouldSend bool,
 	args ...string,
 ) command.ExecutionResult {
+	return executeWithAnalyticsSubprocessPermission(t, server, configDir, shouldSend, true, args...)
+}
+
+func executeWithAnalyticsSubprocessPermission(
+	t *testing.T,
+	server *renderapi.Server,
+	configDir string,
+	shouldSend bool,
+	allowSubprocess bool,
+	args ...string,
+) command.ExecutionResult {
 	t.Helper()
 	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
 	t.Setenv("RENDER_CLI_CONFIG_PATH", "")
 	t.Setenv("RENDER_API_KEY", "test-api-key")
 	t.Setenv("RENDER_HOST", server.URL()+"/")
 	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")
-	t.Setenv(analyticsSubprocessHelperEnv, "1")
+	if allowSubprocess {
+		t.Setenv(analytics.AllowSubprocessInTestsEnv, "1")
+	} else {
+		t.Setenv(analytics.AllowSubprocessInTestsEnv, "")
+	}
 	if shouldSend {
 		t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
 	} else {

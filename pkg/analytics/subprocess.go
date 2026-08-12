@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"testing"
 	"time"
 )
 
@@ -24,9 +25,64 @@ type subprocessLauncher struct {
 	timeout    time.Duration
 }
 
+// analyticsSubprocessEnv marks a process started by subprocessLauncher. Besides
+// helping test binaries route the child invocation, it prevents an analytics
+// subprocess from starting another analytics subprocess.
+const analyticsSubprocessEnv = "RENDER_CLI_ANALYTICS_SUBPROCESS"
+
+// AllowSubprocessInTestsEnv lets a test binary launch a real
+// "render analytics send" subprocess. Set it to "1" and give the test binary a
+// TestMain that routes marked analytics children to the CLI entrypoint:
+//
+//	func TestMain(m *testing.M) {
+//		if analytics.IsSendSubprocess() {
+//			os.Exit(Execute())
+//		}
+//		os.Exit(m.Run())
+//	}
+//
+// Sending re-executes the running program, which under "go test" is the test
+// binary. A test binary handed
+// "analytics send <file>" ignores those arguments and runs its whole test suite
+// instead, and each of those runs sends its own events and starts more children.
+// The environment variable permits the launch. The TestMain routes the marked
+// child to the send command. Without both pieces, launcher construction fails
+// in a test binary. Outside "go test" the variable is ignored.
+const AllowSubprocessInTestsEnv = "RENDER_CLI_ALLOW_ANALYTICS_SUBPROCESS_IN_TESTS"
+
+// IsSendSubprocess reports whether the current process was launched to run
+// "render analytics send <event-file>". TestMain functions can use it to route
+// a re-executed test binary to the CLI entrypoint instead of the test suite.
+func IsSendSubprocess() bool {
+	return os.Getenv(analyticsSubprocessEnv) == "1"
+}
+
+// subprocessAllowedInTests reports whether a test binary has opted in
+// to launching real analytics send subprocesses.
+func subprocessAllowedInTests() bool {
+	return os.Getenv(AllowSubprocessInTestsEnv) == "1"
+}
+
 // newSubprocessLauncher creates a launcher that re-executes the currently
 // running Render binary.
+//
+// It refuses nested analytics subprocesses in every binary. It also refuses a
+// launch from a test binary unless the test follows the opt-in contract
+// documented by [AllowSubprocessInTestsEnv].
+//
+// Callers can ignore a refusal: [Sender.Send] does not write an event file until
+// it has a launcher, so no event file or subprocess is left behind.
 func newSubprocessLauncher() (subprocessLauncher, error) {
+	if IsSendSubprocess() {
+		return subprocessLauncher{}, errors.New("refusing to launch an analytics subprocess from another analytics subprocess")
+	}
+
+	if testing.Testing() && !subprocessAllowedInTests() {
+		return subprocessLauncher{}, errors.New(
+			"refusing to launch an analytics subprocess from a test binary: re-executing it would re-run the whole test suite; set " +
+				AllowSubprocessInTestsEnv + "=1 and add a TestMain that runs the send command")
+	}
+
 	executable, err := os.Executable()
 	if err != nil {
 		return subprocessLauncher{}, fmt.Errorf("resolving analytics subprocess executable: %w", err)
@@ -46,12 +102,11 @@ func (l subprocessLauncher) newSubprocess(ctx context.Context, eventFile string,
 	// events directory against the working directory, so a child running
 	// anywhere but the parent's cwd would reject and orphan its event file.
 	//
-	// leave cmd.Env nil so the child inherits analytics opt-in,
-	// logging configuration, and config dir from its parent. Nil streams are
-	// connected to the null device by os/exec; a stderr override lets a
-	// synchronous caller capture child diagnostics without inheriting the
-	// parent's stream.
-	cmd.Env = nil
+	// Preserve the parent's environment and mark the child so it cannot start
+	// another analytics subprocess. Nil streams are connected to the null device
+	// by os/exec; a stderr override lets a synchronous caller capture child
+	// diagnostics without inheriting the parent's stream.
+	cmd.Env = append(os.Environ(), analyticsSubprocessEnv+"=1")
 	cmd.Stderr = stderr
 	return cmd
 }
