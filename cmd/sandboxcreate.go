@@ -14,17 +14,18 @@ import (
 )
 
 type SandboxCreateInput struct {
-	Plan    string `cli:"plan"`
-	Region  string `cli:"region"`
-	Timeout int    `cli:"timeout"`
+	Plan          string `cli:"plan"`
+	Region        string `cli:"region"`
+	Timeout       int    `cli:"timeout"`
+	NetworkPolicy string `cli:"network-policy"`
 }
 
 func (i *SandboxCreateInput) Validate(_ bool) error {
-	if i.Plan == "" {
-		return nil
-	}
-	if !sandboxclient.SandboxPlan(i.Plan).Valid() {
+	if i.Plan != "" && !sandboxclient.SandboxPlan(i.Plan).Valid() {
 		return fmt.Errorf("invalid plan %q: use %s", i.Plan, strings.Join(sandboxPlanNames(), ", "))
+	}
+	if i.NetworkPolicy != "" && !sandboxclient.SandboxNetworkPolicyDefault(i.NetworkPolicy).Valid() {
+		return fmt.Errorf("invalid network policy %q: use %s", i.NetworkPolicy, strings.Join(sandboxNetworkPolicyNames(), ", "))
 	}
 	return nil
 }
@@ -41,6 +42,13 @@ func sandboxPlanNames() []string {
 	return out
 }
 
+func sandboxNetworkPolicyNames() []string {
+	return []string{
+		string(sandboxclient.AllowAll),
+		string(sandboxclient.DenyAll),
+	}
+}
+
 func newSandboxCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -51,12 +59,15 @@ Examples:
   render ea sandboxes create
   render ea sandboxes create --plan=standard --region=oregon
   render ea sandboxes create --timeout=3600
+  render ea sandboxes create --network-policy=deny-all
 `,
 	}
 
 	cmd.Flags().String("plan", "", "Compute plan: "+strings.Join(sandboxPlanNames(), ", "))
 	cmd.Flags().String("region", "", "Region to run the sandbox in")
 	cmd.Flags().Int("timeout", 0, "Maximum sandbox lifetime in seconds")
+	cmd.Flags().String("network-policy", "", "Outbound network policy: "+strings.Join(sandboxNetworkPolicyNames(), ", "))
+	setFlagPlaceholder(cmd.Flags(), "network-policy", "NETWORK_POLICY")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)
@@ -77,9 +88,10 @@ Examples:
 
 		_, err := command.NonInteractive(cmd, func() (*sandboxclient.Sandbox, error) {
 			return deps.SandboxService().Create(cmd.Context(), sandbox.CreateInput{
-				Plan:    input.Plan,
-				Region:  input.Region,
-				Timeout: input.Timeout,
+				Plan:          input.Plan,
+				Region:        input.Region,
+				Timeout:       input.Timeout,
+				NetworkPolicy: input.NetworkPolicy,
 			}, onEvent)
 		}, text.SandboxDetail)
 		return err

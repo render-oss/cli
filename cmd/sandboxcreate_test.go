@@ -49,3 +49,43 @@ func TestSandboxCreateValidateAcceptsEverySchemaPlan(t *testing.T) {
 		assert.NoError(t, input.Validate(false), "plan %q should be accepted", p)
 	}
 }
+
+func TestSandboxCreateInputValidateNetworkPolicy(t *testing.T) {
+	cases := []struct {
+		name          string
+		networkPolicy string
+		errContains   string
+	}{
+		{name: "empty network policy is allowed (server picks default)", networkPolicy: ""},
+		{name: "allow-all", networkPolicy: "allow-all"},
+		{name: "deny-all", networkPolicy: "deny-all"},
+		{name: "unknown policy", networkPolicy: "somewhat-open", errContains: `invalid network policy "somewhat-open"`},
+		{name: "constant-style name rejected", networkPolicy: "AllowAll", errContains: `invalid network policy "AllowAll"`},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := SandboxCreateInput{NetworkPolicy: tc.networkPolicy}
+			err := input.Validate(false)
+			if tc.errContains == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.errContains)
+			for _, name := range sandboxNetworkPolicyNames() {
+				assert.Contains(t, err.Error(), name)
+			}
+		})
+	}
+}
+
+func TestSandboxCreateNetworkPolicyNamesMatchSchema(t *testing.T) {
+	names := sandboxNetworkPolicyNames()
+	require.NotEmpty(t, names)
+	for _, name := range names {
+		assert.True(t, sandboxclient.SandboxNetworkPolicyDefault(name).Valid(), "policy %q should be valid per schema", name)
+		input := SandboxCreateInput{NetworkPolicy: name}
+		assert.NoError(t, input.Validate(false), "policy %q should be accepted", name)
+	}
+}
