@@ -126,6 +126,9 @@ func runBlueprintValidate(ctx context.Context, cmd *cobra.Command, args []string
 	}
 
 	result := resp.JSON200
+	if result == nil {
+		return fmt.Errorf("validation request returned an empty response")
+	}
 
 	if output.Interactive() {
 		return printValidationResultInteractive(absPath, result)
@@ -138,7 +141,14 @@ func runBlueprintValidate(ctx context.Context, cmd *cobra.Command, args []string
 		}
 		return string(jsonBytes) + "\n"
 	})
-	return err
+	if err != nil {
+		return err
+	}
+
+	if !result.Valid {
+		return fmt.Errorf("%s has validation errors", absPath)
+	}
+	return nil
 }
 
 func formatValidationError(e bptypes.ValidationError) string {
