@@ -31,7 +31,7 @@ func TestShouldLogAnalytics(t *testing.T) {
 	}
 }
 
-func TestShouldSendAnalytics(t *testing.T) {
+func TestAnalyticsDevGateOpen(t *testing.T) {
 	testCases := []struct {
 		name  string
 		value string
@@ -49,8 +49,50 @@ func TestShouldSendAnalytics(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", tc.value)
 
-			require.Equal(t, tc.want, cfg.ShouldSendAnalytics())
+			require.Equal(t, tc.want, cfg.AnalyticsDevGateOpen())
 		})
+	}
+}
+
+func TestDoNotTrack(t *testing.T) {
+	testCases := []struct {
+		value string
+		want  bool
+	}{
+		{value: "", want: false},
+		{value: "1", want: true},
+		{value: "true", want: true},
+		{value: "TRUE", want: true},
+		{value: "0", want: false},
+		{value: "false", want: false},
+		{value: "anything", want: false},
+	}
+
+	for _, tc := range testCases {
+		t.Setenv("DO_NOT_TRACK", tc.value)
+
+		require.Equal(t, tc.want, cfg.DoNotTrack(), "DO_NOT_TRACK=%q", tc.value)
+	}
+}
+
+func TestAnalyticsDisabledByEnv(t *testing.T) {
+	testCases := []struct {
+		value string
+		want  bool
+	}{
+		{value: "", want: false},
+		{value: "0", want: false},
+		{value: "false", want: false},
+		{value: "yes", want: false},
+		{value: "1", want: true},
+		{value: "true", want: true},
+		{value: "TRUE", want: true},
+	}
+
+	for _, tc := range testCases {
+		t.Setenv("RENDER_CLI_DISABLE_ANALYTICS", tc.value)
+
+		require.Equal(t, tc.want, cfg.AnalyticsDisabledByEnv(), "RENDER_CLI_DISABLE_ANALYTICS=%q", tc.value)
 	}
 }
 

@@ -7,11 +7,15 @@ import (
 	"strings"
 )
 
-const RepoURL = "https://api.github.com/repos/render-oss/cli"
-const InstallationInstructionsURL = "https://render.com/docs/cli#1-install-or-upgrade"
+const (
+	RepoURL                     = "https://api.github.com/repos/render-oss/cli"
+	InstallationInstructionsURL = "https://render.com/docs/cli#1-install-or-upgrade"
+)
 
-var Version = "dev"
-var osInfo string
+var (
+	Version = "dev"
+	osInfo  string
+)
 
 func GetHost() string {
 	if host := os.Getenv("RENDER_HOST"); host != "" {
@@ -31,16 +35,29 @@ func GetRegion() string {
 
 // ShouldLogAnalytics reports whether the CLI should log analytics to stderr,
 // enabled by RENDER_LOG_ANALYTICS=1.
-// This is independent of [ShouldSendAnalytics]: both can be toggled on/off independently.
+// This is independent of [AnalyticsDevGateOpen]: both can be toggled on/off independently.
 func ShouldLogAnalytics() bool {
 	return os.Getenv("RENDER_LOG_ANALYTICS") == "1"
 }
 
-// ShouldSendAnalytics reports whether the CLI should send analytics events to
-// the API, enabled by RENDER_TEST_ENABLE_ANALYTICS=1. While developing the telemetry system,
-// sending is off by default and only fire when explicitly opted in.
-func ShouldSendAnalytics() bool {
+// AnalyticsDevGateOpen reports whether the internal development gate on
+// sending analytics events is open, via RENDER_TEST_ENABLE_ANALYTICS=1. While
+// the analytics system rolls out, sending is off by default and requires this
+// explicit opt-in on top of the user not having opted out.
+func AnalyticsDevGateOpen() bool {
 	return os.Getenv("RENDER_TEST_ENABLE_ANALYTICS") == "1"
+}
+
+// DoNotTrack reports DO_NOT_TRACK is truthy
+// We must respect this by disabling analytics
+func DoNotTrack() bool {
+	return isTruthy(os.Getenv("DO_NOT_TRACK"))
+}
+
+// AnalyticsDisabledByEnv reports whether RENDER_CLI_DISABLE_ANALYTICS is truthy
+// We must respect this by disabling analytics
+func AnalyticsDisabledByEnv() bool {
+	return isTruthy(os.Getenv("RENDER_CLI_DISABLE_ANALYTICS"))
 }
 
 // AnalyticsStrategy returns the raw configured analytics send strategy.
@@ -53,7 +70,12 @@ func AnalyticsStrategy() string {
 // single definition of CI-ness: output resolution and the analytics send
 // strategy must not diverge on it.
 func IsCI() bool {
-	value := os.Getenv("CI")
+	return isTruthy(os.Getenv("CI"))
+}
+
+// isTruthy reports whether an environment value expresses an enabled boolean
+// flag: "1", or "true" in any case.
+func isTruthy(value string) bool {
 	return value == "1" || strings.EqualFold(value, "true")
 }
 

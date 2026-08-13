@@ -956,10 +956,15 @@ func configureAnalyticsTestEnv(
 	} else {
 		t.Setenv(analytics.AllowSubprocessInTestsEnv, "")
 	}
-	if shouldSend {
-		t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
-	} else {
-		t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "")
+	// The dev gate is held open and sending toggles through a user opt-out
+	// instead, exercising the consent path the released CLI will use.
+	// Both opt-out vars are cleared first so an ambient value on the machine
+	// running the tests cannot leak in.
+	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
+	t.Setenv("DO_NOT_TRACK", "")
+	t.Setenv("RENDER_CLI_DISABLE_ANALYTICS", "")
+	if !shouldSend {
+		t.Setenv("DO_NOT_TRACK", "1")
 	}
 }
 

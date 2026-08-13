@@ -63,10 +63,13 @@ func newAnalyticsHarness(t *testing.T, shouldSend bool) *analyticsHarness {
 	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
 	t.Setenv("RENDER_CLI_CONFIG_PATH", "")
 	t.Setenv("RENDER_API_KEY", "test-api-key")
-	if shouldSend {
-		t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
-	} else {
-		t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "")
+	// The dev gate is held open and sending toggles through a user opt-out
+	// instead, exercising the consent path the released CLI will use.
+	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
+	t.Setenv("DO_NOT_TRACK", "")
+	t.Setenv("RENDER_CLI_DISABLE_ANALYTICS", "")
+	if !shouldSend {
+		t.Setenv("DO_NOT_TRACK", "1")
 	}
 
 	server := renderapi.NewServer(t)

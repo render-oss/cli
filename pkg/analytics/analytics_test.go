@@ -20,6 +20,7 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	telemetryclient "github.com/render-oss/cli/pkg/client/clitelemetry"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/pointers"
 )
 
@@ -435,6 +436,9 @@ func TestNewUsesExactEnvironmentGates(t *testing.T) {
 		name           string
 		sendValue      string
 		logValue       string
+		doNotTrack     string
+		disableEnv     string
+		configDisabled bool
 		wantShouldSend bool
 		wantShouldLog  bool
 	}{
@@ -443,12 +447,26 @@ func TestNewUsesExactEnvironmentGates(t *testing.T) {
 		{name: "logging only", logValue: "1", wantShouldLog: true},
 		{name: "sending only", sendValue: "1", wantShouldSend: true},
 		{name: "both", sendValue: "1", logValue: "1", wantShouldSend: true, wantShouldLog: true},
+		{name: "DO_NOT_TRACK vetoes an enabled dev gate", sendValue: "1", doNotTrack: "1"},
+		{name: "RENDER_CLI_DISABLE_ANALYTICS vetoes an enabled dev gate", sendValue: "1", disableEnv: "true"},
+		{name: "config opt-out vetoes an enabled dev gate", sendValue: "1", configDisabled: true},
+		{name: "opt-out leaves logging alone", sendValue: "1", logValue: "1", doNotTrack: "1", wantShouldLog: true},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", tc.sendValue)
 			t.Setenv("RENDER_LOG_ANALYTICS", tc.logValue)
+			t.Setenv("DO_NOT_TRACK", tc.doNotTrack)
+			t.Setenv("RENDER_CLI_DISABLE_ANALYTICS", tc.disableEnv)
+			// Consent resolution reads the config file, so isolate it from the
+			// machine's real ~/.render/cli.yaml.
+			t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
+			t.Setenv("RENDER_CLI_CONFIG_PATH", "")
+			if tc.configDisabled {
+				cfgFile := &config.Config{Analytics: config.AnalyticsConfig{Disabled: true}}
+				require.NoError(t, cfgFile.Persist())
+			}
 
 			sender := New(&client.ClientWithResponses{})
 
@@ -461,8 +479,11 @@ func TestNewUsesExactEnvironmentGates(t *testing.T) {
 func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 	server := renderapi.NewServer(t)
 	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("RENDER_CLI_CONFIG_PATH", "")
 	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")
 	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
+	t.Setenv("DO_NOT_TRACK", "")
+	t.Setenv("RENDER_CLI_DISABLE_ANALYTICS", "")
 	t.Setenv("RENDER_HOST", server.URL()+"/")
 	t.Setenv("RENDER_API_KEY", "secret-token")
 	apiClient, err := client.NewDefaultClient()

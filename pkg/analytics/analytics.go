@@ -22,10 +22,13 @@ import (
 const unknownOutputFormat = "unknown"
 
 // Sender turns a completed execution into an analytics event. Sending and
-// logging events are controlled independently by environment variables.
+// logging are controlled independently: sending by the dev gate and
+// [ResolveConsent] (env opt-outs and the config file), logging by an
+// environment variable.
 //
-// New configures sending only when analytics sending is enabled and the API
-// client is present. A logged-out CLI still holds a client
+// New configures sending only when the dev gate is open, the user has not
+// opted out, and the API client is present. A logged-out CLI still holds a
+// client
 // (client.NotLoggedInClient), whose request editor fails in-process before any
 // network I/O, so sending through it is safe. Event logging works even when
 // sending is disabled.
@@ -61,9 +64,23 @@ type analyticsSubprocessLauncher interface {
 
 // New creates a new [Sender].
 func New(apiClient *client.ClientWithResponses) *Sender {
+	// shouldSend is a conjunction of the internal dev gate and user consent.
+	// The conjunction is what lets the opt-out consent logic ship without
+	// being activated: sending still requires the dev gate to be explicitly
+	// opened, so analytics stays opt-in by default — while a dev with the
+	// gate open and any opt-out mechanism set sends nothing, so the consent
+	// path is live end to end before the default ever changes.
+	//
+	// Deleting the cfg.AnalyticsDevGateOpen() term is the change that flips
+	// the CLI from opt-in to opt-out (GROW-3146), leaving user consent and
+	// client presence as the only conditions. Until then, order matters: the
+	// dev gate short-circuits first, so builds with the gate closed never
+	// read the config file that consent lives in.
+	shouldSend := cfg.AnalyticsDevGateOpen() && ResolveConsent().Granted && apiClient != nil
+
 	return newSender(
 		apiClient,
-		cfg.ShouldSendAnalytics() && apiClient != nil,
+		shouldSend,
 		cfg.ShouldLogAnalytics(),
 		command.DetectTerminalSignals,
 		DetectAgentSignals,
