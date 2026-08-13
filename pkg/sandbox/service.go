@@ -26,6 +26,7 @@ type CreateInput struct {
 	Region        string
 	Timeout       int
 	NetworkPolicy string
+	Env           map[string]string
 }
 
 // allSandboxStatuses is every sandbox status. --all sends the full set so the
@@ -85,6 +86,9 @@ func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*s
 		body.NetworkPolicy = &sandboxclient.SandboxNetworkPolicy{
 			Default: sandboxclient.SandboxNetworkPolicyDefault(input.NetworkPolicy),
 		}
+	}
+	if len(input.Env) > 0 {
+		body.Env = &input.Env
 	}
 
 	return s.repo.CreateSandbox(ctx, body, onEvent)

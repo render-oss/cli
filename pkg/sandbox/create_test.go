@@ -66,3 +66,46 @@ func TestServiceCreate_NetworkPolicyBody(t *testing.T) {
 		})
 	}
 }
+
+func TestServiceCreate_EnvBody(t *testing.T) {
+	tests := []struct {
+		name       string
+		input      CreateInput
+		wantEnv    map[string]any
+		wantAbsent bool
+	}{
+		{
+			name:       "no env omits the field",
+			input:      CreateInput{},
+			wantAbsent: true,
+		},
+		{
+			name:    "env pairs are sent verbatim",
+			input:   CreateInput{Env: map[string]string{"FOO": "bar", "EMPTY": ""}},
+			wantEnv: map[string]any{"FOO": "bar", "EMPTY": ""},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var gotBody map[string]any
+			svc := newTestService(t, func(w http.ResponseWriter, r *http.Request) {
+				require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusCreated)
+				_ = json.NewEncoder(w).Encode(sandboxclient.Sandbox{Id: "sbx-1", Status: sandboxclient.SandboxStatusCreating})
+			})
+
+			_, err := svc.Create(context.Background(), tc.input, nil)
+			require.NoError(t, err)
+
+			env, present := gotBody["env"]
+			if tc.wantAbsent {
+				assert.False(t, present, "env should be omitted, got %v", env)
+				return
+			}
+			require.True(t, present)
+			assert.Equal(t, tc.wantEnv, env)
+		})
+	}
+}
