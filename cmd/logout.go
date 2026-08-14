@@ -15,7 +15,7 @@ import (
 var logoutCmd = newLogoutCmd()
 
 func newLogoutCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "logout",
 		Short: "Log out of Render",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -85,6 +85,10 @@ func newLogoutCmd() *cobra.Command {
 		},
 		GroupID: GroupAuth.ID,
 	}
+
+	markCommandAnalyticsIneligible(cmd)
+
+	return cmd
 }
 
 func init() {

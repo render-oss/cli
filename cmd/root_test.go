@@ -921,6 +921,7 @@ func executeWithAnalyticsSubprocessPermission(
 	}
 
 	root := newRootCmd()
+	root.AddCommand(newLogoutCmd())
 	setupPGCommands(root, deps)
 	setupRootCmdPersistentRun(root, deps)
 
