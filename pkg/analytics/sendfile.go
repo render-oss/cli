@@ -67,15 +67,15 @@ func (s *Sender) sendFile(ctx context.Context, path string, diagnostics io.Write
 	requestCtx, cancel := context.WithTimeout(ctx, sendFileRequestTimeout)
 	defer cancel()
 
-	statusCode, status, err := s.postEvent(requestCtx, payload)
+	response, err := s.postEvent(requestCtx, payload)
 	if err != nil {
 		return errors.Join(fmt.Errorf("send analytics event: %w", err), cleanupErr)
 	}
-	if statusCode < 200 || statusCode >= 300 {
-		return errors.Join(fmt.Errorf("send analytics event: unexpected response %s", status), cleanupErr)
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return errors.Join(fmt.Errorf("send analytics event: unexpected response %s", response.Status), cleanupErr)
 	}
 	if s.shouldLog {
-		_, _ = fmt.Fprintf(diagnostics, "analytics response: %s\n", status)
+		_, _ = fmt.Fprintf(diagnostics, "analytics response: %s\n", response.Status)
 	}
 	return cleanupErr
 }

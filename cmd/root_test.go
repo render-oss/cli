@@ -783,14 +783,14 @@ func TestCompletedCommandsEmitAnalytics(t *testing.T) {
 				t.Setenv("RENDER_WORKSPACE", analyticsWorkspaceID)
 			}
 
-			result := executeWithAnalytics(t, server, t.TempDir(), true, tc.args...)
+			run := executeWithAnalytics(t, server, t.TempDir(), true, tc.args...)
 
 			events := server.CliTelemetry.Instances
 			require.Len(t, events, 1)
 			require.Equal(t, tc.wantCommand, events[0].Command)
 			require.Equal(t, tc.wantKind, events[0].CompletionKind)
 			require.Equal(t, tc.wantExitCode, events[0].ExitCode)
-			require.Equal(t, tc.wantExitCode, result.ExitCode)
+			require.Equal(t, tc.wantExitCode, run.Result.ExitCode)
 			require.Empty(t, events[0].AgentSignals,
 				"the harness must neutralize agent env so payloads match on any machine")
 			require.Empty(t, events[0].CiSignals,
@@ -851,14 +851,15 @@ func TestInstallationIDCreatedOnlyWhenAnalyticsEnabled(t *testing.T) {
 	configDir := t.TempDir()
 	installationIDPath := filepath.Join(configDir, "state", "installation-id.txt")
 
-	result := executeWithAnalytics(t, server, configDir, false, "postgres", "list", "--output", "json")
-	require.Equal(t, 0, result.ExitCode)
+	run := executeWithAnalytics(t, server, configDir, false, "postgres", "list", "--output", "json")
+	require.Equal(t, 0, run.Result.ExitCode)
 	require.Empty(t, server.CliTelemetry.Instances, "disabled analytics should not emit an event")
 	_, err := os.Stat(installationIDPath)
 	require.ErrorIs(t, err, os.ErrNotExist, "disabled analytics should not create installation ID state")
 
-	result = executeWithAnalytics(t, server, configDir, true, "postgres", "list", "--output", "json")
-	require.Equal(t, 0, result.ExitCode)
+	run = executeWithAnalytics(t, server, configDir, true, "postgres", "list", "--output", "json")
+	require.Equal(t, 0, run.Result.ExitCode)
+	require.Len(t, server.CliTelemetry.Instances, 1)
 	contents, err := os.ReadFile(installationIDPath)
 	require.NoError(t, err)
 	installationID := strings.TrimSpace(string(contents))
@@ -873,7 +874,7 @@ func TestAnalyticsEnabledWithoutSubprocessOptInDoesNotEmit(t *testing.T) {
 	t.Setenv("RENDER_WORKSPACE", analyticsWorkspaceID)
 	configDir := t.TempDir()
 
-	result := executeWithAnalyticsSubprocessPermission(
+	run := executeWithAnalyticsSubprocessPermission(
 		t,
 		server,
 		configDir,
@@ -882,10 +883,18 @@ func TestAnalyticsEnabledWithoutSubprocessOptInDoesNotEmit(t *testing.T) {
 		"postgres", "list", "--output", "json",
 	)
 
-	require.Equal(t, 0, result.ExitCode)
+	require.Equal(t, 0, run.Result.ExitCode)
 	require.Empty(t, server.CliTelemetry.Instances)
 	_, err := os.Stat(filepath.Join(configDir, "state"))
 	require.ErrorIs(t, err, os.ErrNotExist, "a refused analytics subprocess must not create analytics state")
+}
+
+// analyticsExecution is everything one harness run produced: how the command
+// completed, and what it wrote to each stream.
+type analyticsExecution struct {
+	Result command.ExecutionResult
+	Stdout string
+	Stderr string
 }
 
 // executeWithAnalytics builds a fresh CLI app whose client and analytics sender
@@ -898,7 +907,7 @@ func executeWithAnalytics(
 	configDir string,
 	shouldSend bool,
 	args ...string,
-) command.ExecutionResult {
+) analyticsExecution {
 	return executeWithAnalyticsSubprocessPermission(t, server, configDir, shouldSend, true, args...)
 }
 
@@ -909,7 +918,7 @@ func executeWithAnalyticsSubprocessPermission(
 	shouldSend bool,
 	allowSubprocess bool,
 	args ...string,
-) command.ExecutionResult {
+) analyticsExecution {
 	t.Helper()
 	configureAnalyticsTestEnv(t, server, configDir, shouldSend, allowSubprocess)
 
@@ -932,7 +941,7 @@ func executeWithAnalyticsSubprocessPermission(
 
 	result := runExecution(root, time.Now())
 	onExecutionComplete(result, deps, root)
-	return result
+	return analyticsExecution{Result: result, Stdout: stdout.String(), Stderr: stderr.String()}
 }
 
 func configureAnalyticsTestEnv(

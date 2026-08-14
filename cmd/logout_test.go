@@ -213,7 +213,7 @@ func TestLogoutDoesNotEmitAnalytics(t *testing.T) {
 
 	result := executeWithAnalytics(t, server, filepath.Dir(configPath), true, "logout")
 
-	require.Equal(t, 0, result.ExitCode)
+	require.Equal(t, 0, result.Result.ExitCode)
 	require.Len(t, server.OAuth.Revokes.Instances, 1, "logout should exercise the credential revocation path")
 	require.NoFileExists(t, configPath, "logout should delete the OAuth config")
 	require.Equal(t, "test-api-key", os.Getenv("RENDER_API_KEY"), "analytics should remain able to authenticate")

@@ -303,7 +303,7 @@ type Server struct {
 	Postgres      *PostgresResource
 	Services      *ServiceResource
 	SandboxGroups *SandboxGroupResource
-	CliTelemetry  *Resource[client.CreateCliTelemetryEventJSONRequestBody]
+	CliTelemetry  *CliTelemetryResource
 	OAuth         *OAuthResource
 }
 
@@ -408,7 +408,7 @@ func NewServer(t *testing.T) *Server {
 		Postgres:      &PostgresResource{},
 		Services:      &ServiceResource{},
 		SandboxGroups: &SandboxGroupResource{},
-		CliTelemetry:  &Resource[client.CreateCliTelemetryEventJSONRequestBody]{},
+		CliTelemetry:  &CliTelemetryResource{},
 		OAuth:         &OAuthResource{},
 	}
 

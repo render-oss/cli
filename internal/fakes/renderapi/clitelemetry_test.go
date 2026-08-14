@@ -30,3 +30,27 @@ func TestCliTelemetryEndpointCollectsEvents(t *testing.T) {
 	require.Equal(t, "render services list", event.Command)
 	require.Equal(t, telemetryclient.Success, event.CompletionKind)
 }
+
+func TestCliTelemetryEndpointQueuedResponse(t *testing.T) {
+	server := NewServer(t)
+	c, err := client.NewClientWithResponses(server.URL())
+	require.NoError(t, err)
+
+	payload := client.CreateCliTelemetryEventJSONRequestBody{
+		Command:        "render services list",
+		CompletionKind: telemetryclient.Success,
+		ExitCode:       0,
+	}
+	server.CliTelemetry.RespondWithRetryAfter(http.StatusTooManyRequests, "30")
+
+	resp, err := c.CreateCliTelemetryEvent(context.Background(), payload)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusTooManyRequests, resp.StatusCode)
+	require.Equal(t, "30", resp.Header.Get("Retry-After"))
+	require.Empty(t, server.CliTelemetry.Instances)
+
+	resp, err = c.CreateCliTelemetryEvent(context.Background(), payload)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusAccepted, resp.StatusCode)
+	require.Len(t, server.CliTelemetry.Instances, 1)
+}
