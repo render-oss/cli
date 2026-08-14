@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/config"
 )
@@ -29,34 +29,6 @@ func setupLogoutTest(t *testing.T) string {
 	t.Setenv(configPathEnvKey, configPath)
 	t.Setenv("RENDER_API_KEY", "")
 	return configPath
-}
-
-// setupLogoutEndpoint starts a test server that handles token revocation.
-// It returns the API host to store in config.APIConfig.Host and a revokeCalled
-// function that reports whether the logout command called /oauth/revoke.
-func setupLogoutEndpoint(t *testing.T, statusCode int, delay ...time.Duration) (string, func() bool) {
-	t.Helper()
-
-	responseDelay := time.Duration(0)
-	if len(delay) > 0 {
-		responseDelay = delay[0]
-	}
-
-	revokeCalled := false
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost && r.URL.Path == "/oauth/revoke" {
-			revokeCalled = true
-			time.Sleep(responseDelay)
-			w.WriteHeader(statusCode)
-			return
-		}
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	t.Cleanup(srv.Close)
-
-	return srv.URL + "/", func() bool {
-		return revokeCalled
-	}
 }
 
 // runLogout executes the logout command and collects output into a buffer that is returned to the caller
@@ -103,11 +75,11 @@ func TestLogoutSuccess(t *testing.T) {
 	installIDPath := filepath.Join(filepath.Dir(configPath), "state", "installation-id.txt")
 	require.NoError(t, os.MkdirAll(filepath.Dir(installIDPath), 0o755))
 	require.NoError(t, os.WriteFile(installIDPath, []byte("persistent-state"), 0o600))
-	host, revokeCalled := setupLogoutEndpoint(t, http.StatusNoContent)
+	server := renderapi.NewServer(t)
 
 	require.NoError(t, config.SetAPIConfig(config.APIConfig{
 		Key:  "rnd_test_revoke",
-		Host: host,
+		Host: server.URL(),
 	}))
 
 	out, err := runLogout(t)
@@ -120,16 +92,17 @@ func TestLogoutSuccess(t *testing.T) {
 	state, err := os.ReadFile(installIDPath)
 	require.NoError(t, err)
 	require.Equal(t, "persistent-state", string(state))
-	require.True(t, revokeCalled(), "logout should call the revoke endpoint")
+	require.Equal(t, "rnd_test_revoke", server.OAuth.Revokes.Only(t).AccessToken)
 }
 
 func TestLogoutWarnsWithoutSuccessWhenTokenRevocationFails(t *testing.T) {
 	configPath := setupLogoutTest(t)
-	host, revokeCalled := setupLogoutEndpoint(t, http.StatusInternalServerError)
+	server := renderapi.NewServer(t)
+	server.OAuth.RespondWith(http.StatusInternalServerError)
 
 	require.NoError(t, config.SetAPIConfig(config.APIConfig{
 		Key:  "rnd_test_revoke",
-		Host: host,
+		Host: server.URL(),
 	}))
 
 	out, err := runLogout(t)
@@ -139,16 +112,17 @@ func TestLogoutWarnsWithoutSuccessWhenTokenRevocationFails(t *testing.T) {
 
 	_, statErr := os.Stat(configPath)
 	require.True(t, os.IsNotExist(statErr), "config file should be deleted after logout")
-	require.True(t, revokeCalled(), "logout should still call the revoke endpoint")
+	require.Len(t, server.OAuth.Revokes.Instances, 1, "logout should still call the revoke endpoint")
 }
 
 func TestLogoutInteractiveShowsSpinner(t *testing.T) {
 	configPath := setupLogoutTest(t)
-	host, _ := setupLogoutEndpoint(t, http.StatusNoContent, 75*time.Millisecond)
+	server := renderapi.NewServer(t)
+	server.OAuth.RespondWith(http.StatusNoContent, 75*time.Millisecond)
 
 	require.NoError(t, config.SetAPIConfig(config.APIConfig{
 		Key:  "rnd_test_revoke",
-		Host: host,
+		Host: server.URL(),
 	}))
 
 	out, stderr, err := runLogoutWithContext(t, nil)
@@ -162,11 +136,11 @@ func TestLogoutInteractiveShowsSpinner(t *testing.T) {
 
 func TestLogoutNonInteractiveDoesNotShowSpinner(t *testing.T) {
 	configPath := setupLogoutTest(t)
-	host, revokeCalled := setupLogoutEndpoint(t, http.StatusNoContent)
+	server := renderapi.NewServer(t)
 
 	require.NoError(t, config.SetAPIConfig(config.APIConfig{
 		Key:  "rnd_test_revoke",
-		Host: host,
+		Host: server.URL(),
 	}))
 
 	output := command.TEXT
@@ -178,17 +152,17 @@ func TestLogoutNonInteractiveDoesNotShowSpinner(t *testing.T) {
 
 	_, statErr := os.Stat(configPath)
 	require.True(t, os.IsNotExist(statErr), "config file should be deleted after logout")
-	require.True(t, revokeCalled(), "logout should still call the revoke endpoint")
+	require.Len(t, server.OAuth.Revokes.Instances, 1, "logout should still call the revoke endpoint")
 }
 
 func TestLogoutBothEnvAndOAuth(t *testing.T) {
 	configPath := setupLogoutTest(t)
 	t.Setenv("RENDER_API_KEY", "rnd_env_token")
-	host, revokeCalled := setupLogoutEndpoint(t, http.StatusNoContent)
+	server := renderapi.NewServer(t)
 
 	require.NoError(t, config.SetAPIConfig(config.APIConfig{
 		Key:  "rnd_oauth",
-		Host: host,
+		Host: server.URL(),
 	}))
 
 	out, err := runLogout(t)
@@ -198,18 +172,19 @@ func TestLogoutBothEnvAndOAuth(t *testing.T) {
 
 	_, statErr := os.Stat(configPath)
 	require.True(t, os.IsNotExist(statErr), "config file should be deleted after logout")
-	require.True(t, revokeCalled(), "logout should call the revoke endpoint")
+	require.Len(t, server.OAuth.Revokes.Instances, 1, "logout should call the revoke endpoint")
 	require.Equal(t, "rnd_env_token", os.Getenv("RENDER_API_KEY"), "logout should not modify RENDER_API_KEY")
 }
 
 func TestLogoutWarnsWithEnvKeyNoteWhenTokenRevocationFails(t *testing.T) {
 	configPath := setupLogoutTest(t)
 	t.Setenv("RENDER_API_KEY", "rnd_env_token")
-	host, revokeCalled := setupLogoutEndpoint(t, http.StatusInternalServerError)
+	server := renderapi.NewServer(t)
+	server.OAuth.RespondWith(http.StatusInternalServerError)
 
 	require.NoError(t, config.SetAPIConfig(config.APIConfig{
 		Key:  "rnd_oauth",
-		Host: host,
+		Host: server.URL(),
 	}))
 
 	out, err := runLogout(t)
@@ -221,6 +196,6 @@ func TestLogoutWarnsWithEnvKeyNoteWhenTokenRevocationFails(t *testing.T) {
 
 	_, statErr := os.Stat(configPath)
 	require.True(t, os.IsNotExist(statErr), "config file should be deleted after logout")
-	require.True(t, revokeCalled(), "logout should still call the revoke endpoint")
+	require.Len(t, server.OAuth.Revokes.Instances, 1, "logout should still call the revoke endpoint")
 	require.Equal(t, "rnd_env_token", os.Getenv("RENDER_API_KEY"), "logout should not modify RENDER_API_KEY")
 }
