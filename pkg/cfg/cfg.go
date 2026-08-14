@@ -7,7 +7,12 @@ import (
 	"strings"
 )
 
-const (
+// RepoURL and InstallationInstructionsURL are vars (like Version) so that
+// programs embedding the command package — importers running the CLI against
+// a Render-compatible backend — can repoint the update check at their own
+// release channel via -ldflags "-X", instead of directing their users to
+// Render's releases and upgrade docs.
+var (
 	RepoURL                     = "https://api.github.com/repos/render-oss/cli"
 	InstallationInstructionsURL = "https://render.com/docs/cli#1-install-or-upgrade"
 )
