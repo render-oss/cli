@@ -124,8 +124,7 @@ func TestPostgresCreateWizardHappyPathCreatesDatabase(t *testing.T) {
 			!bytes.Contains(b, []byte("render ea pg"))
 	})
 
-	require.Len(t, server.Postgres.Instances, 1)
-	pg := server.Postgres.Instances[0]
+	pg := server.Postgres.Only(t)
 	assert.Equal(t, "web-app-db", pg.Name)
 	assert.Equal(t, workspace.Id, pg.Owner.Id)
 	require.NotNil(t, pg.EnvironmentId)

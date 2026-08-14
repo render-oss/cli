@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/client/oauth"
@@ -73,6 +75,14 @@ type Resource[T any] struct {
 func (r *Resource[T]) Add(item T) T {
 	r.Instances = append(r.Instances, item)
 	return item
+}
+
+// Only returns the store's single instance, failing the test unless the store
+// holds exactly one. Use it in place of asserting the length and then indexing.
+func (r *Resource[T]) Only(t testing.TB) T {
+	t.Helper()
+	require.Len(t, r.Instances, 1)
+	return r.Instances[0]
 }
 
 // KVResource holds key-value store state and error injection for the fake server.

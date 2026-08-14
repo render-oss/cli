@@ -51,7 +51,7 @@ func TestPGResume_ByID_Resumes(t *testing.T) {
 	result, err := harness.execute(pg.Id, "--output", "text")
 	require.NoError(t, err)
 
-	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Only(t).Status)
 	assert.Contains(t, result.Stdout, "Resumed")
 	assert.Contains(t, result.Stdout, pg.Id)
 }
@@ -63,7 +63,7 @@ func TestPGResume_ByName_Resumes(t *testing.T) {
 	result, err := harness.execute("by-name-db", "--output", "text")
 	require.NoError(t, err)
 
-	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Only(t).Status)
 	assert.Contains(t, result.Stdout, "Resumed")
 	assert.Contains(t, result.Stdout, pg.Id)
 }
@@ -98,7 +98,7 @@ func TestPGResume_JSONOutput(t *testing.T) {
 
 	result, err := harness.execute(pg.Id, "--output", "json")
 	require.NoError(t, err)
-	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Only(t).Status)
 
 	body := unmarshalPGJSONOutput(t, result.Stdout)
 	data := testrequire.SubMap(t, body, "data")
@@ -138,7 +138,7 @@ func TestPGResume_APIError_Surfaced(t *testing.T) {
 
 	_, err := harness.execute(pg.Id, "--output", "text")
 	require.Error(t, err)
-	assert.Equal(t, client.DatabaseStatusSuspended, harness.server.Postgres.Instances[0].Status, "API error must not flip status")
+	assert.Equal(t, client.DatabaseStatusSuspended, harness.server.Postgres.Only(t).Status, "API error must not flip status")
 	assert.False(t, harness.server.HasRequest("POST", "/postgres/"+pg.Id+"/resume"))
 }
 
@@ -149,7 +149,7 @@ func TestPGResume_DefaultOutput_TreatedAsText(t *testing.T) {
 	result, err := harness.execute(pg.Id)
 	require.NoError(t, err)
 
-	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Only(t).Status)
 	assert.Contains(t, result.Stdout, "Resumed")
 	assert.Contains(t, result.Stdout, pg.Id)
 }

@@ -38,8 +38,7 @@ func TestKVCreate_NonInteractive_AllFlags(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	require.Len(t, server.KV.Instances, 1)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	assert.Equal(t, "my-cache", kv.Name)
 	assert.Equal(t, client.KeyValuePlanStarter, kv.Plan)
 	assert.Equal(t, kvTestWorkspaceID, kv.Owner.Id)
@@ -64,8 +63,7 @@ func TestKVCreate_NonInteractive_DefaultsApplied(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	require.Len(t, server.KV.Instances, 1)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	assert.Equal(t, kvTestWorkspaceID, kv.Owner.Id)
 	assert.Equal(t, client.Oregon, kv.Region)
 	require.NotNil(t, kv.Options.MaxmemoryPolicy)
@@ -87,8 +85,7 @@ func TestKVCreate_IPAllowList(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	require.Len(t, server.KV.Instances, 1)
-	allowList := server.KV.Instances[0].IpAllowList
+	allowList := server.KV.Only(t).IpAllowList
 	require.Len(t, allowList, 2)
 	assert.Equal(t, "203.0.113.5/32", allowList[0].CidrBlock)
 	assert.Equal(t, "office", allowList[0].Description)
@@ -108,8 +105,7 @@ func TestKVCreate_WorkspaceFlagOverridesActiveWorkspace(t *testing.T) {
 		"--output", "text",
 	)
 	require.NoError(t, err)
-	require.Len(t, server.KV.Instances, 1)
-	assert.Equal(t, targetWorkspaceID, server.KV.Instances[0].Owner.Id)
+	assert.Equal(t, targetWorkspaceID, server.KV.Only(t).Owner.Id)
 }
 
 func TestKVCreate_WorkspaceByName_NoMatch(t *testing.T) {
@@ -169,7 +165,7 @@ func TestKVCreate_WorkspaceByID(t *testing.T) {
 		"--output", "text",
 	)
 	require.NoError(t, err)
-	assert.Equal(t, targetWorkspaceID, server.KV.Instances[0].Owner.Id)
+	assert.Equal(t, targetWorkspaceID, server.KV.Only(t).Owner.Id)
 	assert.True(t,
 		server.HasRequest(http.MethodGet, "/owners/"+targetWorkspaceID),
 		"expected direct owner retrieval by ID")
@@ -195,8 +191,7 @@ func TestKVCreate_EnvironmentByID_DerivesWorkspaceFromEnvironmentProject(t *test
 		"--output", "text",
 	)
 	require.NoError(t, err)
-	require.Len(t, server.KV.Instances, 1)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	assert.Equal(t, inactiveWorkspace.Id, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
 	assert.Equal(t, project.Env("production").Id, *kv.EnvironmentId)
@@ -219,8 +214,7 @@ func TestKVCreate_EnvironmentByID_DerivesWorkspaceIgnoringActiveWorkspace(t *tes
 		"--output", "text",
 	)
 	require.NoError(t, err)
-	require.Len(t, server.KV.Instances, 1)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	assert.Equal(t, inactiveWorkspace.Id, kv.Owner.Id)
 	assert.NotEqual(t, kvTestWorkspaceID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
@@ -244,8 +238,7 @@ func TestKVCreate_ProjectFlagDerivesWorkspaceIgnoringActiveWorkspace(t *testing.
 		"--output", "text",
 	)
 	require.NoError(t, err)
-	require.Len(t, server.KV.Instances, 1)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	assert.Equal(t, projectWorkspace.Id, kv.Owner.Id)
 	assert.NotEqual(t, kvTestWorkspaceID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
@@ -312,8 +305,7 @@ func TestKVCreate_EnvironmentByName_UniqueMatch(t *testing.T) {
 		"--output", "text",
 	)
 	require.NoError(t, err)
-	require.Len(t, server.KV.Instances, 1)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	assert.Equal(t, kvTestWorkspaceID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
 	assert.Equal(t, project.Env("production").Id, *kv.EnvironmentId)
@@ -359,8 +351,7 @@ func TestKVCreate_ConfirmMode_GeneratesName(t *testing.T) {
 		"--confirm",
 	)
 	require.NoError(t, err)
-	require.Len(t, server.KV.Instances, 1)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	// Generated name is a petname like "happy-lion" (no kv- prefix)
 	assert.NotEmpty(t, kv.Name)
 	assert.Contains(t, kv.Name, "-",
@@ -389,8 +380,7 @@ func TestKVCreate_OutputJSON(t *testing.T) {
 	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(cmdResult.Stdout), &body), "expected valid JSON, got: %s", cmdResult.Stdout)
 	data := requireSubMap(t, body, "data")
-	require.Len(t, server.KV.Instances, 1)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	assert.Equal(t, map[string]any{
 		"id":            kv.Id,
 		"name":          "my-kv",
@@ -478,7 +468,7 @@ func TestKVCreate_MemoryPolicyCache_Shortcut(t *testing.T) {
 		"--output", "text",
 	)
 	require.NoError(t, err)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	require.NotNil(t, kv.Options.MaxmemoryPolicy)
 	assert.Equal(t, client.AllkeysLru, client.MaxmemoryPolicy(*kv.Options.MaxmemoryPolicy),
 		"cache shortcut should normalize to allkeys_lru")
@@ -492,7 +482,7 @@ func TestKVCreate_MemoryPolicyQueue_Shortcut(t *testing.T) {
 		"--output", "text",
 	)
 	require.NoError(t, err)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	require.NotNil(t, kv.Options.MaxmemoryPolicy)
 	assert.Equal(t, client.Noeviction, client.MaxmemoryPolicy(*kv.Options.MaxmemoryPolicy),
 		"queue shortcut should normalize to noeviction")
@@ -530,7 +520,7 @@ func TestKVCreate_ProjectByID_SingleEnv(t *testing.T) {
 		"--output", "text",
 	)
 	require.NoError(t, err)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	assert.Equal(t, kvTestWorkspaceID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
 	assert.Equal(t, project.Env("production").Id, *kv.EnvironmentId)
@@ -548,7 +538,7 @@ func TestKVCreate_ProjectByName_SingleEnv(t *testing.T) {
 		"--output", "text",
 	)
 	require.NoError(t, err)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	assert.Equal(t, kvTestWorkspaceID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
 	assert.Equal(t, project.Env("production").Id, *kv.EnvironmentId)
@@ -595,7 +585,7 @@ func TestKVCreate_ProjectByID_DisambiguatesAmbiguousEnvironmentName(t *testing.T
 		"--output", "text",
 	)
 	require.NoError(t, err)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	assert.Equal(t, kvTestWorkspaceID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
 	assert.Equal(t, projectA.Env("production").Id, *kv.EnvironmentId)
@@ -622,7 +612,7 @@ func TestKVCreate_ProjectByName_DisambiguatesAmbiguousEnvironmentName(t *testing
 		"--output", "text",
 	)
 	require.NoError(t, err)
-	kv := server.KV.Instances[0]
+	kv := server.KV.Only(t)
 	assert.Equal(t, kvTestWorkspaceID, kv.Owner.Id)
 	require.NotNil(t, kv.EnvironmentId)
 	assert.Equal(t, projectA.Env("production").Id, *kv.EnvironmentId)

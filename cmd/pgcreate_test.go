@@ -25,8 +25,7 @@ func TestPGCreate_ZeroFlags_AppliesDefaults(t *testing.T) {
 	result, err := executePGCreate(t, server, "--output", "text")
 	require.NoError(t, err)
 
-	require.Len(t, server.Postgres.Instances, 1)
-	pg := server.Postgres.Instances[0]
+	pg := server.Postgres.Only(t)
 	assert.NotEmpty(t, pg.Name)
 	assert.Equal(t, pgclient.Free, pg.Plan)
 	assert.Equal(t, client.PostgresVersion("18"), pg.Version)
@@ -56,8 +55,7 @@ func TestPGCreate_AllFlags(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	require.Len(t, server.Postgres.Instances, 1)
-	pg := server.Postgres.Instances[0]
+	pg := server.Postgres.Only(t)
 	assert.Equal(t, "analytics", pg.Name)
 	assert.Equal(t, pgclient.Pro4gb, pg.Plan)
 	assert.Equal(t, client.PostgresVersion("17"), pg.Version)
@@ -115,8 +113,7 @@ func TestPGCreate_InteractiveConfirm_PrintsTextSuccess(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	require.Len(t, server.Postgres.Instances, 1)
-	pg := server.Postgres.Instances[0]
+	pg := server.Postgres.Only(t)
 	assert.Equal(t, "confirm-pg", pg.Name)
 	assert.Equal(t, pgclient.Basic256mb, pg.Plan)
 	assert.Equal(t, client.PostgresVersion("17"), pg.Version)
@@ -138,8 +135,7 @@ func TestPGCreate_PostgresCommandName(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	require.Len(t, server.Postgres.Instances, 1)
-	assert.Equal(t, "alias-pg", server.Postgres.Instances[0].Name)
+	assert.Equal(t, "alias-pg", server.Postgres.Only(t).Name)
 }
 
 func TestPGCreate_ParameterOverrideFlagIsUnknown(t *testing.T) {
@@ -175,7 +171,7 @@ func TestPGCreate_ProjectFlag_SingleEnv(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	require.Len(t, server.Postgres.Instances, 1)
-	require.NotNil(t, server.Postgres.Instances[0].EnvironmentId)
-	assert.Equal(t, project.Env("production").Id, *server.Postgres.Instances[0].EnvironmentId)
+	pg := server.Postgres.Only(t)
+	require.NotNil(t, pg.EnvironmentId)
+	assert.Equal(t, project.Env("production").Id, *pg.EnvironmentId)
 }

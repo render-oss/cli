@@ -38,8 +38,7 @@ func TestKVUpdate_HappyPath_MultiField(t *testing.T) {
 	require.NoError(t, err)
 
 	// Server state reflects all three changes; queue shortcut resolved to noeviction.
-	require.Len(t, server.KV.Instances, 1)
-	updated := server.KV.Instances[0]
+	updated := server.KV.Only(t)
 	assert.Equal(t, "new-name", updated.Name)
 	assert.Equal(t, client.KeyValuePlanPro, updated.Plan)
 	require.NotNil(t, updated.Options.MaxmemoryPolicy)
@@ -66,9 +65,9 @@ func TestKVUpdate_PersistenceMode(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	require.Len(t, server.KV.Instances, 1)
-	require.NotNil(t, server.KV.Instances[0].Options.PersistenceMode)
-	assert.Equal(t, client.Off, *server.KV.Instances[0].Options.PersistenceMode)
+	updated := server.KV.Only(t)
+	require.NotNil(t, updated.Options.PersistenceMode)
+	assert.Equal(t, client.Off, *updated.Options.PersistenceMode)
 
 	assert.Contains(t, result.Stdout, "Persistence mode: (none) → off")
 }
@@ -94,8 +93,9 @@ func TestKVUpdate_ByName_UniqueMatch(t *testing.T) {
 	result, err := executeKVUpdate(t, server, "by-name-cache", "--plan", "starter", "--output", "text")
 	require.NoError(t, err)
 
-	assert.Equal(t, kv.Id, server.KV.Instances[0].Id, "should have patched the by-name-cache instance")
-	assert.Equal(t, client.KeyValuePlanStarter, server.KV.Instances[0].Plan)
+	patched := server.KV.Only(t)
+	assert.Equal(t, kv.Id, patched.Id, "should have patched the by-name-cache instance")
+	assert.Equal(t, client.KeyValuePlanStarter, patched.Plan)
 	assert.Contains(t, result.Stdout, "Updated Key Value")
 	assert.Contains(t, result.Stdout, kv.Id)
 }
@@ -158,7 +158,7 @@ func TestKVUpdate_IPAllowList_Replace(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	list := server.KV.Instances[0].IpAllowList
+	list := server.KV.Only(t).IpAllowList
 	require.Len(t, list, 2)
 	assert.Equal(t, "203.0.113.5/32", list[0].CidrBlock)
 	assert.Equal(t, "office", list[0].Description)
@@ -172,14 +172,14 @@ func TestKVUpdate_IPAllowList_Replace(t *testing.T) {
 func TestKVUpdate_ClearIPAllowList(t *testing.T) {
 	server := renderapi.NewServer(t)
 	kv := seedKV(server, "cache")
-	server.KV.Instances[0].IpAllowList = []client.CidrBlockAndDescription{
+	kv.IpAllowList = []client.CidrBlockAndDescription{
 		{CidrBlock: "192.168.0.0/16", Description: "old"},
 	}
 
 	_, err := executeKVUpdate(t, server, kv.Id, "--clear-ip-allow-list", "--output", "text")
 	require.NoError(t, err)
 
-	assert.Empty(t, server.KV.Instances[0].IpAllowList)
+	assert.Empty(t, server.KV.Only(t).IpAllowList)
 }
 
 func TestKVUpdate_IPAllowListFlags_MutuallyExclusive(t *testing.T) {

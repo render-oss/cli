@@ -859,12 +859,11 @@ func TestInstallationIDCreatedOnlyWhenAnalyticsEnabled(t *testing.T) {
 
 	result = executeWithAnalytics(t, server, configDir, true, "postgres", "list", "--output", "json")
 	require.Equal(t, 0, result.ExitCode)
-	require.Len(t, server.CliTelemetry.Instances, 1)
 	contents, err := os.ReadFile(installationIDPath)
 	require.NoError(t, err)
 	installationID := strings.TrimSpace(string(contents))
 	require.NotEmpty(t, installationID)
-	require.Equal(t, installationID, server.CliTelemetry.Instances[0].InstallationId,
+	require.Equal(t, installationID, server.CliTelemetry.Only(t).InstallationId,
 		"the emitted event should carry the persisted installation ID")
 }
 

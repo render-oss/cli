@@ -26,7 +26,7 @@ func TestCliTelemetryEndpointCollectsEvents(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusAccepted, resp.StatusCode)
 
-	require.Len(t, server.CliTelemetry.Instances, 1)
-	require.Equal(t, "render services list", server.CliTelemetry.Instances[0].Command)
-	require.Equal(t, telemetryclient.Success, server.CliTelemetry.Instances[0].CompletionKind)
+	event := server.CliTelemetry.Only(t)
+	require.Equal(t, "render services list", event.Command)
+	require.Equal(t, telemetryclient.Success, event.CompletionKind)
 }

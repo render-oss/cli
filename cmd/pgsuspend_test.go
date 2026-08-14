@@ -43,7 +43,7 @@ func TestPGSuspend_PreviewByID_DoesNotSuspend(t *testing.T) {
 	result, err := harness.execute(pg.Id, "--output", "text")
 	require.NoError(t, err)
 
-	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Instances[0].Status, "preview must not change status")
+	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Only(t).Status, "preview must not change status")
 	assert.Contains(t, result.Stdout, "would suspend")
 	assert.Contains(t, result.Stdout, "--confirm")
 	assert.Contains(t, result.Stdout, pg.Id)
@@ -58,7 +58,7 @@ func TestPGSuspend_ConfirmByID_Suspends(t *testing.T) {
 	result, err := harness.execute(pg.Id, "--confirm", "--output", "text")
 	require.NoError(t, err)
 
-	assert.Equal(t, client.DatabaseStatusSuspended, harness.server.Postgres.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusSuspended, harness.server.Postgres.Only(t).Status)
 	assert.Contains(t, result.Stdout, "Suspended")
 	assert.Contains(t, result.Stdout, pg.Id)
 }
@@ -70,7 +70,7 @@ func TestPGSuspend_ConfirmByName_Suspends(t *testing.T) {
 	result, err := harness.execute("by-name-db", "--confirm", "--output", "text")
 	require.NoError(t, err)
 
-	assert.Equal(t, client.DatabaseStatusSuspended, harness.server.Postgres.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusSuspended, harness.server.Postgres.Only(t).Status)
 	assert.Contains(t, result.Stdout, "Suspended")
 	assert.Contains(t, result.Stdout, pg.Id)
 }
@@ -105,7 +105,7 @@ func TestPGSuspend_JSONOutput_AfterConfirm(t *testing.T) {
 
 	result, err := harness.execute(pg.Id, "--confirm", "--output", "json")
 	require.NoError(t, err)
-	assert.Equal(t, client.DatabaseStatusSuspended, harness.server.Postgres.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusSuspended, harness.server.Postgres.Only(t).Status)
 
 	body := unmarshalPGJSONOutput(t, result.Stdout)
 	data := testrequire.SubMap(t, body, "data")
@@ -122,7 +122,7 @@ func TestPGSuspend_JSONOutput_Preview(t *testing.T) {
 
 	result, err := harness.execute(pg.Id, "--output", "json")
 	require.NoError(t, err)
-	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Only(t).Status)
 
 	body := unmarshalPGJSONOutput(t, result.Stdout)
 	data := testrequire.SubMap(t, body, "data")
@@ -163,7 +163,7 @@ func TestPGSuspend_APIError_Surfaced(t *testing.T) {
 
 	_, err := harness.execute(pg.Id, "--confirm", "--output", "text")
 	require.Error(t, err)
-	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Instances[0].Status, "API error must not flip status")
+	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Only(t).Status, "API error must not flip status")
 	assert.False(t, harness.server.HasRequest("POST", "/postgres/"+pg.Id+"/suspend"))
 }
 
@@ -174,7 +174,7 @@ func TestPGSuspend_DefaultOutput_TreatedAsText(t *testing.T) {
 	result, err := harness.execute(pg.Id)
 	require.NoError(t, err)
 
-	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Instances[0].Status, "default output should still preview, not suspend")
+	assert.Equal(t, client.DatabaseStatusAvailable, harness.server.Postgres.Only(t).Status, "default output should still preview, not suspend")
 	assert.Contains(t, result.Stdout, "would suspend")
 	assert.Contains(t, result.Stdout, pg.Id)
 }

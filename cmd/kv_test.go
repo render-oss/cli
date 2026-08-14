@@ -27,8 +27,7 @@ func seedKV(server *renderapi.Server, name string) *client.KeyValueDetail {
 		Name:  name,
 		Owner: client.Owner{Id: kvTestWorkspaceID},
 	})
-	server.KV.Instances = append(server.KV.Instances, kv)
-	return kv
+	return server.KV.Add(kv)
 }
 
 // seedKVInEnv adds a KV instance scoped to a specific environment.
@@ -38,8 +37,7 @@ func seedKVInEnv(server *renderapi.Server, name, envID string) *client.KeyValueD
 		Owner:         client.Owner{Id: kvTestWorkspaceID},
 		EnvironmentId: &envID,
 	})
-	server.KV.Instances = append(server.KV.Instances, kv)
-	return kv
+	return server.KV.Add(kv)
 }
 
 // executeKVCommand runs a `kv` command with the default active workspace

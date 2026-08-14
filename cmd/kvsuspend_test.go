@@ -28,7 +28,7 @@ func TestKVSuspend_PreviewByID_DoesNotSuspend(t *testing.T) {
 	result, err := executeKVSuspend(t, server, kv.Id, "--output", "text")
 	require.NoError(t, err)
 
-	assert.Equal(t, client.DatabaseStatusAvailable, server.KV.Instances[0].Status, "preview must not change status")
+	assert.Equal(t, client.DatabaseStatusAvailable, server.KV.Only(t).Status, "preview must not change status")
 	assert.Contains(t, result.Stdout, "would suspend")
 	assert.Contains(t, result.Stdout, "--confirm")
 	assert.Contains(t, result.Stdout, kv.Id)
@@ -43,7 +43,7 @@ func TestKVSuspend_ConfirmByID_Suspends(t *testing.T) {
 	result, err := executeKVSuspend(t, server, kv.Id, "--confirm", "--output", "text")
 	require.NoError(t, err)
 
-	assert.Equal(t, client.DatabaseStatusSuspended, server.KV.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusSuspended, server.KV.Only(t).Status)
 	assert.Contains(t, result.Stdout, "Suspended")
 	assert.Contains(t, result.Stdout, kv.Id)
 }
@@ -55,7 +55,7 @@ func TestKVSuspend_ConfirmByName_Suspends(t *testing.T) {
 	result, err := executeKVSuspend(t, server, "by-name-cache", "--confirm", "--output", "text")
 	require.NoError(t, err)
 
-	assert.Equal(t, client.DatabaseStatusSuspended, server.KV.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusSuspended, server.KV.Only(t).Status)
 	assert.Contains(t, result.Stdout, "Suspended")
 	assert.Contains(t, result.Stdout, kv.Id)
 }
@@ -90,7 +90,7 @@ func TestKVSuspend_JSONOutput_AfterConfirm(t *testing.T) {
 
 	result, err := executeKVSuspend(t, server, kv.Id, "--confirm", "--output", "json")
 	require.NoError(t, err)
-	assert.Equal(t, client.DatabaseStatusSuspended, server.KV.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusSuspended, server.KV.Only(t).Status)
 
 	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
@@ -161,7 +161,7 @@ func TestKVSuspend_APIError_Surfaced(t *testing.T) {
 
 	_, err := executeKVSuspend(t, server, kv.Id, "--confirm", "--output", "text")
 	require.Error(t, err)
-	assert.Equal(t, client.DatabaseStatusAvailable, server.KV.Instances[0].Status, "API error must not flip status")
+	assert.Equal(t, client.DatabaseStatusAvailable, server.KV.Only(t).Status, "API error must not flip status")
 	assert.False(t, server.HasRequest("POST", "/key-value/"+kv.Id+"/suspend"))
 }
 
@@ -172,7 +172,7 @@ func TestKVSuspend_DefaultOutput_TreatedAsText(t *testing.T) {
 	result, err := executeKVSuspend(t, server, kv.Id)
 	require.NoError(t, err)
 
-	assert.Equal(t, client.DatabaseStatusAvailable, server.KV.Instances[0].Status, "default output should still preview, not suspend")
+	assert.Equal(t, client.DatabaseStatusAvailable, server.KV.Only(t).Status, "default output should still preview, not suspend")
 	assert.Contains(t, result.Stdout, "would suspend")
 	assert.Contains(t, result.Stdout, kv.Id)
 }
