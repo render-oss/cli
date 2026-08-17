@@ -229,7 +229,8 @@ func (r *Repo) connect(ctx context.Context, id string) (*sandboxclient.SandboxCo
 		return nil, err
 	}
 
-	resp, err := r.client.ConnectSandboxRunWithResponse(ctx, id, "stream", &client.ConnectSandboxRunParams{OwnerId: workspace})
+	resp, err := r.client.ConnectSandboxRunWithResponse(ctx, id, "stream",
+		&client.ConnectSandboxRunParams{OwnerId: workspace}, client.ConnectSandboxRunJSONRequestBody{})
 	if err != nil {
 		return nil, err
 	}

@@ -46,7 +46,7 @@ func TestKVCreate_NonInteractive_AllFlags(t *testing.T) {
 	require.NotNil(t, kv.Options.MaxmemoryPolicy)
 	assert.Equal(t, client.AllkeysLru, client.MaxmemoryPolicy(*kv.Options.MaxmemoryPolicy))
 	require.NotNil(t, kv.Options.PersistenceMode)
-	assert.Equal(t, client.Snapshot, *kv.Options.PersistenceMode)
+	assert.Equal(t, client.PersistenceModeSnapshot, *kv.Options.PersistenceMode)
 	assert.Nil(t, kv.EnvironmentId)
 
 	assert.Contains(t, result.Stdout, "my-cache")

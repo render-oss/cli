@@ -116,7 +116,7 @@ func TestBuildCreateRequest_MissingRequiredFields(t *testing.T) {
 func TestBuildCreateRequest_OptionalFields(t *testing.T) {
 	region := "virginia"
 	policy := kvtypes.MaxmemoryPolicyAllkeysLru
-	persistence := client.Snapshot
+	persistence := client.PersistenceModeSnapshot
 	envID := testids.EnvironmentID("optional")
 	input := kvtypes.KeyValueCreateRequestInput{
 		Name:            "my-kv",
@@ -135,7 +135,7 @@ func TestBuildCreateRequest_OptionalFields(t *testing.T) {
 	require.NotNil(t, body.MaxmemoryPolicy)
 	assert.Equal(t, client.AllkeysLru, *body.MaxmemoryPolicy)
 	require.NotNil(t, body.PersistenceMode)
-	assert.Equal(t, client.Snapshot, *body.PersistenceMode)
+	assert.Equal(t, client.PersistenceModeSnapshot, *body.PersistenceMode)
 	require.NotNil(t, body.EnvironmentId)
 	assert.Equal(t, envID, *body.EnvironmentId)
 }

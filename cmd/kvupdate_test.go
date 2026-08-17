@@ -67,7 +67,7 @@ func TestKVUpdate_PersistenceMode(t *testing.T) {
 
 	updated := server.KV.Only(t)
 	require.NotNil(t, updated.Options.PersistenceMode)
-	assert.Equal(t, client.Off, *updated.Options.PersistenceMode)
+	assert.Equal(t, client.PersistenceModeOff, *updated.Options.PersistenceMode)
 
 	assert.Contains(t, result.Stdout, "Persistence mode: (none) → off")
 }

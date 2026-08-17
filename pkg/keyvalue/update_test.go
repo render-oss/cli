@@ -17,7 +17,7 @@ func TestBuildUpdateRequest(t *testing.T) {
 			Name:            pointers.From("renamed"),
 			Plan:            pointers.From("pro"),
 			MaxmemoryPolicy: pointers.From(kvtypes.MaxmemoryPolicyNoeviction),
-			PersistenceMode: pointers.From(client.Off),
+			PersistenceMode: pointers.From(client.PersistenceModeOff),
 			IPAllowList:     []string{"cidr=10.0.0.0/8"},
 		})
 		require.NoError(t, err)
@@ -28,7 +28,7 @@ func TestBuildUpdateRequest(t *testing.T) {
 		require.NotNil(t, body.MaxmemoryPolicy)
 		assert.Equal(t, client.Noeviction, *body.MaxmemoryPolicy)
 		require.NotNil(t, body.PersistenceMode)
-		assert.Equal(t, client.Off, *body.PersistenceMode)
+		assert.Equal(t, client.PersistenceModeOff, *body.PersistenceMode)
 		require.NotNil(t, body.IpAllowList)
 		assert.Len(t, *body.IpAllowList, 1)
 	})
@@ -85,7 +85,7 @@ func TestNewKeyValueUpdateDiff_PersistenceMode(t *testing.T) {
 	t.Run("records before/after when the mode changes", func(t *testing.T) {
 		before := &client.KeyValueDetail{
 			Name:    "cache",
-			Options: client.KeyValueOptions{PersistenceMode: pointers.From(client.JournalSnapshot)},
+			Options: client.KeyValueOptions{PersistenceMode: pointers.From(client.PersistenceModeJournalSnapshot)},
 		}
 		after := &keyvalue.KeyValueOut{Name: "cache", PersistenceMode: pointers.From("off")}
 
@@ -101,7 +101,7 @@ func TestNewKeyValueUpdateDiff_PersistenceMode(t *testing.T) {
 	t.Run("no diff entry when the mode is unchanged", func(t *testing.T) {
 		before := &client.KeyValueDetail{
 			Name:    "cache",
-			Options: client.KeyValueOptions{PersistenceMode: pointers.From(client.Snapshot)},
+			Options: client.KeyValueOptions{PersistenceMode: pointers.From(client.PersistenceModeSnapshot)},
 		}
 		after := &keyvalue.KeyValueOut{Name: "cache", PersistenceMode: pointers.From("snapshot")}
 
