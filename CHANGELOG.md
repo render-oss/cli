@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.23.0] - 2026-08-17
+
+### Added
+
+- Added support for shell completions. Use `render completion [shell]` to enable them (e.g. `render completion zsh >> ~/.zshrc`)
+- New `RENDER_CLI_CONFIG_DIR` environment variable to override the directory the CLI reads and writes its files in, replacing `~/.render`. This is now preferred over `RENDER_CLI_CONFIG_PATH` which will be deprecated in a future release.
+
+### Fixed
+
+- `render login` now keeps waiting for authentication when the browser can't be opened automatically (e.g. missing `xdg-open`) instead of aborting; open the printed URL manually to finish logging in
+- Rate-limited API responses now report a "too many requests" error instead of "unknown error"
+
 ## [2.22.0] - 2026-07-21
 
 ### Added
