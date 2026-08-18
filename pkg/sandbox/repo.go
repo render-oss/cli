@@ -2,12 +2,14 @@ package sandbox
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
+	"strings"
 
 	"github.com/render-oss/cli/pkg/client"
 	sandboxclient "github.com/render-oss/cli/pkg/client/sandboxes"
@@ -130,18 +132,18 @@ func (r *Repo) ExecSandboxStream(ctx context.Context, id string, command string,
 	return readSandboxExecStream(resp.Body, onOutput)
 }
 
-// File transfer content types. On upload a single file travels as octet-stream
-// and a directory as x-tar, with Content-Encoding: gzip carrying wire
-// compression. On download the agent still labels a directory archive as gzip.
+// File transfer content types. The content type states intent and nothing else:
+// a single file travels as octet-stream and a directory as an x-tar archive,
+// with Content-Encoding: gzip carrying wire compression independently of either.
 const (
 	FileContentTypeOctetStream = "application/octet-stream"
 	FileContentTypeTar         = "application/x-tar"
-	FileContentTypeGzip        = "application/gzip"
 )
 
 // FileStream is a downloading file or directory archive. ContentType is
-// FileContentTypeOctetStream for a single file and FileContentTypeGzip
-// (gzipped tar) for a directory archive. The caller must close Body.
+// FileContentTypeTar for a directory archive and anything else for a single
+// file. Body carries the artifact's own bytes, with any Content-Encoding already
+// decoded. The caller must close Body.
 type FileStream struct {
 	ContentType string
 	// Filename is the server-suggested name from Content-Disposition; empty
@@ -216,7 +218,75 @@ func (r *Repo) DownloadFile(ctx context.Context, id, remotePath string) (*FileSt
 	if mediaType, _, err := mime.ParseMediaType(contentType); err == nil {
 		contentType = mediaType
 	}
-	return &FileStream{ContentType: contentType, Filename: filename, Body: resp.Body}, nil
+
+	body, err := decodeBody(resp)
+	if err != nil {
+		_ = resp.Body.Close()
+		return nil, err
+	}
+	return &FileStream{ContentType: contentType, Filename: filename, Body: body}, nil
+}
+
+// decodeBody strips Content-Encoding from a response body so the caller sees the
+// artifact's own bytes, whatever the wire did to them. A coding it cannot decode
+// is an error: passing those bytes on means writing them to disk as the file, or
+// reading them as a tar.
+//
+// Decoding here is a fallback. The download request sets no Accept-Encoding, so
+// the transport adds one, transparently decompresses a gzip response, and
+// removes the header before we get here. The header only survives when the
+// transport didn't negotiate the encoding itself. Note that Content-Type:
+// application/gzip is a payload type, not an encoding, and is deliberately left
+// alone.
+func decodeBody(resp *http.Response) (io.ReadCloser, error) {
+	raw := resp.Header.Get("Content-Encoding")
+	codings := contentCodings(raw)
+	if len(codings) == 0 {
+		return resp.Body, nil
+	}
+	// Multiple codings would have to be undone in reverse order; nothing sends
+	// them, so refuse rather than guess.
+	if len(codings) > 1 || !isGzipCoding(codings[0]) {
+		return nil, fmt.Errorf("cannot decode Content-Encoding %q", raw)
+	}
+
+	gz, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("decode gzip response: %w", err)
+	}
+	return gzipBody{Reader: gz, underlying: resp.Body}, nil
+}
+
+// contentCodings splits a Content-Encoding header into lowercased tokens,
+// dropping the identity coding, which by definition changes nothing.
+func contentCodings(header string) []string {
+	var codings []string
+	for _, token := range strings.Split(header, ",") {
+		token = strings.ToLower(strings.TrimSpace(token))
+		if token == "" || token == "identity" {
+			continue
+		}
+		codings = append(codings, token)
+	}
+	return codings
+}
+
+// isGzipCoding reports whether a coding token is gzip. x-gzip is the same
+// coding under a deprecated name (RFC 9110).
+func isGzipCoding(coding string) bool { return coding == "gzip" || coding == "x-gzip" }
+
+// gzipBody closes the response body along with the decompressor sitting on it.
+type gzipBody struct {
+	*gzip.Reader
+	underlying io.Closer
+}
+
+func (g gzipBody) Close() error {
+	err := g.Reader.Close()
+	if closeErr := g.underlying.Close(); err == nil {
+		err = closeErr
+	}
+	return err
 }
 
 type execCommand struct {

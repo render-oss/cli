@@ -1,6 +1,7 @@
 package sandbox
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -295,6 +296,163 @@ func TestDownloadFile(t *testing.T) {
 	body, err := io.ReadAll(stream.Body)
 	require.NoError(t, err)
 	assert.Equal(t, `{"ok":true}`, string(body))
+}
+
+// Go's Transport adds Accept-Encoding: gzip on a request that didn't set it,
+// then transparently decompresses the response and strips the header. So a
+// directory download labelled x-tar + Content-Encoding: gzip reaches the caller
+// as a plain tar, and the content type still says what the artifact is. If a Go
+// release ever changes that, this fails rather than corrupting a download.
+func TestDownloadFileTransportDecompressesGzipEncoding(t *testing.T) {
+	const sandboxID = "sbx-abc123"
+
+	payload := gzipped(t, []byte("tar bytes"))
+
+	var sentAcceptEncoding string
+	var serverURL string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v1/sandboxes/"+sandboxID+"/files/download/token", func(w http.ResponseWriter, r *http.Request) {
+		writeConnectResponse(w, sandboxclient.SandboxConnectResponse{Token: "tok", Uri: serverURL + "/files/download", Method: http.MethodGet})
+	})
+	mux.HandleFunc("/files/download", func(w http.ResponseWriter, r *http.Request) {
+		sentAcceptEncoding = r.Header.Get("Accept-Encoding")
+		w.Header().Set("Content-Type", FileContentTypeTar)
+		w.Header().Set("Content-Encoding", "gzip")
+		_, _ = w.Write(payload)
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	serverURL = srv.URL
+
+	t.Setenv("RENDER_WORKSPACE", "tea-workspace")
+
+	repo := newTestRepo(t, srv.URL+"/v1/", "api-key-xyz")
+
+	stream, err := repo.DownloadFile(context.Background(), sandboxID, "/app/src")
+	require.NoError(t, err)
+	defer func() { _ = stream.Body.Close() }()
+
+	assert.Equal(t, "gzip", sentAcceptEncoding, "the transport negotiates gzip on our behalf")
+	assert.Equal(t, FileContentTypeTar, stream.ContentType)
+	body, err := io.ReadAll(stream.Body)
+	require.NoError(t, err)
+	assert.Equal(t, "tar bytes", string(body))
+}
+
+// The transport only decompresses what it negotiated itself, so a
+// Content-Encoding: gzip response it didn't ask for arrives compressed. Nothing
+// downstream inspects the encoding, so decoding has to happen here.
+func TestDecodeBodyGunzipsUnhandledContentEncoding(t *testing.T) {
+	resp := &http.Response{
+		Header: http.Header{"Content-Encoding": []string{"gzip"}},
+		Body:   io.NopCloser(bytes.NewReader(gzipped(t, []byte("tar bytes")))),
+	}
+
+	body, err := decodeBody(resp)
+	require.NoError(t, err)
+	defer func() { _ = body.Close() }()
+
+	got, err := io.ReadAll(body)
+	require.NoError(t, err)
+	assert.Equal(t, "tar bytes", string(got))
+}
+
+// An identity response passes through untouched: a body that merely happens to
+// be gzip (a user's .tar.gz downloaded as a file) must not be decompressed.
+func TestDecodeBodyLeavesUnencodedBodyAlone(t *testing.T) {
+	payload := gzipped(t, []byte("archive contents"))
+	resp := &http.Response{
+		Header: http.Header{"Content-Type": []string{FileContentTypeOctetStream}},
+		Body:   io.NopCloser(bytes.NewReader(payload)),
+	}
+
+	body, err := decodeBody(resp)
+	require.NoError(t, err)
+	defer func() { _ = body.Close() }()
+
+	got, err := io.ReadAll(body)
+	require.NoError(t, err)
+	assert.Equal(t, payload, got, "the bytes must arrive exactly as sent")
+}
+
+// Closing the stream has to close the response body underneath the decoder, or
+// the connection leaks.
+func TestDecodeBodyCloseClosesUnderlyingBody(t *testing.T) {
+	underlying := &trackedCloser{Reader: bytes.NewReader(gzipped(t, []byte("tar bytes")))}
+	resp := &http.Response{
+		Header: http.Header{"Content-Encoding": []string{"gzip"}},
+		Body:   underlying,
+	}
+
+	body, err := decodeBody(resp)
+	require.NoError(t, err)
+	require.NoError(t, body.Close())
+	assert.True(t, underlying.closed)
+}
+
+// Content-Encoding is a token list, and x-gzip is the same coding as gzip
+// (RFC 9110). A body we hand over still encoded gets read as a tar or written
+// to disk as the artifact, so anything we can't decode has to be an error
+// rather than a pass-through.
+func TestDecodeBodyContentEncodingTokens(t *testing.T) {
+	const payload = "tar bytes"
+
+	for _, tc := range []struct {
+		encoding string
+		decoded  bool
+	}{
+		{encoding: "gzip", decoded: true},
+		{encoding: "GZIP", decoded: true},
+		{encoding: "x-gzip", decoded: true},
+		{encoding: " gzip ", decoded: true},
+		{encoding: "identity, gzip", decoded: true},
+		{encoding: "identity", decoded: false},
+		{encoding: "", decoded: false},
+	} {
+		t.Run("decodes "+tc.encoding, func(t *testing.T) {
+			body := gzipped(t, []byte(payload))
+			header := http.Header{}
+			if tc.encoding != "" {
+				header.Set("Content-Encoding", tc.encoding)
+			}
+
+			decoded, err := decodeBody(&http.Response{Header: header, Body: io.NopCloser(bytes.NewReader(body))})
+			require.NoError(t, err)
+			defer func() { _ = decoded.Close() }()
+
+			got, err := io.ReadAll(decoded)
+			require.NoError(t, err)
+			if tc.decoded {
+				assert.Equal(t, payload, string(got))
+			} else {
+				assert.Equal(t, body, got, "an identity response must arrive byte for byte")
+			}
+		})
+	}
+
+	for _, encoding := range []string{"br", "deflate", "compress", "gzip, br"} {
+		t.Run("rejects "+encoding, func(t *testing.T) {
+			resp := &http.Response{
+				Header: http.Header{"Content-Encoding": []string{encoding}},
+				Body:   io.NopCloser(bytes.NewReader([]byte("whatever"))),
+			}
+
+			_, err := decodeBody(resp)
+			require.Error(t, err, "a coding we cannot decode must not pass through")
+			assert.Contains(t, err.Error(), encoding)
+		})
+	}
+}
+
+type trackedCloser struct {
+	io.Reader
+	closed bool
+}
+
+func (t *trackedCloser) Close() error {
+	t.closed = true
+	return nil
 }
 
 func TestExecSandboxStreamMintError(t *testing.T) {

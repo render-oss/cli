@@ -47,9 +47,9 @@ func (s *Service) Upload(ctx context.Context, id, localPath, remotePath string) 
 }
 
 // Download copies a file or directory from the sandbox at remotePath to
-// localPath, and returns the local path written. A directory arrives as a
-// gzipped tar archive and is extracted under localPath; a file is written to
-// localPath directly (or into it, when localPath is an existing directory).
+// localPath, and returns the local path written. A directory arrives as a tar
+// archive and is extracted under localPath; a file is written to localPath
+// directly (or into it, when localPath is an existing directory).
 func (s *Service) Download(ctx context.Context, id, remotePath, localPath string) (string, error) {
 	stream, err := s.repo.DownloadFile(ctx, id, remotePath)
 	if err != nil {
@@ -57,21 +57,17 @@ func (s *Service) Download(ctx context.Context, id, remotePath, localPath string
 	}
 	defer stream.Body.Close()
 
-	if stream.ContentType == FileContentTypeGzip {
-		gz, err := gzip.NewReader(stream.Body)
-		if err != nil {
+	if stream.ContentType == FileContentTypeTar {
+		if err := extractTar(localPath, stream.Body); err != nil {
 			return "", err
 		}
-		defer gz.Close()
-		if err := extractTar(localPath, gz); err != nil {
-			return "", err
-		}
-		// tar.Next stops at the end-of-archive marker, which sits before the
-		// gzip CRC32/ISIZE trailer, and the trailer is what gzip checks the
-		// decompressed contents against. Reading to EOF forces that check, so a
-		// transfer truncated in that window doesn't extract cleanly and report
-		// success.
-		if _, err := io.Copy(io.Discard, gz); err != nil {
+		// tar.Next stops at the end-of-archive marker, so on a gzip-encoded
+		// response it stops before the CRC32/ISIZE trailer that gzip checks the
+		// decompressed contents against. Reading to EOF forces that check
+		// through whichever decompressor wraps the body, catching a transfer
+		// truncated in that window. An identity response has no trailer to
+		// check, which is what extractTar's own end-of-archive check is for.
+		if _, err := io.Copy(io.Discard, stream.Body); err != nil {
 			return "", fmt.Errorf("verify archive: %w", err)
 		}
 		return localPath, nil
@@ -203,6 +199,29 @@ func writeTar(w io.Writer, root string) error {
 	return tw.Close()
 }
 
+// errNoTerminator marks an archive whose stream ended before the two zero
+// blocks that close a well-formed tar.
+var errNoTerminator = errors.New("archive ended without an end-of-archive marker")
+
+// terminatedReader reports the underlying stream's EOF as errNoTerminator.
+//
+// archive/tar stops reading at the end-of-archive marker, so a complete archive
+// never reaches the end of the stream and never sees this error; a truncated one
+// does. tar.Next cannot tell the two apart on its own: it returns a clean io.EOF
+// both for the marker and for a stream that simply stopped on a 512-byte
+// boundary, which would otherwise let a cut-off transfer extract part of a tree
+// and report success. The gzip trailer catches that on a compressed body, but an
+// identity x-tar has no trailer to check.
+type terminatedReader struct{ r io.Reader }
+
+func (t *terminatedReader) Read(p []byte) (int, error) {
+	n, err := t.r.Read(p)
+	if errors.Is(err, io.EOF) {
+		err = errNoTerminator
+	}
+	return n, err
+}
+
 // extractTar extracts a downloaded archive under dest. The archive comes from
 // the (untrusted) sandbox, so every write goes through an os.Root confined to
 // dest: it resolves each path within dest at the openat layer and refuses any
@@ -218,7 +237,7 @@ func extractTar(dest string, r io.Reader) error {
 	}
 	defer root.Close()
 
-	tr := tar.NewReader(r)
+	tr := tar.NewReader(&terminatedReader{r: r})
 	for {
 		hdr, err := tr.Next()
 		if errors.Is(err, io.EOF) {
