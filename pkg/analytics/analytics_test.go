@@ -61,10 +61,10 @@ func TestSenderSendAndLogGates(t *testing.T) {
 	payloadLog := string(payloadJSON) + "\n"
 
 	testCases := []struct {
-		name       string
-		shouldSend bool
-		shouldLog  bool
-		wantLog    string
+		name           string
+		sendingEnabled bool
+		shouldLog      bool
+		wantLog        string
 	}{
 		{name: "disabled"},
 		{
@@ -78,7 +78,7 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			configDir := t.TempDir()
 			t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
-			sender := newTestSender(&fakeTelemetryClient{}, tc.shouldSend, tc.shouldLog)
+			sender := newTestSender(&fakeTelemetryClient{}, tc.sendingEnabled, tc.shouldLog)
 			launcherCalls := 0
 			sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
 				launcherCalls++
@@ -433,20 +433,20 @@ func TestInstallationIDResolutionFailureIsBestEffort(t *testing.T) {
 
 func TestNewUsesExactEnvironmentGates(t *testing.T) {
 	testCases := []struct {
-		name           string
-		sendValue      string
-		logValue       string
-		doNotTrack     string
-		disableEnv     string
-		configDisabled bool
-		wantShouldSend bool
-		wantShouldLog  bool
+		name               string
+		sendValue          string
+		logValue           string
+		doNotTrack         string
+		disableEnv         string
+		configDisabled     bool
+		wantSendingEnabled bool
+		wantShouldLog      bool
 	}{
 		{name: "unset"},
 		{name: "non-one values", sendValue: "true", logValue: "true"},
 		{name: "logging only", logValue: "1", wantShouldLog: true},
-		{name: "sending only", sendValue: "1", wantShouldSend: true},
-		{name: "both", sendValue: "1", logValue: "1", wantShouldSend: true, wantShouldLog: true},
+		{name: "sending only", sendValue: "1", wantSendingEnabled: true},
+		{name: "both", sendValue: "1", logValue: "1", wantSendingEnabled: true, wantShouldLog: true},
 		{name: "DO_NOT_TRACK vetoes an enabled dev gate", sendValue: "1", doNotTrack: "1"},
 		{name: "RENDER_CLI_DISABLE_ANALYTICS vetoes an enabled dev gate", sendValue: "1", disableEnv: "true"},
 		{name: "config opt-out vetoes an enabled dev gate", sendValue: "1", configDisabled: true},
@@ -470,7 +470,7 @@ func TestNewUsesExactEnvironmentGates(t *testing.T) {
 
 			sender := New(&client.ClientWithResponses{})
 
-			require.Equal(t, tc.wantShouldSend, sender.shouldSend)
+			require.Equal(t, tc.wantSendingEnabled, sender.sendingEnabled)
 			require.Equal(t, tc.wantShouldLog, sender.shouldLog)
 		})
 	}
@@ -639,10 +639,10 @@ func TestHTTPFailureIsSwallowedWithoutRetry(t *testing.T) {
 
 // newTestSender builds a Sender with fixed environment fields so tests exercise
 // the gates and transport without depending on the host's cfg/runtime values.
-func newTestSender(apiClient cliTelemetryClient, shouldSend, shouldLog bool) *Sender {
+func newTestSender(apiClient cliTelemetryClient, sendingEnabled, shouldLog bool) *Sender {
 	sender := newSender(
 		apiClient,
-		shouldSend,
+		sendingEnabled,
 		shouldLog,
 		func() command.TerminalSignals {
 			return testTerminalSignals

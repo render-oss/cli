@@ -61,6 +61,21 @@ func (b backoff) inEffect(now time.Time) bool {
 	return now.Before(b.Until)
 }
 
+// skippedSendDiagnostic describes a send suppressed by an active backoff.
+func (b backoff) skippedSendDiagnostic() string {
+	return fmt.Sprintf("analytics: send skipped, backoff until %s (%d)", b.expiry(), b.StatusCode)
+}
+
+// startedBackoffDiagnostic describes a response that just started a backoff.
+func (b backoff) startedBackoffDiagnostic() string {
+	return fmt.Sprintf("analytics: %d response, sending paused until %s", b.StatusCode, b.expiry())
+}
+
+// expiry formats the end of the backoff for diagnostics.
+func (b backoff) expiry() string {
+	return b.Until.UTC().Format(time.RFC3339)
+}
+
 // backoffFor determines how long to back off, if at all, from the status code
 // and Retry-After header of an attempted event POST.
 func backoffFor(response postResponse, now time.Time) backoff {

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/render-oss/cli/pkg/client"
 )
@@ -28,8 +29,8 @@ const maxEventFileSizeBytes = 64 << 10 // 64 KiB
 // process that writes an event file should log it at write time.
 func (s *Sender) SendFile(ctx context.Context, path string, diagnostics io.Writer) error {
 	err := s.sendFile(ctx, path, diagnostics)
-	if err != nil && s.shouldLog {
-		_, _ = fmt.Fprintf(diagnostics, "analytics error: %v\n", err)
+	if err != nil {
+		s.logError(diagnostics, err)
 	}
 	return err
 }
@@ -60,7 +61,19 @@ func (s *Sender) sendFile(ctx context.Context, path string, diagnostics io.Write
 	//
 	// A child process constructs a fresh Sender, so this gate reflects the
 	// environment at send time: an opt-out between launch and send wins.
-	if !s.shouldSend {
+	if !s.sendingEnabled {
+		return cleanupErr
+	}
+
+	now := time.Now()
+	if currentBackoff := loadBackoff(); currentBackoff.inEffect(now) {
+		// Because parent processes do not launch the analytics subprocess while a
+		// backoff is in force, reaching here is unusual. It's possible though
+		// (e.g., a separate invocation hit a backoff before we got here), so we
+		// must read and honor a backoff before posting the event.
+		if s.shouldLog {
+			_, _ = fmt.Fprintln(diagnostics, currentBackoff.skippedSendDiagnostic())
+		}
 		return cleanupErr
 	}
 
@@ -71,7 +84,15 @@ func (s *Sender) sendFile(ctx context.Context, path string, diagnostics io.Write
 	if err != nil {
 		return errors.Join(fmt.Errorf("send analytics event: %w", err), cleanupErr)
 	}
+
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		now := time.Now()
+		if newBackoff := backoffFor(response, now); newBackoff.inEffect(now) {
+			recordBackoff(newBackoff)
+			if s.shouldLog {
+				_, _ = fmt.Fprintln(diagnostics, newBackoff.startedBackoffDiagnostic())
+			}
+		}
 		return errors.Join(fmt.Errorf("send analytics event: unexpected response %s", response.Status), cleanupErr)
 	}
 	if s.shouldLog {
