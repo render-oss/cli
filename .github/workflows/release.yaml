@@ -61,3 +61,15 @@ jobs:
           # GitHub sets the GITHUB_TOKEN secret automatically.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+
+  publish-winget:
+    name: Submit release to WinGet
+    needs: goreleaser
+    # WinGet only gets stable versions; skip prerelease-style tags (e.g. v1.2.3-rc.1).
+    if: ${{ !contains(github.ref_name, '-') }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/winget.yaml
+    with:
+      version: ${{ github.ref_name }}
+    secrets: inherit

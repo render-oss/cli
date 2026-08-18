@@ -1,7 +1,8 @@
 # Visit https://goreleaser.com for documentation on how to customize this
 # behavior.
 builds:
-  - env:
+  - id: default
+    env:
       # goreleaser does not work with CGO, it could also complicate
       # usage by users in CI/CD systems like Terraform Cloud where
       # they are unable to install libraries.
@@ -13,7 +14,6 @@ builds:
       - "-s -w -X 'github.com/render-oss/cli/pkg/cfg.Version={{ .Version }}'"
     goos:
       - freebsd
-      - windows
       - linux
       - darwin
     goarch:
@@ -25,6 +25,25 @@ builds:
       - goos: darwin
         goarch: '386'
     binary: '{{ .ProjectName }}_v{{ .Version }}'
+  # The WinGet manifest names the exe inside the zip, and wingetcreate can
+  # only carry that name across releases when it stays the same. Keep this
+  # binary named render.
+  - id: windows
+    env:
+      - CGO_ENABLED=0
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - -trimpath
+    ldflags:
+      - "-s -w -X 'github.com/render-oss/cli/pkg/cfg.Version={{ .Version }}'"
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - '386'
+      - arm
+      - arm64
+    binary: render
 archives:
   - format: zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'

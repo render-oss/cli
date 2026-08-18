@@ -1,0 +1,174 @@
+name: Submit release to WinGet
+
+# Publishes each stable GitHub release of the Render CLI to the Windows Package
+# Manager community repo (microsoft/winget-pkgs) as Render.CLI.
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to submit, with or without leading v (e.g. v2.22.0)"
+        required: true
+        type: string
+  # Manual re-run for a specific version, e.g. to recover from a failed run
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to (re)submit, without leading v (e.g. 2.22.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  PACKAGE_IDENTIFIER: Render.CLI
+  # When bumping WINGETCREATE_VERSION, update WINGETCREATE_SHA256 from the matching
+  # wingetcreate.exe.txt published alongside the release asset.
+  # https://github.com/microsoft/winget-create/releases
+  WINGETCREATE_VERSION: "1.12.13.0"
+  WINGETCREATE_SHA256: "24042BD37915805615E6CF969AC57C6439124C3FE85823327F5F3FB24BD9FFEA"
+
+jobs:
+  publish-winget:
+    name: Submit to winget-pkgs
+    if: github.repository == 'render-oss/cli'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
+    steps:
+      - name: Resolve package version
+        id: version
+        shell: pwsh
+        env:
+          RAW_VERSION: ${{ inputs.version }}
+        run: |
+          $version = $env:RAW_VERSION.Trim().TrimStart('v')
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            Write-Error "Version '$version' is not a stable X.Y.Z version."
+            exit 1
+          }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Submitting $($env:PACKAGE_IDENTIFIER) version $version"
+
+      - name: Skip remaining steps if this version is already merged in winget-pkgs
+        id: precheck
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          gh api "repos/microsoft/winget-pkgs/contents/manifests/r/Render/CLI/$version" --silent
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Render.CLI $version is already in winget-pkgs; skipping submission."
+            "published=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "Render.CLI $version is not in winget-pkgs yet; continuing."
+            "published=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Download and verify wingetcreate
+        if: steps.precheck.outputs.published != 'true'
+        shell: pwsh
+        run: |
+          $url = "https://github.com/microsoft/winget-create/releases/download/v$($env:WINGETCREATE_VERSION)/wingetcreate.exe"
+          Invoke-WebRequest -Uri $url -OutFile wingetcreate.exe -TimeoutSec 60 -MaximumRetryCount 3 -RetryIntervalSec 5
+          $actual = (Get-FileHash wingetcreate.exe -Algorithm SHA256).Hash
+          if ($actual -ne $env:WINGETCREATE_SHA256) {
+            Write-Error "wingetcreate.exe SHA256 mismatch. Expected $($env:WINGETCREATE_SHA256), got $actual."
+            exit 1
+          }
+          Write-Host "Verified wingetcreate.exe $($env:WINGETCREATE_VERSION) ($actual)"
+
+      - name: Build updated manifests
+        if: steps.precheck.outputs.published != 'true'
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $base = "https://github.com/render-oss/cli/releases/download/v$version"
+          $urls = @(
+            "$base/cli_${version}_windows_amd64.zip|x64",
+            "$base/cli_${version}_windows_arm64.zip|arm64"
+          )
+
+          .\wingetcreate.exe update $env:PACKAGE_IDENTIFIER `
+            --version $version `
+            --urls $urls `
+            --out manifests
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "wingetcreate update failed with exit code $LASTEXITCODE."
+            exit $LASTEXITCODE
+          }
+
+      - name: Close superseded winget-pkgs PRs
+        if: steps.precheck.outputs.published != 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
+        run: |
+          # Close existing open PRs for this version to avoid duplicate PRs.
+          # wingetcreate submit doesn't have its own PR deduplication.
+          $version = '${{ steps.version.outputs.version }}'
+          $title = "$($env:PACKAGE_IDENTIFIER) version $version"
+          $prs = gh pr list --repo microsoft/winget-pkgs --author "@me" --state open `
+            --search "`"$title`" in:title" --json number,title | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to list open winget-pkgs PRs."
+            exit 1
+          }
+          foreach ($pr in @($prs) | Where-Object { $_.title -eq $title }) {
+            gh pr close $pr.number --repo microsoft/winget-pkgs `
+              --comment "Superseded by a new automated submission for $version."
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Failed to close superseded PR #$($pr.number)."
+              exit 1
+            }
+            Write-Host "Closed superseded PR #$($pr.number)"
+          }
+
+      - name: Submit manifests to winget-pkgs
+        if: steps.precheck.outputs.published != 'true'
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -Path manifests -Filter '*.installer.yaml' -Recurse |
+            Select-Object -First 1 -ExpandProperty FullName
+          $manifestDir = Split-Path $installer
+          .\wingetcreate.exe submit $manifestDir
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "wingetcreate submit failed with exit code $LASTEXITCODE."
+            exit $LASTEXITCODE
+          }
+
+  notify-failure:
+    name: Notify Slack on failure
+    needs: publish-winget
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Post failure to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.CLI_CI_SLACK_WEBHOOK_URL }}
+          RELEASE: ${{ inputs.version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUNBOOK_URL: ${{ vars.WINGET_RUNBOOK_URL }}
+        run: |
+          set -euo pipefail
+          payload=$(jq -n \
+            --arg release "$RELEASE" \
+            --arg run_url "$RUN_URL" \
+            --arg runbook_url "$RUNBOOK_URL" \
+            '{
+              text: ("WinGet submission failed for Render.CLI " + $release),
+              blocks: [
+                {
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: (":x: *WinGet submission failed*\nPackage: `Render.CLI`\nRelease: `" + $release + "`\n<" + $run_url + "|View workflow run>"
+                      + (if $runbook_url == "" then "" else " · <" + $runbook_url + "|Runbook>" end))
+                  }
+                }
+              ]
+            }')
+          curl -sSf -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"
