@@ -81,6 +81,7 @@ type pgCreateDraft struct {
 	region          string
 	ha              bool
 	diskAutoscaling bool
+	connectionPool  string
 }
 
 // pgCreateLoadedData holds data fetched asynchronously from the server.
@@ -310,6 +311,23 @@ var pgCreateSteps = []pgCreateWizardStep{
 			return pgStepCommit{
 				displayValue: label,
 				apply:        func(d *pgCreateDraft) { d.diskAutoscaling = auto },
+			}
+		},
+	},
+	{
+		label:     "Connection Pool",
+		buildForm: func(m *PostgresCreateModel) *huh.Form { return m.buildConnectionPoolForm() },
+		commit: func(m *PostgresCreateModel) pgStepCommit {
+			auto := m.confirmValue
+			label := "none"
+			if auto {
+				label = "pgbouncer"
+			}
+			return pgStepCommit{
+				displayValue: label,
+				apply: func(d *pgCreateDraft) {
+					d.connectionPool = label
+				},
 			}
 		},
 	},
@@ -573,6 +591,7 @@ func (m *PostgresCreateModel) createCmd() tea.Cmd {
 func (m *PostgresCreateModel) createRequestInput() postgres.CreateRequestInput {
 	haVal := m.draft.ha
 	diskAutoVal := m.draft.diskAutoscaling
+	connectionPoolVal := m.draft.connectionPool
 	return postgres.CreateRequestInput{
 		Name:             m.draft.name,
 		OwnerID:          m.draft.workspaceID,
@@ -582,6 +601,7 @@ func (m *PostgresCreateModel) createRequestInput() postgres.CreateRequestInput {
 		EnvironmentID:    m.draft.environmentID,
 		HighAvailability: &haVal,
 		DiskAutoscaling:  &diskAutoVal,
+		ConnectionPool:   &connectionPoolVal,
 		// Flag-only fields carried through from the original parsed input.
 		DiskSizeGB:    m.flagInput.DiskSizeGB,
 		DatabaseName:  m.flagInput.DatabaseName,
@@ -737,6 +757,16 @@ func (m *PostgresCreateModel) buildDiskAutoscalingForm() *huh.Form {
 		huh.NewConfirm().
 			Title("Enable Disk Autoscaling?").
 			Description("Automatically expands disk storage when usage exceeds 90%.").
+			Value(&m.confirmValue),
+	)).WithShowHelp(false)
+}
+
+func (m *PostgresCreateModel) buildConnectionPoolForm() *huh.Form {
+	m.confirmValue = false
+	return huh.NewForm(huh.NewGroup(
+		huh.NewConfirm().
+			Title("Enable Connection Pooling?").
+			Description("Pools connections to port :6432.").
 			Value(&m.confirmValue),
 	)).WithShowHelp(false)
 }

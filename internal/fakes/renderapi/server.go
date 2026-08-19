@@ -259,6 +259,7 @@ func postgresListItem(pg *client.PostgresDetail) client.Postgres {
 		DatabaseName:            pg.DatabaseName,
 		DatabaseUser:            pg.DatabaseUser,
 		DiskAutoscalingEnabled:  pg.DiskAutoscalingEnabled,
+		ConnectionPool:          pg.ConnectionPool,
 		DiskSizeGB:              pg.DiskSizeGB,
 		EnvironmentId:           pg.EnvironmentId,
 		ExpiresAt:               pg.ExpiresAt,
@@ -901,6 +902,7 @@ func NewServer(t *testing.T) *Server {
 			DatabaseUser:            databaseUser,
 			DiskSizeGB:              body.DiskSizeGB,
 			DiskAutoscalingEnabled:  pointers.ValueOrDefault(body.EnableDiskAutoscaling, false),
+			ConnectionPool:          pointers.ValueOrDefault(body.ConnectionPool, "none"),
 			HighAvailabilityEnabled: pointers.ValueOrDefault(body.EnableHighAvailability, false),
 			EnvironmentId:           body.EnvironmentId,
 			IpAllowList:             ipAllowList,
@@ -1038,6 +1040,9 @@ func NewServer(t *testing.T) *Server {
 		}
 		if body.EnableDiskAutoscaling != nil {
 			pg.DiskAutoscalingEnabled = *body.EnableDiskAutoscaling
+		}
+		if body.ConnectionPool != nil {
+			pg.ConnectionPool = *body.ConnectionPool
 		}
 		if body.EnableHighAvailability != nil {
 			pg.HighAvailabilityEnabled = *body.EnableHighAvailability

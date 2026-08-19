@@ -46,6 +46,7 @@ func TestPGCreate_AllFlags(t *testing.T) {
 		"--database-user", "metrics_user",
 		"--disk-size-gb", "105",
 		"--disk-autoscaling",
+		"--connection-pool", "pgbouncer",
 		"--high-availability",
 		"--datadog-api-key", "dd-key",
 		"--datadog-site", "US3",
@@ -65,6 +66,7 @@ func TestPGCreate_AllFlags(t *testing.T) {
 	require.NotNil(t, pg.DiskSizeGB)
 	assert.Equal(t, 105, *pg.DiskSizeGB)
 	assert.True(t, pg.DiskAutoscalingEnabled)
+	assert.Equal(t, "pgbouncer", pg.ConnectionPool)
 	assert.True(t, pg.HighAvailabilityEnabled)
 	require.Len(t, pg.IpAllowList, 1)
 	assert.Equal(t, "10.0.0.0/8", pg.IpAllowList[0].CidrBlock)
