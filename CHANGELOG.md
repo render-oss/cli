@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.24.0] - 2026-08-19
+
+### Changed
+
+- Windows release archives now contain `render.exe` instead of `cli_v<version>.exe`
+
 ## [2.23.0] - 2026-08-17
 
 ### Added
