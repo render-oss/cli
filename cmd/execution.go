@@ -48,8 +48,13 @@ func markCommandAnalyticsIneligible(cmd *cobra.Command) {
 }
 
 // commandIsAnalyticsEligible resolves inherited analytics eligibility for a
-// selected command. A descendant of an ineligible command is always ineligible.
+// selected command.
+//   - A descendant of an ineligible command is always ineligible.
+//   - A nil command is ineligible
 func commandIsAnalyticsEligible(cmd *cobra.Command) bool {
+	if cmd == nil {
+		return false
+	}
 	for current := cmd; current != nil; current = current.Parent() {
 		if current.Annotations[analyticsEligibilityAnnotation] == analyticsIneligibleAnnotationValue {
 			return false

@@ -45,6 +45,10 @@ func TestAnalyticsEligibilityIsInheritedByDescendants(t *testing.T) {
 	require.True(t, commandIsAnalyticsEligible(distractor))
 }
 
+func TestAnalyticsEligibilityIsFalseForUnresolvedCommand(t *testing.T) {
+	require.False(t, commandIsAnalyticsEligible(nil))
+}
+
 type analyticsHarness struct {
 	t         *testing.T
 	server    *renderapi.Server
