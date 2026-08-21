@@ -33,13 +33,13 @@ func newSandboxStopCmd(deps *dependencies.Dependencies) *cobra.Command {
 Without --confirm, this command previews what would be terminated and makes no
 changes. Pass --confirm to actually terminate the sandbox.`,
 		Example: `  # Preview termination (no changes made)
-  render ea sandboxes stop trn-abc123
+  render ea sandboxes stop sbx-abc123
 
   # Terminate the sandbox
-  render ea sandboxes stop trn-abc123 --confirm
+  render ea sandboxes stop sbx-abc123 --confirm
 
   # JSON output
-  render ea sandboxes stop trn-abc123 --confirm --output json`,
+  render ea sandboxes stop sbx-abc123 --confirm --output json`,
 	}
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {

@@ -52,7 +52,7 @@ const (
 	CompletionKindExecutionError CompletionKind = "execution_error"
 	// CompletionKindExplicitExit indicates that the command deliberately chose
 	// the process exit code by returning an ExitCoder, typically to report an
-	// outcome external to the CLI rather than a CLI failure: `render sandbox exec`
+	// outcome external to the CLI rather than a CLI failure: `render sandboxes exec`
 	// propagates the remote process's exit code, and `render deploys create --wait`
 	// exits nonzero when the deploy fails.
 	CompletionKindExplicitExit CompletionKind = "explicit_exit"

@@ -82,6 +82,32 @@ func TestSandboxCreateInputValidateNetworkPolicy(t *testing.T) {
 	}
 }
 
+func TestSandboxCreateInputValidateTimeout(t *testing.T) {
+	cases := []struct {
+		name        string
+		timeout     int
+		errContains string
+	}{
+		{name: "zero means the server default", timeout: 0},
+		{name: "one second", timeout: 1},
+		{name: "the documented maximum", timeout: 86400},
+		{name: "negative is rejected rather than silently defaulted", timeout: -1, errContains: "invalid timeout -1"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := SandboxCreateInput{Timeout: tc.timeout}
+			err := input.Validate(false)
+			if tc.errContains == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.errContains)
+		})
+	}
+}
+
 func TestSandboxCreateNetworkPolicyNamesMatchSchema(t *testing.T) {
 	names := sandboxNetworkPolicyNames()
 	require.NotEmpty(t, names)

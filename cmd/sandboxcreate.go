@@ -31,6 +31,11 @@ func (i *SandboxCreateInput) Validate(_ bool) error {
 	if i.NetworkPolicy != "" && !sandboxclient.SandboxNetworkPolicyDefault(i.NetworkPolicy).Valid() {
 		return fmt.Errorf("invalid network policy %q: use %s", i.NetworkPolicy, strings.Join(sandboxNetworkPolicyNames(), ", "))
 	}
+	// Only positive timeouts reach the request body, so without this a negative
+	// value would silently get the default rather than the lifetime asked for.
+	if i.Timeout < 0 {
+		return fmt.Errorf("invalid timeout %d: use a positive number of seconds, or 0 for the default", i.Timeout)
+	}
 	if _, err := resolveSandboxEnv(nil, i.EnvVars); err != nil {
 		return err
 	}
@@ -94,7 +99,7 @@ Examples:
 
 	cmd.Flags().String("plan", "", "Compute plan: "+strings.Join(sandboxPlanNames(), ", "))
 	cmd.Flags().String("region", "", "Region to run the sandbox in")
-	cmd.Flags().Int("timeout", 0, "Maximum sandbox lifetime in seconds")
+	cmd.Flags().Int("timeout", 0, "Maximum sandbox lifetime in seconds. 0 uses the default and maximum of 86400 (24 hours)")
 	cmd.Flags().String("network-policy", "", "Outbound network policy: "+strings.Join(sandboxNetworkPolicyNames(), ", "))
 	setFlagPlaceholder(cmd.Flags(), "network-policy", "NETWORK_POLICY")
 	cmd.Flags().StringArray("env-var", nil, "Set environment variables in KEY=VALUE format (can be specified multiple times). Inline values override values loaded from --env-file.")

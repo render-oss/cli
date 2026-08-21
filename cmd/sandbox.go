@@ -12,20 +12,17 @@ func newSandboxCmd(children ...*cobra.Command) *cobra.Command {
 
 Sandboxes are ephemeral compute environments for running code, agents, and experiments.
 
-Available commands:
-  copy     - Copy files to or from a sandbox (alias: cp)
-  create   - Create a new sandbox
-  exec     - Execute a command in a sandbox
-  list     - List sandboxes
-  stop     - Terminate a running sandbox
+Every sandbox belongs to a sandbox group, which scopes it to a region. Manage
+groups with "render ea sandbox-groups".
 
 Examples:
-  render ea sandboxes create --base=render/sandbox-python
+  render ea sandboxes create
+  render ea sandboxes create --plan=standard --region=oregon
   render ea sandboxes copy ./main.py sbx-abc123:/app/main.py
   render ea sandboxes exec sbx-abc123 -- echo hello
   render ea sandboxes list
   render ea sandboxes list --all
-  render ea sandboxes stop trn-abc123 --confirm
+  render ea sandboxes stop sbx-abc123 --confirm
 `,
 	}
 	cmd.AddCommand(children...)
