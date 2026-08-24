@@ -9,9 +9,9 @@ import (
 	"github.com/render-oss/cli/pkg/config"
 )
 
-// markerFileName names the empty marker whose presence records that the
-// first-run notice has been shown.
-const markerFileName = "welcome-notice-shown"
+// markerFileName is the name of an empty file whose presence indicates that the
+// analytics notice has been shown.
+const markerFileName = "analytics-notice-shown"
 
 // markerPath resolves the marker's path under [config.StateDir].
 func markerPath() (string, error) {

@@ -42,7 +42,6 @@ func TestShowIfNeeded(t *testing.T) {
 		require.True(t, ShowIfNeeded(command.NewStream(&buf), Conditions{StderrTTY: true}, analytics.OptOutReasonNone))
 
 		out := ansi.Strip(buf.String())
-		require.Contains(t, out, "Welcome to the Render CLI!")
 		require.Contains(t, out, "The Render CLI collects usage data")
 
 		info, err := os.Stat(markerPath)
@@ -57,8 +56,8 @@ func TestShowIfNeeded(t *testing.T) {
 		require.True(t, ShowIfNeeded(command.NewStream(&buf), Conditions{StderrTTY: true}, analytics.OptOutReasonDoNotTrack))
 
 		out := ansi.Strip(buf.String())
-		require.Contains(t, out, "Telemetry is disabled due to your DO_NOT_TRACK setting.")
-		require.NotContains(t, out, "Opt out:")
+		require.Contains(t, out, "Telemetry is currently disabled")
+		require.NotContains(t, out, "To opt out,")
 	})
 
 	t.Run("a second run shows nothing once the marker exists", func(t *testing.T) {

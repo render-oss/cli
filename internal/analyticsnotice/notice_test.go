@@ -26,47 +26,57 @@ func TestBuildNotice(t *testing.T) {
 	var buf bytes.Buffer
 	s := command.NewStream(&buf)
 
-	t.Run("purple padded box frames the notice", func(t *testing.T) {
+	t.Run("padded block of uniform width, no border", func(t *testing.T) {
 		lines := strings.Split(ansi.Strip(buildNotice(s, analytics.OptOutReasonNone)), "\n")
 
-		require.True(t, strings.HasPrefix(lines[0], "╭"), "top-left corner")
-		require.True(t, strings.HasSuffix(lines[0], "╮"), "top-right corner")
-		require.True(t, strings.HasPrefix(lines[len(lines)-1], "╰"), "bottom-left corner")
-		require.True(t, strings.HasSuffix(lines[len(lines)-1], "╯"), "bottom-right corner")
-		for _, line := range lines[1 : len(lines)-1] {
-			require.True(t, strings.HasPrefix(line, "│"), "left border: %q", line)
-			require.True(t, strings.HasSuffix(line, "│"), "right border: %q", line)
+		width := ansi.StringWidth(lines[0])
+		for _, line := range lines {
+			require.Equal(t, width, ansi.StringWidth(line),
+				"every line must fill the block so the background reads as a rectangle: %q", line)
+			require.NotContains(t, line, "│", "the block is a background, not a border")
 		}
-		require.True(t, strings.HasPrefix(lines[2], "│  Welcome to the Render CLI!"), "horizontal padding")
-		require.Empty(t, strings.Trim(lines[1], " │"), "top padding")
-		require.Empty(t, strings.Trim(lines[len(lines)-2], " │"), "bottom padding")
+		require.Empty(t, strings.TrimSpace(lines[0]), "top padding")
+		require.Empty(t, strings.TrimSpace(lines[len(lines)-1]), "bottom padding")
+		require.True(t, strings.HasPrefix(lines[1], "  The Render CLI collects"), "horizontal padding")
+	})
+
+	t.Run("one blank line separates what we collect from what to do about it", func(t *testing.T) {
+		lines := strings.Split(ansi.Strip(buildNotice(s, analytics.OptOutReasonNone)), "\n")
+
+		// Drop the padding rows the style adds above and below the content.
+		body := lines[1 : len(lines)-1]
+		var blanks []int
+		for i, line := range body {
+			if strings.TrimSpace(line) == "" {
+				blanks = append(blanks, i)
+			}
+		}
+		require.Len(t, blanks, 1, "exactly one blank line, and it is in the middle:\n%s", strings.Join(body, "\n"))
 	})
 
 	t.Run("telemetry on explains collection and how to opt out", func(t *testing.T) {
 		out := ansi.Strip(buildNotice(s, analytics.OptOutReasonNone))
 
+		// Fragments, not whole sentences: the box wraps to the terminal width.
 		testassert.ContainsInOrder(t, out,
-			"Welcome to the Render CLI!",
-			"To get started, run", "render login",
-			"Learn more at https://render.com/docs/cli.",
 			"The Render CLI collects usage data",
-			"Nothing has been sent yet.",
-			"Opt out: set DO_NOT_TRACK=1 in your environment",
+			"No data has been sent to Render yet.",
+			"To opt out, set DO_NOT_TRACK=1",
 			telemetryDocsURL,
 		)
 		require.NotContains(t, out, "anonymous")
 	})
 
-	t.Run("opted out shows the confirmation instead of the invitation to opt out", func(t *testing.T) {
+	t.Run("opted out still discloses, and says how to turn telemetry on", func(t *testing.T) {
 		out := ansi.Strip(buildNotice(s, analytics.OptOutReasonDoNotTrack))
 
 		testassert.ContainsInOrder(t, out,
-			"Welcome to the Render CLI!",
-			"Telemetry is disabled due to your DO_NOT_TRACK setting.",
+			"The Render CLI collects usage data",
+			"Telemetry is currently disabled",
+			"To enable telemetry, remove DO_NOT_TRACK",
 			telemetryDocsURL,
 		)
-		require.NotContains(t, out, "Opt out:")
-		require.NotContains(t, out, "collects usage data")
+		require.NotContains(t, out, "To opt out,")
 	})
 
 	t.Run("wraps the boxed notice to fit a narrow terminal", func(t *testing.T) {
@@ -74,22 +84,20 @@ func TestBuildNotice(t *testing.T) {
 		out := ansi.Strip(buildNoticeAtWidth(s.Renderer(), terminalWidth, analytics.OptOutReasonNone))
 
 		for _, line := range strings.Split(out, "\n") {
-			require.Equal(t, terminalWidth, ansi.StringWidth(line), "line exceeds terminal width: %q", line)
-			require.True(t, strings.HasPrefix(line, "│") || strings.HasPrefix(line, "╭") || strings.HasPrefix(line, "╰"), "missing left border: %q", line)
-			require.True(t, strings.HasSuffix(line, "│") || strings.HasSuffix(line, "╮") || strings.HasSuffix(line, "╯"), "missing right border: %q", line)
+			require.Equal(t, terminalWidth, ansi.StringWidth(line), "line does not fill the terminal width: %q", line)
 		}
 		require.Contains(t, out, "telemetry", "wrapped details URL retains its tail")
 	})
 
-	t.Run("reason mapping covers every opt-out mechanism", func(t *testing.T) {
+	t.Run("every opt-out mechanism says how to undo itself", func(t *testing.T) {
 		testCases := []struct {
 			reason analytics.OptOutReason
 			want   string
 		}{
-			{analytics.OptOutReasonDoNotTrack, "Telemetry is disabled due to your DO_NOT_TRACK setting."},
-			{analytics.OptOutReasonDisableAnalyticsEnv, "Telemetry is disabled due to your RENDER_CLI_DISABLE_ANALYTICS setting."},
-			{analytics.OptOutReasonAnalyticsDisabledConfig, "Telemetry is disabled due to the analytics.disabled setting in your Render CLI config file."},
-			{"something-new", "Telemetry is disabled due to your settings."},
+			{analytics.OptOutReasonDoNotTrack, "To enable telemetry, remove DO_NOT_TRACK from your environment."},
+			{analytics.OptOutReasonDisableAnalyticsEnv, "remove RENDER_CLI_DISABLE_ANALYTICS from your"},
+			{analytics.OptOutReasonAnalyticsDisabledConfig, "remove analytics.disabled from your Render CLI"},
+			{"something-new", "check your Render CLI settings."},
 		}
 		for _, tc := range testCases {
 			require.Contains(t, ansi.Strip(buildNotice(s, tc.reason)), tc.want)

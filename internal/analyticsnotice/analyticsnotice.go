@@ -1,11 +1,11 @@
-// Package analyticsnotice implements the CLI's first-run notice: a short welcome
-// message and telemetry disclosure, shown once per machine before analytics
-// can send anything in non-CI runs. CI automation bypasses the notice gate. The
-// package decides whether to show the notice, builds its copy, and persists a
-// marker in the CLI state directory so it isn't repeated.
+// Package analyticsnotice implements the CLI's telemetry disclosure: a notice
+// explaining what the CLI collects and how to opt out, shown once per machine
+// before analytics can send anything in non-CI runs. CI automation bypasses the
+// notice gate. The package decides whether to show the notice, builds its copy,
+// and persists a marker in the CLI state directory so it isn't repeated.
 //
-// Callers must invoke [ShowIfNeeded] during pre-run, before a TUI takes over
-// the terminal, so the notice remains visible after it is recorded as shown.
+// Callers must invoke [ShowIfNeeded] before a TUI takes over the terminal, so
+// the notice remains visible after it is recorded as shown.
 package analyticsnotice
 
 import (
@@ -18,13 +18,13 @@ import (
 // Conditions contains the runtime signals [ShowIfNeeded] evaluates.
 type Conditions struct {
 	// CI reports whether the CLI is running in a continuous integration
-	// environment. CI runs bypass the first-run notice gate.
+	// environment. CI runs bypass the notice gate.
 	CI bool
 	// StderrTTY reports whether stderr is connected to a terminal.
 	StderrTTY bool
 }
 
-// ShowIfNeeded decides whether to show the first-run notice, writes it to s,
+// ShowIfNeeded decides whether to show the analytics notice, writes it to s,
 // and records it as shown. It returns whether the caller should skip analytics
 // for this run. Outside CI, analytics can proceed only when an existing marker
 // proves the notice was shown on an earlier run. CI is an automation exception:
@@ -59,7 +59,10 @@ func ShowIfNeeded(s *command.Stream, conditions Conditions, optOutReason analyti
 		return true
 	}
 
-	if _, err := fmt.Fprintln(s, buildNotice(s, optOutReason)); err != nil {
+	// The trailing blank line separates the notice from whatever the caller
+	// prints next, and belongs here rather than at each call site: only this
+	// function knows whether the notice was actually shown.
+	if _, err := fmt.Fprintf(s, "%s\n\n", buildNotice(s, optOutReason)); err != nil {
 		return true
 	}
 	_ = writeMarker()

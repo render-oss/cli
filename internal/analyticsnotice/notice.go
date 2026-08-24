@@ -1,7 +1,6 @@
 package analyticsnotice
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -11,15 +10,19 @@ import (
 	"github.com/render-oss/cli/pkg/style"
 )
 
+// collectionDisclosure should be the first sentence of every notice variant produced by this package
+const collectionDisclosure = "The Render CLI collects usage data on commands and performance to help us keep improving."
+
 const (
 	telemetryDocsURL = "https://render.com/docs/cli/telemetry"
-	maxNoticeWidth   = 76
-	boxBorderColumns = 2
+	// maxNoticeWidth fits the longest line, the opening disclosure, on one row
+	// once the horizontal padding is taken off. Terminals narrower than this
+	// still wrap: the cap is a ceiling, not a floor.
+	maxNoticeWidth = 93
 )
 
-// buildNotice returns the welcome notice ready to print. It contains the welcome
-// and get-started copy followed by the telemetry disclosure, framed by a
-// Render-purple box. The renderer derives its color profile from s.
+// buildNotice returns the analytics disclosure ready to print, as a padded
+// block on a tinted background. The renderer derives its color profile from s.
 //
 // [analytics.OptOutReasonNone] means telemetry is on and the disclosure is
 // shown as usual; any other value replaces the disclosure with the opted-out
@@ -31,69 +34,54 @@ func buildNotice(s *command.Stream, optOutReason analytics.OptOutReason) string 
 // buildNoticeAtWidth renders the notice for a terminal width. Width zero means
 // unknown, so the content uses its natural width.
 func buildNoticeAtWidth(renderer *lipgloss.Renderer, width int, optOutReason analytics.OptOutReason) string {
-	var notice strings.Builder
-	notice.WriteString(welcomeSection(renderer))
-	notice.WriteString("\n\n")
-	notice.WriteString(strings.Join(telemetrySection(optOutReason), "\n"))
-
 	noticeStyle := renderer.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(style.ColorInfo).
+		Background(style.ColorSubtleBackground).
+		Foreground(style.ColorFocus).
 		Padding(1, 2)
 	if width > 0 {
-		noticeStyle = noticeStyle.Width(min(width, maxNoticeWidth) - boxBorderColumns)
+		noticeStyle = noticeStyle.Width(min(width, maxNoticeWidth))
 	}
 
-	return noticeStyle.Render(notice.String())
-}
-
-// welcomeSection is the greeting and first step for a new user.
-func welcomeSection(renderer *lipgloss.Renderer) string {
-	title := style.Title.Renderer(renderer)
-	commandKey := style.CommandKey.Renderer(renderer)
-
-	return strings.Join([]string{
-		title.Render("Welcome to the Render CLI!"),
-		"",
-		fmt.Sprintf("To get started, run %s.", commandKey.Render("render login")),
-		"Learn more at https://render.com/docs/cli.",
-	}, "\n")
+	return noticeStyle.Render(strings.Join(telemetrySection(optOutReason), "\n"))
 }
 
 // telemetrySection returns the telemetry notice to show the user.
 func telemetrySection(optOutReason analytics.OptOutReason) []string {
 	if optOutReason == analytics.OptOutReasonNone {
 		return []string{
-			"The Render CLI collects usage data to help us improve the product.",
-			"Nothing has been sent yet.",
+			collectionDisclosure,
+			"No data has been sent to Render yet.",
 			"",
-			"Opt out: set DO_NOT_TRACK=1 in your environment",
-			"Details: " + telemetryDocsURL,
+			"To opt out, set DO_NOT_TRACK=1 in your environment.",
+			"Learn more about telemetry: " + telemetryDocsURL,
 		}
 	}
 
 	return []string{
-		fmt.Sprintf("Telemetry is disabled due to %s.", optOutMechanism(optOutReason)),
-		"Details: " + telemetryDocsURL,
+		collectionDisclosure,
+		"Telemetry is currently disabled, so no data is being sent to Render.",
+		"",
+		enableInstruction(optOutReason),
+		"Learn more about telemetry: " + telemetryDocsURL,
 	}
 }
 
-// optOutMechanism maps an [analytics.OptOutReason] to the phrase used in the notice copy.
-// If the user not opted out of analytics ([analytics.OptOutReasonNone]), then you should not call this method.
-func optOutMechanism(optOutReason analytics.OptOutReason) string {
+// enableInstruction tells the user how to undo the opt-out currently in effect.
+// If the user has not opted out ([analytics.OptOutReasonNone]), then you should not call this method.
+func enableInstruction(optOutReason analytics.OptOutReason) string {
 	//exhaustive:enforce
 	switch optOutReason {
 	case analytics.OptOutReasonDoNotTrack:
-		return "your DO_NOT_TRACK setting"
+		return "To enable telemetry, remove DO_NOT_TRACK from your environment."
 	case analytics.OptOutReasonDisableAnalyticsEnv:
-		return "your RENDER_CLI_DISABLE_ANALYTICS setting"
+		return "To enable telemetry, remove RENDER_CLI_DISABLE_ANALYTICS from your environment."
 	case analytics.OptOutReasonAnalyticsDisabledConfig:
-		return "the analytics.disabled setting in your Render CLI config file"
+		return "To enable telemetry, remove analytics.disabled from your Render CLI config file."
 	case analytics.OptOutReasonNone:
 		// telemetrySection handles the not-opted-out case before calling this.
-		return "your settings"
+		return "To enable telemetry, check your Render CLI settings."
 	default:
 		// Keep telemetry setup best-effort if a caller constructs an invalid value.
-		return "your settings"
+		return "To enable telemetry, check your Render CLI settings."
 	}
 }
