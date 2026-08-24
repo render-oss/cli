@@ -1,4 +1,4 @@
-package welcome
+package analyticsnotice
 
 import (
 	"bytes"

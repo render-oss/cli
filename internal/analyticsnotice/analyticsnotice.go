@@ -1,4 +1,4 @@
-// Package welcome implements the CLI's first-run notice: a short welcome
+// Package analyticsnotice implements the CLI's first-run notice: a short welcome
 // message and telemetry disclosure, shown once per machine before analytics
 // can send anything in non-CI runs. CI automation bypasses the notice gate. The
 // package decides whether to show the notice, builds its copy, and persists a
@@ -6,7 +6,7 @@
 //
 // Callers must invoke [ShowIfNeeded] during pre-run, before a TUI takes over
 // the terminal, so the notice remains visible after it is recorded as shown.
-package welcome
+package analyticsnotice
 
 import (
 	"fmt"

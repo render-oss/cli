@@ -1,4 +1,4 @@
-package welcome
+package analyticsnotice
 
 import (
 	"bytes"
@@ -21,10 +21,10 @@ func (failingWriter) Write([]byte) (int, error) {
 	return 0, errors.New("write failed")
 }
 
-// setupWelcomeTest configures the CLI to use a temp config directory and returns
-// the welcome marker's path inside it, so ShowIfNeeded never touches the
+// setupNoticeTest configures the CLI to use a temp config directory and returns
+// the notice marker's path inside it, so ShowIfNeeded never touches the
 // machine's real ~/.render.
-func setupWelcomeTest(t *testing.T) (outMarkerPath string) {
+func setupNoticeTest(t *testing.T) (outMarkerPath string) {
 	t.Helper()
 
 	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
@@ -36,7 +36,7 @@ func setupWelcomeTest(t *testing.T) (outMarkerPath string) {
 
 func TestShowIfNeeded(t *testing.T) {
 	t.Run("prints the notice and records it as shown", func(t *testing.T) {
-		markerPath := setupWelcomeTest(t)
+		markerPath := setupNoticeTest(t)
 		var buf bytes.Buffer
 
 		require.True(t, ShowIfNeeded(command.NewStream(&buf), Conditions{StderrTTY: true}, analytics.OptOutReasonNone))
@@ -51,7 +51,7 @@ func TestShowIfNeeded(t *testing.T) {
 	})
 
 	t.Run("shows the opted-out confirmation when a mechanism is in effect", func(t *testing.T) {
-		setupWelcomeTest(t)
+		setupNoticeTest(t)
 		var buf bytes.Buffer
 
 		require.True(t, ShowIfNeeded(command.NewStream(&buf), Conditions{StderrTTY: true}, analytics.OptOutReasonDoNotTrack))
@@ -62,7 +62,7 @@ func TestShowIfNeeded(t *testing.T) {
 	})
 
 	t.Run("a second run shows nothing once the marker exists", func(t *testing.T) {
-		setupWelcomeTest(t)
+		setupNoticeTest(t)
 		var buf bytes.Buffer
 
 		require.True(t, ShowIfNeeded(command.NewStream(&buf), Conditions{StderrTTY: true}, analytics.OptOutReasonNone))
@@ -73,7 +73,7 @@ func TestShowIfNeeded(t *testing.T) {
 	})
 
 	t.Run("a failed notice write does not record it as shown", func(t *testing.T) {
-		markerPath := setupWelcomeTest(t)
+		markerPath := setupNoticeTest(t)
 
 		require.True(t, ShowIfNeeded(command.NewStream(failingWriter{}), Conditions{StderrTTY: true}, analytics.OptOutReasonNone))
 
@@ -82,7 +82,7 @@ func TestShowIfNeeded(t *testing.T) {
 	})
 
 	t.Run("CI permits analytics without printing or writing a marker", func(t *testing.T) {
-		markerPath := setupWelcomeTest(t)
+		markerPath := setupNoticeTest(t)
 		var buf bytes.Buffer
 
 		require.False(t, ShowIfNeeded(command.NewStream(&buf), Conditions{CI: true}, analytics.OptOutReasonNone))
@@ -93,7 +93,7 @@ func TestShowIfNeeded(t *testing.T) {
 	})
 
 	t.Run("piped stderr does not print or write a marker", func(t *testing.T) {
-		markerPath := setupWelcomeTest(t)
+		markerPath := setupNoticeTest(t)
 		var buf bytes.Buffer
 
 		require.True(t, ShowIfNeeded(command.NewStream(&buf), Conditions{}, analytics.OptOutReasonNone))
