@@ -98,6 +98,12 @@ func newAnalyticsHarness(t *testing.T, shouldSend bool) *analyticsHarness {
 	return harness
 }
 
+// analyticsNoticeMarkerPath is where the harness's isolated config directory
+// keeps the one-time notice marker.
+func (h *analyticsHarness) analyticsNoticeMarkerPath() string {
+	return filepath.Join(h.configDir, "state", "analytics-notice-shown")
+}
+
 // execute runs the provided args as a command
 func (h *analyticsHarness) execute(args ...string) command.ExecutionResult {
 	h.t.Helper()

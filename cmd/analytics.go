@@ -7,7 +7,7 @@ import (
 )
 
 func setupAnalyticsCommands(root *cobra.Command, deps *dependencies.Dependencies) {
-	root.AddCommand(newAnalyticsCmd(newAnalyticsSendCmd(deps)))
+	root.AddCommand(newAnalyticsCmd(newAnalyticsSendCmd(deps), newAnalyticsNoticeCmd(deps)))
 }
 
 func newAnalyticsCmd(children ...*cobra.Command) *cobra.Command {
