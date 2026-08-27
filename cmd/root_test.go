@@ -654,7 +654,6 @@ func TestPrepareExecutionObservationClearsRetainedState(t *testing.T) {
 	require.Equal(t, command.CompletionKindSuccess, secondResult.CompletionKind)
 	require.Equal(t, setupSucceeded, secondObservation.setup)
 	secondObservation.launchedFullScreenTUI = true
-	secondObservation.skipAnalyticsSend = true
 
 	// Preparing again returns setup to its zero value; the classifier relies on
 	// a fresh observation reading as not started.
@@ -662,43 +661,15 @@ func TestPrepareExecutionObservationClearsRetainedState(t *testing.T) {
 	require.Same(t, secondObservation, thirdObservation)
 	require.Equal(t, setupNotStarted, thirdObservation.setup)
 	require.False(t, thirdObservation.launchedFullScreenTUI)
-	require.False(t, thirdObservation.skipAnalyticsSend)
 }
 
-func TestRunExecutionOwnsObservationLifecycle(t *testing.T) {
-	root := &cobra.Command{
-		Use:  "render",
-		RunE: func(*cobra.Command, []string) error { return nil },
-	}
-
-	observation := prepareExecutionObservation(root)
-	observation.skipAnalyticsSend = true
-
-	result := runExecution(root, time.Now())
-	require.False(t, result.SkipAnalyticsSend,
-		"runExecution must clear observation state written before Cobra execution")
-
-	root.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
-		observationForCommand(cmd).skipAnalyticsSend = true
-		return nil
-	}
-
-	result = runExecution(root, time.Now())
-	require.True(t, result.SkipAnalyticsSend,
-		"runExecution must retain observation state written during Cobra execution")
-}
-
-func TestClassifiedExecutionResultIncludesExecutionObservation(t *testing.T) {
+func TestClassifiedExecutionResultIncludesFullScreenTUILaunch(t *testing.T) {
 	command := &cobra.Command{Use: "test"}
-	observation := &executionObservation{
-		launchedFullScreenTUI: true,
-		skipAnalyticsSend:     true,
-	}
+	observation := &executionObservation{launchedFullScreenTUI: true}
 
 	result := newClassifiedExecutionResult(command, nil, observation, time.Now())
 
 	require.True(t, result.LaunchedFullScreenTUI)
-	require.True(t, result.SkipAnalyticsSend)
 }
 
 func TestPrepareExecutionObservationClearsRetainedHelpRequest(t *testing.T) {
@@ -796,50 +767,6 @@ func TestCompletedCommandsEmitAnalytics(t *testing.T) {
 				"the harness must neutralize agent env so payloads match on any machine")
 			require.Empty(t, events[0].CiSignals,
 				"the harness must neutralize CI env so payloads match locally and on CI")
-		})
-	}
-}
-
-func TestOnExecutionCompleteHonorsSkipAnalyticsSend(t *testing.T) {
-	testCases := []struct {
-		name       string
-		skip       bool
-		wantEvents int
-	}{
-		{name: "skip requested", skip: true, wantEvents: 0},
-		{name: "normal execution", skip: false, wantEvents: 1},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			server := renderapi.NewServer(t)
-			configDir := t.TempDir()
-			configureAnalyticsTestEnv(t, server, configDir, true, true)
-			t.Setenv("RENDER_LOG_ANALYTICS", "1")
-
-			c, err := client.NewClientWithResponses(server.URL())
-			require.NoError(t, err)
-			deps := dependencies.New(c)
-			root := newRootCmd()
-			var stderr bytes.Buffer
-			root.SetErr(&stderr)
-			result := command.ExecutionResult{
-				AnalyticsEligible:       true,
-				AnalyticsNoticeEligible: true,
-				CommandPath:             "render postgres list",
-				CompletionKind:          command.CompletionKindSuccess,
-				SkipAnalyticsSend:       tc.skip,
-				StartedAt:               time.Now(),
-			}
-
-			onExecutionComplete(result, deps, root)
-
-			require.Len(t, server.CliTelemetry.Instances, tc.wantEvents)
-			if tc.skip {
-				require.Empty(t, stderr.String(),
-					"a skipped execution must not log an analytics payload or diagnostic")
-				requireNoAnalyticsState(t, configDir, "a skipped execution must not create analytics state")
-			}
 		})
 	}
 }

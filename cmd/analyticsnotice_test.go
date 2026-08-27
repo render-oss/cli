@@ -226,28 +226,6 @@ func TestAnalyticsNoticeOnFirstAnalyticsIneligibleUserCommand(t *testing.T) {
 	}
 }
 
-func TestSkipAnalyticsSendDoesNotSuppressNotice(t *testing.T) {
-	t.Setenv("RENDER_LOG_ANALYTICS", "1")
-	harness := newAnalyticsHarness(t, true)
-	harness.forceStderrTTY()
-	result := command.ExecutionResult{
-		AnalyticsEligible:       true,
-		AnalyticsNoticeEligible: true,
-		CommandPath:             "render future-command",
-		CompletionKind:          command.CompletionKindSuccess,
-		SkipAnalyticsSend:       true,
-	}
-
-	onExecutionComplete(result, harness.deps, harness.root)
-
-	require.Contains(t, ansi.Strip(harness.stderr.String()), "The Render CLI collects usage data")
-	require.FileExists(t, harness.analyticsNoticeMarkerPath())
-	require.Zero(t,
-		harness.countLoggedAnalyticsEvents(result.CommandPath),
-		"a skipped execution must not reach analytics logging")
-	require.Empty(t, harness.server.CliTelemetry.Instances)
-}
-
 func TestShellCompletionDoesNotPerformDisclosure(t *testing.T) {
 	testCases := []struct {
 		name string

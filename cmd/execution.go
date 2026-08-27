@@ -47,10 +47,6 @@ var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.Executi
 		}
 	}
 
-	if result.SkipAnalyticsSend {
-		return
-	}
-
 	if !result.AnalyticsEligible {
 		return
 	}
@@ -150,9 +146,6 @@ type executionObservation struct {
 	helpTargetHadArgs bool
 	// setup tracks whether root setup ran and how it concluded.
 	setup setupState
-	// skipAnalyticsSend reports that this execution must not send an analytics
-	// event; see [commandpkg.ExecutionResult.SkipAnalyticsSend] for the contract.
-	skipAnalyticsSend bool
 }
 
 // setupState describes what an execution observed of root setup, the
@@ -458,7 +451,6 @@ func newClassifiedExecutionResult(command *cobra.Command, err error, observation
 	result := newExecutionResult(resultCommand, kind, exitCodeFromError(err), startedAt)
 	result.OutputFormat = outputFormatFromExecution(resultCommand)
 	result.LaunchedFullScreenTUI = observation.launchedFullScreenTUI
-	result.SkipAnalyticsSend = observation.skipAnalyticsSend
 	return result
 }
 
