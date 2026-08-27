@@ -41,7 +41,7 @@ mutually exclusive.`,
   render kv update red-abc123def456ghi789jkl0 --name new-cache-name
 
   # Change plan
-  render kv update my-cache --plan standard
+  render kv update my-cache --plan 1g
 
   # Replace the IP allow-list (entire list, not append)
   render kv update my-cache \
@@ -58,7 +58,7 @@ mutually exclusive.`,
   render kv update my-cache --persistence-mode off
 
   # JSON output
-  render kv update red-abc123def456ghi789jkl0 --plan pro --output json`,
+  render kv update red-abc123def456ghi789jkl0 --plan 5g --output json`,
 	}
 
 	memoryPolicyDesc := `Set the eviction policy used when the instance runs out of memory.

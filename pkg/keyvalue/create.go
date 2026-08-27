@@ -3,6 +3,7 @@ package keyvalue
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"slices"
 
 	petname "github.com/dustinkirkland/golang-petname"
@@ -88,16 +89,25 @@ func (s *Service) create(ctx context.Context, input kvtypes.KeyValueCreateInput)
 	}, nil
 }
 
-// wellKnownPlanValues lists common KV plan names for help text. It is derived
-// from the generated client.KeyValuePlanValues() so newly added plans appear
-// automatically, with the "custom" sentinel filtered out: custom is not a real
-// plan name but a signal that account-specific plans exist. The API accepts
+// specPlanName matches the spec-based Key Value plan names, e.g. "256mb" or "10g"
+var specPlanName = regexp.MustCompile(`^[0-9.]+(mb|g)$`)
+
+// wellKnownPlanValues lists the KV plan names suggested in --plan help text and
+// offered in the interactive picker. It is derived from the generated
+// client.KeyValuePlanValues() so newly added plans appear automatically, narrowed
+// to the spec-based names (plus "free") and with the "custom"
+// sentinel filtered out: custom is not a real plan name but a signal that
+// account-specific plans exist. Names the CLI does not advertise remain valid
+// --plan input that passes through to the API unchanged. The API accepts
 // additional plan names not listed here, so this must not be used for validation.
 var wellKnownPlanValues = wellKnownKeyValuePlanNames()
 
 func wellKnownKeyValuePlanNames() []string {
 	plans := slices.DeleteFunc(client.KeyValuePlanValues(), func(p client.KeyValuePlan) bool {
-		return p == client.KeyValuePlanCustom
+		if p == client.KeyValuePlanCustom {
+			return true
+		}
+		return !specPlanName.MatchString(string(p)) && p != client.KeyValuePlanFree
 	})
 	out := make([]string, len(plans))
 	for i, p := range plans {
@@ -121,15 +131,23 @@ type PlanOption struct {
 	Label string
 }
 
-// planLabels maps each well-known KV plan value to its display label. Labels
+// planLabels maps each well-known KV plan value to its display label. Some labels
 // are not derivable from the plan value alone (e.g. "pro_plus" → "Pro Plus"),
 // so they are curated here.
 var planLabels = map[string]string{
-	string(kvtypes.PlanFree):     "Free",
-	string(kvtypes.PlanStarter):  "Starter",
-	string(kvtypes.PlanStandard): "Standard",
-	string(kvtypes.PlanPro):      "Pro",
-	string(kvtypes.PlanProPlus):  "Pro Plus",
+	string(client.KeyValuePlanFree): "Free",
+
+	string(client.KeyValuePlanN256mb): "256mb",
+	string(client.KeyValuePlanN1g):    "1g",
+	string(client.KeyValuePlanN5g):    "5g",
+	string(client.KeyValuePlanN10g):   "10g",
+	string(client.KeyValuePlanN20g):   "20g",
+	string(client.KeyValuePlanN40g):   "40g",
+
+	string(client.KeyValuePlanStarter):  "Starter",
+	string(client.KeyValuePlanStandard): "Standard",
+	string(client.KeyValuePlanPro):      "Pro",
+	string(client.KeyValuePlanProPlus):  "Pro Plus",
 }
 
 // PlanOptions returns the well-known KV plans with display labels for interactive
@@ -139,7 +157,11 @@ var planLabels = map[string]string{
 func PlanOptions() []PlanOption {
 	out := make([]PlanOption, 0, len(wellKnownPlanValues))
 	for _, v := range wellKnownPlanValues {
-		out = append(out, PlanOption{Value: v, Label: planLabels[v]})
+		label, ok := planLabels[v]
+		if !ok {
+			label = v
+		}
+		out = append(out, PlanOption{Value: v, Label: label})
 	}
 	return out
 }

@@ -25,7 +25,7 @@ Provide configuration updates with flags.`,
   render services update my-service --name my-new-name --output json
 
   # Change a service plan
-  render services update srv-abc123 --plan pro --output json`,
+  render services update srv-abc123 --plan 2c-4g --output json`,
 	}
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {

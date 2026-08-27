@@ -726,7 +726,7 @@ func (m *PostgresCreateModel) buildHAForm() *huh.Form {
 	return huh.NewForm(huh.NewGroup(
 		huh.NewConfirm().
 			Title("Enable High Availability?").
-			Description("Deploys a standby replica in a separate availability zone. Requires a Pro plan or higher.").
+			Description("Deploys a standby replica in a separate availability zone. Requires a plan with at least 1 CPU.").
 			Value(&m.confirmValue),
 	)).WithShowHelp(false)
 }

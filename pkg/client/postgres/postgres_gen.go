@@ -26,6 +26,29 @@ const (
 	Basic4gb          PostgresPlans = "basic_4gb"
 	Custom            PostgresPlans = "custom"
 	Free              PostgresPlans = "free"
+	N01c256mb         PostgresPlans = "0.1c-256mb"
+	N05c1g            PostgresPlans = "0.5c-1g"
+	N128c1024g        PostgresPlans = "128c-1024g"
+	N128c512g         PostgresPlans = "128c-512g"
+	N16c128g          PostgresPlans = "16c-128g"
+	N16c64g           PostgresPlans = "16c-64g"
+	N1c2g             PostgresPlans = "1c-2g"
+	N1c4g             PostgresPlans = "1c-4g"
+	N2c16g            PostgresPlans = "2c-16g"
+	N2c4g             PostgresPlans = "2c-4g"
+	N2c8g             PostgresPlans = "2c-8g"
+	N32c128g          PostgresPlans = "32c-128g"
+	N32c256g          PostgresPlans = "32c-256g"
+	N48c192g          PostgresPlans = "48c-192g"
+	N48c384g          PostgresPlans = "48c-384g"
+	N4c16g            PostgresPlans = "4c-16g"
+	N4c32g            PostgresPlans = "4c-32g"
+	N64c256g          PostgresPlans = "64c-256g"
+	N64c512g          PostgresPlans = "64c-512g"
+	N8c32g            PostgresPlans = "8c-32g"
+	N8c64g            PostgresPlans = "8c-64g"
+	N96c384g          PostgresPlans = "96c-384g"
+	N96c768g          PostgresPlans = "96c-768g"
 	Pro               PostgresPlans = "pro"
 	Pro128gb          PostgresPlans = "pro_128gb"
 	Pro16gb           PostgresPlans = "pro_16gb"
@@ -72,6 +95,52 @@ func (e PostgresPlans) Valid() bool {
 	case Custom:
 		return true
 	case Free:
+		return true
+	case N01c256mb:
+		return true
+	case N05c1g:
+		return true
+	case N128c1024g:
+		return true
+	case N128c512g:
+		return true
+	case N16c128g:
+		return true
+	case N16c64g:
+		return true
+	case N1c2g:
+		return true
+	case N1c4g:
+		return true
+	case N2c16g:
+		return true
+	case N2c4g:
+		return true
+	case N2c8g:
+		return true
+	case N32c128g:
+		return true
+	case N32c256g:
+		return true
+	case N48c192g:
+		return true
+	case N48c384g:
+		return true
+	case N4c16g:
+		return true
+	case N4c32g:
+		return true
+	case N64c256g:
+		return true
+	case N64c512g:
+		return true
+	case N8c32g:
+		return true
+	case N8c64g:
+		return true
+	case N96c384g:
+		return true
+	case N96c768g:
 		return true
 	case Pro:
 		return true

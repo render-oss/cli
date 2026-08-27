@@ -13,14 +13,39 @@ type PlanMetadata struct {
 	HAEligible bool
 }
 
-// planMetadata carries the display label and HA eligibility for every modern
-// Postgres plan. Legacy and custom plans are intentionally  absent (they never
+// planMetadata carries the display label and HA eligibility of every plan name the
+// CLI recognizes. Legacy and custom plans are intentionally  absent (they never
 // reach the interactive picker).
 var planMetadata = map[string]PlanMetadata{
-	string(pgclient.Free):       {Label: "Free"},
+	string(pgclient.Free): {Label: "Free"},
+
+	string(pgclient.N01c256mb):  {Label: "0.1c-256mb"},
+	string(pgclient.N05c1g):     {Label: "0.5c-1g"},
+	string(pgclient.N1c2g):      {Label: "1c-2g", HAEligible: true},
+	string(pgclient.N1c4g):      {Label: "1c-4g", HAEligible: true},
+	string(pgclient.N2c4g):      {Label: "2c-4g", HAEligible: true},
+	string(pgclient.N2c8g):      {Label: "2c-8g", HAEligible: true},
+	string(pgclient.N2c16g):     {Label: "2c-16g", HAEligible: true},
+	string(pgclient.N4c16g):     {Label: "4c-16g", HAEligible: true},
+	string(pgclient.N4c32g):     {Label: "4c-32g", HAEligible: true},
+	string(pgclient.N8c32g):     {Label: "8c-32g", HAEligible: true},
+	string(pgclient.N8c64g):     {Label: "8c-64g", HAEligible: true},
+	string(pgclient.N16c64g):    {Label: "16c-64g", HAEligible: true},
+	string(pgclient.N16c128g):   {Label: "16c-128g", HAEligible: true},
+	string(pgclient.N32c128g):   {Label: "32c-128g", HAEligible: true},
+	string(pgclient.N32c256g):   {Label: "32c-256g", HAEligible: true},
+	string(pgclient.N48c192g):   {Label: "48c-192g", HAEligible: true},
+	string(pgclient.N48c384g):   {Label: "48c-384g", HAEligible: true},
+	string(pgclient.N64c256g):   {Label: "64c-256g", HAEligible: true},
+	string(pgclient.N64c512g):   {Label: "64c-512g", HAEligible: true},
+	string(pgclient.N96c384g):   {Label: "96c-384g", HAEligible: true},
+	string(pgclient.N96c768g):   {Label: "96c-768g", HAEligible: true},
+	string(pgclient.N128c512g):  {Label: "128c-512g", HAEligible: true},
+	string(pgclient.N128c1024g): {Label: "128c-1024g", HAEligible: true},
+
 	string(pgclient.Basic256mb): {Label: "Basic 256MB"},
 	string(pgclient.Basic1gb):   {Label: "Basic 1GB"},
-	string(pgclient.Basic4gb):   {Label: "Basic 4GB"},
+	string(pgclient.Basic4gb):   {Label: "Basic 4GB", HAEligible: true},
 
 	string(pgclient.Pro4gb):   {Label: "Pro 4GB", HAEligible: true},
 	string(pgclient.Pro8gb):   {Label: "Pro 8GB", HAEligible: true},

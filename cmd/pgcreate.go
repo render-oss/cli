@@ -38,7 +38,7 @@ printed as text. Use --output json, yaml, or text for non-interactive output.`,
   render pg create --confirm
 
   # Create immediately with explicit values
-  render pg create --confirm --name analytics --plan pro_8gb --version 17 --region ohio
+  render pg create --confirm --name analytics --plan 2c-8g --version 17 --region ohio
 
   # Include flag-only settings while using the wizard for prompted values
   render pg create \
@@ -65,7 +65,7 @@ printed as text. Use --output json, yaml, or text for non-interactive output.`,
 
 	cmd.Flags().Int("disk-size-gb", 0, "Set the disk size in GB. Must be 1 or a multiple of 5. Server picks a sensible default based on compute size if unset.")
 	cmd.Flags().Bool("disk-autoscaling", false, "Enable disk autoscaling")
-	cmd.Flags().Bool("high-availability", false, "Enable high availability (Pro plans and above)")
+	cmd.Flags().Bool("high-availability", false, "Enable high availability (available for plans with at least 1 CPU)")
 
 	cmd.Flags().String("datadog-api-key", "", "Set the Datadog API key for monitoring")
 	cmd.Flags().String("datadog-site", "", "Set the Datadog region/site (e.g. US1, US3, EU). Server default is US1.")

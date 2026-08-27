@@ -45,7 +45,7 @@ mutually exclusive.`,
   render pg update dpg-abc123def456ghi789jkl0 --name application_db
 
   # Change plan
-  render pg update my-db --plan pro_4gb
+  render pg update my-db --plan 1c-4g
 
   # Grow the disk and enable autoscaling
   render pg update my-db --disk-size-gb 50 --disk-autoscaling
@@ -59,10 +59,10 @@ mutually exclusive.`,
   render pg update my-db --clear-ip-allow-list
 
   # Disambiguate a name that exists in multiple environments
-  render pg update my-db --environment production --plan pro_8gb
+  render pg update my-db --environment production --plan 2c-8g
 
   # JSON output
-  render pg update dpg-abc123def456ghi789jkl0 --plan pro_4gb --output json`,
+  render pg update dpg-abc123def456ghi789jkl0 --plan 1c-4g --output json`,
 	}
 
 	cmd.Flags().String("project", "",
@@ -75,7 +75,7 @@ mutually exclusive.`,
 
 	cmd.Flags().Int("disk-size-gb", 0, "Set the disk size in GB. Must be 1 or a multiple of 5.")
 	cmd.Flags().Bool("disk-autoscaling", false, "Enable disk autoscaling. Pass --disk-autoscaling=false to disable.")
-	cmd.Flags().Bool("high-availability", false, "Enable high availability (Pro plans and above). Pass --high-availability=false to disable.")
+	cmd.Flags().Bool("high-availability", false, "Enable high availability (available for plans with at least 1 CPU). Pass --high-availability=false to disable.")
 
 	cmd.Flags().String("datadog-api-key", "", "Set the Datadog API key for monitoring. Pass an empty string to remove.")
 	cmd.Flags().String("datadog-site", "", "Set the Datadog region/site (e.g. US1, US3, EU)")

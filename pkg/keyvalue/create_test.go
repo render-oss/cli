@@ -14,12 +14,14 @@ import (
 func TestPlanValues(t *testing.T) {
 	values := keyvalue.PlanValues()
 	assert.Contains(t, values, "free")
-	assert.Contains(t, values, "starter")
-	assert.Contains(t, values, "standard")
-	assert.Contains(t, values, "pro")
-	assert.Contains(t, values, "pro_plus")
+	assert.Contains(t, values, "256mb")
+	assert.Contains(t, values, "1g")
+	assert.Contains(t, values, "5g")
+	assert.Contains(t, values, "10g")
+	assert.Contains(t, values, "20g")
+	assert.Contains(t, values, "40g")
 	assert.NotContains(t, values, "custom", "although 'custom' is generated as an enum value in the OpenAPI spec, it is not actually a valid plan name, and instead an indicator that other plans exist")
-	assert.Len(t, values, 5)
+	assert.Len(t, values, 7)
 }
 
 // TestPlanOptions is a completeness guard: every well-known plan returned by
@@ -34,6 +36,94 @@ func TestPlanOptions(t *testing.T) {
 	for i, opt := range options {
 		assert.Equal(t, values[i], opt.Value, "PlanOptions must preserve PlanValues order")
 		assert.NotEmpty(t, opt.Label, "plan %q is missing a display label", opt.Value)
+	}
+}
+
+// advertisedPlans lists every KV plan the CLI advertises, with the display label
+// the picker must show for it. Spelling the expectations out here rather than
+// reusing the production list keeps this an independent check on which names
+// reach users, so a plan added to the schema forces a conscious update.
+var advertisedPlans = []struct {
+	plan  client.KeyValuePlan
+	label string
+}{
+	// free has no spec-based name, but it is a real offering users pick, so it
+	// stays advertised alongside the spec-based names.
+	{plan: client.KeyValuePlanFree, label: "Free"},
+
+	{plan: "256mb", label: "256mb"},
+	{plan: "1g", label: "1g"},
+	{plan: "5g", label: "5g"},
+	{plan: "10g", label: "10g"},
+	{plan: "20g", label: "20g"},
+	{plan: "40g", label: "40g"},
+}
+
+// unadvertisedPlans lists the older KV plan names that remain valid --plan input
+// the CLI passes through to the API, but that no longer appear in help text or
+// the interactive picker.
+var unadvertisedPlans = []client.KeyValuePlan{
+	client.KeyValuePlanStarter,
+	client.KeyValuePlanStandard,
+	client.KeyValuePlanPro,
+	client.KeyValuePlanProPlus,
+}
+
+// TestAdvertisedPlans checks that PlanValues and PlanOptions offer exactly the
+// advertised plans with their labels, and that BuildCreateRequest passes each
+// through unchanged. That the rendered --plan help matches PlanValues is covered
+// by TestPlanFlagHelpOffersTheAdvertisedPlans in the cmd package.
+func TestAdvertisedPlans(t *testing.T) {
+	values := keyvalue.PlanValues()
+	labels := map[string]string{}
+	for _, opt := range keyvalue.PlanOptions() {
+		labels[opt.Value] = opt.Label
+	}
+
+	wantValues := make([]string, 0, len(advertisedPlans))
+	for _, tc := range advertisedPlans {
+		wantValues = append(wantValues, string(tc.plan))
+	}
+	assert.ElementsMatch(t, wantValues, values,
+		"update advertisedPlans when the schema changes which plans are advertised")
+
+	for _, tc := range advertisedPlans {
+		t.Run(string(tc.plan), func(t *testing.T) {
+			assert.True(t, tc.plan.Valid(), "%q must be a valid KeyValuePlan value", tc.plan)
+			assert.Contains(t, values, string(tc.plan),
+				"%q must be advertised", tc.plan)
+			assert.Equal(t, tc.label, labels[string(tc.plan)])
+
+			body, err := keyvalue.BuildCreateRequest(kvtypes.KeyValueCreateRequestInput{
+				Name:    "my-kv",
+				OwnerID: "tea-owner-abc",
+				Plan:    string(tc.plan),
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tc.plan, body.Plan, "--plan must reach the API unchanged")
+		})
+	}
+}
+
+// TestUnadvertisedPlansAreStillAccepted covers the older names: each is a valid
+// value that --plan passes through, it just is not advertised.
+func TestUnadvertisedPlansAreStillAccepted(t *testing.T) {
+	values := keyvalue.PlanValues()
+
+	for _, plan := range unadvertisedPlans {
+		t.Run(string(plan), func(t *testing.T) {
+			assert.True(t, plan.Valid(), "%q must be a valid KeyValuePlan value", plan)
+			assert.NotContains(t, values, string(plan),
+				"%q must not be advertised", plan)
+
+			body, err := keyvalue.BuildCreateRequest(kvtypes.KeyValueCreateRequestInput{
+				Name:    "my-kv",
+				OwnerID: "tea-owner-abc",
+				Plan:    string(plan),
+			})
+			require.NoError(t, err)
+			assert.Equal(t, plan, body.Plan, "--plan must reach the API unchanged")
+		})
 	}
 }
 

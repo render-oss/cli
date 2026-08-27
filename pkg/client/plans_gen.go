@@ -23,6 +23,20 @@ func PlanValues() []Plan {
 		Plan("standard_plus_legacy"),
 		Plan("pro_legacy"),
 		Plan("pro_plus_legacy"),
+		Plan("0.5c-512mb"),
+		Plan("1c-2g"),
+		Plan("2c-4g"),
+		Plan("2c-8g"),
+		Plan("2c-16g"),
+		Plan("4c-8g"),
+		Plan("4c-16g"),
+		Plan("4c-32g"),
+		Plan("8c-16g"),
+		Plan("8c-32g"),
+		Plan("8c-64g"),
+		Plan("12c-24g"),
+		Plan("12c-48g"),
+		Plan("12c-96g"),
 	}
 }
 
@@ -36,6 +50,20 @@ func PaidPlanValues() []PaidPlan {
 		PaidPlan("pro_plus"),
 		PaidPlan("pro_max"),
 		PaidPlan("pro_ultra"),
+		PaidPlan("0.5c-512mb"),
+		PaidPlan("1c-2g"),
+		PaidPlan("2c-4g"),
+		PaidPlan("2c-8g"),
+		PaidPlan("2c-16g"),
+		PaidPlan("4c-8g"),
+		PaidPlan("4c-16g"),
+		PaidPlan("4c-32g"),
+		PaidPlan("8c-16g"),
+		PaidPlan("8c-32g"),
+		PaidPlan("8c-64g"),
+		PaidPlan("12c-24g"),
+		PaidPlan("12c-48g"),
+		PaidPlan("12c-96g"),
 	}
 }
 
@@ -49,6 +77,12 @@ func KeyValuePlanValues() []KeyValuePlan {
 		KeyValuePlan("pro"),
 		KeyValuePlan("pro_plus"),
 		KeyValuePlan("custom"),
+		KeyValuePlan("256mb"),
+		KeyValuePlan("1g"),
+		KeyValuePlan("5g"),
+		KeyValuePlan("10g"),
+		KeyValuePlan("20g"),
+		KeyValuePlan("40g"),
 	}
 }
 
@@ -62,5 +96,11 @@ func RedisPlanValues() []RedisPlan {
 		RedisPlan("pro"),
 		RedisPlan("pro_plus"),
 		RedisPlan("custom"),
+		RedisPlan("256mb"),
+		RedisPlan("1g"),
+		RedisPlan("5g"),
+		RedisPlan("10g"),
+		RedisPlan("20g"),
+		RedisPlan("40g"),
 	}
 }

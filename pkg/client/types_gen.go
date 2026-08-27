@@ -660,6 +660,12 @@ func (e InternalRouting) Valid() bool {
 const (
 	KeyValuePlanCustom   KeyValuePlan = "custom"
 	KeyValuePlanFree     KeyValuePlan = "free"
+	KeyValuePlanN10g     KeyValuePlan = "10g"
+	KeyValuePlanN1g      KeyValuePlan = "1g"
+	KeyValuePlanN20g     KeyValuePlan = "20g"
+	KeyValuePlanN256mb   KeyValuePlan = "256mb"
+	KeyValuePlanN40g     KeyValuePlan = "40g"
+	KeyValuePlanN5g      KeyValuePlan = "5g"
 	KeyValuePlanPro      KeyValuePlan = "pro"
 	KeyValuePlanProPlus  KeyValuePlan = "pro_plus"
 	KeyValuePlanStandard KeyValuePlan = "standard"
@@ -672,6 +678,18 @@ func (e KeyValuePlan) Valid() bool {
 	case KeyValuePlanCustom:
 		return true
 	case KeyValuePlanFree:
+		return true
+	case KeyValuePlanN10g:
+		return true
+	case KeyValuePlanN1g:
+		return true
+	case KeyValuePlanN20g:
+		return true
+	case KeyValuePlanN256mb:
+		return true
+	case KeyValuePlanN40g:
+		return true
+	case KeyValuePlanN5g:
 		return true
 	case KeyValuePlanPro:
 		return true
@@ -781,17 +799,59 @@ func (e OwnerType) Valid() bool {
 
 // Defines values for PaidPlan.
 const (
-	PaidPlanPro      PaidPlan = "pro"
-	PaidPlanProMax   PaidPlan = "pro_max"
-	PaidPlanProPlus  PaidPlan = "pro_plus"
-	PaidPlanProUltra PaidPlan = "pro_ultra"
-	PaidPlanStandard PaidPlan = "standard"
-	PaidPlanStarter  PaidPlan = "starter"
+	PaidPlanN05c512mb PaidPlan = "0.5c-512mb"
+	PaidPlanN12c24g   PaidPlan = "12c-24g"
+	PaidPlanN12c48g   PaidPlan = "12c-48g"
+	PaidPlanN12c96g   PaidPlan = "12c-96g"
+	PaidPlanN1c2g     PaidPlan = "1c-2g"
+	PaidPlanN2c16g    PaidPlan = "2c-16g"
+	PaidPlanN2c4g     PaidPlan = "2c-4g"
+	PaidPlanN2c8g     PaidPlan = "2c-8g"
+	PaidPlanN4c16g    PaidPlan = "4c-16g"
+	PaidPlanN4c32g    PaidPlan = "4c-32g"
+	PaidPlanN4c8g     PaidPlan = "4c-8g"
+	PaidPlanN8c16g    PaidPlan = "8c-16g"
+	PaidPlanN8c32g    PaidPlan = "8c-32g"
+	PaidPlanN8c64g    PaidPlan = "8c-64g"
+	PaidPlanPro       PaidPlan = "pro"
+	PaidPlanProMax    PaidPlan = "pro_max"
+	PaidPlanProPlus   PaidPlan = "pro_plus"
+	PaidPlanProUltra  PaidPlan = "pro_ultra"
+	PaidPlanStandard  PaidPlan = "standard"
+	PaidPlanStarter   PaidPlan = "starter"
 )
 
 // Valid indicates whether the value is a known member of the PaidPlan enum.
 func (e PaidPlan) Valid() bool {
 	switch e {
+	case PaidPlanN05c512mb:
+		return true
+	case PaidPlanN12c24g:
+		return true
+	case PaidPlanN12c48g:
+		return true
+	case PaidPlanN12c96g:
+		return true
+	case PaidPlanN1c2g:
+		return true
+	case PaidPlanN2c16g:
+		return true
+	case PaidPlanN2c4g:
+		return true
+	case PaidPlanN2c8g:
+		return true
+	case PaidPlanN4c16g:
+		return true
+	case PaidPlanN4c32g:
+		return true
+	case PaidPlanN4c8g:
+		return true
+	case PaidPlanN8c16g:
+		return true
+	case PaidPlanN8c32g:
+		return true
+	case PaidPlanN8c64g:
+		return true
 	case PaidPlanPro:
 		return true
 	case PaidPlanProMax:
@@ -834,6 +894,20 @@ func (e PersistenceMode) Valid() bool {
 const (
 	PlanCustom             Plan = "custom"
 	PlanFree               Plan = "free"
+	PlanN05c512mb          Plan = "0.5c-512mb"
+	PlanN12c24g            Plan = "12c-24g"
+	PlanN12c48g            Plan = "12c-48g"
+	PlanN12c96g            Plan = "12c-96g"
+	PlanN1c2g              Plan = "1c-2g"
+	PlanN2c16g             Plan = "2c-16g"
+	PlanN2c4g              Plan = "2c-4g"
+	PlanN2c8g              Plan = "2c-8g"
+	PlanN4c16g             Plan = "4c-16g"
+	PlanN4c32g             Plan = "4c-32g"
+	PlanN4c8g              Plan = "4c-8g"
+	PlanN8c16g             Plan = "8c-16g"
+	PlanN8c32g             Plan = "8c-32g"
+	PlanN8c64g             Plan = "8c-64g"
 	PlanPro                Plan = "pro"
 	PlanProLegacy          Plan = "pro_legacy"
 	PlanProMax             Plan = "pro_max"
@@ -855,6 +929,34 @@ func (e Plan) Valid() bool {
 	case PlanCustom:
 		return true
 	case PlanFree:
+		return true
+	case PlanN05c512mb:
+		return true
+	case PlanN12c24g:
+		return true
+	case PlanN12c48g:
+		return true
+	case PlanN12c96g:
+		return true
+	case PlanN1c2g:
+		return true
+	case PlanN2c16g:
+		return true
+	case PlanN2c4g:
+		return true
+	case PlanN2c8g:
+		return true
+	case PlanN4c16g:
+		return true
+	case PlanN4c32g:
+		return true
+	case PlanN4c8g:
+		return true
+	case PlanN8c16g:
+		return true
+	case PlanN8c32g:
+		return true
+	case PlanN8c64g:
 		return true
 	case PlanPro:
 		return true
@@ -1018,6 +1120,12 @@ func (e PullRequestPreviewsEnabled) Valid() bool {
 
 // Defines values for RedisPlan.
 const (
+	RedisPlan10g      RedisPlan = "10g"
+	RedisPlan1g       RedisPlan = "1g"
+	RedisPlan20g      RedisPlan = "20g"
+	RedisPlan256mb    RedisPlan = "256mb"
+	RedisPlan40g      RedisPlan = "40g"
+	RedisPlan5g       RedisPlan = "5g"
 	RedisPlanCustom   RedisPlan = "custom"
 	RedisPlanFree     RedisPlan = "free"
 	RedisPlanPro      RedisPlan = "pro"
@@ -1029,6 +1137,18 @@ const (
 // Valid indicates whether the value is a known member of the RedisPlan enum.
 func (e RedisPlan) Valid() bool {
 	switch e {
+	case RedisPlan10g:
+		return true
+	case RedisPlan1g:
+		return true
+	case RedisPlan20g:
+		return true
+	case RedisPlan256mb:
+		return true
+	case RedisPlan40g:
+		return true
+	case RedisPlan5g:
+		return true
 	case RedisPlanCustom:
 		return true
 	case RedisPlanFree:
@@ -1675,7 +1795,7 @@ type BackgroundWorkerDetails struct {
 	NumInstances int       `json:"numInstances"`
 	ParentServer *Resource `json:"parentServer,omitempty"`
 
-	// Plan The instance type to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
+	// Plan The compute plan to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid compute plan can't create preview instances with the `free` plan.
 	//
 	// Example: starter
 	Plan     Plan      `json:"plan"`
@@ -1702,7 +1822,7 @@ type BackgroundWorkerDetailsPATCH struct {
 	// MaxShutdownDelaySeconds The maximum amount of time (in seconds) that Render waits for your application process to exit gracefully after sending it a SIGTERM signal.
 	MaxShutdownDelaySeconds *MaxShutdownDelaySeconds `json:"maxShutdownDelaySeconds,omitempty"`
 
-	// Plan Defaults to `starter` when creating a new database.
+	// Plan Defaults to `0.5c-512mb` when creating a new service.
 	Plan             *PaidPlan `json:"plan,omitempty"`
 	PreDeployCommand *string   `json:"preDeployCommand,omitempty"`
 	Previews         *Previews `json:"previews,omitempty"`
@@ -1732,7 +1852,7 @@ type BackgroundWorkerDetailsPOST struct {
 	// NumInstances Defaults to 1
 	NumInstances *int `json:"numInstances,omitempty"`
 
-	// Plan Defaults to `starter` when creating a new database.
+	// Plan Defaults to `0.5c-512mb` when creating a new service.
 	Plan             *PaidPlan `json:"plan,omitempty"`
 	PreDeployCommand *string   `json:"preDeployCommand,omitempty"`
 	Previews         *Previews `json:"previews,omitempty"`
@@ -1789,7 +1909,7 @@ type CronJobDetails struct {
 	EnvSpecificDetails  EnvSpecificDetails `json:"envSpecificDetails"`
 	LastSuccessfulRunAt *time.Time         `json:"lastSuccessfulRunAt,omitempty"`
 
-	// Plan The instance type to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
+	// Plan The compute plan to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid compute plan can't create preview instances with the `free` plan.
 	//
 	// Example: starter
 	Plan Plan `json:"plan"`
@@ -1806,7 +1926,7 @@ type CronJobDetails struct {
 type CronJobDetailsPATCH struct {
 	EnvSpecificDetails *EnvSpecificDetailsPATCH `json:"envSpecificDetails,omitempty"`
 
-	// Plan Defaults to `starter` when creating a new database.
+	// Plan Defaults to `0.5c-512mb` when creating a new service.
 	Plan *PaidPlan `json:"plan,omitempty"`
 
 	// Runtime Runtime
@@ -1823,7 +1943,7 @@ type CronJobDetailsPOST struct {
 	Env                *ServiceEnv         `json:"env,omitempty"`
 	EnvSpecificDetails *EnvSpecificDetails `json:"envSpecificDetails,omitempty"`
 
-	// Plan Defaults to `starter` when creating a new database.
+	// Plan Defaults to `0.5c-512mb` when creating a new service.
 	Plan *PaidPlan `json:"plan,omitempty"`
 
 	// Region Defaults to "oregon"
@@ -2476,13 +2596,13 @@ type OwnerWithCursor struct {
 	Owner  *Owner  `json:"owner,omitempty"`
 }
 
-// PaidPlan Defaults to `starter` when creating a new database.
+// PaidPlan Defaults to `0.5c-512mb` when creating a new service.
 type PaidPlan string
 
 // PersistenceMode The persistence mode for the Key Value instance. The default for paid instances is journal_snapshot (both journaling and snapshots). Only turn off persistence if you're using this Key Value instance as a cache and are okay with losing data. Free instances do not have persistence.
 type PersistenceMode string
 
-// Plan The instance type to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
+// Plan The compute plan to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid compute plan can't create preview instances with the `free` plan.
 //
 // Example: starter
 type Plan string
@@ -2680,7 +2800,7 @@ type PreviewInput struct {
 	// Example: preview
 	Name *string `json:"name,omitempty"`
 
-	// Plan The instance type to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
+	// Plan The compute plan to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid compute plan can't create preview instances with the `free` plan.
 	//
 	// Example: starter
 	Plan *Plan `json:"plan,omitempty"`
@@ -2714,7 +2834,7 @@ type PrivateServiceDetails struct {
 	OpenPorts    []ServerPort `json:"openPorts"`
 	ParentServer *Resource    `json:"parentServer,omitempty"`
 
-	// Plan The instance type to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
+	// Plan The compute plan to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid compute plan can't create preview instances with the `free` plan.
 	//
 	// Example: starter
 	Plan     Plan      `json:"plan"`
@@ -2742,7 +2862,7 @@ type PrivateServiceDetailsPATCH struct {
 	// MaxShutdownDelaySeconds The maximum amount of time (in seconds) that Render waits for your application process to exit gracefully after sending it a SIGTERM signal.
 	MaxShutdownDelaySeconds *MaxShutdownDelaySeconds `json:"maxShutdownDelaySeconds,omitempty"`
 
-	// Plan Defaults to `starter` when creating a new database.
+	// Plan Defaults to `0.5c-512mb` when creating a new service.
 	Plan             *PaidPlan `json:"plan,omitempty"`
 	PreDeployCommand *string   `json:"preDeployCommand,omitempty"`
 	Previews         *Previews `json:"previews,omitempty"`
@@ -2772,7 +2892,7 @@ type PrivateServiceDetailsPOST struct {
 	// NumInstances Defaults to 1
 	NumInstances *int `json:"numInstances,omitempty"`
 
-	// Plan Defaults to `starter` when creating a new database.
+	// Plan Defaults to `0.5c-512mb` when creating a new service.
 	Plan             *PaidPlan `json:"plan,omitempty"`
 	PreDeployCommand *string   `json:"preDeployCommand,omitempty"`
 	Previews         *Previews `json:"previews,omitempty"`
@@ -3420,7 +3540,7 @@ type WebServiceDetails struct {
 	OpenPorts    []ServerPort `json:"openPorts"`
 	ParentServer *Resource    `json:"parentServer,omitempty"`
 
-	// Plan The instance type to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
+	// Plan The compute plan to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid compute plan can't create preview instances with the `free` plan.
 	//
 	// Example: starter
 	Plan     Plan      `json:"plan"`
@@ -3455,7 +3575,7 @@ type WebServiceDetailsPATCH struct {
 	// MaxShutdownDelaySeconds The maximum amount of time (in seconds) that Render waits for your application process to exit gracefully after sending it a SIGTERM signal.
 	MaxShutdownDelaySeconds *MaxShutdownDelaySeconds `json:"maxShutdownDelaySeconds,omitempty"`
 
-	// Plan The instance type to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
+	// Plan The compute plan to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid compute plan can't create preview instances with the `free` plan.
 	//
 	// Example: starter
 	Plan             *Plan     `json:"plan,omitempty"`
@@ -3496,7 +3616,7 @@ type WebServiceDetailsPOST struct {
 	// NumInstances Defaults to 1
 	NumInstances *int `json:"numInstances,omitempty"`
 
-	// Plan The instance type to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid instance type can't create preview instances with the `free` instance type.
+	// Plan The compute plan to use. Legacy variants (`*_legacy`) identify grandfathered plans no longer offered for new services. Note that base services on any paid compute plan can't create preview instances with the `free` plan.
 	//
 	// Example: starter
 	Plan             *Plan     `json:"plan,omitempty"`
