@@ -72,11 +72,13 @@ func New(apiClient *client.ClientWithResponses) *Sender {
 	// gate open and any opt-out mechanism set sends nothing, so the consent
 	// path is live end to end before the default ever changes.
 	//
-	// Deleting the cfg.AnalyticsDevGateOpen() term is the change that flips
-	// the CLI from opt-in to opt-out (GROW-3146), leaving user consent and
-	// client presence as the only conditions. Until then, order matters: the
-	// dev gate short-circuits first, so builds with the gate closed never
-	// read the config file that consent lives in.
+	// Flipping the CLI from opt-in to opt-out (GROW-3146) requires three
+	// coordinated changes: delete the cfg.AnalyticsDevGateOpen() term here,
+	// remove the closed-gate return from analyticsnotice.ShowIfNeeded, and make
+	// onExecutionComplete enforce analyticsnotice.CanSend unconditionally.
+	// Until then, order matters here: the dev gate short-circuits first, so
+	// builds with the gate closed never read the config file that consent lives
+	// in.
 	sendingEnabled := cfg.AnalyticsDevGateOpen() && ResolveConsent().Granted && apiClient != nil
 
 	return newSender(

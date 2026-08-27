@@ -40,10 +40,10 @@ func ShouldLogAnalytics() bool {
 	return os.Getenv("RENDER_LOG_ANALYTICS") == "1"
 }
 
-// AnalyticsDevGateOpen reports whether the internal development gate on
-// sending analytics events is open, via RENDER_TEST_ENABLE_ANALYTICS=1. While
-// the analytics system rolls out, sending is off by default and requires this
-// explicit opt-in on top of the user not having opted out.
+// AnalyticsDevGateOpen reports whether the internal analytics rollout gate is
+// open, via RENDER_TEST_ENABLE_ANALYTICS=1. Before we roll out the analytics
+// system in production, sending events and showing the user-facing notice are
+// both off by default and require this explicit opt-in.
 func AnalyticsDevGateOpen() bool {
 	return os.Getenv("RENDER_TEST_ENABLE_ANALYTICS") == "1"
 }

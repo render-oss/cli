@@ -4,6 +4,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -836,12 +837,106 @@ func TestOnExecutionCompleteHonorsSkipAnalyticsSend(t *testing.T) {
 			if tc.skip {
 				require.Empty(t, stderr.String(),
 					"a skipped execution must not log an analytics payload or diagnostic")
-				_, err := os.Stat(filepath.Join(configDir, "state"))
-				require.ErrorIs(t, err, os.ErrNotExist,
-					"a skipped execution must not create analytics state")
+				requireNoAnalyticsState(t, configDir, "a skipped execution must not create analytics state")
 			}
 		})
 	}
+}
+
+func TestOnExecutionCompleteAnalyticsSendRequiresDisclosure(t *testing.T) {
+	testCases := []struct {
+		name             string
+		marker           bool
+		signals          command.RuntimeSignals
+		runtimeSignalErr error
+		ciEnv            string
+		wantEvents       int
+	}{
+		{name: "notice marker exists", marker: true, wantEvents: 1},
+		{name: "notice marker does not exist", marker: false, wantEvents: 0},
+		{
+			name:       "CI bypasses notice marker",
+			marker:     false,
+			signals:    command.RuntimeSignals{CI: true},
+			wantEvents: 1,
+		},
+		{
+			name:             "CI bypass survives runtime signal error",
+			marker:           false,
+			runtimeSignalErr: errors.New("invalid RENDER_OUTPUT value"),
+			ciEnv:            "1",
+			wantEvents:       1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("RENDER_LOG_ANALYTICS", "1")
+			harness := newAnalyticsHarness(t, true)
+			configureAnalyticsTestEnv(t, harness.server, harness.configDir, true, true)
+			t.Setenv("CI", tc.ciEnv)
+			if !tc.marker {
+				require.NoError(t, os.Remove(harness.analyticsNoticeMarkerPath()))
+			}
+			harness.reloadDependencies()
+			harness.deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
+				return tc.signals, tc.runtimeSignalErr
+			}
+
+			result := command.ExecutionResult{
+				AnalyticsEligible: true,
+				CommandPath:       "render future-command",
+				CompletionKind:    command.CompletionKindSuccess,
+				StartedAt:         time.Now(),
+			}
+
+			onExecutionComplete(result, harness.deps, harness.root)
+
+			require.Equal(t, tc.wantEvents,
+				harness.countLoggedAnalyticsEvents(result.CommandPath),
+				"the disclosure gate should control whether the execution reaches analytics logging")
+			require.Len(t, harness.server.CliTelemetry.Instances, tc.wantEvents,
+				"the disclosure gate should control whether the event reaches the analytics endpoint")
+		})
+	}
+}
+
+// TestOnExecutionCompleteLogsWhenAnalyticsTestingDisabled verifies that an
+// unset RENDER_TEST_ENABLE_ANALYTICS prevents network sends without suppressing
+// logs. Disclosure signals and marker state are irrelevant while the rollout
+// gate is closed.
+func TestOnExecutionCompleteLogsWhenAnalyticsTestingDisabled(t *testing.T) {
+	server := renderapi.NewServer(t)
+	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "")
+	t.Setenv("RENDER_LOG_ANALYTICS", "1")
+
+	c, err := client.NewClientWithResponses(server.URL())
+	require.NoError(t, err)
+	deps := dependencies.New(c)
+	deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
+		require.FailNow(t, "closed gate should not detect runtime signals")
+		return command.RuntimeSignals{}, nil
+	}
+	root := newRootCmd()
+	var stderr bytes.Buffer
+	root.SetErr(&stderr)
+	result := command.ExecutionResult{
+		AnalyticsEligible: true,
+		CommandPath:       "render future-command",
+		CompletionKind:    command.CompletionKindSetupError,
+		StartedAt:         time.Now(),
+	}
+
+	onExecutionComplete(result, deps, root)
+
+	var payload client.CreateCliTelemetryEventJSONRequestBody
+	require.NoError(t, json.Unmarshal(bytes.TrimSpace(stderr.Bytes()), &payload))
+	require.Equal(t, "render future-command", payload.Command,
+		"analytics event is logged because RENDER_LOG_ANALYTICS=1")
+	require.Equal(t, "setup_error", string(payload.CompletionKind))
+	require.Empty(t, server.CliTelemetry.Instances,
+		"no analytics event is sent because analytics testing is disabled")
 }
 
 func TestInstallationIDCreatedOnlyWhenAnalyticsEnabled(t *testing.T) {
@@ -885,8 +980,25 @@ func TestAnalyticsEnabledWithoutSubprocessOptInDoesNotEmit(t *testing.T) {
 
 	require.Equal(t, 0, run.Result.ExitCode)
 	require.Empty(t, server.CliTelemetry.Instances)
-	_, err := os.Stat(filepath.Join(configDir, "state"))
-	require.ErrorIs(t, err, os.ErrNotExist, "a refused analytics subprocess must not create analytics state")
+	requireNoAnalyticsState(t, configDir, "a refused analytics subprocess must not create analytics state")
+}
+
+// requireNoAnalyticsState asserts that nothing analytics owns — an event file,
+// an installation ID, backoff state — was written to the CLI state directory.
+// The seeded notice marker is the only thing that belongs there: the harness
+// writes it so the disclosure gate does not suppress the run under test.
+func requireNoAnalyticsState(t *testing.T, configDir string, msg string) {
+	t.Helper()
+
+	entries, err := os.ReadDir(filepath.Join(configDir, "state"))
+	require.NoError(t, err)
+
+	// ReadDir sorts by filename, so the expected contents are a fixed list.
+	names := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		names = append(names, entry.Name())
+	}
+	require.Equal(t, []string{"analytics-notice-shown"}, names, msg)
 }
 
 // analyticsExecution is everything one harness run produced: how the command
@@ -958,6 +1070,9 @@ func configureAnalyticsTestEnv(
 	analytics.ClearSignalEnvVars(t)
 	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
 	t.Setenv("RENDER_CLI_CONFIG_PATH", "")
+	// These tests are about analytics transport, not about the disclosure that
+	// gates it, so we mark the notice as shown
+	markAnalyticsNoticeShown(t, configDir)
 	t.Setenv("RENDER_API_KEY", "test-api-key")
 	t.Setenv("RENDER_HOST", server.URL()+"/")
 	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")

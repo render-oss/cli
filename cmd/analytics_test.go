@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -77,25 +78,31 @@ func newAnalyticsHarness(t *testing.T, shouldSend bool) *analyticsHarness {
 	}
 
 	server := renderapi.NewServer(t)
-	c, err := client.NewClientWithResponses(server.URL())
-	require.NoError(t, err)
-	deps := dependencies.New(c)
-	deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
-		return command.RuntimeSignals{}, nil
-	}
-
 	harness := &analyticsHarness{
 		t:         t,
 		server:    server,
 		configDir: configDir,
-		root:      newRootCmd(),
-		deps:      deps,
 	}
-	harness.root.SetOut(&harness.stdout)
-	harness.root.SetErr(&harness.stderr)
-	setupAnalyticsCommands(harness.root, deps)
-	setupRootCmdPersistentRun(harness.root, deps)
+	harness.reloadDependencies()
 	return harness
+}
+
+// reloadDependencies rebuilds the dependency container and command tree so
+// dependencies captured by command closures are refreshed too.
+func (h *analyticsHarness) reloadDependencies() {
+	h.t.Helper()
+
+	c, err := client.NewClientWithResponses(h.server.URL())
+	require.NoError(h.t, err)
+	h.deps = dependencies.New(c)
+	h.deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
+		return command.RuntimeSignals{}, nil
+	}
+	h.root = newRootCmd()
+	h.root.SetOut(&h.stdout)
+	h.root.SetErr(&h.stderr)
+	setupAnalyticsCommands(h.root, h.deps)
+	setupRootCmdPersistentRun(h.root, h.deps)
 }
 
 // analyticsNoticeMarkerPath is where the harness's isolated config directory
@@ -112,6 +119,10 @@ func (h *analyticsHarness) execute(args ...string) command.ExecutionResult {
 	result := runExecution(h.root, time.Now())
 	onExecutionComplete(result, h.deps, h.root)
 	return result
+}
+
+func (h *analyticsHarness) countLoggedAnalyticsEvents(commandPath string) int {
+	return strings.Count(h.stderr.String(), `"command":"`+commandPath+`"`)
 }
 
 func writeAnalyticsEventFile(t *testing.T, configDir string, contents []byte) string {

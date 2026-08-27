@@ -4,14 +4,14 @@
 // notice gate. The package decides whether to show the notice, builds its copy,
 // and persists a marker in the CLI state directory so it isn't repeated.
 //
-// Callers must invoke [ShowIfNeeded] before a TUI takes over the terminal, so
-// the notice remains visible after it is recorded as shown.
+// Callers must invoke [ShowIfNeeded] before sending analytics for an execution.
 package analyticsnotice
 
 import (
 	"fmt"
 
 	"github.com/render-oss/cli/pkg/analytics"
+	"github.com/render-oss/cli/pkg/cfg"
 	"github.com/render-oss/cli/pkg/command"
 )
 
@@ -24,12 +24,26 @@ type Conditions struct {
 	StderrTTY bool
 }
 
+// CanSend reports whether the disclosure gate permits analytics to send.
+// CI bypasses the gate; otherwise, the notice marker must already exist.
+// Marker read failures keep analytics suppressed.
+func CanSend(conditions Conditions) bool {
+	if conditions.CI {
+		return true
+	}
+
+	exists, err := markerExists()
+	return err == nil && exists
+}
+
 // ShowIfNeeded decides whether to show the analytics notice, writes it to s,
 // and records it as shown. It returns whether the caller should skip analytics
-// for this run. Outside CI, analytics can proceed only when an existing marker
-// proves the notice was shown on an earlier run. CI is an automation exception:
-// it shows nothing, writes no marker, and does not ask the caller to skip
-// analytics. Explicit analytics opt-outs remain the caller's responsibility.
+// for this run. While the rollout gate is closed, it does nothing and allows
+// the caller to proceed so the sender's independent logging path still works.
+// Outside CI, analytics can proceed only when an existing marker proves the
+// notice was shown on an earlier run. CI is an automation exception: it shows
+// nothing, writes no marker, and does not ask the caller to skip analytics.
+// Explicit analytics opt-outs remain the caller's responsibility.
 //
 // optOutReason is empty when telemetry is on, or names the opt-out mechanism
 // in effect (see [buildNotice]).
@@ -43,6 +57,10 @@ type Conditions struct {
 // until a later run can show the notice and persist the marker. A telemetry
 // setup failure must not fail a command.
 func ShowIfNeeded(s *command.Stream, conditions Conditions, optOutReason analytics.OptOutReason) (skipAnalytics bool) {
+	if !cfg.AnalyticsDevGateOpen() {
+		return false
+	}
+
 	if conditions.CI {
 		return false
 	}

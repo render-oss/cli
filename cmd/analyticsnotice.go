@@ -9,6 +9,10 @@ import (
 	"github.com/render-oss/cli/pkg/dependencies"
 )
 
+func analyticsNoticeConditions(signals command.RuntimeSignals) analyticsnotice.Conditions {
+	return analyticsnotice.Conditions{CI: signals.CI, StderrTTY: signals.StderrTTY}
+}
+
 // newAnalyticsNoticeCmd builds the hidden command that discloses analytics collection
 // if it has not been displayed yet on this machine
 // Installers can invoke this command after install or upgrade
@@ -26,7 +30,7 @@ func newAnalyticsNoticeCmd(deps *dependencies.Dependencies) *cobra.Command {
 
 			analyticsnotice.ShowIfNeeded(
 				command.NewStream(cmd.ErrOrStderr()),
-				analyticsnotice.Conditions{CI: signals.CI, StderrTTY: signals.StderrTTY},
+				analyticsNoticeConditions(signals),
 				analytics.ResolveConsent().OptOutReason,
 			)
 			return nil

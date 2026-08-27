@@ -8,6 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/render-oss/cli/internal/analyticsnotice"
+	"github.com/render-oss/cli/pkg/cfg"
 	commandpkg "github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 )
@@ -34,6 +36,20 @@ var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.Executi
 	// before a client existed, so there is no analytics sender to emit with.
 	if deps == nil {
 		return
+	}
+	if cfg.AnalyticsDevGateOpen() {
+		signals, err := deps.DetectRuntimeSignals()
+		if err != nil {
+			// TODO: Replace this dependency and fallback with the disclosure-specific
+			// condition detector after the main-based refactor lands.
+			// DetectRuntimeSignals currently fails only when RENDER_OUTPUT is
+			// invalid. Preserve the independently detectable CI signal so setup
+			// errors still follow the disclosure gate instead of being dropped.
+			signals.CI = cfg.IsCI()
+		}
+		if !analyticsnotice.CanSend(analyticsNoticeConditions(signals)) {
+			return
+		}
 	}
 	deps.Analytics().Send(result, root.ErrOrStderr())
 }
