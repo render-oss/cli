@@ -20,6 +20,9 @@ var ErrTooManyRequests = errors.New("too many requests")
 
 const (
 	LocalKey = ""
+	// oauthRefreshTimeout leaves headroom above the observed successful APAC
+	// refresh tail, whose p99.9 was approximately three seconds.
+	oauthRefreshTimeout = 5 * time.Second
 )
 
 func NotLoggedInClient() (*ClientWithResponses, error) {
@@ -53,8 +56,17 @@ func maybeRefreshAPIToken(apiCfg config.APIConfig) config.APIConfig {
 	expiresSoonThreshold := time.Now().Add(24 * time.Hour).Unix()
 
 	if apiCfg.ExpiresAt > 0 && apiCfg.ExpiresAt < expiresSoonThreshold && apiCfg.RefreshToken != "" {
-		updatedConfig, err := refreshAPIKey(apiCfg)
+		ctx, cancel := context.WithTimeout(context.Background(), oauthRefreshTimeout)
+		defer cancel()
+
+		updatedConfig, err := refreshAPIKey(ctx, apiCfg)
 		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				// Keep using the current access token. It may remain valid for up to
+				// 24 hours, and preserving the refresh token lets the next command retry.
+				return apiCfg
+			}
+
 			// failed to refresh the token, clear the refresh token so we fall back
 			// to the standard login flow
 			apiCfg.RefreshToken = ""
@@ -67,9 +79,9 @@ func maybeRefreshAPIToken(apiCfg config.APIConfig) config.APIConfig {
 	return apiCfg
 }
 
-func refreshAPIKey(apiCfg config.APIConfig) (config.APIConfig, error) {
+func refreshAPIKey(ctx context.Context, apiCfg config.APIConfig) (config.APIConfig, error) {
 	token, err := oauth.NewClient(apiCfg.Host).RefreshToken(
-		context.Background(),
+		ctx,
 		apiCfg.RefreshToken,
 	)
 	if err != nil {

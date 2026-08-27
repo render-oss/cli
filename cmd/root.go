@@ -391,9 +391,10 @@ func execute() (command.ExecutionResult, *dependencies.Dependencies) {
 	// the CLI's global version flag when it appears before a subcommand;
 	// otherwise let subcommands own their flags. setupCommands builds the API
 	// client, whose construction can trigger a synchronous OAuth token refresh
-	// (NewDefaultClient -> maybeRefreshAPIToken) that is unbounded and could hang
-	// --version on a bad network. Returning here also means version requests emit
-	// no analytics — an accepted trade-off, signalled by the nil dependencies.
+	// (NewDefaultClient -> maybeRefreshAPIToken), so handling the version request
+	// first keeps it independent of that bounded network call. Returning here also
+	// means version requests emit no analytics — an accepted trade-off, signalled
+	// by the nil dependencies.
 	if isRootVersionRequest(os.Args[1:], rootCmd.PersistentFlags()) {
 		printVersionWithUpdateCheck()
 		return newExecutionResult(rootCmd, command.CompletionKindVersion, 0, startedAt), nil
