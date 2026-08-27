@@ -11,15 +11,16 @@ import (
 
 // markerFileName is the name of an empty file whose presence indicates that the
 // analytics notice has been shown.
-const markerFileName = "analytics-notice-shown"
+const markerFileName = "notice-shown"
 
-// markerPath resolves the marker's path under [config.StateDir].
+// markerPath resolves the marker's path under the analytics directory in
+// [config.StateDir].
 func markerPath() (string, error) {
 	dir, err := config.StateDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, markerFileName), nil
+	return filepath.Join(dir, "analytics", markerFileName), nil
 }
 
 // markerExists reports whether the marker exists.

@@ -137,7 +137,7 @@ func (h *analyticsHarness) reloadDependencies() {
 // analyticsNoticeMarkerPath is where the harness's isolated config directory
 // keeps the one-time notice marker.
 func (h *analyticsHarness) analyticsNoticeMarkerPath() string {
-	return filepath.Join(h.configDir, "state", "analytics-notice-shown")
+	return filepath.Join(h.configDir, "state", "analytics", "notice-shown")
 }
 
 // forceStderrTTY configures the test harness to think stderr is a TTY so that the notice can be shown

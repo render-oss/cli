@@ -922,13 +922,19 @@ func requireNoAnalyticsState(t *testing.T, configDir string, msg string) {
 
 	entries, err := os.ReadDir(filepath.Join(configDir, "state"))
 	require.NoError(t, err)
+	require.Len(t, entries, 1, msg)
+	require.Equal(t, "analytics", entries[0].Name(), msg)
+	require.True(t, entries[0].IsDir(), msg)
+
+	entries, err = os.ReadDir(filepath.Join(configDir, "state", "analytics"))
+	require.NoError(t, err)
 
 	// ReadDir sorts by filename, so the expected contents are a fixed list.
 	names := make([]string, 0, len(entries))
 	for _, entry := range entries {
 		names = append(names, entry.Name())
 	}
-	require.Equal(t, []string{"analytics-notice-shown"}, names, msg)
+	require.Equal(t, []string{"notice-shown"}, names, msg)
 }
 
 // analyticsExecution is everything one harness run produced: how the command

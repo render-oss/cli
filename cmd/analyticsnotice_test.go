@@ -24,7 +24,7 @@ func markAnalyticsNoticeShown(t *testing.T, configDir string) {
 	t.Helper()
 
 	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
-	markerPath := filepath.Join(configDir, "state", "analytics-notice-shown")
+	markerPath := filepath.Join(configDir, "state", "analytics", "notice-shown")
 	require.NoError(t, files.Write(markerPath, nil), "seed the analytics notice marker")
 }
 
