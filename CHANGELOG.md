@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.25.0] - 2026-08-27
+
+### Changed
+
+- Postgres and Key Value interactive plan pickers now list Render's new compute plans (e.g. `2c-8g` for Postgres, `1g` for Key Value); the previously advertised names remain valid input
+- `render blueprints validate` now exits with status code 1 if the blueprint is invalid for all `--output` modes
+- CLI help now recommends `RENDER_CLI_CONFIG_DIR` for overriding the Render CLI config directory
+
+### Fixed
+
+- OAuth token refresh requests no longer block CLI commands indefinitely
+
 ## [2.24.0] - 2026-08-19
 
 ### Changed
