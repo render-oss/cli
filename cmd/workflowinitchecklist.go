@@ -93,7 +93,7 @@ type checklistObserver struct {
 	cmd       *cobra.Command
 	isTTY     bool
 	steps     []checklistEntry
-	prevLines int          // total lines in the previous render (for cursor movement)
+	prevLines int           // total lines in the previous render (for cursor movement)
 	stopAnim  chan struct{} // signals the animation goroutine to stop
 }
 
@@ -316,10 +316,10 @@ func newSilentObserver(cmd *cobra.Command) *silentObserver {
 	return &silentObserver{cmd: cmd}
 }
 
-func (o *silentObserver) OnStart(_ int)                   {}
-func (o *silentObserver) OnStepStart(_ int)              {}
-func (o *silentObserver) OnStepDone(_ int, _ string)     {}
-func (o *silentObserver) OnStepError(_ int, _ error)     {}
+func (o *silentObserver) OnStart(_ int)              {}
+func (o *silentObserver) OnStepStart(_ int)          {}
+func (o *silentObserver) OnStepDone(_ int, _ string) {}
+func (o *silentObserver) OnStepError(_ int, _ error) {}
 
 func (o *silentObserver) OnAllDone(_ []StepError) {
 	// Non-interactive output is handled by the caller after RunSteps returns,

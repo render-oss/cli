@@ -211,6 +211,24 @@ type ClientInterface interface {
 	// Corresponds with GET /artifact-sources/{artifactSourceId}/artifacts (the `ListArtifactsInArtifactSource` operationId).
 	ListArtifactsInArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *ListArtifactsInArtifactSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// UnlinkEnvGroupFromArtifactSource Unlink environment group
+	//
+	// Unlink a particular environment group from a particular artifact source.
+	//
+	// The artifact source will lose access to the environment variables and secret files in the group.
+	//
+	// Corresponds with DELETE /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `UnlinkEnvGroupFromArtifactSource` operationId).
+	UnlinkEnvGroupFromArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// LinkEnvGroupToArtifactSource Link environment group
+	//
+	// Link a particular environment group to a particular artifact source.
+	//
+	// The artifact source will have access to the environment variables and secret files in the group at build time.
+	//
+	// Corresponds with POST /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `LinkEnvGroupToArtifactSource` operationId).
+	LinkEnvGroupToArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetEnvVarsForArtifactSource List environment variables
 	//
 	// List all environment variables for the artifact source with the provided ID.
@@ -661,24 +679,6 @@ type ClientInterface interface {
 	//
 	// Corresponds with PATCH /env-groups/{envGroupId} (the `UpdateEnvGroup` operationId).
 	UpdateEnvGroup(ctx context.Context, envGroupId string, body UpdateEnvGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UnlinkArtifactSourceFromEnvGroup Unlink artifact source
-	//
-	// Unlink a particular artifact source from a particular environment group.
-	//
-	// The artifact source will lose access to the environment variables and secret files in the group.
-	//
-	// Corresponds with DELETE /env-groups/{envGroupId}/artifact-sources/{artifactSourceId} (the `UnlinkArtifactSourceFromEnvGroup` operationId).
-	UnlinkArtifactSourceFromEnvGroup(ctx context.Context, envGroupId EnvGroupIdParam, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// LinkArtifactSourceToEnvGroup Link artifact source
-	//
-	// Link a particular artifact source to a particular environment group.
-	//
-	// The linked artifact source will have access to the environment variables and secret files in the group at build time.
-	//
-	// Corresponds with POST /env-groups/{envGroupId}/artifact-sources/{artifactSourceId} (the `LinkArtifactSourceToEnvGroup` operationId).
-	LinkArtifactSourceToEnvGroup(ctx context.Context, envGroupId EnvGroupIdParam, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteEnvGroupEnvVar Remove environment variable
 	//
@@ -1895,7 +1895,7 @@ type ClientInterface interface {
 
 	// ListSandboxGroups List sandbox groups
 	//
-	// List sandbox groups for the specified workspaces. Alpha guarantees at most one
+	// List sandbox groups for a single workspace. Alpha guarantees at most one
 	// group per owner, so the response is either empty or a single-item list.
 	//
 	// Corresponds with GET /sandbox-groups (the `ListSandboxGroups` operationId).
@@ -1903,8 +1903,8 @@ type ClientInterface interface {
 
 	// ListSandboxes List sandboxes
 	//
-	// List sandboxes for the specified workspaces. If no workspaces are provided, returns
-	// all sandboxes the API key has access to.
+	// List sandboxes for a single workspace. Sandboxes are scoped to the region of
+	// their workspace's sandbox group, so one workspace must be named per request.
 	//
 	// Corresponds with GET /sandboxes (the `ListSandboxes` operationId).
 	ListSandboxes(ctx context.Context, params *ListSandboxesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1934,12 +1934,41 @@ type ClientInterface interface {
 	// Corresponds with GET /sandboxes/{sandboxId} (the `RetrieveSandbox` operationId).
 	RetrieveSandbox(ctx context.Context, sandboxId externalRef16.SandboxId, params *RetrieveSandboxParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListSandboxExecutions List executions
+	//
+	// List execution records for the sandbox, ordered by start time, newest first.
+	//
+	// Corresponds with GET /sandboxes/{sandboxId}/execs (the `ListSandboxExecutions` operationId).
+	ListSandboxExecutions(ctx context.Context, sandboxId externalRef16.SandboxId, params *ListSandboxExecutionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// RetrieveSandboxExecution Retrieve execution
 	//
 	// Retrieve one execution record for the sandbox.
 	//
 	// Corresponds with GET /sandboxes/{sandboxId}/execs/{execId} (the `RetrieveSandboxExecution` operationId).
 	RetrieveSandboxExecution(ctx context.Context, sandboxId externalRef16.SandboxId, execId externalRef16.ExecId, params *RetrieveSandboxExecutionParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateSandboxExecWithBody Update sandbox execution
+	//
+	// Record the client-observed exit code for a previously minted sandbox
+	// execution. Call after the proxy run completes (sync response or closing
+	// SSE frame). Command text is recorded at token mint time, not here.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
+	UpdateSandboxExecWithBody(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateSandboxExec Update sandbox execution
+	//
+	// Record the client-observed exit code for a previously minted sandbox
+	// execution. Call after the proxy run completes (sync response or closing
+	// SSE frame). Command text is recorded at token mint time, not here.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
+	UpdateSandboxExec(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, body UpdateSandboxExecJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListSandboxFiles List directory contents in sandbox
 	//
@@ -1956,9 +1985,10 @@ type ClientInterface interface {
 	// single file upload or download against the sandbox, and return the
 	// sandbox-proxy endpoint to invoke with it. The caller streams the file
 	// bytes directly to (or from) that endpoint with the token as a bearer
-	// credential. `application/octet-stream` carries a single file; uploads
-	// accept a directory archive as `application/x-tar` or `application/gzip`
-	// (gzipped tar), and directory downloads return `application/gzip`. The
+	// credential. `application/octet-stream` carries a single file and
+	// `application/x-tar` a directory archive, with compression carried
+	// separately by `Content-Encoding: gzip` in either direction; directory
+	// downloads return `application/x-tar` with `Content-Encoding: gzip`. The
 	// token is bound to this sandbox, operation, and path, and expires
 	// shortly after issuance.
 	//
@@ -2373,6 +2403,15 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /services/{serviceId}/jobs/{jobId}/cancel (the `CancelJob` operationId).
 	CancelJob(ctx context.Context, serviceId ServiceIdParam, jobId externalRef10.JobId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RetrieveServiceOutboundIps Retrieve service outbound IPs
+	//
+	// Retrieve the IP addresses the service's outbound traffic originates from.
+	//
+	// A service uses either a dedicated IP set that applies to it, or the shared Render IPs for its region.
+	//
+	// Corresponds with GET /services/{serviceId}/outbound-ips (the `RetrieveServiceOutboundIps` operationId).
+	RetrieveServiceOutboundIps(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PreviewServiceWithBody Create service preview (image-backed)
 	//
@@ -3022,6 +3061,44 @@ func (c *Client) UpdateArtifactSource(ctx context.Context, artifactSourceId exte
 // Corresponds with GET /artifact-sources/{artifactSourceId}/artifacts (the `ListArtifactsInArtifactSource` operationId).
 func (c *Client) ListArtifactsInArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *ListArtifactsInArtifactSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListArtifactsInArtifactSourceRequest(c.Server, artifactSourceId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UnlinkEnvGroupFromArtifactSource Unlink environment group
+//
+// Unlink a particular environment group from a particular artifact source.
+//
+// The artifact source will lose access to the environment variables and secret files in the group.
+//
+// Corresponds with DELETE /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `UnlinkEnvGroupFromArtifactSource` operationId).
+func (c *Client) UnlinkEnvGroupFromArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUnlinkEnvGroupFromArtifactSourceRequest(c.Server, artifactSourceId, envGroupId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// LinkEnvGroupToArtifactSource Link environment group
+//
+// Link a particular environment group to a particular artifact source.
+//
+// The artifact source will have access to the environment variables and secret files in the group at build time.
+//
+// Corresponds with POST /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `LinkEnvGroupToArtifactSource` operationId).
+func (c *Client) LinkEnvGroupToArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewLinkEnvGroupToArtifactSourceRequest(c.Server, artifactSourceId, envGroupId)
 	if err != nil {
 		return nil, err
 	}
@@ -3963,44 +4040,6 @@ func (c *Client) UpdateEnvGroupWithBody(ctx context.Context, envGroupId string, 
 // Corresponds with PATCH /env-groups/{envGroupId} (the `UpdateEnvGroup` operationId).
 func (c *Client) UpdateEnvGroup(ctx context.Context, envGroupId string, body UpdateEnvGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateEnvGroupRequest(c.Server, envGroupId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UnlinkArtifactSourceFromEnvGroup Unlink artifact source
-//
-// Unlink a particular artifact source from a particular environment group.
-//
-// The artifact source will lose access to the environment variables and secret files in the group.
-//
-// Corresponds with DELETE /env-groups/{envGroupId}/artifact-sources/{artifactSourceId} (the `UnlinkArtifactSourceFromEnvGroup` operationId).
-func (c *Client) UnlinkArtifactSourceFromEnvGroup(ctx context.Context, envGroupId EnvGroupIdParam, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUnlinkArtifactSourceFromEnvGroupRequest(c.Server, envGroupId, artifactSourceId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// LinkArtifactSourceToEnvGroup Link artifact source
-//
-// Link a particular artifact source to a particular environment group.
-//
-// The linked artifact source will have access to the environment variables and secret files in the group at build time.
-//
-// Corresponds with POST /env-groups/{envGroupId}/artifact-sources/{artifactSourceId} (the `LinkArtifactSourceToEnvGroup` operationId).
-func (c *Client) LinkArtifactSourceToEnvGroup(ctx context.Context, envGroupId EnvGroupIdParam, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewLinkArtifactSourceToEnvGroupRequest(c.Server, envGroupId, artifactSourceId)
 	if err != nil {
 		return nil, err
 	}
@@ -6696,7 +6735,7 @@ func (c *Client) UpdateRegistryCredential(ctx context.Context, registryCredentia
 
 // ListSandboxGroups List sandbox groups
 //
-// List sandbox groups for the specified workspaces. Alpha guarantees at most one
+// List sandbox groups for a single workspace. Alpha guarantees at most one
 // group per owner, so the response is either empty or a single-item list.
 //
 // Corresponds with GET /sandbox-groups (the `ListSandboxGroups` operationId).
@@ -6714,8 +6753,8 @@ func (c *Client) ListSandboxGroups(ctx context.Context, params *ListSandboxGroup
 
 // ListSandboxes List sandboxes
 //
-// List sandboxes for the specified workspaces. If no workspaces are provided, returns
-// all sandboxes the API key has access to.
+// List sandboxes for a single workspace. Sandboxes are scoped to the region of
+// their workspace's sandbox group, so one workspace must be named per request.
 //
 // Corresponds with GET /sandboxes (the `ListSandboxes` operationId).
 func (c *Client) ListSandboxes(ctx context.Context, params *ListSandboxesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -6785,6 +6824,23 @@ func (c *Client) RetrieveSandbox(ctx context.Context, sandboxId externalRef16.Sa
 	return c.Client.Do(req)
 }
 
+// ListSandboxExecutions List executions
+//
+// List execution records for the sandbox, ordered by start time, newest first.
+//
+// Corresponds with GET /sandboxes/{sandboxId}/execs (the `ListSandboxExecutions` operationId).
+func (c *Client) ListSandboxExecutions(ctx context.Context, sandboxId externalRef16.SandboxId, params *ListSandboxExecutionsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSandboxExecutionsRequest(c.Server, sandboxId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // RetrieveSandboxExecution Retrieve execution
 //
 // Retrieve one execution record for the sandbox.
@@ -6792,6 +6848,48 @@ func (c *Client) RetrieveSandbox(ctx context.Context, sandboxId externalRef16.Sa
 // Corresponds with GET /sandboxes/{sandboxId}/execs/{execId} (the `RetrieveSandboxExecution` operationId).
 func (c *Client) RetrieveSandboxExecution(ctx context.Context, sandboxId externalRef16.SandboxId, execId externalRef16.ExecId, params *RetrieveSandboxExecutionParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRetrieveSandboxExecutionRequest(c.Server, sandboxId, execId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateSandboxExecWithBody Update sandbox execution
+//
+// Record the client-observed exit code for a previously minted sandbox
+// execution. Call after the proxy run completes (sync response or closing
+// SSE frame). Command text is recorded at token mint time, not here.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
+func (c *Client) UpdateSandboxExecWithBody(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateSandboxExecRequestWithBody(c.Server, sandboxId, execId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateSandboxExec Update sandbox execution
+//
+// Record the client-observed exit code for a previously minted sandbox
+// execution. Call after the proxy run completes (sync response or closing
+// SSE frame). Command text is recorded at token mint time, not here.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
+func (c *Client) UpdateSandboxExec(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, body UpdateSandboxExecJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateSandboxExecRequest(c.Server, sandboxId, execId, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -6827,9 +6925,10 @@ func (c *Client) ListSandboxFiles(ctx context.Context, sandboxId externalRef16.S
 // single file upload or download against the sandbox, and return the
 // sandbox-proxy endpoint to invoke with it. The caller streams the file
 // bytes directly to (or from) that endpoint with the token as a bearer
-// credential. `application/octet-stream` carries a single file; uploads
-// accept a directory archive as `application/x-tar` or `application/gzip`
-// (gzipped tar), and directory downloads return `application/gzip`. The
+// credential. `application/octet-stream` carries a single file and
+// `application/x-tar` a directory archive, with compression carried
+// separately by `Content-Encoding: gzip` in either direction; directory
+// downloads return `application/x-tar` with `Content-Encoding: gzip`. The
 // token is bound to this sandbox, operation, and path, and expires
 // shortly after issuance.
 //
@@ -7725,6 +7824,25 @@ func (c *Client) RetrieveJob(ctx context.Context, serviceId ServiceIdParam, jobI
 // Corresponds with POST /services/{serviceId}/jobs/{jobId}/cancel (the `CancelJob` operationId).
 func (c *Client) CancelJob(ctx context.Context, serviceId ServiceIdParam, jobId externalRef10.JobId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCancelJobRequest(c.Server, serviceId, jobId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RetrieveServiceOutboundIps Retrieve service outbound IPs
+//
+// Retrieve the IP addresses the service's outbound traffic originates from.
+//
+// A service uses either a dedicated IP set that applies to it, or the shared Render IPs for its region.
+//
+// Corresponds with GET /services/{serviceId}/outbound-ips (the `RetrieveServiceOutboundIps` operationId).
+func (c *Client) RetrieveServiceOutboundIps(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveServiceOutboundIpsRequest(c.Server, serviceId)
 	if err != nil {
 		return nil, err
 	}
@@ -9107,6 +9225,88 @@ func NewListArtifactsInArtifactSourceRequest(server string, artifactSourceId ext
 	return req, nil
 }
 
+// NewUnlinkEnvGroupFromArtifactSourceRequest constructs an http.Request for the UnlinkEnvGroupFromArtifactSource method
+func NewUnlinkEnvGroupFromArtifactSourceRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envGroupId", envGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/artifact-sources/%s/env-groups/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewLinkEnvGroupToArtifactSourceRequest constructs an http.Request for the LinkEnvGroupToArtifactSource method
+func NewLinkEnvGroupToArtifactSourceRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envGroupId", envGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/artifact-sources/%s/env-groups/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetEnvVarsForArtifactSourceRequest constructs an http.Request for the GetEnvVarsForArtifactSource method
 func NewGetEnvVarsForArtifactSourceRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, params *GetEnvVarsForArtifactSourceParams) (*http.Request, error) {
 	var err error
@@ -10058,6 +10258,18 @@ func NewListDedicatedIpsRequest(server string, params *ListDedicatedIpsParams) (
 			}
 		}
 
+		if params.EnvironmentId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environmentId", *params.EnvironmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if encoded := queryValues.Encode(); encoded != "" {
 			rawQueryFragments = append(rawQueryFragments, encoded)
 		}
@@ -10926,88 +11138,6 @@ func NewUpdateEnvGroupRequestWithBody(server string, envGroupId string, contentT
 	}
 
 	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewUnlinkArtifactSourceFromEnvGroupRequest constructs an http.Request for the UnlinkArtifactSourceFromEnvGroup method
-func NewUnlinkArtifactSourceFromEnvGroupRequest(server string, envGroupId EnvGroupIdParam, artifactSourceId externalRef0.ArtifactSourceIdParam) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "envGroupId", envGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/env-groups/%s/artifact-sources/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewLinkArtifactSourceToEnvGroupRequest constructs an http.Request for the LinkArtifactSourceToEnvGroup method
-func NewLinkArtifactSourceToEnvGroupRequest(server string, envGroupId EnvGroupIdParam, artifactSourceId externalRef0.ArtifactSourceIdParam) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "envGroupId", envGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/env-groups/%s/artifact-sources/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
 
 	return req, nil
 }
@@ -18969,16 +19099,12 @@ func NewListSandboxGroupsRequest(server string, params *ListSandboxGroupsParams)
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.OwnerId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -19023,16 +19149,12 @@ func NewListSandboxesRequest(server string, params *ListSandboxesParams) (*http.
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.OwnerId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
 			}
-
 		}
 
 		if params.Cursor != nil {
@@ -19160,12 +19282,101 @@ func NewRetrieveSandboxRequest(server string, sandboxId externalRef16.SandboxId,
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-			return nil, err
-		} else {
-			for _, qp := range strings.Split(queryFrag, "&") {
-				rawQueryFragments = append(rawQueryFragments, qp)
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
 			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListSandboxExecutionsRequest constructs an http.Request for the ListSandboxExecutions method
+func NewListSandboxExecutionsRequest(server string, sandboxId externalRef16.SandboxId, params *ListSandboxExecutionsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandboxes/%s/execs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -19224,12 +19435,16 @@ func NewRetrieveSandboxExecutionRequest(server string, sandboxId externalRef16.S
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-			return nil, err
-		} else {
-			for _, qp := range strings.Split(queryFrag, "&") {
-				rawQueryFragments = append(rawQueryFragments, qp)
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
 			}
+
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -19242,6 +19457,87 @@ func NewRetrieveSandboxExecutionRequest(server string, sandboxId externalRef16.S
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewUpdateSandboxExecRequest calls the generic UpdateSandboxExec builder with application/json body
+func NewUpdateSandboxExecRequest(server string, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, body UpdateSandboxExecJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateSandboxExecRequestWithBody(server, sandboxId, execId, params, "application/json", bodyReader)
+}
+
+// NewUpdateSandboxExecRequestWithBody constructs an http.Request for the UpdateSandboxExec method, with any body, and a specified content type
+func NewUpdateSandboxExecRequestWithBody(server string, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "execId", execId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandboxes/%s/execs/%s/status", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -19357,12 +19653,16 @@ func NewConnectSandboxFilesRequest(server string, sandboxId externalRef16.Sandbo
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-			return nil, err
-		} else {
-			for _, qp := range strings.Split(queryFrag, "&") {
-				rawQueryFragments = append(rawQueryFragments, qp)
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
 			}
+
 		}
 
 		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "path", params.Path, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
@@ -19540,12 +19840,16 @@ func NewConnectSandboxRunRequestWithBody(server string, sandboxId externalRef16.
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-			return nil, err
-		} else {
-			for _, qp := range strings.Split(queryFrag, "&") {
-				rawQueryFragments = append(rawQueryFragments, qp)
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
 			}
+
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -19599,12 +19903,16 @@ func NewTerminateSandboxRequest(server string, sandboxId externalRef16.SandboxId
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-			return nil, err
-		} else {
-			for _, qp := range strings.Split(queryFrag, "&") {
-				rawQueryFragments = append(rawQueryFragments, qp)
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
 			}
+
 		}
 
 		if encoded := queryValues.Encode(); encoded != "" {
@@ -21661,6 +21969,40 @@ func NewCancelJobRequest(server string, serviceId ServiceIdParam, jobId external
 	}
 
 	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRetrieveServiceOutboundIpsRequest constructs an http.Request for the RetrieveServiceOutboundIps method
+func NewRetrieveServiceOutboundIpsRequest(server string, serviceId ServiceIdParam) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "serviceId", serviceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/services/%s/outbound-ips", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23873,6 +24215,28 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /artifact-sources/{artifactSourceId}/artifacts (the `ListArtifactsInArtifactSource` operationId).
 	ListArtifactsInArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *ListArtifactsInArtifactSourceParams, reqEditors ...RequestEditorFn) (*ListArtifactsInArtifactSourceResponse, error)
 
+	// UnlinkEnvGroupFromArtifactSourceWithResponse Unlink environment group
+	//
+	// Unlink a particular environment group from a particular artifact source.
+	//
+	// The artifact source will lose access to the environment variables and secret files in the group.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `UnlinkEnvGroupFromArtifactSource` operationId).
+	UnlinkEnvGroupFromArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*UnlinkEnvGroupFromArtifactSourceResponse, error)
+
+	// LinkEnvGroupToArtifactSourceWithResponse Link environment group
+	//
+	// Link a particular environment group to a particular artifact source.
+	//
+	// The artifact source will have access to the environment variables and secret files in the group at build time.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `LinkEnvGroupToArtifactSource` operationId).
+	LinkEnvGroupToArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*LinkEnvGroupToArtifactSourceResponse, error)
+
 	// GetEnvVarsForArtifactSourceWithResponse List environment variables
 	//
 	// List all environment variables for the artifact source with the provided ID.
@@ -24367,28 +24731,6 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with PATCH /env-groups/{envGroupId} (the `UpdateEnvGroup` operationId).
 	UpdateEnvGroupWithResponse(ctx context.Context, envGroupId string, body UpdateEnvGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateEnvGroupResponse, error)
-
-	// UnlinkArtifactSourceFromEnvGroupWithResponse Unlink artifact source
-	//
-	// Unlink a particular artifact source from a particular environment group.
-	//
-	// The artifact source will lose access to the environment variables and secret files in the group.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with DELETE /env-groups/{envGroupId}/artifact-sources/{artifactSourceId} (the `UnlinkArtifactSourceFromEnvGroup` operationId).
-	UnlinkArtifactSourceFromEnvGroupWithResponse(ctx context.Context, envGroupId EnvGroupIdParam, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*UnlinkArtifactSourceFromEnvGroupResponse, error)
-
-	// LinkArtifactSourceToEnvGroupWithResponse Link artifact source
-	//
-	// Link a particular artifact source to a particular environment group.
-	//
-	// The linked artifact source will have access to the environment variables and secret files in the group at build time.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with POST /env-groups/{envGroupId}/artifact-sources/{artifactSourceId} (the `LinkArtifactSourceToEnvGroup` operationId).
-	LinkArtifactSourceToEnvGroupWithResponse(ctx context.Context, envGroupId EnvGroupIdParam, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*LinkArtifactSourceToEnvGroupResponse, error)
 
 	// DeleteEnvGroupEnvVarWithResponse Remove environment variable
 	//
@@ -25793,7 +26135,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListSandboxGroupsWithResponse List sandbox groups
 	//
-	// List sandbox groups for the specified workspaces. Alpha guarantees at most one
+	// List sandbox groups for a single workspace. Alpha guarantees at most one
 	// group per owner, so the response is either empty or a single-item list.
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -25803,8 +26145,8 @@ type ClientWithResponsesInterface interface {
 
 	// ListSandboxesWithResponse List sandboxes
 	//
-	// List sandboxes for the specified workspaces. If no workspaces are provided, returns
-	// all sandboxes the API key has access to.
+	// List sandboxes for a single workspace. Sandboxes are scoped to the region of
+	// their workspace's sandbox group, so one workspace must be named per request.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -25838,6 +26180,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /sandboxes/{sandboxId} (the `RetrieveSandbox` operationId).
 	RetrieveSandboxWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *RetrieveSandboxParams, reqEditors ...RequestEditorFn) (*RetrieveSandboxResponse, error)
 
+	// ListSandboxExecutionsWithResponse List executions
+	//
+	// List execution records for the sandbox, ordered by start time, newest first.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /sandboxes/{sandboxId}/execs (the `ListSandboxExecutions` operationId).
+	ListSandboxExecutionsWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *ListSandboxExecutionsParams, reqEditors ...RequestEditorFn) (*ListSandboxExecutionsResponse, error)
+
 	// RetrieveSandboxExecutionWithResponse Retrieve execution
 	//
 	// Retrieve one execution record for the sandbox.
@@ -25846,6 +26197,28 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /sandboxes/{sandboxId}/execs/{execId} (the `RetrieveSandboxExecution` operationId).
 	RetrieveSandboxExecutionWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, execId externalRef16.ExecId, params *RetrieveSandboxExecutionParams, reqEditors ...RequestEditorFn) (*RetrieveSandboxExecutionResponse, error)
+
+	// UpdateSandboxExecWithBodyWithResponse Update sandbox execution
+	//
+	// Record the client-observed exit code for a previously minted sandbox
+	// execution. Call after the proxy run completes (sync response or closing
+	// SSE frame). Command text is recorded at token mint time, not here.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
+	UpdateSandboxExecWithBodyWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSandboxExecResponse, error)
+
+	// UpdateSandboxExecWithResponse Update sandbox execution
+	//
+	// Record the client-observed exit code for a previously minted sandbox
+	// execution. Call after the proxy run completes (sync response or closing
+	// SSE frame). Command text is recorded at token mint time, not here.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
+	UpdateSandboxExecWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, body UpdateSandboxExecJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSandboxExecResponse, error)
 
 	// ListSandboxFilesWithResponse List directory contents in sandbox
 	//
@@ -25864,9 +26237,10 @@ type ClientWithResponsesInterface interface {
 	// single file upload or download against the sandbox, and return the
 	// sandbox-proxy endpoint to invoke with it. The caller streams the file
 	// bytes directly to (or from) that endpoint with the token as a bearer
-	// credential. `application/octet-stream` carries a single file; uploads
-	// accept a directory archive as `application/x-tar` or `application/gzip`
-	// (gzipped tar), and directory downloads return `application/gzip`. The
+	// credential. `application/octet-stream` carries a single file and
+	// `application/x-tar` a directory archive, with compression carried
+	// separately by `Content-Encoding: gzip` in either direction; directory
+	// downloads return `application/x-tar` with `Content-Encoding: gzip`. The
 	// token is bound to this sandbox, operation, and path, and expires
 	// shortly after issuance.
 	//
@@ -26329,6 +26703,17 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /services/{serviceId}/jobs/{jobId}/cancel (the `CancelJob` operationId).
 	CancelJobWithResponse(ctx context.Context, serviceId ServiceIdParam, jobId externalRef10.JobId, reqEditors ...RequestEditorFn) (*CancelJobResponse, error)
+
+	// RetrieveServiceOutboundIpsWithResponse Retrieve service outbound IPs
+	//
+	// Retrieve the IP addresses the service's outbound traffic originates from.
+	//
+	// A service uses either a dedicated IP set that applies to it, or the shared Render IPs for its region.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /services/{serviceId}/outbound-ips (the `RetrieveServiceOutboundIps` operationId).
+	RetrieveServiceOutboundIpsWithResponse(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*RetrieveServiceOutboundIpsResponse, error)
 
 	// PreviewServiceWithBodyWithResponse Create service preview (image-backed)
 	//
@@ -27391,6 +27776,185 @@ func (r ListArtifactsInArtifactSourceResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ListArtifactsInArtifactSourceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// UnlinkEnvGroupFromArtifactSourceResponse429Headers the declared response headers of an HTTP 429 response for UnlinkEnvGroupFromArtifactSource
+type UnlinkEnvGroupFromArtifactSourceResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type UnlinkEnvGroupFromArtifactSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *UnlinkEnvGroupFromArtifactSourceResponse429Headers
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r UnlinkEnvGroupFromArtifactSourceResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r UnlinkEnvGroupFromArtifactSourceResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r UnlinkEnvGroupFromArtifactSourceResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r UnlinkEnvGroupFromArtifactSourceResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r UnlinkEnvGroupFromArtifactSourceResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r UnlinkEnvGroupFromArtifactSourceResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r UnlinkEnvGroupFromArtifactSourceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UnlinkEnvGroupFromArtifactSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UnlinkEnvGroupFromArtifactSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UnlinkEnvGroupFromArtifactSourceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// LinkEnvGroupToArtifactSourceResponse429Headers the declared response headers of an HTTP 429 response for LinkEnvGroupToArtifactSource
+type LinkEnvGroupToArtifactSourceResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type LinkEnvGroupToArtifactSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *EnvGroup
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *LinkEnvGroupToArtifactSourceResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r LinkEnvGroupToArtifactSourceResponse) GetJSON200() *EnvGroup {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r LinkEnvGroupToArtifactSourceResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r LinkEnvGroupToArtifactSourceResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r LinkEnvGroupToArtifactSourceResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r LinkEnvGroupToArtifactSourceResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r LinkEnvGroupToArtifactSourceResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r LinkEnvGroupToArtifactSourceResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r LinkEnvGroupToArtifactSourceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r LinkEnvGroupToArtifactSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r LinkEnvGroupToArtifactSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r LinkEnvGroupToArtifactSourceResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -31107,185 +31671,6 @@ func (r UpdateEnvGroupResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r UpdateEnvGroupResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// UnlinkArtifactSourceFromEnvGroupResponse429Headers the declared response headers of an HTTP 429 response for UnlinkArtifactSourceFromEnvGroup
-type UnlinkArtifactSourceFromEnvGroupResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type UnlinkArtifactSourceFromEnvGroupResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *UnlinkArtifactSourceFromEnvGroupResponse429Headers
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r UnlinkArtifactSourceFromEnvGroupResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r UnlinkArtifactSourceFromEnvGroupResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r UnlinkArtifactSourceFromEnvGroupResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r UnlinkArtifactSourceFromEnvGroupResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r UnlinkArtifactSourceFromEnvGroupResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r UnlinkArtifactSourceFromEnvGroupResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r UnlinkArtifactSourceFromEnvGroupResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r UnlinkArtifactSourceFromEnvGroupResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UnlinkArtifactSourceFromEnvGroupResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r UnlinkArtifactSourceFromEnvGroupResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// LinkArtifactSourceToEnvGroupResponse429Headers the declared response headers of an HTTP 429 response for LinkArtifactSourceToEnvGroup
-type LinkArtifactSourceToEnvGroupResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type LinkArtifactSourceToEnvGroupResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *EnvGroup
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *LinkArtifactSourceToEnvGroupResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r LinkArtifactSourceToEnvGroupResponse) GetJSON200() *EnvGroup {
-	return r.JSON200
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r LinkArtifactSourceToEnvGroupResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r LinkArtifactSourceToEnvGroupResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r LinkArtifactSourceToEnvGroupResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r LinkArtifactSourceToEnvGroupResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r LinkArtifactSourceToEnvGroupResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r LinkArtifactSourceToEnvGroupResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r LinkArtifactSourceToEnvGroupResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r LinkArtifactSourceToEnvGroupResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r LinkArtifactSourceToEnvGroupResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r LinkArtifactSourceToEnvGroupResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -35278,10 +35663,7 @@ type GetBandwidthSourcesResponse struct {
 		} `json:"data,omitempty"`
 	}
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *struct {
-		// Error Example: bandwidth sources data is only available after 2025-03-09
-		Error *string `json:"error,omitempty"`
-	}
+	JSON400 *Error
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -35309,10 +35691,7 @@ func (r GetBandwidthSourcesResponse) GetJSON200() *struct {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetBandwidthSourcesResponse) GetJSON400() *struct {
-	// Error Example: bandwidth sources data is only available after 2025-03-09
-	Error *string `json:"error,omitempty"`
-} {
+func (r GetBandwidthSourcesResponse) GetJSON400() *Error {
 	return r.JSON400
 }
 
@@ -42527,6 +42906,106 @@ func (r RetrieveSandboxResponse) ContentType() string {
 	return ""
 }
 
+// ListSandboxExecutionsResponse429Headers the declared response headers of an HTTP 429 response for ListSandboxExecutions
+type ListSandboxExecutionsResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type ListSandboxExecutionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]ExecutionWithCursor
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *ListSandboxExecutionsResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListSandboxExecutionsResponse) GetJSON200() *[]ExecutionWithCursor {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListSandboxExecutionsResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListSandboxExecutionsResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ListSandboxExecutionsResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListSandboxExecutionsResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r ListSandboxExecutionsResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r ListSandboxExecutionsResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ListSandboxExecutionsResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ListSandboxExecutionsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSandboxExecutionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSandboxExecutionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListSandboxExecutionsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // RetrieveSandboxExecutionResponse429Headers the declared response headers of an HTTP 429 response for RetrieveSandboxExecution
 type RetrieveSandboxExecutionResponse429Headers struct {
 	RateLimitLimit     *int
@@ -42614,6 +43093,106 @@ func (r RetrieveSandboxExecutionResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r RetrieveSandboxExecutionResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// UpdateSandboxExecResponse429Headers the declared response headers of an HTTP 429 response for UpdateSandboxExec
+type UpdateSandboxExecResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type UpdateSandboxExecResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *externalRef16.SandboxExecUpdateResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *UpdateSandboxExecResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateSandboxExecResponse) GetJSON200() *externalRef16.SandboxExecUpdateResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r UpdateSandboxExecResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r UpdateSandboxExecResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r UpdateSandboxExecResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r UpdateSandboxExecResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r UpdateSandboxExecResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r UpdateSandboxExecResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r UpdateSandboxExecResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateSandboxExecResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateSandboxExecResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateSandboxExecResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateSandboxExecResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -46596,6 +47175,106 @@ func (r CancelJobResponse) ContentType() string {
 	return ""
 }
 
+// RetrieveServiceOutboundIpsResponse429Headers the declared response headers of an HTTP 429 response for RetrieveServiceOutboundIps
+type RetrieveServiceOutboundIpsResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type RetrieveServiceOutboundIpsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *OutboundIps
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON406 the response for an HTTP 406 `application/json` response
+	JSON406 *N406NotAcceptable
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *RetrieveServiceOutboundIpsResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RetrieveServiceOutboundIpsResponse) GetJSON200() *OutboundIps {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RetrieveServiceOutboundIpsResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r RetrieveServiceOutboundIpsResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r RetrieveServiceOutboundIpsResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON406 returns the response for an HTTP 406 `application/json` response
+func (r RetrieveServiceOutboundIpsResponse) GetJSON406() *N406NotAcceptable {
+	return r.JSON406
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r RetrieveServiceOutboundIpsResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r RetrieveServiceOutboundIpsResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r RetrieveServiceOutboundIpsResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r RetrieveServiceOutboundIpsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RetrieveServiceOutboundIpsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RetrieveServiceOutboundIpsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RetrieveServiceOutboundIpsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // PreviewServiceResponse429Headers the declared response headers of an HTTP 429 response for PreviewService
 type PreviewServiceResponse429Headers struct {
 	RateLimitLimit     *int
@@ -50484,6 +51163,40 @@ func (c *ClientWithResponses) ListArtifactsInArtifactSourceWithResponse(ctx cont
 	return ParseListArtifactsInArtifactSourceResponse(rsp)
 }
 
+// UnlinkEnvGroupFromArtifactSourceWithResponse Unlink environment group
+//
+// Unlink a particular environment group from a particular artifact source.
+//
+// The artifact source will lose access to the environment variables and secret files in the group.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `UnlinkEnvGroupFromArtifactSource` operationId).
+func (c *ClientWithResponses) UnlinkEnvGroupFromArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*UnlinkEnvGroupFromArtifactSourceResponse, error) {
+	rsp, err := c.UnlinkEnvGroupFromArtifactSource(ctx, artifactSourceId, envGroupId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUnlinkEnvGroupFromArtifactSourceResponse(rsp)
+}
+
+// LinkEnvGroupToArtifactSourceWithResponse Link environment group
+//
+// Link a particular environment group to a particular artifact source.
+//
+// The artifact source will have access to the environment variables and secret files in the group at build time.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `LinkEnvGroupToArtifactSource` operationId).
+func (c *ClientWithResponses) LinkEnvGroupToArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*LinkEnvGroupToArtifactSourceResponse, error) {
+	rsp, err := c.LinkEnvGroupToArtifactSource(ctx, artifactSourceId, envGroupId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseLinkEnvGroupToArtifactSourceResponse(rsp)
+}
+
 // GetEnvVarsForArtifactSourceWithResponse List environment variables
 //
 // List all environment variables for the artifact source with the provided ID.
@@ -51271,40 +51984,6 @@ func (c *ClientWithResponses) UpdateEnvGroupWithResponse(ctx context.Context, en
 		return nil, err
 	}
 	return ParseUpdateEnvGroupResponse(rsp)
-}
-
-// UnlinkArtifactSourceFromEnvGroupWithResponse Unlink artifact source
-//
-// Unlink a particular artifact source from a particular environment group.
-//
-// The artifact source will lose access to the environment variables and secret files in the group.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with DELETE /env-groups/{envGroupId}/artifact-sources/{artifactSourceId} (the `UnlinkArtifactSourceFromEnvGroup` operationId).
-func (c *ClientWithResponses) UnlinkArtifactSourceFromEnvGroupWithResponse(ctx context.Context, envGroupId EnvGroupIdParam, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*UnlinkArtifactSourceFromEnvGroupResponse, error) {
-	rsp, err := c.UnlinkArtifactSourceFromEnvGroup(ctx, envGroupId, artifactSourceId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUnlinkArtifactSourceFromEnvGroupResponse(rsp)
-}
-
-// LinkArtifactSourceToEnvGroupWithResponse Link artifact source
-//
-// Link a particular artifact source to a particular environment group.
-//
-// The linked artifact source will have access to the environment variables and secret files in the group at build time.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with POST /env-groups/{envGroupId}/artifact-sources/{artifactSourceId} (the `LinkArtifactSourceToEnvGroup` operationId).
-func (c *ClientWithResponses) LinkArtifactSourceToEnvGroupWithResponse(ctx context.Context, envGroupId EnvGroupIdParam, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*LinkArtifactSourceToEnvGroupResponse, error) {
-	rsp, err := c.LinkArtifactSourceToEnvGroup(ctx, envGroupId, artifactSourceId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseLinkArtifactSourceToEnvGroupResponse(rsp)
 }
 
 // DeleteEnvGroupEnvVarWithResponse Remove environment variable
@@ -53596,7 +54275,7 @@ func (c *ClientWithResponses) UpdateRegistryCredentialWithResponse(ctx context.C
 
 // ListSandboxGroupsWithResponse List sandbox groups
 //
-// List sandbox groups for the specified workspaces. Alpha guarantees at most one
+// List sandbox groups for a single workspace. Alpha guarantees at most one
 // group per owner, so the response is either empty or a single-item list.
 //
 // Returns a wrapper object for the known response body format(s).
@@ -53612,8 +54291,8 @@ func (c *ClientWithResponses) ListSandboxGroupsWithResponse(ctx context.Context,
 
 // ListSandboxesWithResponse List sandboxes
 //
-// List sandboxes for the specified workspaces. If no workspaces are provided, returns
-// all sandboxes the API key has access to.
+// List sandboxes for a single workspace. Sandboxes are scoped to the region of
+// their workspace's sandbox group, so one workspace must be named per request.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -53671,6 +54350,21 @@ func (c *ClientWithResponses) RetrieveSandboxWithResponse(ctx context.Context, s
 	return ParseRetrieveSandboxResponse(rsp)
 }
 
+// ListSandboxExecutionsWithResponse List executions
+//
+// List execution records for the sandbox, ordered by start time, newest first.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /sandboxes/{sandboxId}/execs (the `ListSandboxExecutions` operationId).
+func (c *ClientWithResponses) ListSandboxExecutionsWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *ListSandboxExecutionsParams, reqEditors ...RequestEditorFn) (*ListSandboxExecutionsResponse, error) {
+	rsp, err := c.ListSandboxExecutions(ctx, sandboxId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSandboxExecutionsResponse(rsp)
+}
+
 // RetrieveSandboxExecutionWithResponse Retrieve execution
 //
 // Retrieve one execution record for the sandbox.
@@ -53684,6 +54378,40 @@ func (c *ClientWithResponses) RetrieveSandboxExecutionWithResponse(ctx context.C
 		return nil, err
 	}
 	return ParseRetrieveSandboxExecutionResponse(rsp)
+}
+
+// UpdateSandboxExecWithBodyWithResponse Update sandbox execution
+//
+// Record the client-observed exit code for a previously minted sandbox
+// execution. Call after the proxy run completes (sync response or closing
+// SSE frame). Command text is recorded at token mint time, not here.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
+func (c *ClientWithResponses) UpdateSandboxExecWithBodyWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSandboxExecResponse, error) {
+	rsp, err := c.UpdateSandboxExecWithBody(ctx, sandboxId, execId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateSandboxExecResponse(rsp)
+}
+
+// UpdateSandboxExecWithResponse Update sandbox execution
+//
+// Record the client-observed exit code for a previously minted sandbox
+// execution. Call after the proxy run completes (sync response or closing
+// SSE frame). Command text is recorded at token mint time, not here.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
+func (c *ClientWithResponses) UpdateSandboxExecWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, body UpdateSandboxExecJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSandboxExecResponse, error) {
+	rsp, err := c.UpdateSandboxExec(ctx, sandboxId, execId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateSandboxExecResponse(rsp)
 }
 
 // ListSandboxFilesWithResponse List directory contents in sandbox
@@ -53709,9 +54437,10 @@ func (c *ClientWithResponses) ListSandboxFilesWithResponse(ctx context.Context, 
 // single file upload or download against the sandbox, and return the
 // sandbox-proxy endpoint to invoke with it. The caller streams the file
 // bytes directly to (or from) that endpoint with the token as a bearer
-// credential. `application/octet-stream` carries a single file; uploads
-// accept a directory archive as `application/x-tar` or `application/gzip`
-// (gzipped tar), and directory downloads return `application/gzip`. The
+// credential. `application/octet-stream` carries a single file and
+// `application/x-tar` a directory archive, with compression carried
+// separately by `Content-Encoding: gzip` in either direction; directory
+// downloads return `application/x-tar` with `Content-Encoding: gzip`. The
 // token is bound to this sandbox, operation, and path, and expires
 // shortly after issuance.
 //
@@ -54467,6 +55196,23 @@ func (c *ClientWithResponses) CancelJobWithResponse(ctx context.Context, service
 		return nil, err
 	}
 	return ParseCancelJobResponse(rsp)
+}
+
+// RetrieveServiceOutboundIpsWithResponse Retrieve service outbound IPs
+//
+// Retrieve the IP addresses the service's outbound traffic originates from.
+//
+// A service uses either a dedicated IP set that applies to it, or the shared Render IPs for its region.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /services/{serviceId}/outbound-ips (the `RetrieveServiceOutboundIps` operationId).
+func (c *ClientWithResponses) RetrieveServiceOutboundIpsWithResponse(ctx context.Context, serviceId ServiceIdParam, reqEditors ...RequestEditorFn) (*RetrieveServiceOutboundIpsResponse, error) {
+	rsp, err := c.RetrieveServiceOutboundIps(ctx, serviceId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRetrieveServiceOutboundIpsResponse(rsp)
 }
 
 // PreviewServiceWithBodyWithResponse Create service preview (image-backed)
@@ -55870,6 +56616,206 @@ func ParseListArtifactsInArtifactSourceResponse(rsp *http.Response) (*ListArtifa
 	switch {
 	case rsp.StatusCode == 429:
 		var headers ListArtifactsInArtifactSourceResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseUnlinkEnvGroupFromArtifactSourceResponse parses an HTTP response from a UnlinkEnvGroupFromArtifactSourceWithResponse call
+func ParseUnlinkEnvGroupFromArtifactSourceResponse(rsp *http.Response) (*UnlinkEnvGroupFromArtifactSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UnlinkEnvGroupFromArtifactSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers UnlinkEnvGroupFromArtifactSourceResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseLinkEnvGroupToArtifactSourceResponse parses an HTTP response from a LinkEnvGroupToArtifactSourceWithResponse call
+func ParseLinkEnvGroupToArtifactSourceResponse(rsp *http.Response) (*LinkEnvGroupToArtifactSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &LinkEnvGroupToArtifactSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest EnvGroup
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers LinkEnvGroupToArtifactSourceResponse429Headers
 		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
 			var value int
 			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
@@ -59910,206 +60856,6 @@ func ParseUpdateEnvGroupResponse(rsp *http.Response) (*UpdateEnvGroupResponse, e
 	switch {
 	case rsp.StatusCode == 429:
 		var headers UpdateEnvGroupResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseUnlinkArtifactSourceFromEnvGroupResponse parses an HTTP response from a UnlinkArtifactSourceFromEnvGroupWithResponse call
-func ParseUnlinkArtifactSourceFromEnvGroupResponse(rsp *http.Response) (*UnlinkArtifactSourceFromEnvGroupResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UnlinkArtifactSourceFromEnvGroupResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case rsp.StatusCode == 204:
-		break // No content-type
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers UnlinkArtifactSourceFromEnvGroupResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseLinkArtifactSourceToEnvGroupResponse parses an HTTP response from a LinkArtifactSourceToEnvGroupWithResponse call
-func ParseLinkArtifactSourceToEnvGroupResponse(rsp *http.Response) (*LinkArtifactSourceToEnvGroupResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &LinkArtifactSourceToEnvGroupResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest EnvGroup
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers LinkArtifactSourceToEnvGroupResponse429Headers
 		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
 			var value int
 			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
@@ -64458,10 +65204,7 @@ func ParseGetBandwidthSourcesResponse(rsp *http.Response) (*GetBandwidthSourcesR
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest struct {
-			// Error Example: bandwidth sources data is only available after 2025-03-09
-			Error *string `json:"error,omitempty"`
-		}
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -72020,6 +72763,115 @@ func ParseRetrieveSandboxResponse(rsp *http.Response) (*RetrieveSandboxResponse,
 	return response, nil
 }
 
+// ParseListSandboxExecutionsResponse parses an HTTP response from a ListSandboxExecutionsWithResponse call
+func ParseListSandboxExecutionsResponse(rsp *http.Response) (*ListSandboxExecutionsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSandboxExecutionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []ExecutionWithCursor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers ListSandboxExecutionsResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
 // ParseRetrieveSandboxExecutionResponse parses an HTTP response from a RetrieveSandboxExecutionWithResponse call
 func ParseRetrieveSandboxExecutionResponse(rsp *http.Response) (*RetrieveSandboxExecutionResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -72088,6 +72940,115 @@ func ParseRetrieveSandboxExecutionResponse(rsp *http.Response) (*RetrieveSandbox
 	switch {
 	case rsp.StatusCode == 429:
 		var headers RetrieveSandboxExecutionResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseUpdateSandboxExecResponse parses an HTTP response from a UpdateSandboxExecWithResponse call
+func ParseUpdateSandboxExecResponse(rsp *http.Response) (*UpdateSandboxExecResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateSandboxExecResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef16.SandboxExecUpdateResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers UpdateSandboxExecResponse429Headers
 		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
 			var value int
 			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
@@ -76435,6 +77396,115 @@ func ParseCancelJobResponse(rsp *http.Response) (*CancelJobResponse, error) {
 	switch {
 	case rsp.StatusCode == 429:
 		var headers CancelJobResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseRetrieveServiceOutboundIpsResponse parses an HTTP response from a RetrieveServiceOutboundIpsWithResponse call
+func ParseRetrieveServiceOutboundIpsResponse(rsp *http.Response) (*RetrieveServiceOutboundIpsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RetrieveServiceOutboundIpsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest OutboundIps
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers RetrieveServiceOutboundIpsResponse429Headers
 		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
 			var value int
 			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {

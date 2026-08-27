@@ -16,8 +16,8 @@ import (
 )
 
 type SandboxCreateInput struct {
-	Plan          string `cli:"plan"`
-	Region        string `cli:"region"`
+	Plan          string   `cli:"plan"`
+	Region        string   `cli:"region"`
 	Timeout       int      `cli:"timeout"`
 	NetworkPolicy string   `cli:"network-policy"`
 	EnvVars       []string `cli:"env-var"`

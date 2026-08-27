@@ -191,8 +191,9 @@ func (e SandboxStatus) Valid() bool {
 }
 
 // Execution One recorded sandbox execution (a command run or file transfer).
-// `startedAt` is the token provisioning time. `stoppedAt` and `exitCode`
-// are absent while the execution is in flight or was never completed.
+// `startedAt` is the token provisioning time. `command` may be present
+// while the execution is in flight (recorded at token mint). `stoppedAt`
+// and `exitCode` are absent until a status report or sandbox finalization.
 type Execution struct {
 	// Command The execution target. For runs, the truncated command; for file transfers, the target file path.
 	Command *string `json:"command,omitempty"`
@@ -256,6 +257,14 @@ type Sandbox struct {
 	TimeoutSeconds int `json:"timeoutSeconds"`
 }
 
+// SandboxConnectRequest Optional body when minting a run connect token. `command` is stored on
+// the exec timeline (truncated to 4KB); the full command is still sent
+// to the sandbox proxy when executing.
+type SandboxConnectRequest struct {
+	// Command Command text for the sandbox event timeline.
+	Command *string `json:"command,omitempty"`
+}
+
 // SandboxConnectResponse A minted connect token and the sandbox-proxy endpoint to invoke with it.
 // Send the request (and body, where the operation takes one) to `uri`
 // using `method`, with `token` as a bearer credential.
@@ -292,6 +301,24 @@ type SandboxDirectoryListing struct {
 	//
 	// Example: /app
 	Path string `json:"path"`
+}
+
+// SandboxExecUpdateRequest Client-reported completion of a sandbox execution.
+type SandboxExecUpdateRequest struct {
+	// ExitCode Process exit code observed by the client.
+	ExitCode *int `json:"exitCode,omitempty"`
+}
+
+// SandboxExecUpdateResponse Updated sandbox execution after a client update.
+type SandboxExecUpdateResponse struct {
+	Command   *string    `json:"command,omitempty"`
+	ExecId    string     `json:"execId"`
+	ExitCode  *int       `json:"exitCode,omitempty"`
+	Operation string     `json:"operation"`
+	SandboxId string     `json:"sandboxId"`
+	StartedAt time.Time  `json:"startedAt"`
+	StoppedAt *time.Time `json:"stoppedAt,omitempty"`
+	Type      string     `json:"type"`
 }
 
 // SandboxFileEntry A file or directory entry in a sandbox filesystem listing.
@@ -421,3 +448,6 @@ type SandboxStatus string
 
 // ExecId Example: exe-cph1rs3idesc73a2b2mg
 type ExecId = ExecutionId
+
+// OwnerId defines model for ownerId.
+type OwnerId = string

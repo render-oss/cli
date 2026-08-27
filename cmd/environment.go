@@ -16,10 +16,10 @@ import (
 )
 
 var environmentCmd = &cobra.Command{
-	Use:   "environments <projectID>",
-	Args:  cobra.ExactArgs(1),
-	Short: "List project environments by project ID",
-	Long: `List environments for a specified project in the active workspace. In interactive mode you can view each environment's individual services.`,
+	Use:     "environments <projectID>",
+	Args:    cobra.ExactArgs(1),
+	Short:   "List project environments by project ID",
+	Long:    `List environments for a specified project in the active workspace. In interactive mode you can view each environment's individual services.`,
 	GroupID: GroupManagement.ID,
 	Example: `  # List environments for a project
   render environments prj-abc123`,

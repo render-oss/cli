@@ -505,6 +505,26 @@ type ServerRestartedEvent struct {
 	TriggeredByUser *string `json:"triggeredByUser"`
 }
 
+// ServiceDiskUsageHighEvent defines model for serviceDiskUsageHighEvent.
+type ServiceDiskUsageHighEvent struct {
+	// DiskId Example: dsk-cph1rs3idesc73a2b2mg
+	DiskId           externalRef5.DiskId `json:"diskId"`
+	DiskName         string              `json:"diskName"`
+	MountPath        string              `json:"mountPath"`
+	ThresholdPercent float64             `json:"thresholdPercent"`
+	UsagePercent     float64             `json:"usagePercent"`
+}
+
+// ServiceDiskUsageRecoveredEvent defines model for serviceDiskUsageRecoveredEvent.
+type ServiceDiskUsageRecoveredEvent struct {
+	// DiskId Example: dsk-cph1rs3idesc73a2b2mg
+	DiskId           externalRef5.DiskId `json:"diskId"`
+	DiskName         string              `json:"diskName"`
+	MountPath        string              `json:"mountPath"`
+	ThresholdPercent float64             `json:"thresholdPercent"`
+	UsagePercent     float64             `json:"usagePercent"`
+}
+
 // ServiceEvent defines model for serviceEvent.
 type ServiceEvent struct {
 	Details ServiceEventDetails `json:"details"`
@@ -1669,6 +1689,58 @@ func (t *ServiceEventDetails) FromDiskDeletedEvent(v DiskDeletedEvent) error {
 
 // MergeDiskDeletedEvent performs a merge with any union data inside the ServiceEventDetails, using the provided DiskDeletedEvent
 func (t *ServiceEventDetails) MergeDiskDeletedEvent(v DiskDeletedEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsServiceDiskUsageHighEvent returns the union data inside the ServiceEventDetails as a ServiceDiskUsageHighEvent
+func (t ServiceEventDetails) AsServiceDiskUsageHighEvent() (ServiceDiskUsageHighEvent, error) {
+	var body ServiceDiskUsageHighEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromServiceDiskUsageHighEvent overwrites any union data inside the ServiceEventDetails as the provided ServiceDiskUsageHighEvent
+func (t *ServiceEventDetails) FromServiceDiskUsageHighEvent(v ServiceDiskUsageHighEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeServiceDiskUsageHighEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ServiceDiskUsageHighEvent
+func (t *ServiceEventDetails) MergeServiceDiskUsageHighEvent(v ServiceDiskUsageHighEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsServiceDiskUsageRecoveredEvent returns the union data inside the ServiceEventDetails as a ServiceDiskUsageRecoveredEvent
+func (t ServiceEventDetails) AsServiceDiskUsageRecoveredEvent() (ServiceDiskUsageRecoveredEvent, error) {
+	var body ServiceDiskUsageRecoveredEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromServiceDiskUsageRecoveredEvent overwrites any union data inside the ServiceEventDetails as the provided ServiceDiskUsageRecoveredEvent
+func (t *ServiceEventDetails) FromServiceDiskUsageRecoveredEvent(v ServiceDiskUsageRecoveredEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeServiceDiskUsageRecoveredEvent performs a merge with any union data inside the ServiceEventDetails, using the provided ServiceDiskUsageRecoveredEvent
+func (t *ServiceEventDetails) MergeServiceDiskUsageRecoveredEvent(v ServiceDiskUsageRecoveredEvent) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err

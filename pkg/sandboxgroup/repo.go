@@ -23,7 +23,7 @@ func NewRepo(c *client.ClientWithResponses) *Repo {
 // over it unconditionally.
 func (r *Repo) List(ctx context.Context, ownerID string) ([]*sandboxesclient.SandboxGroup, error) {
 	params := &client.ListSandboxGroupsParams{
-		OwnerId: &client.OwnerIdParam{ownerID},
+		OwnerId: ownerID,
 	}
 
 	resp, err := r.client.ListSandboxGroupsWithResponse(ctx, params)

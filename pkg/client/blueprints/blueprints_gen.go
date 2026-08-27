@@ -259,4 +259,7 @@ type ValidationPlanSummary struct {
 
 	// TotalActions The total number of actions that would be performed by the Blueprint. In addition to created resources, this includes modifications to individual configuration fields.
 	TotalActions *int `json:"totalActions,omitempty"`
+
+	// Workflows The names of workflows that would be created as part of the Blueprint.
+	Workflows *[]string `json:"workflows,omitempty"`
 }

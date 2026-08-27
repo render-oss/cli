@@ -30,7 +30,7 @@ func (r *Repo) ListSandboxes(ctx context.Context, params *client.ListSandboxesPa
 		return nil, err
 	}
 
-	params.OwnerId = &client.OwnerIdParam{workspace}
+	params.OwnerId = workspace
 
 	return client.ListAll(ctx, params, r.listSandboxesPage)
 }
@@ -90,7 +90,7 @@ func (r *Repo) GetSandbox(ctx context.Context, id string) (*sandboxclient.Sandbo
 		return nil, err
 	}
 
-	resp, err := r.client.RetrieveSandboxWithResponse(ctx, id, &client.RetrieveSandboxParams{OwnerId: workspace})
+	resp, err := r.client.RetrieveSandboxWithResponse(ctx, id, &client.RetrieveSandboxParams{OwnerId: &workspace})
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +307,7 @@ func (r *Repo) connect(ctx context.Context, id, command string) (*sandboxclient.
 	}
 
 	resp, err := r.client.ConnectSandboxRunWithResponse(ctx, id, "stream",
-		&client.ConnectSandboxRunParams{OwnerId: workspace}, body)
+		&client.ConnectSandboxRunParams{OwnerId: &workspace}, body)
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +332,7 @@ func (r *Repo) connectFile(ctx context.Context, id, operation, remotePath string
 	}
 
 	resp, err := r.client.ConnectSandboxFilesWithResponse(ctx, id, operation, &client.ConnectSandboxFilesParams{
-		OwnerId: workspace,
+		OwnerId: &workspace,
 		Path:    remotePath,
 	})
 	if err != nil {
@@ -387,7 +387,7 @@ func (r *Repo) TerminateSandbox(ctx context.Context, id string) error {
 		return err
 	}
 
-	resp, err := r.client.TerminateSandboxWithResponse(ctx, id, &client.TerminateSandboxParams{OwnerId: workspace})
+	resp, err := r.client.TerminateSandboxWithResponse(ctx, id, &client.TerminateSandboxParams{OwnerId: &workspace})
 	if err != nil {
 		return err
 	}

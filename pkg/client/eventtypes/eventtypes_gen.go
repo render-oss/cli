@@ -256,6 +256,8 @@ const (
 	ServiceEventTypeServerFailed                ServiceEventType = "server_failed"
 	ServiceEventTypeServerHardwareFailure       ServiceEventType = "server_hardware_failure"
 	ServiceEventTypeServerRestarted             ServiceEventType = "server_restarted"
+	ServiceEventTypeServiceDiskUsageHigh        ServiceEventType = "service_disk_usage_high"
+	ServiceEventTypeServiceDiskUsageRecovered   ServiceEventType = "service_disk_usage_recovered"
 	ServiceEventTypeServiceResumed              ServiceEventType = "service_resumed"
 	ServiceEventTypeServiceSuspended            ServiceEventType = "service_suspended"
 	ServiceEventTypeSuspenderAdded              ServiceEventType = "suspender_added"
@@ -336,6 +338,10 @@ func (e ServiceEventType) Valid() bool {
 	case ServiceEventTypeServerHardwareFailure:
 		return true
 	case ServiceEventTypeServerRestarted:
+		return true
+	case ServiceEventTypeServiceDiskUsageHigh:
+		return true
+	case ServiceEventTypeServiceDiskUsageRecovered:
 		return true
 	case ServiceEventTypeServiceResumed:
 		return true
