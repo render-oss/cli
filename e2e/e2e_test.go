@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/render-oss/cli/cmd"
 	"github.com/render-oss/cli/e2e/helpers"
+	"github.com/render-oss/cli/internal/files"
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,6 +42,14 @@ func outputHasLineRegex(output io.Reader, regex *regexp.Regexp) (string, bool) {
 }
 
 func TestE2E(t *testing.T) {
+	configDir := t.TempDir()
+	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
+	t.Setenv("RENDER_CLI_DISABLE_ANALYTICS", "1")
+
+	// Seed disclosure state so the first-run notice cannot pollute E2E output.
+	markerPath := filepath.Join(configDir, "state", "analytics", "notice-shown")
+	require.NoError(t, files.Write(markerPath, nil))
+
 	// We log in once at the beginning of the test suite
 	// and use the same session for all tests
 	f, err := os.CreateTemp("", "render-config")
