@@ -46,8 +46,31 @@ func TestAnalyticsEligibilityIsInheritedByDescendants(t *testing.T) {
 	require.True(t, commandIsAnalyticsEligible(distractor))
 }
 
+func TestAnalyticsNoticeEligibilityIsInheritedByDescendants(t *testing.T) {
+	root := &cobra.Command{Use: "render"}
+	parent := &cobra.Command{Use: "parent"}
+	child := &cobra.Command{Use: "child"}
+	distractor := &cobra.Command{Use: "distractor"}
+	root.AddCommand(parent, distractor)
+	parent.AddCommand(child)
+
+	require.True(t, commandIsAnalyticsNoticeEligible(root))
+	require.True(t, commandIsAnalyticsNoticeEligible(child))
+	require.True(t, commandIsAnalyticsNoticeEligible(distractor))
+
+	markCommandAnalyticsNoticeIneligible(parent)
+
+	require.False(t, commandIsAnalyticsNoticeEligible(parent))
+	require.False(t, commandIsAnalyticsNoticeEligible(child))
+	require.True(t, commandIsAnalyticsNoticeEligible(distractor))
+}
+
 func TestAnalyticsEligibilityIsFalseForUnresolvedCommand(t *testing.T) {
 	require.False(t, commandIsAnalyticsEligible(nil))
+}
+
+func TestAnalyticsNoticeEligibilityIsFalseForUnresolvedCommand(t *testing.T) {
+	require.False(t, commandIsAnalyticsNoticeEligible(nil))
 }
 
 type analyticsHarness struct {
@@ -103,12 +126,25 @@ func (h *analyticsHarness) reloadDependencies() {
 	h.root.SetErr(&h.stderr)
 	setupAnalyticsCommands(h.root, h.deps)
 	setupRootCmdPersistentRun(h.root, h.deps)
+	h.root.AddCommand(newLoginCmd(), newLogoutCmd())
+	// The harness also needs one ordinary command unrelated to authentication.
+	h.root.AddCommand(&cobra.Command{
+		Use:  "ping",
+		RunE: func(*cobra.Command, []string) error { return nil },
+	})
 }
 
 // analyticsNoticeMarkerPath is where the harness's isolated config directory
 // keeps the one-time notice marker.
 func (h *analyticsHarness) analyticsNoticeMarkerPath() string {
 	return filepath.Join(h.configDir, "state", "analytics-notice-shown")
+}
+
+// forceStderrTTY configures the test harness to think stderr is a TTY so that the notice can be shown
+func (h *analyticsHarness) forceStderrTTY() {
+	h.deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
+		return command.RuntimeSignals{StderrTTY: true}, nil
+	}
 }
 
 // execute runs the provided args as a command

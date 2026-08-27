@@ -9,14 +9,16 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/render-oss/cli/internal/analyticsnotice"
+	"github.com/render-oss/cli/pkg/analytics"
 	"github.com/render-oss/cli/pkg/cfg"
 	commandpkg "github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 )
 
 const (
-	analyticsEligibilityAnnotation     = "render.analytics.eligibility"
-	analyticsIneligibleAnnotationValue = "ineligible"
+	analyticsEligibilityAnnotation       = "render.analytics.eligibility"
+	analyticsNoticeEligibilityAnnotation = "render.analytics.notice.eligibility"
+	analyticsIneligibleAnnotationValue   = "ineligible"
 )
 
 // onExecutionCompleteFunc runs side effects after a command execution finishes.
@@ -24,20 +26,36 @@ type onExecutionCompleteFunc func(result commandpkg.ExecutionResult, deps *depen
 
 // onExecutionComplete is the single process-wide hook for completed executions.
 var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.ExecutionResult, deps *dependencies.Dependencies, root *cobra.Command) {
-	if !result.AnalyticsEligible {
-		return
-	}
-	// Do not send analytics before users have a chance to take action based on the analytics notice
-	if result.SkipAnalyticsSend {
-		return
-	}
-
 	// Nil deps means setup failed (or was skipped, as on the --version fast path)
 	// before a client existed, so there is no analytics sender to emit with.
 	if deps == nil {
 		return
 	}
-	if cfg.AnalyticsDevGateOpen() {
+	stderr := root.ErrOrStderr()
+	analyticsGateOpen := cfg.AnalyticsDevGateOpen()
+	if analyticsGateOpen && result.AnalyticsNoticeEligible {
+		signals, err := deps.DetectRuntimeSignals()
+		if err != nil {
+			return
+		}
+		if analyticsnotice.ShowIfNeeded(
+			commandpkg.NewStream(stderr),
+			analyticsNoticeConditions(signals),
+			analytics.ResolveConsent().OptOutReason,
+		) {
+			return
+		}
+	}
+
+	if result.SkipAnalyticsSend {
+		return
+	}
+
+	if !result.AnalyticsEligible {
+		return
+	}
+
+	if analyticsGateOpen && !result.AnalyticsNoticeEligible {
 		signals, err := deps.DetectRuntimeSignals()
 		if err != nil {
 			// TODO: Replace this dependency and fallback with the disclosure-specific
@@ -51,7 +69,8 @@ var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.Executi
 			return
 		}
 	}
-	deps.Analytics().Send(result, root.ErrOrStderr())
+
+	deps.Analytics().Send(result, stderr)
 }
 
 // markCommandAnalyticsIneligible excludes a command and all of its descendants
@@ -63,16 +82,46 @@ func markCommandAnalyticsIneligible(cmd *cobra.Command) {
 	cmd.Annotations[analyticsEligibilityAnnotation] = analyticsIneligibleAnnotationValue
 }
 
+// markCommandAnalyticsNoticeIneligible excludes a command and all of its
+// descendants from analytics notice eligibility.
+func markCommandAnalyticsNoticeIneligible(cmd *cobra.Command) {
+	if cmd.Annotations == nil {
+		cmd.Annotations = make(map[string]string)
+	}
+	cmd.Annotations[analyticsNoticeEligibilityAnnotation] = analyticsIneligibleAnnotationValue
+}
+
 // commandIsAnalyticsEligible resolves inherited analytics eligibility for a
 // selected command.
 //   - A descendant of an ineligible command is always ineligible.
+//   - Cobra shell completion commands are ineligible.
 //   - A nil command is ineligible
 func commandIsAnalyticsEligible(cmd *cobra.Command) bool {
 	if cmd == nil {
 		return false
 	}
+	if isShellCompletionCommand(cmd) {
+		return false
+	}
 	for current := cmd; current != nil; current = current.Parent() {
 		if current.Annotations[analyticsEligibilityAnnotation] == analyticsIneligibleAnnotationValue {
+			return false
+		}
+	}
+	return true
+}
+
+// commandIsAnalyticsNoticeEligible resolves inherited notice eligibility for a
+// selected command. Cobra shell completion commands and nil are ineligible.
+func commandIsAnalyticsNoticeEligible(cmd *cobra.Command) bool {
+	if cmd == nil {
+		return false
+	}
+	if isShellCompletionCommand(cmd) {
+		return false
+	}
+	for current := cmd; current != nil; current = current.Parent() {
+		if current.Annotations[analyticsNoticeEligibilityAnnotation] == analyticsIneligibleAnnotationValue {
 			return false
 		}
 	}
@@ -361,12 +410,13 @@ func completionKind(command *cobra.Command, err error, observation *executionObs
 // newClassifiedExecutionResult when it must be derived from Cobra's outcome.
 func newExecutionResult(command *cobra.Command, kind commandpkg.CompletionKind, exitCode int, startedAt time.Time) commandpkg.ExecutionResult {
 	return commandpkg.ExecutionResult{
-		AnalyticsEligible: commandIsAnalyticsEligible(command),
-		CommandPath:       commandPath(command),
-		CompletionKind:    kind,
-		Duration:          time.Since(startedAt),
-		ExitCode:          exitCode,
-		StartedAt:         startedAt,
+		AnalyticsEligible:       commandIsAnalyticsEligible(command),
+		AnalyticsNoticeEligible: commandIsAnalyticsNoticeEligible(command),
+		CommandPath:             commandPath(command),
+		CompletionKind:          kind,
+		Duration:                time.Since(startedAt),
+		ExitCode:                exitCode,
+		StartedAt:               startedAt,
 	}
 }
 
@@ -394,8 +444,8 @@ func commandPath(command *cobra.Command) string {
 	return command.CommandPath()
 }
 
-// newClassifiedExecutionResult derives the completion kind and exit code from
-// Cobra's outcome and the observed events, then constructs the result.
+// newClassifiedExecutionResult derives the result from Cobra's outcome and the
+// events observed during execution.
 func newClassifiedExecutionResult(command *cobra.Command, err error, observation *executionObservation, startedAt time.Time) commandpkg.ExecutionResult {
 	kind := completionKind(command, err, observation)
 	resultCommand := command

@@ -201,8 +201,6 @@ func TestLogoutWarnsWithEnvKeyNoteWhenTokenRevocationFails(t *testing.T) {
 }
 
 func TestLogoutDoesNotEmitAnalytics(t *testing.T) {
-	require.False(t, commandIsAnalyticsEligible(newLogoutCmd()))
-
 	server := renderapi.NewServer(t)
 	configPath := setupLogoutTest(t)
 	require.NoError(t, config.SetAPIConfig(config.APIConfig{
@@ -214,6 +212,8 @@ func TestLogoutDoesNotEmitAnalytics(t *testing.T) {
 	result := executeWithAnalytics(t, server, filepath.Dir(configPath), true, "logout")
 
 	require.Equal(t, 0, result.Result.ExitCode)
+	require.False(t, result.Result.AnalyticsEligible)
+	require.True(t, result.Result.AnalyticsNoticeEligible)
 	require.Len(t, server.OAuth.Revokes.Instances, 1, "logout should exercise the credential revocation path")
 	require.NoFileExists(t, configPath, "logout should delete the OAuth config")
 	require.Equal(t, "test-api-key", os.Getenv("RENDER_API_KEY"), "analytics should remain able to authenticate")

@@ -80,6 +80,10 @@ type ExecutionResult struct {
 	// execution to produce an analytics event. It does not reflect whether the
 	// user has enabled or disabled analytics sending.
 	AnalyticsEligible bool
+	// AnalyticsNoticeEligible reports whether the one-time analytics notice may
+	// be shown after this execution. Commands such as login and logout are
+	// notice-eligible even though they are not analytics-eligible.
+	AnalyticsNoticeEligible bool
 	// CommandPath is the space-joined path of the command Cobra selected (for
 	// example "render services list"), or the root command's path ("render")
 	// when discovery failed. It contains only matched command names — never user

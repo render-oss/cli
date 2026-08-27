@@ -222,7 +222,7 @@ func outputPointer(output command.Output) *command.Output {
 }
 
 func TestRootPersistentPreRunSuppressesUsageForRuntimeErrors(t *testing.T) {
-	root, out := newRootCommandForUsageTests()
+	root, out := newRootCommandForUsageTests(t)
 	runtimeErr := errors.New("network request failed")
 	root.AddCommand(&cobra.Command{
 		Use:  "login",
@@ -243,7 +243,7 @@ func TestRootPersistentPreRunSuppressesUsageForRuntimeErrors(t *testing.T) {
 }
 
 func TestRootArgumentErrorsStillPrintUsage(t *testing.T) {
-	root, out := newRootCommandForUsageTests()
+	root, out := newRootCommandForUsageTests(t)
 	root.AddCommand(&cobra.Command{
 		Use:  "login <token>",
 		Args: cobra.ExactArgs(1),
@@ -263,7 +263,7 @@ func TestRootArgumentErrorsStillPrintUsage(t *testing.T) {
 }
 
 func TestRootDeprecatedFlagErrorsStillPrintUsage(t *testing.T) {
-	root, out := newRootCommandForUsageTests()
+	root, out := newRootCommandForUsageTests(t)
 	root.PersistentFlags().Bool("pretty-json", false, "")
 	root.AddCommand(&cobra.Command{
 		Use:  "login",
@@ -610,7 +610,7 @@ func TestExecutionResultClassifiesCobraOutcomes(t *testing.T) {
 func executeAndClassify(t *testing.T, args []string, configure func(t *testing.T, root, child *cobra.Command)) command.ExecutionResult {
 	t.Helper()
 
-	root, _ := newRootCommandForUsageTests()
+	root, _ := newRootCommandForUsageTests(t)
 	child := &cobra.Command{
 		Use:  "test <value>",
 		Args: cobra.ExactArgs(1),
@@ -631,7 +631,7 @@ func executeAndClassify(t *testing.T, args []string, configure func(t *testing.T
 }
 
 func TestPrepareExecutionObservationClearsRetainedState(t *testing.T) {
-	root, _ := newRootCommandForUsageTests()
+	root, _ := newRootCommandForUsageTests(t)
 	root.AddCommand(&cobra.Command{
 		Use:  "test <value>",
 		Args: cobra.ExactArgs(1),
@@ -702,7 +702,7 @@ func TestClassifiedExecutionResultIncludesExecutionObservation(t *testing.T) {
 }
 
 func TestPrepareExecutionObservationClearsRetainedHelpRequest(t *testing.T) {
-	root, _ := newRootCommandForUsageTests()
+	root, _ := newRootCommandForUsageTests(t)
 
 	// Cobra retains parsed flag values when a command tree is reused. The E2E
 	// harness and package tests reuse the root tree, so an explicit help request
@@ -722,7 +722,7 @@ func TestPrepareExecutionObservationClearsRetainedHelpRequest(t *testing.T) {
 }
 
 func TestPrepareExecutionObservationClearsRetainedUnknownSubcommand(t *testing.T) {
-	root, _ := newRootCommandForUsageTests()
+	root, _ := newRootCommandForUsageTests(t)
 	root.AddCommand(&cobra.Command{Use: "group"})
 
 	root.SetArgs([]string{"group", "bogus"})
@@ -824,11 +824,12 @@ func TestOnExecutionCompleteHonorsSkipAnalyticsSend(t *testing.T) {
 			var stderr bytes.Buffer
 			root.SetErr(&stderr)
 			result := command.ExecutionResult{
-				AnalyticsEligible: true,
-				CommandPath:       "render postgres list",
-				CompletionKind:    command.CompletionKindSuccess,
-				SkipAnalyticsSend: tc.skip,
-				StartedAt:         time.Now(),
+				AnalyticsEligible:       true,
+				AnalyticsNoticeEligible: true,
+				CommandPath:             "render postgres list",
+				CompletionKind:          command.CompletionKindSuccess,
+				SkipAnalyticsSend:       tc.skip,
+				StartedAt:               time.Now(),
 			}
 
 			onExecutionComplete(result, deps, root)
@@ -884,10 +885,11 @@ func TestOnExecutionCompleteAnalyticsSendRequiresDisclosure(t *testing.T) {
 			}
 
 			result := command.ExecutionResult{
-				AnalyticsEligible: true,
-				CommandPath:       "render future-command",
-				CompletionKind:    command.CompletionKindSuccess,
-				StartedAt:         time.Now(),
+				AnalyticsEligible:       true,
+				AnalyticsNoticeEligible: false,
+				CommandPath:             "render future-command",
+				CompletionKind:          command.CompletionKindSuccess,
+				StartedAt:               time.Now(),
 			}
 
 			onExecutionComplete(result, harness.deps, harness.root)
@@ -922,10 +924,11 @@ func TestOnExecutionCompleteLogsWhenAnalyticsTestingDisabled(t *testing.T) {
 	var stderr bytes.Buffer
 	root.SetErr(&stderr)
 	result := command.ExecutionResult{
-		AnalyticsEligible: true,
-		CommandPath:       "render future-command",
-		CompletionKind:    command.CompletionKindSetupError,
-		StartedAt:         time.Now(),
+		AnalyticsEligible:       true,
+		AnalyticsNoticeEligible: true,
+		CommandPath:             "render future-command",
+		CompletionKind:          command.CompletionKindSetupError,
+		StartedAt:               time.Now(),
 	}
 
 	onExecutionComplete(result, deps, root)
@@ -1093,7 +1096,10 @@ func configureAnalyticsTestEnv(
 	}
 }
 
-func newRootCommandForUsageTests() (*cobra.Command, *bytes.Buffer) {
+func newRootCommandForUsageTests(t *testing.T) (*cobra.Command, *bytes.Buffer) {
+	t.Helper()
+	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
+
 	deps := dependencies.New(nil)
 	deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
 		return command.RuntimeSignals{
