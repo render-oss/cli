@@ -44,5 +44,6 @@ hooks = [
 repo = "local"
 hooks = [
   { id = "shellcheck", name = "shellcheck", entry = "shellcheck", language = "system", types = ["shell"], priority = 20 },
+  { id = "bashunit", name = "bashunit", entry = "bashunit_tests/run.sh", language = "script", files = "^(bin/install\\.sh|bashunit_tests/.*\\.sh)$", pass_filenames = false, priority = 20 },
   { id = "go-filenames", name = "go filenames", entry = "bin/lint-go-filenames.sh", language = "script", files = "\\.go$", priority = 20 },
 ]

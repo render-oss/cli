@@ -20,4 +20,7 @@ We use [prek](https://prek.j178.dev/) to run precommit-compatible checks locally
 - If you didn't install `prek` following the [dev setup guide](https://slab.render.com/posts/dev-setup-guide-ect5drdb), do so now (e.g., `brew install prek`)
 - Set up prek git hooks with `prek install`.
 
+Run the shell test suite with `bashunit_tests/run.sh`. The runner downloads the
+pinned BashUnit release on first use.
+
 Read [AGENTS.md](AGENTS.md) for common dev commands. It's written for humans too!
