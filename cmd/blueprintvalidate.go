@@ -17,17 +17,18 @@ import (
 	"github.com/render-oss/cli/pkg/config"
 )
 
-var blueprintValidateCmd = &cobra.Command{
-	Use:   "validate [file]",
-	Short: "Validate a YAML file for a Blueprint",
-	Long: `Validate a Blueprint file for errors before committing.
+func newBlueprintValidateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "validate [file]",
+		Short: "Validate a YAML file for a Blueprint",
+		Long: `Validate a Blueprint file for errors before committing.
 
 Validates:
   - YAML syntax
   - Schema validation (Required fields, types)
   - Semantic validation (valid plans, regions, etc.)
   - Conflict checking against existing resources`,
-	Example: `  # Validate ./render.yaml
+		Example: `  # Validate ./render.yaml
   render blueprints validate
 
   # Validate a specific Blueprint file
@@ -35,20 +36,24 @@ Validates:
 
   # Output validation results as JSON
   render blueprints validate -o json`,
-	Args:         cobra.MaximumNArgs(1),
-	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := cmd.Context()
-		return runBlueprintValidate(ctx, cmd, args)
-	},
+		Args:         cobra.MaximumNArgs(1),
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := cmd.Context()
+			return runBlueprintValidate(ctx, cmd, args)
+		},
+	}
+
+	// The positional arg is a Blueprint file path, so keep file completion.
+	cmd.CompletionOptions.SetDefaultShellCompDirective(cobra.ShellCompDirectiveDefault)
+	cmd.Flags().StringP("workspace", "w", "", "Validate against the specified workspace ID (defaults to current workspace)")
+	setFlagPlaceholder(cmd.Flags(), "workspace", "WORKSPACE_ID")
+
+	return cmd
 }
 
 func init() {
-	blueprintsCmd.AddCommand(blueprintValidateCmd)
-	// The positional arg is a Blueprint file path, so keep file completion.
-	blueprintValidateCmd.CompletionOptions.SetDefaultShellCompDirective(cobra.ShellCompDirectiveDefault)
-	blueprintValidateCmd.Flags().StringP("workspace", "w", "", "Validate against the specified workspace ID (defaults to current workspace)")
-	setFlagPlaceholder(blueprintValidateCmd.Flags(), "workspace", "WORKSPACE_ID")
+	blueprintsCmd.AddCommand(newBlueprintValidateCmd())
 }
 
 func runBlueprintValidate(ctx context.Context, cmd *cobra.Command, args []string) error {
@@ -126,11 +131,16 @@ func runBlueprintValidate(ctx context.Context, cmd *cobra.Command, args []string
 	}
 
 	result := resp.JSON200
+	if result == nil {
+		return fmt.Errorf("unexpected response from server: %s", string(resp.Body))
+	}
 
 	if output.Interactive() {
 		return printValidationResultInteractive(absPath, result)
 	}
 
+	// The API returns 200 for both validation outcomes. Preserve its validation
+	// details on stdout before returning an error for an invalid Blueprint.
 	_, err = command.PrintData(cmd, result, func(r *bptypes.ValidateBlueprintResponse) string {
 		jsonBytes, err := json.MarshalIndent(r, "", "  ")
 		if err != nil {
@@ -138,7 +148,17 @@ func runBlueprintValidate(ctx context.Context, cmd *cobra.Command, args []string
 		}
 		return string(jsonBytes) + "\n"
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	if result.Valid {
+		return nil
+	}
+
+	// The validation response already describes the failure. Return a non-zero
+	// exit without duplicating it through Cobra's stderr output.
+	cmd.Root().SilenceErrors = true
+	return command.NewExitError(1, nil)
 }
 
 func formatValidationError(e bptypes.ValidationError) string {

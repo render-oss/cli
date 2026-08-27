@@ -302,6 +302,7 @@ type Server struct {
 	KV            *KVResource
 	Postgres      *PostgresResource
 	Services      *ServiceResource
+	Blueprints    *BlueprintResource
 	SandboxGroups *SandboxGroupResource
 	CliTelemetry  *CliTelemetryResource
 	OAuth         *OAuthResource
@@ -407,6 +408,7 @@ func NewServer(t *testing.T) *Server {
 		KV:            &KVResource{},
 		Postgres:      &PostgresResource{},
 		Services:      &ServiceResource{},
+		Blueprints:    &BlueprintResource{},
 		SandboxGroups: &SandboxGroupResource{},
 		CliTelemetry:  &CliTelemetryResource{},
 		OAuth:         &OAuthResource{},
@@ -1053,6 +1055,7 @@ func NewServer(t *testing.T) *Server {
 	})
 
 	registerServiceRoutes(mux, s, record)
+	registerBlueprintRoutes(mux, s, record)
 	registerSandboxGroupRoutes(mux, s, record)
 	registerCliTelemetryRoutes(mux, s, record)
 	registerOAuthRoutes(mux, s, record)
