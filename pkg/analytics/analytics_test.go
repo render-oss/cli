@@ -53,6 +53,7 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		testAgentSignals,
 		testCISignals,
 		testInstallationID,
+		"",
 		"v-test",
 		"test-os",
 		"test-arch",
@@ -134,6 +135,7 @@ func TestSenderHandsEventFileToDetachedSubprocess(t *testing.T) {
 	require.NoError(t, json.Unmarshal(data, &payload))
 	require.Equal(t, "render services list", payload.Command)
 	require.Equal(t, telemetryclient.Success, payload.CompletionKind)
+	require.Empty(t, payload.CurrentWorkspaceId)
 }
 
 func TestSenderRemovesEventFileWhenDetachedLaunchFails(t *testing.T) {
@@ -281,7 +283,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 		LaunchedFullScreenTUI: true,
 		OutputFormat:          pointers.From(command.YAML),
 		StartedAt:             exampleStartedAt,
-	}, terminalSignals, testAgentSignals, []string{}, testInstallationID, "v-test", "test-os", "test-arch")
+	}, terminalSignals, testAgentSignals, []string{}, testInstallationID, "tea-test-workspace", "v-test", "test-os", "test-arch")
 
 	require.Equal(t, testAgentSignals, event.AgentSignals)
 	require.Equal(t, "yaml", event.OutputFormat)
@@ -303,6 +305,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 		"cli_version": "v-test",
 		"command": "render services list",
 		"completion_kind": "success",
+		"current_workspace_id": "tea-test-workspace",
 		"duration_ms": 0,
 		"exit_code": 0,
 		"installation_id": "`+testInstallationID+`",
@@ -329,6 +332,7 @@ func TestAgentSignalValuesNeverAppearInSerializedAnalyticsEvent(t *testing.T) {
 		DetectAgentSignals(),
 		[]string{},
 		testInstallationID,
+		"",
 		"v-test",
 		"test-os",
 		"test-arch",
@@ -347,6 +351,7 @@ func TestCommandInvokedEventSerializesStartedAt(t *testing.T) {
 		[]string{},
 		[]string{},
 		testInstallationID,
+		"",
 		"v-test",
 		"test-os",
 		"test-arch",
@@ -368,6 +373,7 @@ func TestCommandInvokedEventDefaultsUnresolvedOutputToUnknown(t *testing.T) {
 		[]string{},
 		[]string{},
 		testInstallationID,
+		"",
 		"v-test",
 		"test-os",
 		"test-arch",
@@ -480,6 +486,7 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 	server := renderapi.NewServer(t)
 	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
 	t.Setenv("RENDER_CLI_CONFIG_PATH", "")
+	t.Setenv("RENDER_WORKSPACE", "tea-current-workspace")
 	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")
 	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
 	t.Setenv("DO_NOT_TRACK", "")
@@ -518,6 +525,7 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 		CliVersion:            cfg.Version,
 		Command:               "render services list",
 		CompletionKind:        telemetryclient.Success,
+		CurrentWorkspaceId:    "tea-current-workspace",
 		ExitCode:              0,
 		IsStdinTty:            terminalSignals.StdinTTY,
 		IsStdoutTty:           terminalSignals.StdoutTTY,

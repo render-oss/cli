@@ -62,6 +62,9 @@ type CliTelemetryEventPOSTInput struct {
 	// CompletionKind How the CLI invocation completed
 	CompletionKind CliTelemetryEventPOSTInputCompletionKind `json:"completion_kind"`
 
+	// CurrentWorkspaceId Effective active workspace ID reported by the CLI, or an empty string when none is set
+	CurrentWorkspaceId string `json:"current_workspace_id"`
+
 	// DurationMs Wall-clock duration of the invocation in milliseconds
 	DurationMs int64 `json:"duration_ms"`
 

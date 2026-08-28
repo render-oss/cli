@@ -15,6 +15,7 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	telemetryclient "github.com/render-oss/cli/pkg/client/clitelemetry"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/config"
 )
 
 // unknownOutputFormat identifies invocations that finished before command setup
@@ -158,7 +159,8 @@ func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
 	terminalSignals := s.detectTerminalSignals()
 	agentSignals := s.detectAgentSignals()
 	ciSignals := s.detectCISignals()
-	payload := newEventPOSTBody(result, terminalSignals, agentSignals, ciSignals, installationID, s.cliVersion, s.goos, s.goarch)
+	currentWorkspaceID, _ := config.WorkspaceID()
+	payload := newEventPOSTBody(result, terminalSignals, agentSignals, ciSignals, installationID, currentWorkspaceID, s.cliVersion, s.goos, s.goarch)
 
 	if s.shouldLog {
 		payloadJSON, _ := json.Marshal(payload)
@@ -235,6 +237,7 @@ func newEventPOSTBody(
 	agentSignals []string,
 	ciSignals []string,
 	installationID string,
+	currentWorkspaceID string,
 	cliVersion string,
 	goos string,
 	goarch string,
@@ -246,6 +249,7 @@ func newEventPOSTBody(
 		CliVersion:            cliVersion,
 		Command:               result.CommandPath,
 		CompletionKind:        telemetryclient.CliTelemetryEventPOSTInputCompletionKind(result.CompletionKind),
+		CurrentWorkspaceId:    currentWorkspaceID,
 		DurationMs:            result.Duration.Milliseconds(),
 		ExitCode:              result.ExitCode,
 		IsStdinTty:            terminalSignals.StdinTTY,
