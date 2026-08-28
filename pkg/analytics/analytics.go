@@ -24,8 +24,7 @@ const unknownOutputFormat = "unknown"
 
 // Sender turns a completed execution into an analytics event. Sending and
 // logging are controlled independently: sending by the dev gate and
-// [ResolveConsent] (env opt-outs and the config file), logging by an
-// environment variable.
+// [ResolveConsent] (environment opt-outs), logging by an environment variable.
 //
 // New configures sending only when the dev gate is open, the user has not
 // opted out, and the API client is present. A logged-out CLI still holds a
@@ -77,9 +76,8 @@ func New(apiClient *client.ClientWithResponses) *Sender {
 	// coordinated changes: delete the cfg.AnalyticsDevGateOpen() term here,
 	// remove the closed-gate return from analyticsnotice.ShowIfNeeded, and make
 	// onExecutionComplete enforce analyticsnotice.CanSend unconditionally.
-	// Until then, order matters here: the dev gate short-circuits first, so
-	// builds with the gate closed never read the config file that consent lives
-	// in.
+	// Until then, order matters here: the dev gate short-circuits before consent
+	// resolution.
 	sendingEnabled := cfg.AnalyticsDevGateOpen() && ResolveConsent().Granted && apiClient != nil
 
 	return newSender(

@@ -20,7 +20,6 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	telemetryclient "github.com/render-oss/cli/pkg/client/clitelemetry"
 	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/pointers"
 )
 
@@ -444,7 +443,6 @@ func TestNewUsesExactEnvironmentGates(t *testing.T) {
 		logValue           string
 		doNotTrack         string
 		disableEnv         string
-		configDisabled     bool
 		wantSendingEnabled bool
 		wantShouldLog      bool
 	}{
@@ -455,7 +453,6 @@ func TestNewUsesExactEnvironmentGates(t *testing.T) {
 		{name: "both", sendValue: "1", logValue: "1", wantSendingEnabled: true, wantShouldLog: true},
 		{name: "DO_NOT_TRACK vetoes an enabled dev gate", sendValue: "1", doNotTrack: "1"},
 		{name: "RENDER_CLI_DISABLE_ANALYTICS vetoes an enabled dev gate", sendValue: "1", disableEnv: "true"},
-		{name: "config opt-out vetoes an enabled dev gate", sendValue: "1", configDisabled: true},
 		{name: "opt-out leaves logging alone", sendValue: "1", logValue: "1", doNotTrack: "1", wantShouldLog: true},
 	}
 
@@ -465,14 +462,6 @@ func TestNewUsesExactEnvironmentGates(t *testing.T) {
 			t.Setenv("RENDER_LOG_ANALYTICS", tc.logValue)
 			t.Setenv("DO_NOT_TRACK", tc.doNotTrack)
 			t.Setenv("RENDER_CLI_DISABLE_ANALYTICS", tc.disableEnv)
-			// Consent resolution reads the config file, so isolate it from the
-			// machine's real ~/.render/cli.yaml.
-			t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
-			t.Setenv("RENDER_CLI_CONFIG_PATH", "")
-			if tc.configDisabled {
-				cfgFile := &config.Config{Analytics: config.AnalyticsConfig{Disabled: true}}
-				require.NoError(t, cfgFile.Persist())
-			}
 
 			sender := New(&client.ClientWithResponses{})
 

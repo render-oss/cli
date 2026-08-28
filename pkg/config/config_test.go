@@ -52,17 +52,6 @@ func TestLoad_ReturnsFreshConfigWhenMissing(t *testing.T) {
 	require.True(t, os.IsNotExist(statErr), "Load should not create the config file")
 }
 
-func TestPersistLoad_AnalyticsDisabledRoundTrips(t *testing.T) {
-	tmpConfigPath(t)
-
-	cfg := &Config{Version: 1, Analytics: AnalyticsConfig{Disabled: true}}
-	require.NoError(t, cfg.Persist())
-
-	loaded, err := Load()
-	require.NoError(t, err)
-	require.True(t, loaded.Analytics.Disabled)
-}
-
 func TestHasOAuthConfig_TrueWhenKeySet(t *testing.T) {
 	tmpConfigPath(t)
 

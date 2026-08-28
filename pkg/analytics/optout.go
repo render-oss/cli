@@ -11,7 +11,4 @@ const (
 	// OptOutReasonDisableAnalyticsEnv means RENDER_CLI_DISABLE_ANALYTICS
 	// disabled analytics.
 	OptOutReasonDisableAnalyticsEnv OptOutReason = "RENDER_CLI_DISABLE_ANALYTICS"
-	// OptOutReasonAnalyticsDisabledConfig means analytics.disabled in cli.yaml
-	// disabled analytics.
-	OptOutReasonAnalyticsDisabledConfig OptOutReason = "analytics.disabled"
 )

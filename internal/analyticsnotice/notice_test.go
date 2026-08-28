@@ -96,7 +96,6 @@ func TestBuildNotice(t *testing.T) {
 		}{
 			{analytics.OptOutReasonDoNotTrack, "To enable telemetry, remove DO_NOT_TRACK from your environment."},
 			{analytics.OptOutReasonDisableAnalyticsEnv, "remove RENDER_CLI_DISABLE_ANALYTICS from your"},
-			{analytics.OptOutReasonAnalyticsDisabledConfig, "remove analytics.disabled from your Render CLI"},
 			{"something-new", "check your Render CLI settings."},
 		}
 		for _, tc := range testCases {

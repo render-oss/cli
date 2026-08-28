@@ -75,8 +75,6 @@ func enableInstruction(optOutReason analytics.OptOutReason) string {
 		return "To enable telemetry, remove DO_NOT_TRACK from your environment."
 	case analytics.OptOutReasonDisableAnalyticsEnv:
 		return "To enable telemetry, remove RENDER_CLI_DISABLE_ANALYTICS from your environment."
-	case analytics.OptOutReasonAnalyticsDisabledConfig:
-		return "To enable telemetry, remove analytics.disabled from your Render CLI config file."
 	case analytics.OptOutReasonNone:
 		// telemetrySection handles the not-opted-out case before calling this.
 		return "To enable telemetry, check your Render CLI settings."
