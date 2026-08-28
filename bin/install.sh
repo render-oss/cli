@@ -20,6 +20,40 @@ set -e
     exit 1
   }
 
+  # Return whether this is a sudo install running as root for another user.
+  is_sudo_install() {
+    [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER:-}" != "root" ]
+  }
+
+  # Make text bold and Render purple when stdout is a terminal. Piped or logged
+  # output stays plain text.
+  bold_render_purple() {
+    # File descriptor 1 is stdout; -t reports whether it is connected to a
+    # terminal. Without one, %s inserts the first argument unchanged and printf
+    # adds no newline.
+    if [ ! -t 1 ]; then
+      printf '%s' "$1"
+      return
+    fi
+
+    # In the formats below, \033[ starts an ANSI style sequence, semicolons
+    # separate its parameters, m applies them, and \033[0m resets the style.
+    case "${COLORTERM:-}" in
+      truecolor | 24bit)
+        # Bold Render purple clears the contrast threshold against both a white
+        # and a near-black terminal: 1 means bold, 38;2 selects a 24-bit
+        # foreground color, and 155;82;251 is Render purple.
+        printf '\033[1;38;2;155;82;251m%s\033[0m' "$1"
+        ;;
+      *)
+        # No truecolor: fall back to the terminal's own magenta, which the
+        # user's theme has already made legible against their background. Here,
+        # 1 means bold and 35 selects magenta.
+        printf '\033[1;35m%s\033[0m' "$1"
+        ;;
+    esac
+  }
+
   # Check for required commands
   command -v curl > /dev/null 2>&1 || error "curl is required but not installed"
   command -v sed > /dev/null 2>&1 || error "sed is required but not installed"
@@ -89,12 +123,23 @@ set -e
   if [ -x "${INSTALL_DIR}/render" ]; then
     echo "✨ Successfully installed Render CLI to ${INSTALL_DIR}/render"
     echo
+    # If the installer is running under sudo, defer the notice until the invoking
+    # user's first CLI command so its state is not created as root.
+    if ! is_sudo_install; then
+      # Tell the user what the CLI collects. Best-effort: this must never turn a
+      # successful install into a failed one, and the CLI shows the notice on
+      # the first command anyway if this does not run. Keep stderr attached to
+      # the terminal because the notice does not display otherwise.
+      "${INSTALL_DIR}/render" analytics notice || true
+    fi
     if ! command -v render > /dev/null 2>&1; then
       echo "NOTE: Make sure ${INSTALL_DIR} is in your PATH by adding this to your shell's rc file:"
-      echo "  export PATH=\$PATH:${INSTALL_DIR}"
+      bold_render_purple "  export PATH=\$PATH:${INSTALL_DIR}"
+      echo
       echo
       echo "To use render CLI immediately, run:"
-      echo "  export PATH=\$PATH:${INSTALL_DIR}"
+      bold_render_purple "  export PATH=\$PATH:${INSTALL_DIR}"
+      echo
       echo "  ${INSTALL_DIR}/render --version"
     else
       "${INSTALL_DIR}/render" --version
