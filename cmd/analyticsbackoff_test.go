@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/render-oss/cli/internal/fakes/renderapi"
-	"github.com/render-oss/cli/pkg/client"
 )
 
 // TestTelemetryBackoffAcrossInvocations is an integration test that exercises
@@ -21,46 +20,48 @@ import (
 // API server is programmed to issue a retry-after, and the test ensures it is
 // honored on a subsequent invocation.
 func TestTelemetryBackoffAcrossInvocations(t *testing.T) {
-	server := renderapi.NewServer(t)
-	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: analyticsWorkspaceID, Name: "Analytics Workspace"}))
-	t.Setenv("RENDER_WORKSPACE", analyticsWorkspaceID)
-	configDir := t.TempDir()
+	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+		devGateOpen:         true,
+		noticeMarkerPresent: true,
+		allowSubprocess:     true,
+	})
 
 	retryAfter := 10 * time.Minute
-	server.CliTelemetry.RespondWithRetryAfter(http.StatusTooManyRequests, retryAfterSeconds(retryAfter))
+	harness.server.CliTelemetry.RespondWithRetryAfter(http.StatusTooManyRequests, retryAfterSeconds(retryAfter))
 	before := time.Now()
-	first := executeWithAnalytics(t, server, configDir, true, "postgres", "list", "--output", "json")
+	first := harness.execute("postgres", "list", "--output", "json")
 
-	require.Equal(t, 0, first.Result.ExitCode)
-	require.Empty(t, server.CliTelemetry.Instances, "a rejected event is never collected")
-	require.Equal(t, 1, telemetryRequestCount(server))
+	require.Equal(t, 0, first.ExitCode)
+	require.Empty(t, harness.server.CliTelemetry.Instances, "a rejected event is never collected")
+	require.Equal(t, 1, telemetryRequestCount(harness.server))
 
-	state := readBackoffState(t, configDir)
+	state := readBackoffState(t, harness.configDir)
 	require.Equal(t, http.StatusTooManyRequests, state.StatusCode)
 	require.WithinDuration(t, before.Add(retryAfter), state.Until, time.Minute,
 		"Retry-After outranks the 5m default")
 
-	second := executeWithAnalytics(t, server, configDir, true, "postgres", "list", "--output", "json")
+	second := harness.execute("postgres", "list", "--output", "json")
 
-	require.Equal(t, 1, telemetryRequestCount(server), "an active backoff must make no request")
-	require.Empty(t, analyticsEventFiles(t, configDir), "an active backoff must not write an event file")
-	require.Equal(t, first.Result.ExitCode, second.Result.ExitCode, "an active backoff must not change the exit code")
+	require.Equal(t, 1, telemetryRequestCount(harness.server), "an active backoff must make no request")
+	require.Empty(t, analyticsEventFiles(t, harness.configDir), "an active backoff must not write an event file")
+	require.Equal(t, first.ExitCode, second.ExitCode, "an active backoff must not change the exit code")
 	require.Equal(t, first.Stdout, second.Stdout, "an active backoff must not change command output")
 	require.Equal(t, first.Stderr, second.Stderr, "an active backoff must not change command output")
 }
 
 func TestTelemetryResumesAfterBackoffExpires(t *testing.T) {
-	server := renderapi.NewServer(t)
-	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: analyticsWorkspaceID, Name: "Analytics Workspace"}))
-	t.Setenv("RENDER_WORKSPACE", analyticsWorkspaceID)
-	configDir := t.TempDir()
-	writeExpiredBackoffState(t, configDir)
+	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+		devGateOpen:         true,
+		noticeMarkerPresent: true,
+		allowSubprocess:     true,
+	})
+	writeExpiredBackoffState(t, harness.configDir)
 
-	run := executeWithAnalytics(t, server, configDir, true, "postgres", "list", "--output", "json")
+	execution := harness.execute("postgres", "list", "--output", "json")
 
-	require.Equal(t, 0, run.Result.ExitCode)
-	require.Len(t, server.CliTelemetry.Instances, 1, "an expired backoff must not suppress the send")
-	require.FileExists(t, backoffStatePath(configDir), "expired backoff state remains until it is overwritten")
+	require.Equal(t, 0, execution.ExitCode)
+	require.Len(t, harness.server.CliTelemetry.Instances, 1, "an expired backoff must not suppress the send")
+	require.FileExists(t, backoffStatePath(harness.configDir), "expired backoff state remains until it is overwritten")
 }
 
 // retryAfterSeconds formats a duration as a Retry-After header value, which

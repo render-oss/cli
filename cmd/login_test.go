@@ -4,21 +4,22 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/render-oss/cli/internal/fakes/renderapi"
 )
 
 func TestLoginDoesNotEmitAnalytics(t *testing.T) {
-	server := renderapi.NewServer(t)
-	// This is an easy way to force us down the "already authenticated" path
-	// For this test we just care about getting to the command completion to validate that no analytics events were sent.
-	t.Setenv("RENDER_API_KEY", "test-api-key")
+	// The harness's API key forces the "already authenticated" path. This test
+	// cares about reaching command completion without emitting analytics.
+	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+		devGateOpen:         true,
+		noticeMarkerPresent: true,
+		allowSubprocess:     true,
+	})
 
-	result := executeWithAnalytics(t, server, t.TempDir(), true, "login")
+	result := harness.execute("login")
 
-	require.Equal(t, 0, result.Result.ExitCode)
-	require.False(t, result.Result.AnalyticsEligible)
-	require.True(t, result.Result.AnalyticsNoticeEligible)
+	require.Equal(t, 0, result.ExitCode)
+	require.False(t, result.AnalyticsEligible)
+	require.True(t, result.AnalyticsNoticeEligible)
 	require.Contains(t, result.Stdout, "already authenticated")
-	require.Empty(t, server.CliTelemetry.Instances)
+	require.Empty(t, harness.server.CliTelemetry.Instances)
 }

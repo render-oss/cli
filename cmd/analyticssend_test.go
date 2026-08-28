@@ -13,7 +13,11 @@ import (
 )
 
 func TestAnalyticsSendSendsEventWithoutEmittingAnalyticsForItself(t *testing.T) {
-	harness := newAnalyticsHarness(t, true)
+	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+		devGateOpen:         true,
+		noticeMarkerPresent: true,
+		allowSubprocess:     true,
+	})
 	payload := client.CreateCliTelemetryEventJSONRequestBody{
 		Command:        "render services list",
 		CompletionKind: telemetryclient.Success,
@@ -38,29 +42,29 @@ func TestAnalyticsSendSendsEventWithoutEmittingAnalyticsForItself(t *testing.T) 
 // logging contract: send outcomes reach stderr only under RENDER_LOG_ANALYTICS.
 func TestAnalyticsSendWritesDiagnosticsOnlyWhenLoggingEnabled(t *testing.T) {
 	testCases := []struct {
-		name            string
-		logging         string
-		wantDiagnostics bool
+		name           string
+		loggingEnabled bool
 	}{
-		{name: "logging disabled", logging: "", wantDiagnostics: false},
-		{name: "logging enabled", logging: "1", wantDiagnostics: true},
+		{name: "logging disabled", loggingEnabled: false},
+		{name: "logging enabled", loggingEnabled: true},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// The Sender captures the logging gate when the harness constructs
-			// dependencies, so the override must be in place first.
-			t.Setenv("RENDER_LOG_ANALYTICS", tc.logging)
-			harness := newAnalyticsHarness(t, true)
+			harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+				devGateOpen:         true,
+				loggingEnabled:      tc.loggingEnabled,
+				noticeMarkerPresent: false,
+			})
 			eventFilePath := writeAnalyticsEventFile(t, harness.configDir, []byte(`{"command":"render services list"}`))
 
 			result := harness.execute("analytics", "send", eventFilePath)
 
 			require.Equal(t, 0, result.ExitCode)
-			if tc.wantDiagnostics {
-				require.Contains(t, harness.stderr.String(), "analytics response:")
+			if tc.loggingEnabled {
+				require.Contains(t, result.Stderr, "analytics response:")
 			} else {
-				require.Empty(t, harness.stderr.String())
+				require.Empty(t, result.Stderr)
 			}
 		})
 	}
@@ -68,7 +72,10 @@ func TestAnalyticsSendWritesDiagnosticsOnlyWhenLoggingEnabled(t *testing.T) {
 
 func TestAnalyticsSendReturnsErrorsWithoutSending(t *testing.T) {
 	t.Run("missing file", func(t *testing.T) {
-		harness := newAnalyticsHarness(t, true)
+		harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+			devGateOpen:         true,
+			noticeMarkerPresent: false,
+		})
 		path := analyticsEventPath(harness.configDir)
 
 		result := harness.execute("analytics", "send", path)
@@ -78,7 +85,10 @@ func TestAnalyticsSendReturnsErrorsWithoutSending(t *testing.T) {
 	})
 
 	t.Run("invalid event", func(t *testing.T) {
-		harness := newAnalyticsHarness(t, true)
+		harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+			devGateOpen:         true,
+			noticeMarkerPresent: false,
+		})
 		path := writeAnalyticsEventFile(t, harness.configDir, []byte("not json"))
 
 		result := harness.execute("analytics", "send", path)
@@ -95,15 +105,18 @@ func TestAnalyticsSendReturnsErrorsWithoutSending(t *testing.T) {
 // the failure belongs to [analytics.Sender.SendFile], under the analytics prefix;
 // this command only has to stay quiet while still exiting non-zero.
 func TestAnalyticsSendSilencesCobraErrorOutput(t *testing.T) {
-	t.Setenv("RENDER_LOG_ANALYTICS", "1")
-	harness := newAnalyticsHarness(t, true)
+	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+		devGateOpen:         true,
+		loggingEnabled:      true,
+		noticeMarkerPresent: false,
+	})
 	path := writeAnalyticsEventFile(t, harness.configDir, []byte("not json"))
 
 	result := harness.execute("analytics", "send", path)
 
 	require.Equal(t, 1, result.ExitCode, "a waiting caller detects a failed send through the exit code")
-	require.NotContains(t, harness.stderr.String(), "Error:",
+	require.NotContains(t, result.Stderr, "Error:",
 		"Cobra's error prefix would read as a failure of the user's own command")
-	require.Contains(t, harness.stderr.String(), "analytics error:",
+	require.Contains(t, result.Stderr, "analytics error:",
 		"with logging enabled the failure is narrated under the analytics prefix instead")
 }

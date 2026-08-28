@@ -201,21 +201,25 @@ func TestLogoutWarnsWithEnvKeyNoteWhenTokenRevocationFails(t *testing.T) {
 }
 
 func TestLogoutDoesNotEmitAnalytics(t *testing.T) {
-	server := renderapi.NewServer(t)
-	configPath := setupLogoutTest(t)
+	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+		devGateOpen:         true,
+		noticeMarkerPresent: true,
+		allowSubprocess:     true,
+	})
+	configPath := filepath.Join(harness.configDir, "cli.yaml")
 	require.NoError(t, config.SetAPIConfig(config.APIConfig{
 		Key:  "rnd_test_revoke",
-		Host: server.URL(),
+		Host: harness.server.URL(),
 	}))
 	require.FileExists(t, configPath)
 
-	result := executeWithAnalytics(t, server, filepath.Dir(configPath), true, "logout")
+	result := harness.execute("logout")
 
-	require.Equal(t, 0, result.Result.ExitCode)
-	require.False(t, result.Result.AnalyticsEligible)
-	require.True(t, result.Result.AnalyticsNoticeEligible)
-	require.Len(t, server.OAuth.Revokes.Instances, 1, "logout should exercise the credential revocation path")
+	require.Equal(t, 0, result.ExitCode)
+	require.False(t, result.AnalyticsEligible)
+	require.True(t, result.AnalyticsNoticeEligible)
+	require.Len(t, harness.server.OAuth.Revokes.Instances, 1, "logout should exercise the credential revocation path")
 	require.NoFileExists(t, configPath, "logout should delete the OAuth config")
 	require.Equal(t, "test-api-key", os.Getenv("RENDER_API_KEY"), "analytics should remain able to authenticate")
-	require.Empty(t, server.CliTelemetry.Instances)
+	require.Empty(t, harness.server.CliTelemetry.Instances)
 }
