@@ -66,6 +66,7 @@ type PostgresUpdateDiff struct {
 	Plan                    *PostgresFieldDiff[pgclient.PostgresPlans]           `json:"plan,omitempty"`
 	DiskSizeGB              *PostgresFieldDiff[*int]                             `json:"diskSizeGB,omitempty"`
 	DiskAutoscalingEnabled  *PostgresFieldDiff[bool]                             `json:"diskAutoscalingEnabled,omitempty"`
+	ConnectionPool          *PostgresFieldDiff[string]                           `json:"connectionPool,omitempty"`
 	HighAvailabilityEnabled *PostgresFieldDiff[bool]                             `json:"highAvailabilityEnabled,omitempty"`
 	IPAllowList             *PostgresFieldDiff[[]client.CidrBlockAndDescription] `json:"ipAllowList,omitempty"`
 }
@@ -150,6 +151,9 @@ func newPostgresUpdateDiff(before *client.PostgresDetail, after *PostgresOut) Po
 	}
 	if before.DiskAutoscalingEnabled != after.DiskAutoscalingEnabled {
 		diff.DiskAutoscalingEnabled = newPostgresFieldDiff(before.DiskAutoscalingEnabled, after.DiskAutoscalingEnabled)
+	}
+	if before.ConnectionPool != after.ConnectionPool {
+		diff.ConnectionPool = newPostgresFieldDiff(before.ConnectionPool, after.ConnectionPool)
 	}
 	if before.HighAvailabilityEnabled != after.HighAvailabilityEnabled {
 		diff.HighAvailabilityEnabled = newPostgresFieldDiff(before.HighAvailabilityEnabled, after.HighAvailabilityEnabled)

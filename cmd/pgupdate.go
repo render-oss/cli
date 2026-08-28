@@ -76,6 +76,7 @@ mutually exclusive.`,
 	cmd.Flags().Int("disk-size-gb", 0, "Set the disk size in GB. Must be 1 or a multiple of 5.")
 	cmd.Flags().Bool("disk-autoscaling", false, "Enable disk autoscaling. Pass --disk-autoscaling=false to disable.")
 	cmd.Flags().Bool("high-availability", false, "Enable high availability (available for plans with at least 1 CPU). Pass --high-availability=false to disable.")
+	cmd.Flags().String("connection-pool", "none", "Set connection pool to 'none' or 'pgbouncer'")
 
 	cmd.Flags().String("datadog-api-key", "", "Set the Datadog API key for monitoring. Pass an empty string to remove.")
 	cmd.Flags().String("datadog-site", "", "Set the Datadog region/site (e.g. US1, US3, EU)")
@@ -94,6 +95,7 @@ mutually exclusive.`,
 		"datadog-api-key": "DATADOG_API_KEY",
 		"datadog-site":    "DATADOG_SITE",
 		"ip-allow-list":   "CIDR_DESCRIPTION",
+		"connection-pool": "CONNECTION_POOL",
 	})
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {

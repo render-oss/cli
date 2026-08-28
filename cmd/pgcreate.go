@@ -66,6 +66,7 @@ printed as text. Use --output json, yaml, or text for non-interactive output.`,
 	cmd.Flags().Int("disk-size-gb", 0, "Set the disk size in GB. Must be 1 or a multiple of 5. Server picks a sensible default based on compute size if unset.")
 	cmd.Flags().Bool("disk-autoscaling", false, "Enable disk autoscaling")
 	cmd.Flags().Bool("high-availability", false, "Enable high availability (available for plans with at least 1 CPU)")
+	cmd.Flags().String("connection-pool", "none", "Set connection pool to 'none' or 'pgbouncer'")
 
 	cmd.Flags().String("datadog-api-key", "", "Set the Datadog API key for monitoring")
 	cmd.Flags().String("datadog-site", "", "Set the Datadog region/site (e.g. US1, US3, EU). Server default is US1.")
@@ -90,6 +91,7 @@ printed as text. Use --output json, yaml, or text for non-interactive output.`,
 		"datadog-site":    "DATADOG_SITE",
 		"ip-allow-list":   "CIDR_DESCRIPTION",
 		"read-replica":    "NAME",
+		"connection-pool": "CONNECTION_POOL",
 	})
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
