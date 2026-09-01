@@ -202,7 +202,6 @@ func TestLogoutWarnsWithEnvKeyNoteWhenTokenRevocationFails(t *testing.T) {
 
 func TestLogoutDoesNotEmitAnalytics(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		noticeMarkerPresent: true,
 		allowSubprocess:     true,
 	})

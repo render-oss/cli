@@ -21,7 +21,6 @@ import (
 // honored on a subsequent invocation.
 func TestTelemetryBackoffAcrossInvocations(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		noticeMarkerPresent: true,
 		allowSubprocess:     true,
 	})
@@ -51,7 +50,6 @@ func TestTelemetryBackoffAcrossInvocations(t *testing.T) {
 
 func TestTelemetryResumesAfterBackoffExpires(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		noticeMarkerPresent: true,
 		allowSubprocess:     true,
 	})

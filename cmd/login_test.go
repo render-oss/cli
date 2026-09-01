@@ -10,7 +10,6 @@ func TestLoginDoesNotEmitAnalytics(t *testing.T) {
 	// The harness's API key forces the "already authenticated" path. This test
 	// cares about reaching command completion without emitting analytics.
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		noticeMarkerPresent: true,
 		allowSubprocess:     true,
 	})

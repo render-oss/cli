@@ -16,7 +16,6 @@ func TestAnalyticsNoticeIsHiddenFromAnalyticsHelp(t *testing.T) {
 	for _, args := range [][]string{{"analytics", "--help"}, {"help", "analytics"}} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-				devGateOpen:         true,
 				noticeMarkerPresent: false,
 				stderrTTY:           true,
 			})
@@ -33,7 +32,6 @@ func TestAnalyticsNoticeIsHiddenFromAnalyticsHelp(t *testing.T) {
 
 func TestAnalyticsNoticeIsAnalyticsIneligible(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		noticeMarkerPresent: true,
 		allowSubprocess:     true,
 	})
@@ -48,7 +46,6 @@ func TestAnalyticsNoticeIsAnalyticsIneligible(t *testing.T) {
 
 func TestAnalyticsNoticeCommandShowsNoticeOnce(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		noticeMarkerPresent: false,
 		stderrTTY:           true,
 	})
@@ -71,7 +68,6 @@ func TestAnalyticsNoticeCommandShowsNoticeOnce(t *testing.T) {
 
 func TestAnalyticsNoticeRejectsExtraArguments(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         false,
 		noticeMarkerPresent: false,
 	})
 
@@ -80,20 +76,18 @@ func TestAnalyticsNoticeRejectsExtraArguments(t *testing.T) {
 	require.NotEqual(t, 0, result.ExitCode)
 }
 
-func TestAnalyticsNoticeRequiresDevelopmentGate(t *testing.T) {
+func TestAnalyticsNoticeIsEnabledByDefault(t *testing.T) {
 	testCases := []struct {
-		name             string
-		args             []string
-		wantLoggedEvents int
+		name string
+		args []string
 	}{
-		{name: "regular command", args: []string{"ping"}, wantLoggedEvents: 1},
+		{name: "regular command", args: []string{"ping"}},
 		{name: "explicit notice command", args: []string{"analytics", "notice"}},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-				devGateOpen:         false,
 				loggingEnabled:      true,
 				noticeMarkerPresent: false,
 				stderrTTY:           true,
@@ -103,12 +97,11 @@ func TestAnalyticsNoticeRequiresDevelopmentGate(t *testing.T) {
 			result := harness.execute(tc.args...)
 
 			require.Equal(t, 0, result.ExitCode)
-			require.NotContains(t, ansi.Strip(result.Stderr), "The Render CLI collects usage data")
-			require.Equal(t, tc.wantLoggedEvents, result.countLoggedAnalyticsEvents(),
-				"analytics logging should follow command eligibility while the development gate is closed")
+			require.Contains(t, ansi.Strip(result.Stderr), "The Render CLI collects usage data")
+			require.Zero(t, result.countLoggedAnalyticsEvents(),
+				"the notice run must not reach analytics logging")
 			require.Empty(t, harness.server.CliTelemetry.Instances)
-			require.NoFileExists(t, harness.noticeMarkerPath(),
-				"a disabled rollout must leave the notice for the eventual rollout")
+			require.FileExists(t, harness.noticeMarkerPath())
 		})
 	}
 }
@@ -116,7 +109,6 @@ func TestAnalyticsNoticeRequiresDevelopmentGate(t *testing.T) {
 func TestAnalyticsNoticeOnFirstCommand(t *testing.T) {
 	t.Run("first invocation discloses analytics without logging an analytics event", func(t *testing.T) {
 		harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-			devGateOpen:         true,
 			loggingEnabled:      true,
 			noticeMarkerPresent: false,
 			stderrTTY:           true,
@@ -141,7 +133,6 @@ func TestAnalyticsNoticeOnFirstCommand(t *testing.T) {
 
 	t.Run("does not pollute CI output with analytics disclosure", func(t *testing.T) {
 		harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-			devGateOpen:         true,
 			loggingEnabled:      true,
 			noticeMarkerPresent: false,
 			stderrTTY:           true,
@@ -160,7 +151,6 @@ func TestAnalyticsNoticeOnFirstCommand(t *testing.T) {
 
 func TestAnalyticsNoticeOnFirstHelpCommand(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		noticeMarkerPresent: false,
 		stderrTTY:           true,
 		allowSubprocess:     true,
@@ -200,7 +190,6 @@ func TestAnalyticsNoticeOnFirstAnalyticsIneligibleUserCommand(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-				devGateOpen:         true,
 				noticeMarkerPresent: false,
 				stderrTTY:           true,
 				allowSubprocess:     true,
@@ -232,7 +221,6 @@ func TestShellCompletionDoesNotPerformDisclosure(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-				devGateOpen:         true,
 				loggingEnabled:      true,
 				noticeMarkerPresent: false,
 				stderrTTY:           true,
@@ -256,7 +244,6 @@ func TestShellCompletionDoesNotPerformDisclosure(t *testing.T) {
 // a hidden command, such as one retained for backward compatibility.
 func TestHiddenUserCommandPerformsDisclosure(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		noticeMarkerPresent: false,
 		stderrTTY:           true,
 	})
@@ -279,7 +266,6 @@ func TestAnalyticsNoticeCommandDisclosesExactlyOnce(t *testing.T) {
 	}
 
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		noticeMarkerPresent: false,
 		stderrTTY:           true,
 	})
@@ -298,7 +284,6 @@ func TestAnalyticsNoticeCommandDisclosesExactlyOnce(t *testing.T) {
 
 func TestAnalyticsSendDoesNotPerformDisclosure(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		noticeMarkerPresent: false,
 		stderrTTY:           true,
 	})

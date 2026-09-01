@@ -109,7 +109,6 @@ func TestIsSendSubprocess(t *testing.T) {
 }
 
 func TestNewSubprocess(t *testing.T) {
-	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
 	launcher := newTestSubprocessLauncher("/path/to/render")
 
 	cmd := launcher.newSubprocess(t.Context(), "/state/event.json", nil)
@@ -123,7 +122,6 @@ func TestNewSubprocess(t *testing.T) {
 	require.Nil(t, cmd.Stdin, "subprocess should read stdin from the null device")
 	require.Nil(t, cmd.Stdout)
 	require.Nil(t, cmd.Stderr)
-	require.Contains(t, cmd.Env, "RENDER_TEST_ENABLE_ANALYTICS=1")
 	require.Contains(t, cmd.Env, analyticsSubprocessEnv+"=1")
 	require.Empty(t, cmd.Dir,
 		"subprocess must run in the parent's cwd: a relative RENDER_CLI_CONFIG_DIR resolves against it, and a child launched elsewhere would orphan its event file")
@@ -195,13 +193,13 @@ func TestRunSync(t *testing.T) {
 
 func TestRunSyncInheritsEnvironmentAndOverridesStderr(t *testing.T) {
 	launcher := newHelperLauncher(t, helperModeReportEnvironment)
-	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "enabled")
+	t.Setenv("DO_NOT_TRACK", "1")
 	t.Setenv("RENDER_LOG_ANALYTICS", "logged")
 	t.Setenv("RENDER_CLI_CONFIG_DIR", "/custom/config")
 
 	var stderr bytes.Buffer
 	require.NoError(t, launcher.runSync(t.Context(), "event.json", &stderr))
-	require.Equal(t, "enabled|logged|/custom/config", stderr.String())
+	require.Equal(t, "1|logged|/custom/config", stderr.String())
 }
 
 func TestRunSyncKillsChildAfterDeadline(t *testing.T) {
@@ -234,7 +232,7 @@ func runHelper(mode string) int {
 		_, _ = fmt.Fprintf(
 			os.Stderr,
 			"%s|%s|%s",
-			os.Getenv("RENDER_TEST_ENABLE_ANALYTICS"),
+			os.Getenv("DO_NOT_TRACK"),
 			os.Getenv("RENDER_LOG_ANALYTICS"),
 			os.Getenv("RENDER_CLI_CONFIG_DIR"),
 		)

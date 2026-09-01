@@ -81,10 +81,6 @@ func TestAnalyticsNoticeEligibilityIsFalseForUnresolvedCommand(t *testing.T) {
 // t.Parallel because [testing.T.Setenv] rejects parallel tests and tests with
 // parallel ancestors.
 type analyticsHarnessInitialState struct {
-	// devGateOpen sets RENDER_TEST_ENABLE_ANALYTICS=1 when true, opening the
-	// internal gate required for analytics sends.
-	devGateOpen bool
-
 	// userOptedOut controls whether analytics consent is denied by the user.
 	userOptedOut bool
 
@@ -169,7 +165,6 @@ func newAnalyticsHarness(t *testing.T, initialState analyticsHarnessInitialState
 	t.Setenv("RENDER_OUTPUT", "")
 	t.Setenv("RENDER_WORKSPACE", analyticsWorkspaceID)
 	t.Setenv("RENDER_CLI_DISABLE_ANALYTICS", "")
-	harness.setDevelopmentGate(initialState.devGateOpen)
 	harness.setUserOptOut(initialState.userOptedOut)
 	harness.setAnalyticsLogging(initialState.loggingEnabled)
 	harness.setAnalyticsSubprocessPermission(initialState.allowSubprocess)
@@ -185,11 +180,6 @@ func boolToEnvValue(enabled bool) string {
 		return "1"
 	}
 	return ""
-}
-
-func (h *analyticsHarness) setDevelopmentGate(open bool) {
-	h.t.Helper()
-	h.t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", boolToEnvValue(open))
 }
 
 func (h *analyticsHarness) setUserOptOut(optedOut bool) {

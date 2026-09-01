@@ -32,8 +32,7 @@ var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.Executi
 		return
 	}
 	stderr := root.ErrOrStderr()
-	analyticsGateOpen := cfg.AnalyticsDevGateOpen()
-	if analyticsGateOpen && result.AnalyticsNoticeEligible {
+	if result.AnalyticsNoticeEligible {
 		signals, err := deps.DetectRuntimeSignals()
 		if err != nil {
 			return
@@ -51,7 +50,7 @@ var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.Executi
 		return
 	}
 
-	if analyticsGateOpen && !result.AnalyticsNoticeEligible {
+	if !result.AnalyticsNoticeEligible {
 		signals, err := deps.DetectRuntimeSignals()
 		if err != nil {
 			// TODO: Replace this dependency and fallback with the disclosure-specific

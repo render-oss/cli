@@ -11,7 +11,6 @@ import (
 	"fmt"
 
 	"github.com/render-oss/cli/pkg/analytics"
-	"github.com/render-oss/cli/pkg/cfg"
 	"github.com/render-oss/cli/pkg/command"
 )
 
@@ -38,12 +37,10 @@ func CanSend(conditions Conditions) bool {
 
 // ShowIfNeeded decides whether to show the analytics notice, writes it to s,
 // and records it as shown. It returns whether the caller should skip analytics
-// for this run. While the rollout gate is closed, it does nothing and allows
-// the caller to proceed so the sender's independent logging path still works.
-// Outside CI, analytics can proceed only when an existing marker proves the
-// notice was shown on an earlier run. CI is an automation exception: it shows
-// nothing, writes no marker, and does not ask the caller to skip analytics.
-// Explicit analytics opt-outs remain the caller's responsibility.
+// for this run. Outside CI, analytics can proceed only when an existing marker
+// proves the notice was shown on an earlier run. CI is an automation exception:
+// it shows nothing, writes no marker, and does not ask the caller to skip
+// analytics. Explicit analytics opt-outs remain the caller's responsibility.
 //
 // optOutReason is empty when telemetry is on, or names the opt-out mechanism
 // in effect (see [buildNotice]).
@@ -57,10 +54,6 @@ func CanSend(conditions Conditions) bool {
 // until a later run can show the notice and persist the marker. A telemetry
 // setup failure must not fail a command.
 func ShowIfNeeded(s *command.Stream, conditions Conditions, optOutReason analytics.OptOutReason) (skipAnalytics bool) {
-	if !cfg.AnalyticsDevGateOpen() {
-		return false
-	}
-
 	if conditions.CI {
 		return false
 	}

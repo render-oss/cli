@@ -436,29 +436,25 @@ func TestInstallationIDResolutionFailureIsBestEffort(t *testing.T) {
 	})
 }
 
-func TestNewUsesExactEnvironmentGates(t *testing.T) {
+func TestNewGatesSendingOnConsentAndLoggingOnEnv(t *testing.T) {
 	testCases := []struct {
 		name               string
-		sendValue          string
 		logValue           string
 		doNotTrack         string
 		disableEnv         string
 		wantSendingEnabled bool
 		wantShouldLog      bool
 	}{
-		{name: "unset"},
-		{name: "non-one values", sendValue: "true", logValue: "true"},
-		{name: "logging only", logValue: "1", wantShouldLog: true},
-		{name: "sending only", sendValue: "1", wantSendingEnabled: true},
-		{name: "both", sendValue: "1", logValue: "1", wantSendingEnabled: true, wantShouldLog: true},
-		{name: "DO_NOT_TRACK vetoes an enabled dev gate", sendValue: "1", doNotTrack: "1"},
-		{name: "RENDER_CLI_DISABLE_ANALYTICS vetoes an enabled dev gate", sendValue: "1", disableEnv: "true"},
-		{name: "opt-out leaves logging alone", sendValue: "1", logValue: "1", doNotTrack: "1", wantShouldLog: true},
+		{name: "unset defaults to sending enabled", wantSendingEnabled: true},
+		{name: "non-one logging value keeps sending enabled", logValue: "true", wantSendingEnabled: true},
+		{name: "logging enabled", logValue: "1", wantSendingEnabled: true, wantShouldLog: true},
+		{name: "DO_NOT_TRACK opts out", doNotTrack: "1"},
+		{name: "RENDER_CLI_DISABLE_ANALYTICS opts out", disableEnv: "true"},
+		{name: "opt-out leaves logging alone", logValue: "1", doNotTrack: "1", wantShouldLog: true},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", tc.sendValue)
 			t.Setenv("RENDER_LOG_ANALYTICS", tc.logValue)
 			t.Setenv("DO_NOT_TRACK", tc.doNotTrack)
 			t.Setenv("RENDER_CLI_DISABLE_ANALYTICS", tc.disableEnv)
@@ -477,7 +473,6 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 	t.Setenv("RENDER_CLI_CONFIG_PATH", "")
 	t.Setenv("RENDER_WORKSPACE", "tea-current-workspace")
 	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")
-	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
 	t.Setenv("DO_NOT_TRACK", "")
 	t.Setenv("RENDER_CLI_DISABLE_ANALYTICS", "")
 	t.Setenv("RENDER_HOST", server.URL()+"/")

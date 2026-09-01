@@ -72,20 +72,6 @@ func TestCanSend(t *testing.T) {
 }
 
 func TestShowIfNeeded(t *testing.T) {
-	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
-
-	t.Run("closed rollout gate does nothing without suppressing local logging", func(t *testing.T) {
-		markerPath := setupNoticeTest(t)
-		t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "")
-		var buf bytes.Buffer
-
-		require.False(t, ShowIfNeeded(command.NewStream(&buf), Conditions{StderrTTY: true}, analytics.OptOutReasonNone))
-		require.Empty(t, buf.String())
-
-		_, err := os.Stat(markerPath)
-		require.ErrorIs(t, err, os.ErrNotExist)
-	})
-
 	t.Run("prints the notice and records it as shown", func(t *testing.T) {
 		markerPath := setupNoticeTest(t)
 		var buf bytes.Buffer

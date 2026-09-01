@@ -744,7 +744,6 @@ func TestCompletedCommandsEmitAnalytics(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-				devGateOpen:         true,
 				noticeMarkerPresent: true,
 				allowSubprocess:     true,
 			})
@@ -793,7 +792,6 @@ func TestOnExecutionCompleteAnalyticsSendRequiresDisclosure(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-				devGateOpen:         true,
 				loggingEnabled:      true,
 				noticeMarkerPresent: tc.noticeMarkerPresent,
 				ci:                  tc.ci,
@@ -819,14 +817,13 @@ func TestOnExecutionCompleteAnalyticsSendRequiresDisclosure(t *testing.T) {
 	}
 }
 
-// TestOnExecutionCompleteLogsWhenAnalyticsTestingDisabled verifies that an
-// unset RENDER_TEST_ENABLE_ANALYTICS prevents network sends without suppressing
-// logs. Disclosure signals and marker state are irrelevant while the rollout
-// gate is closed.
-func TestOnExecutionCompleteLogsWhenAnalyticsTestingDisabled(t *testing.T) {
+// TestOnExecutionCompleteLogsWhenUserOptsOut verifies that opting out prevents
+// network sends without suppressing local analytics logging.
+func TestOnExecutionCompleteLogsWhenUserOptsOut(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:    false,
-		loggingEnabled: true,
+		userOptedOut:        true,
+		loggingEnabled:      true,
+		noticeMarkerPresent: true,
 	})
 	result := command.ExecutionResult{
 		AnalyticsEligible:       true,
@@ -838,20 +835,18 @@ func TestOnExecutionCompleteLogsWhenAnalyticsTestingDisabled(t *testing.T) {
 
 	execution := harness.complete(result)
 
-	require.Zero(t, harness.runtimeSignalDetectionCallCount,
-		"a closed development gate should not detect runtime signals")
+	require.Equal(t, 1, harness.runtimeSignalDetectionCallCount)
 	var payload client.CreateCliTelemetryEventJSONRequestBody
 	require.NoError(t, json.Unmarshal(bytes.TrimSpace([]byte(execution.Stderr)), &payload))
 	require.Equal(t, "render future-command", payload.Command,
 		"analytics event is logged because RENDER_LOG_ANALYTICS=1")
 	require.Equal(t, "setup_error", string(payload.CompletionKind))
 	require.Empty(t, harness.server.CliTelemetry.Instances,
-		"no analytics event is sent because analytics testing is disabled")
+		"no analytics event is sent because the user opted out")
 }
 
 func TestInstallationIDCreatedOnlyWhenAnalyticsEnabled(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		userOptedOut:        true,
 		noticeMarkerPresent: true,
 		allowSubprocess:     true,
@@ -879,7 +874,6 @@ func TestInstallationIDCreatedOnlyWhenAnalyticsEnabled(t *testing.T) {
 
 func TestAnalyticsEnabledWithoutSubprocessOptInDoesNotEmit(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		noticeMarkerPresent: true,
 		allowSubprocess:     false,
 	})

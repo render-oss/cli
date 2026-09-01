@@ -23,20 +23,19 @@ import (
 const unknownOutputFormat = "unknown"
 
 // Sender turns a completed execution into an analytics event. Sending and
-// logging are controlled independently: sending by the dev gate and
-// [ResolveConsent] (environment opt-outs), logging by an environment variable.
+// logging are controlled independently: sending by [ResolveConsent]
+// (environment opt-outs), logging by an environment variable.
 //
-// New configures sending only when the dev gate is open, the user has not
-// opted out, and the API client is present. A logged-out CLI still holds a
-// client
+// New configures sending only when the user has not opted out and the API
+// client is present. A logged-out CLI still holds a client
 // (client.NotLoggedInClient), whose request editor fails in-process before any
 // network I/O, so sending through it is safe. Event logging works even when
 // sending is disabled.
 type Sender struct {
 	// client sends analytics events to the Render API.
 	client cliTelemetryClient
-	// sendingEnabled controls whether analytics events may be sent based on the
-	// dev gate, user consent, and client presence.
+	// sendingEnabled controls whether analytics events may be sent based on user
+	// consent and client presence.
 	sendingEnabled bool
 	// shouldLog controls whether analytics activity is logged.
 	shouldLog bool
@@ -65,20 +64,7 @@ type analyticsSubprocessLauncher interface {
 
 // New creates a new [Sender].
 func New(apiClient *client.ClientWithResponses) *Sender {
-	// sendingEnabled is a conjunction of the internal dev gate and user consent.
-	// The conjunction is what lets the opt-out consent logic ship without
-	// being activated: sending still requires the dev gate to be explicitly
-	// opened, so analytics stays opt-in by default — while a dev with the
-	// gate open and any opt-out mechanism set sends nothing, so the consent
-	// path is live end to end before the default ever changes.
-	//
-	// Flipping the CLI from opt-in to opt-out (GROW-3146) requires three
-	// coordinated changes: delete the cfg.AnalyticsDevGateOpen() term here,
-	// remove the closed-gate return from analyticsnotice.ShowIfNeeded, and make
-	// onExecutionComplete enforce analyticsnotice.CanSend unconditionally.
-	// Until then, order matters here: the dev gate short-circuits before consent
-	// resolution.
-	sendingEnabled := cfg.AnalyticsDevGateOpen() && ResolveConsent().Granted && apiClient != nil
+	sendingEnabled := ResolveConsent().Granted && apiClient != nil
 
 	return newSender(
 		apiClient,

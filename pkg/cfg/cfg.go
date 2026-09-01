@@ -35,17 +35,9 @@ func GetRegion() string {
 
 // ShouldLogAnalytics reports whether the CLI should log analytics to stderr,
 // enabled by RENDER_LOG_ANALYTICS=1.
-// This is independent of [AnalyticsDevGateOpen]: both can be toggled on/off independently.
+// This is independent of whether analytics events are sent.
 func ShouldLogAnalytics() bool {
 	return os.Getenv("RENDER_LOG_ANALYTICS") == "1"
-}
-
-// AnalyticsDevGateOpen reports whether the internal analytics rollout gate is
-// open, via RENDER_TEST_ENABLE_ANALYTICS=1. Before we roll out the analytics
-// system in production, sending events and showing the user-facing notice are
-// both off by default and require this explicit opt-in.
-func AnalyticsDevGateOpen() bool {
-	return os.Getenv("RENDER_TEST_ENABLE_ANALYTICS") == "1"
 }
 
 // DoNotTrack reports DO_NOT_TRACK is truthy

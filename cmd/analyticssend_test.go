@@ -14,7 +14,6 @@ import (
 
 func TestAnalyticsSendSendsEventWithoutEmittingAnalyticsForItself(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		noticeMarkerPresent: true,
 		allowSubprocess:     true,
 	})
@@ -52,7 +51,6 @@ func TestAnalyticsSendWritesDiagnosticsOnlyWhenLoggingEnabled(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-				devGateOpen:         true,
 				loggingEnabled:      tc.loggingEnabled,
 				noticeMarkerPresent: false,
 			})
@@ -73,7 +71,6 @@ func TestAnalyticsSendWritesDiagnosticsOnlyWhenLoggingEnabled(t *testing.T) {
 func TestAnalyticsSendReturnsErrorsWithoutSending(t *testing.T) {
 	t.Run("missing file", func(t *testing.T) {
 		harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-			devGateOpen:         true,
 			noticeMarkerPresent: false,
 		})
 		path := analyticsEventPath(harness.configDir)
@@ -86,7 +83,6 @@ func TestAnalyticsSendReturnsErrorsWithoutSending(t *testing.T) {
 
 	t.Run("invalid event", func(t *testing.T) {
 		harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-			devGateOpen:         true,
 			noticeMarkerPresent: false,
 		})
 		path := writeAnalyticsEventFile(t, harness.configDir, []byte("not json"))
@@ -106,7 +102,6 @@ func TestAnalyticsSendReturnsErrorsWithoutSending(t *testing.T) {
 // this command only has to stay quiet while still exiting non-zero.
 func TestAnalyticsSendSilencesCobraErrorOutput(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
-		devGateOpen:         true,
 		loggingEnabled:      true,
 		noticeMarkerPresent: false,
 	})
