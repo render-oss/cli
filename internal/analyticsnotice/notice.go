@@ -14,7 +14,7 @@ import (
 const collectionDisclosure = "The Render CLI collects usage data on commands and performance to help us keep improving."
 
 const (
-	telemetryDocsURL = "https://render.com/docs/cli#telemetry"
+	telemetryDocsURL = "https://render.com/docs/cli#usage-telemetry"
 	// maxNoticeWidth fits the longest line, the opening disclosure, on one row
 	// once the horizontal padding is taken off. Terminals narrower than this
 	// still wrap: the cap is a ceiling, not a floor.
