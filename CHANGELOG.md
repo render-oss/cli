@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.26.0] - 2026-09-01
+
+### Added
+
+- The CLI now collects usage data on commands and performance; no sensitive data is collected. Learn more at https://render.com/docs/cli#usage-telemetry, or opt out by setting `DO_NOT_TRACK=1` or `RENDER_CLI_DISABLE_ANALYTICS=1`
+- Manage the Render Postgres connection pool with `render postgres create` or `render postgres update` by passing `--connection-pool=none` or `--connection-pool=pgbouncer`; Postgres detail output now shows the current connection pool mode
+
 ## [2.25.0] - 2026-08-27
 
 ### Changed
