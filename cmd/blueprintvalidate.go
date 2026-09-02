@@ -205,6 +205,9 @@ func printValidationResultInteractive(filePath string, result *bptypes.ValidateB
 			if result.Plan.EnvGroups != nil && len(*result.Plan.EnvGroups) > 0 {
 				fmt.Printf("  %-14s %d\n", "Env Groups:", len(*result.Plan.EnvGroups))
 			}
+			if result.Plan.Workflows != nil && len(*result.Plan.Workflows) > 0 {
+				fmt.Printf("  %-14s %d\n", "Workflows:", len(*result.Plan.Workflows))
+			}
 			if result.Plan.TotalActions != nil {
 				fmt.Printf("  %-14s %d\n", "Total Actions:", *result.Plan.TotalActions)
 			}

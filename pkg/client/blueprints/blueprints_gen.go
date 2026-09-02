@@ -24,6 +24,7 @@ const (
 	Redis            ResourceRefType = "redis"
 	StaticSite       ResourceRefType = "static_site"
 	WebService       ResourceRefType = "web_service"
+	Workflow         ResourceRefType = "workflow"
 )
 
 // Valid indicates whether the value is a known member of the ResourceRefType enum.
@@ -48,6 +49,8 @@ func (e ResourceRefType) Valid() bool {
 	case StaticSite:
 		return true
 	case WebService:
+		return true
+	case Workflow:
 		return true
 	default:
 		return false

@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -81,6 +82,53 @@ func TestBlueprintValidateRejectsUnexpectedResponseBody(t *testing.T) {
 	require.Empty(t, output.Stdout)
 	require.Contains(t, output.Stderr, "unexpected response from server")
 	require.Contains(t, output.Stderr, "<html>not the API</html>")
+}
+
+func TestPrintValidationResultInteractive(t *testing.T) {
+	services := []string{"api"}
+	workflows := []string{"nightly-etl", "weekly-report"}
+
+	result := &bptypes.ValidateBlueprintResponse{
+		Valid: true,
+		Plan: &bptypes.ValidationPlanSummary{
+			Services:     &services,
+			Workflows:    &workflows,
+			TotalActions: new(3),
+		},
+	}
+
+	out := captureStdout(t, func() {
+		require.NoError(t, printValidationResultInteractive("render.yaml", result))
+	})
+
+	require.Contains(t, out, fmt.Sprintf("  %-14s %d", "Services:", 1))
+	require.Contains(t, out, fmt.Sprintf("  %-14s %d", "Workflows:", 2))
+	require.Contains(t, out, fmt.Sprintf("  %-14s %d", "Total Actions:", 3))
+
+	// Resource types absent from the plan stay out of the summary.
+	require.NotContains(t, out, "Databases:")
+}
+
+// captureStdout collects what f writes to os.Stdout, which the interactive
+// summary prints to directly rather than through the command's output writer.
+func captureStdout(t *testing.T, f func()) string {
+	t.Helper()
+
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	original := os.Stdout
+	os.Stdout = w
+	defer func() { os.Stdout = original }()
+
+	f()
+	require.NoError(t, w.Close())
+
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(r)
+	require.NoError(t, err)
+
+	return buf.String()
 }
 
 func requireBlueprintValidateResult(t *testing.T, result bptypes.ValidateBlueprintResponse, outputFormat command.Output, wantExitCode int) CommandResult {
