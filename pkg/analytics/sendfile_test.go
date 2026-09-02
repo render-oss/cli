@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -242,7 +243,7 @@ func TestSenderSendFileRemovesEventAfterRequestFailure(t *testing.T) {
 func TestSenderSendFileSendsAfterRemoveFailure(t *testing.T) {
 	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
 	path := writeRawEventFile(t, []byte(`{}`))
-	requireUndeletableDirectory(t, filepath.Dir(path))
+	requireUndeletableEventFile(t, path)
 	apiClient := &fakeTelemetryClient{
 		response: &http.Response{StatusCode: http.StatusAccepted, Status: "202 Accepted"},
 	}
@@ -338,12 +339,30 @@ func makeEventDirectories(t *testing.T, configDir string) string {
 	return eventsDir
 }
 
-// requireUndeletableDirectory makes dir reject deletions for the rest of the
-// test, restoring it afterward. It proves the precondition by deleting a probe
-// file rather than assuming which platforms and users honor directory
-// permissions, and skips when deletion succeeds anyway.
-func requireUndeletableDirectory(t *testing.T, dir string) {
+// requireUndeletableEventFile makes removal of path fail for the rest of the
+// test, restoring it afterward. On Windows, os.Open omits FILE_SHARE_DELETE, so
+// an extra open handle prevents deleting this exact file. Elsewhere, the helper
+// uses directory permissions and proves the precondition with a probe file.
+func requireUndeletableEventFile(t *testing.T, path string) {
 	t.Helper()
+	if runtime.GOOS == "windows" {
+		file, err := os.Open(path)
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			require.NoError(t, file.Close())
+			require.NoError(t, os.Remove(path))
+		})
+		require.Error(t, os.Remove(path),
+			"the test needs the open file to reject deletion")
+		return
+	}
+
+	currentUser, err := user.Current()
+	require.NoError(t, err)
+	require.NotEqual(t, "0", currentUser.Uid,
+		"the test requires a non-root user because root can delete from read-only directories")
+
+	dir := filepath.Dir(path)
 	probe := filepath.Join(dir, "probe")
 	require.NoError(t, os.WriteFile(probe, nil, 0o600))
 	require.NoError(t, os.Chmod(dir, 0o555))
@@ -352,7 +371,6 @@ func requireUndeletableDirectory(t *testing.T, dir string) {
 		_ = os.Remove(probe)
 	})
 
-	if err := os.Remove(probe); err == nil {
-		t.Skip("deleting from a read-only directory is permitted here")
-	}
+	require.Error(t, os.Remove(probe),
+		"the test needs the read-only directory to reject deletion")
 }

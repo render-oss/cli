@@ -34,6 +34,25 @@ func setupNoticeTest(t *testing.T) (outMarkerPath string) {
 	return outMarkerPath
 }
 
+func setupMarkerReadFailure(t *testing.T) {
+	t.Helper()
+
+	configDir := t.TempDir()
+	if runtime.GOOS == "windows" {
+		// A wildcard makes the marker path invalid instead of merely absent.
+		configDir = filepath.Join(configDir, "invalid?")
+	} else {
+		require.NoError(t, os.WriteFile(filepath.Join(configDir, "state"), nil, 0o600))
+	}
+	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
+
+	path, err := markerPath()
+	require.NoError(t, err)
+	_, err = os.Stat(path)
+	require.Error(t, err, "the fixture must make the marker unreadable")
+	require.NotErrorIs(t, err, os.ErrNotExist, "the fixture must cause a marker read failure, not an absent marker")
+}
+
 func TestCanSend(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -59,13 +78,7 @@ func TestCanSend(t *testing.T) {
 	}
 
 	t.Run("marker read failure suppresses sending", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Windows reports a non-directory path component as os.ErrNotExist")
-		}
-
-		configDir := t.TempDir()
-		t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
-		require.NoError(t, os.WriteFile(filepath.Join(configDir, "state"), nil, 0o600))
+		setupMarkerReadFailure(t)
 
 		require.False(t, CanSend(Conditions{}))
 	})
@@ -140,13 +153,7 @@ func TestShowIfNeeded(t *testing.T) {
 	})
 
 	t.Run("a marker read failure skips analytics", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Windows reports a non-directory path component as os.ErrNotExist")
-		}
-
-		configDir := t.TempDir()
-		t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
-		require.NoError(t, os.WriteFile(filepath.Join(configDir, "state"), nil, 0o600), "Must setup an invalid state directory to force marker read failure")
+		setupMarkerReadFailure(t)
 		var buf bytes.Buffer
 
 		require.True(t, ShowIfNeeded(command.NewStream(&buf), Conditions{StderrTTY: true}, analytics.OptOutReasonNone))

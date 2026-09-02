@@ -256,30 +256,34 @@ func TestHiddenUserCommandPerformsDisclosure(t *testing.T) {
 	require.FileExists(t, harness.noticeMarkerPath())
 }
 
-// `render analytics notice` calls analyticsnotice.ShowIfNeeded directly, while
-// the completion callback does the same for notice-eligible executions. A
-// failed marker write verifies that the command's notice ineligibility prevents
-// the completion callback from printing the disclosure a second time.
-func TestAnalyticsNoticeCommandDisclosesExactlyOnce(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Windows does not enforce the POSIX directory permissions this test relies on")
-	}
-
+// `render analytics notice` calls analyticsnotice.ShowIfNeeded directly. Its
+// completion must not call ShowIfNeeded again, even when the first call cannot
+// persist the marker.
+func TestAnalyticsNoticeCommandDoesNotRepeatDisclosureWhenMarkerWriteFails(t *testing.T) {
 	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
 		noticeMarkerPresent: false,
 		stderrTTY:           true,
 	})
-	// Read and execute but not write: the marker's directory can be listed, so
-	// the notice still believes it has never been shown, but writing the marker
-	// afterwards fails.
-	require.NoError(t, os.MkdirAll(filepath.Join(harness.configDir, "state"), 0o500),
-		"the test needs a state directory the marker cannot be written into")
+	statePath := filepath.Join(harness.configDir, "state")
+	if runtime.GOOS == "windows" {
+		// Making ~/.render/state a file instead of a directory on Windows preserves
+		// the absent-marker precondition but prevents marker creation beneath it.
+		require.NoError(t, os.WriteFile(statePath, nil, 0o600),
+			"the test needs a state file the marker cannot be written through")
+	} else {
+		// A searchable, read-only state directory preserves the absent-marker
+		// precondition but prevents marker creation.
+		require.NoError(t, os.MkdirAll(statePath, 0o500),
+			"the test needs a state directory the marker cannot be written into")
+	}
 
 	result := harness.execute("analytics", "notice")
 
 	require.Equal(t, 1,
 		strings.Count(ansi.Strip(result.Stderr), "The Render CLI collects usage data"),
 		"The disclosure must be printed to stderr exactly once")
+	require.NoFileExists(t, harness.noticeMarkerPath(),
+		"the failed marker write must leave the disclosure unrecorded")
 }
 
 func TestAnalyticsSendDoesNotPerformDisclosure(t *testing.T) {
