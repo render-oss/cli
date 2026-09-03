@@ -9,6 +9,7 @@ import (
 	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/deploy"
 	"github.com/render-oss/cli/pkg/environment"
+	"github.com/render-oss/cli/pkg/job"
 	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/logs"
 	"github.com/render-oss/cli/pkg/owner"
@@ -56,6 +57,7 @@ type cachedDependencies struct {
 	sandboxRepo         cache[*sandbox.Repo]
 	sandboxGroupRepo    cache[*sandboxgroup.Repo]
 	keyValueRepo        cache[*keyvalue.Repo]
+	jobRepo             cache[*job.Repo]
 	userRepo            cache[*user.Repo]
 	ownerRepo           cache[*owner.Repo]
 	deployRepo          cache[*deploy.Repo]
@@ -171,6 +173,12 @@ func (d *Dependencies) SandboxGroupRepo() *sandboxgroup.Repo {
 func (d *Dependencies) KeyValueRepo() *keyvalue.Repo {
 	return d.cache.keyValueRepo.Get(func() *keyvalue.Repo {
 		return keyvalue.NewRepo(d.client)
+	})
+}
+
+func (d *Dependencies) JobRepo() *job.Repo {
+	return d.cache.jobRepo.Get(func() *job.Repo {
+		return job.NewRepo(d.client)
 	})
 }
 

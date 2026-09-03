@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -296,6 +297,7 @@ func NewUser(u client.User) client.User {
 type Server struct {
 	server        *httptest.Server
 	Requests      []RecordedRequest
+	requestsMu    sync.Mutex
 	CurrentUser   *client.User
 	Owners        *Resource[*client.Owner]
 	Projects      *Resource[*client.Project]
@@ -307,6 +309,8 @@ type Server struct {
 	SandboxGroups *SandboxGroupResource
 	CliTelemetry  *CliTelemetryResource
 	OAuth         *OAuthResource
+	Jobs          *JobResource
+	Logs          *LogResource
 }
 
 // ownerByID returns the Owner with the given ID from the seeded owners. The
@@ -365,6 +369,8 @@ func (s *Server) SetCurrentUser(u client.User) client.User {
 
 // HasRequest returns true if any recorded request matches the given method and URI substring.
 func (s *Server) HasRequest(method, uriSubstring string) bool {
+	s.requestsMu.Lock()
+	defer s.requestsMu.Unlock()
 	for _, r := range s.Requests {
 		if r.Method == method && strings.Contains(r.URI, uriSubstring) {
 			return true
@@ -378,6 +384,8 @@ func (s *Server) HasRequest(method, uriSubstring string) bool {
 // is robust when a command issues several requests (e.g. GETs to resolve a
 // service before the PATCH).
 func (s *Server) LastRequest(method, uriSubstring string) (RecordedRequest, bool) {
+	s.requestsMu.Lock()
+	defer s.requestsMu.Unlock()
 	for i := len(s.Requests) - 1; i >= 0; i-- {
 		r := s.Requests[i]
 		if r.Method == method && strings.Contains(r.URI, uriSubstring) {
@@ -389,6 +397,8 @@ func (s *Server) LastRequest(method, uriSubstring string) (RecordedRequest, bool
 
 // HasDeleteRequest returns true if any recorded request used the DELETE method.
 func (s *Server) HasDeleteRequest() bool {
+	s.requestsMu.Lock()
+	defer s.requestsMu.Unlock()
 	for _, r := range s.Requests {
 		if r.Method == http.MethodDelete {
 			return true
@@ -413,11 +423,15 @@ func NewServer(t *testing.T) *Server {
 		SandboxGroups: &SandboxGroupResource{},
 		CliTelemetry:  &CliTelemetryResource{},
 		OAuth:         &OAuthResource{},
+		Jobs:          newJobResource(),
+		Logs:          newLogResource(),
 	}
 
 	mux := http.NewServeMux()
 
 	record := func(r *http.Request) {
+		s.requestsMu.Lock()
+		defer s.requestsMu.Unlock()
 		rec := RecordedRequest{Method: r.Method, URI: r.URL.RequestURI()}
 		if r.Body != nil {
 			if body, err := io.ReadAll(r.Body); err == nil {
@@ -428,6 +442,9 @@ func NewServer(t *testing.T) *Server {
 		}
 		s.Requests = append(s.Requests, rec)
 	}
+
+	s.registerJobRoutes(mux, record)
+	s.registerLogRoutes(mux, record)
 
 	// GET /users - retrieve the authenticated user.
 	mux.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
