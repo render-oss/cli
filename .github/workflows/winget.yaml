@@ -9,6 +9,10 @@ on:
         description: "Version to submit, with or without leading v (e.g. v2.22.0)"
         required: true
         type: string
+      notify_slack:
+        description: "Post to #cli if this run fails"
+        type: boolean
+        default: true
   # Manual re-run for a specific version, e.g. to recover from a failed run
   workflow_dispatch:
     inputs:
@@ -16,6 +20,10 @@ on:
         description: "Version to (re)submit, without leading v (e.g. 2.22.0)"
         required: true
         type: string
+      notify_slack:
+        description: "Post to #cli if this run fails"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -58,14 +66,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $version = '${{ steps.version.outputs.version }}'
+          # A 404 is the expected "not published yet" signal. gh exits 1 for that,
+          # and GitHub Actions treats the leftover LASTEXITCODE as a failed step.
+          $PSNativeCommandUseErrorActionPreference = $false
           gh api "repos/microsoft/winget-pkgs/contents/manifests/r/Render/CLI/$version" --silent
-          if ($LASTEXITCODE -eq 0) {
+          $found = ($LASTEXITCODE -eq 0)
+          if ($found) {
             Write-Host "Render.CLI $version is already in winget-pkgs; skipping submission."
             "published=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } else {
             Write-Host "Render.CLI $version is not in winget-pkgs yet; continuing."
             "published=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           }
+          exit 0
 
       - name: Download and verify wingetcreate
         if: steps.precheck.outputs.published != 'true'
@@ -126,6 +139,20 @@ jobs:
             Write-Host "Closed superseded PR #$($pr.number)"
           }
 
+      - name: Sync the bot's winget-pkgs fork
+        if: steps.precheck.outputs.published != 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
+        run: |
+          # wingetcreate submit fails when the fork is thousands of commits
+          # behind upstream and its own sync cannot catch up.
+          gh repo sync render-winget-bot/winget-pkgs -b master
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to sync render-winget-bot/winget-pkgs with upstream master."
+            exit $LASTEXITCODE
+          }
+
       - name: Submit manifests to winget-pkgs
         if: steps.precheck.outputs.published != 'true'
         shell: pwsh
@@ -142,7 +169,7 @@ jobs:
   notify-failure:
     name: Notify Slack on failure
     needs: publish-winget
-    if: failure()
+    if: ${{ failure() && inputs.notify_slack }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
