@@ -3224,6 +3224,12 @@ type SandboxGroupWithCursor struct {
 	SandboxGroup externalRef16.SandboxGroup `json:"sandboxGroup"`
 }
 
+// SandboxSnapshotWithCursor A sandbox snapshot with a cursor
+type SandboxSnapshotWithCursor struct {
+	Cursor   Cursor                        `json:"cursor"`
+	Snapshot externalRef16.SandboxSnapshot `json:"snapshot"`
+}
+
 // SandboxWithCursor A sandbox with a cursor
 type SandboxWithCursor struct {
 	Cursor  Cursor                `json:"cursor"`
@@ -4924,6 +4930,37 @@ type ListSandboxGroupsParams struct {
 	OwnerId string `form:"ownerId" json:"ownerId"`
 }
 
+// ListSandboxSnapshotsParams defines parameters for ListSandboxSnapshots.
+type ListSandboxSnapshotsParams struct {
+	// OwnerId The ID of the workspace whose snapshots to return.
+	OwnerId string `form:"ownerId" json:"ownerId"`
+
+	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Status Filter by snapshot status.
+	Status *[]externalRef16.SandboxSnapshotStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// DeleteSandboxSnapshotParams defines parameters for DeleteSandboxSnapshot.
+type DeleteSandboxSnapshotParams struct {
+	// OwnerId The ID of the workspace the sandbox group belongs to. Optional: the workspace
+	// is determined from the sandbox group ID, and this parameter is ignored when
+	// supplied.
+	OwnerId *externalRef16.OwnerIdGroupScoped `form:"ownerId,omitempty" json:"ownerId,omitempty"`
+}
+
+// RetrieveSandboxSnapshotParams defines parameters for RetrieveSandboxSnapshot.
+type RetrieveSandboxSnapshotParams struct {
+	// OwnerId The ID of the workspace the sandbox group belongs to. Optional: the workspace
+	// is determined from the sandbox group ID, and this parameter is ignored when
+	// supplied.
+	OwnerId *externalRef16.OwnerIdGroupScoped `form:"ownerId,omitempty" json:"ownerId,omitempty"`
+}
+
 // ListSandboxesParams defines parameters for ListSandboxes.
 type ListSandboxesParams struct {
 	// OwnerId The ID of the workspace whose sandboxes to return.
@@ -5012,6 +5049,13 @@ type StreamSandboxLogsParamsAccept string
 
 // ConnectSandboxRunParams defines parameters for ConnectSandboxRun.
 type ConnectSandboxRunParams struct {
+	// OwnerId The ID of the workspace the sandbox belongs to. Optional: the workspace is
+	// determined from the sandbox ID, and this parameter is ignored when supplied.
+	OwnerId *externalRef16.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
+}
+
+// CreateSandboxSnapshotParams defines parameters for CreateSandboxSnapshot.
+type CreateSandboxSnapshotParams struct {
 	// OwnerId The ID of the workspace the sandbox belongs to. Optional: the workspace is
 	// determined from the sandbox ID, and this parameter is ignored when supplied.
 	OwnerId *externalRef16.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
@@ -5585,6 +5629,9 @@ type UpdateSandboxExecJSONRequestBody = externalRef16.SandboxExecUpdateRequest
 
 // ConnectSandboxRunJSONRequestBody defines body for ConnectSandboxRun for application/json ContentType.
 type ConnectSandboxRunJSONRequestBody = externalRef16.SandboxConnectRequest
+
+// CreateSandboxSnapshotJSONRequestBody defines body for CreateSandboxSnapshot for application/json ContentType.
+type CreateSandboxSnapshotJSONRequestBody = externalRef16.SandboxSnapshotPOST
 
 // CreateServiceJSONRequestBody defines body for CreateService for application/json ContentType.
 type CreateServiceJSONRequestBody = ServicePOST

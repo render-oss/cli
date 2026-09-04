@@ -160,6 +160,45 @@ func (e SandboxPlan) Valid() bool {
 	}
 }
 
+// Defines values for SandboxSnapshotKind.
+const (
+	Filesystem SandboxSnapshotKind = "filesystem"
+	Runtime    SandboxSnapshotKind = "runtime"
+)
+
+// Valid indicates whether the value is a known member of the SandboxSnapshotKind enum.
+func (e SandboxSnapshotKind) Valid() bool {
+	switch e {
+	case Filesystem:
+		return true
+	case Runtime:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SandboxSnapshotStatus.
+const (
+	SandboxSnapshotStatusAvailable SandboxSnapshotStatus = "available"
+	SandboxSnapshotStatusCreating  SandboxSnapshotStatus = "creating"
+	SandboxSnapshotStatusFailed    SandboxSnapshotStatus = "failed"
+)
+
+// Valid indicates whether the value is a known member of the SandboxSnapshotStatus enum.
+func (e SandboxSnapshotStatus) Valid() bool {
+	switch e {
+	case SandboxSnapshotStatusAvailable:
+		return true
+	case SandboxSnapshotStatusCreating:
+		return true
+	case SandboxSnapshotStatusFailed:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SandboxStatus.
 const (
 	SandboxStatusCreating   SandboxStatus = "creating"
@@ -436,12 +475,67 @@ type SandboxPOST struct {
 	// Region Render region. Defaults to the workspace default.
 	Region *string `json:"region,omitempty"`
 
+	// SnapshotId Start from this snapshot instead of the base image. Must be `available`
+	// and in the same sandbox group. For a `runtime` snapshot, `plan` must
+	// match the snapshot's plan.
+	SnapshotId *SandboxSnapshotId `json:"snapshotId,omitempty"`
+
 	// TimeoutSeconds Maximum sandbox lifetime in seconds. Sandbox is terminated when reached.
 	TimeoutSeconds *int `json:"timeoutSeconds,omitempty"`
 }
 
 // SandboxPlan Compute plan. Sizing matches Workflow plans of the same name.
 type SandboxPlan string
+
+// SandboxSnapshot defines model for sandboxSnapshot.
+type SandboxSnapshot struct {
+	// CapturedAt When the sandbox was frozen for capture. Null until `available`.
+	CapturedAt *time.Time `json:"capturedAt,omitempty"`
+
+	// Error Null unless `failed`.
+	Error *string `json:"error,omitempty"`
+
+	// ExpiresAt Null unless a TTL is set. Snapshots are kept until deleted.
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+	// Id Example: snp-cph1rs3idesc73a2b2mg
+	Id SandboxSnapshotId `json:"id"`
+
+	// Kind `filesystem` captures the writable filesystem and restores onto any plan.
+	// `runtime` also captures memory and CPU state and restores only onto the
+	// plan of the source sandbox.
+	Kind SandboxSnapshotKind `json:"kind"`
+
+	// Plan Plan of the source sandbox at capture time.
+	Plan        SandboxPlan `json:"plan"`
+	RequestedAt time.Time   `json:"requestedAt"`
+
+	// SandboxGroupId Example: sbg-cph1rs3idesc73a2b2mg
+	SandboxGroupId SandboxGroupId `json:"sandboxGroupId"`
+
+	// SizeBytes Null until `available`.
+	SizeBytes *int64 `json:"sizeBytes,omitempty"`
+
+	// SourceSandboxId The sandbox this snapshot was captured from. Lineage only.
+	SourceSandboxId SandboxId             `json:"sourceSandboxId"`
+	Status          SandboxSnapshotStatus `json:"status"`
+}
+
+// SandboxSnapshotId Example: snp-cph1rs3idesc73a2b2mg
+type SandboxSnapshotId = string
+
+// SandboxSnapshotKind `filesystem` captures the writable filesystem and restores onto any plan.
+// `runtime` also captures memory and CPU state and restores only onto the
+// plan of the source sandbox.
+type SandboxSnapshotKind string
+
+// SandboxSnapshotPOST defines model for sandboxSnapshotPOST.
+type SandboxSnapshotPOST struct {
+	Kind *SandboxSnapshotKind `json:"kind,omitempty"`
+}
+
+// SandboxSnapshotStatus defines model for sandboxSnapshotStatus.
+type SandboxSnapshotStatus string
 
 // SandboxStatus defines model for sandboxStatus.
 type SandboxStatus string
@@ -451,3 +545,9 @@ type ExecId = ExecutionId
 
 // OwnerId defines model for ownerId.
 type OwnerId = string
+
+// OwnerIdGroupScoped defines model for ownerIdGroupScoped.
+type OwnerIdGroupScoped = string
+
+// SnapshotId Example: snp-cph1rs3idesc73a2b2mg
+type SnapshotId = SandboxSnapshotId

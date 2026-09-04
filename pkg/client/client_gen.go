@@ -1901,6 +1901,32 @@ type ClientInterface interface {
 	// Corresponds with GET /sandbox-groups (the `ListSandboxGroups` operationId).
 	ListSandboxGroups(ctx context.Context, params *ListSandboxGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListSandboxSnapshots List sandbox snapshots
+	//
+	// Snapshots in a sandbox group, newest first. Expired and deleted snapshots are omitted.
+	//
+	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots (the `ListSandboxSnapshots` operationId).
+	ListSandboxSnapshots(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, params *ListSandboxSnapshotsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteSandboxSnapshot Delete sandbox snapshot
+	//
+	// Idempotent: returns 204 if the snapshot is already deleted or expired.
+	// Sandboxes created from the snapshot are not affected. A snapshot that
+	// belongs to another sandbox group returns 404.
+	//
+	// 409 with `code: snapshot_creating` while the capture is in progress.
+	//
+	// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `DeleteSandboxSnapshot` operationId).
+	DeleteSandboxSnapshot(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, snapshotId externalRef16.SnapshotId, params *DeleteSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RetrieveSandboxSnapshot Retrieve sandbox snapshot
+	//
+	// One snapshot by ID. Deleted and expired snapshots return 404. A snapshot
+	// that belongs to another sandbox group returns 404.
+	//
+	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `RetrieveSandboxSnapshot` operationId).
+	RetrieveSandboxSnapshot(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, snapshotId externalRef16.SnapshotId, params *RetrieveSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListSandboxes List sandboxes
 	//
 	// List sandboxes for a single workspace. Sandboxes are scoped to the region of
@@ -1913,6 +1939,11 @@ type ClientInterface interface {
 	//
 	// Create a sandbox. Returns the initial sandbox snapshot synchronously.
 	//
+	// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
+	// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
+	// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
+	// different `plan`.
+	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with POST /sandboxes (the `CreateSandbox` operationId).
@@ -1921,6 +1952,11 @@ type ClientInterface interface {
 	// CreateSandbox Create sandbox
 	//
 	// Create a sandbox. Returns the initial sandbox snapshot synchronously.
+	//
+	// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
+	// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
+	// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
+	// different `plan`.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2026,6 +2062,32 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /sandboxes/{sandboxId}/runs/{operation}/token (the `ConnectSandboxRun` operationId).
 	ConnectSandboxRun(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxRunParams, body ConnectSandboxRunJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateSandboxSnapshotWithBody Create sandbox snapshot
+	//
+	// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
+	// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
+	// running; a runtime capture pauses it briefly.
+	//
+	// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /sandboxes/{sandboxId}/snapshots (the `CreateSandboxSnapshot` operationId).
+	CreateSandboxSnapshotWithBody(ctx context.Context, sandboxId externalRef16.SandboxId, params *CreateSandboxSnapshotParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateSandboxSnapshot Create sandbox snapshot
+	//
+	// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
+	// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
+	// running; a runtime capture pauses it briefly.
+	//
+	// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /sandboxes/{sandboxId}/snapshots (the `CreateSandboxSnapshot` operationId).
+	CreateSandboxSnapshot(ctx context.Context, sandboxId externalRef16.SandboxId, params *CreateSandboxSnapshotParams, body CreateSandboxSnapshotJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TerminateSandbox Terminate sandbox
 	//
@@ -6751,6 +6813,62 @@ func (c *Client) ListSandboxGroups(ctx context.Context, params *ListSandboxGroup
 	return c.Client.Do(req)
 }
 
+// ListSandboxSnapshots List sandbox snapshots
+//
+// Snapshots in a sandbox group, newest first. Expired and deleted snapshots are omitted.
+//
+// Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots (the `ListSandboxSnapshots` operationId).
+func (c *Client) ListSandboxSnapshots(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, params *ListSandboxSnapshotsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSandboxSnapshotsRequest(c.Server, sandboxGroupId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteSandboxSnapshot Delete sandbox snapshot
+//
+// Idempotent: returns 204 if the snapshot is already deleted or expired.
+// Sandboxes created from the snapshot are not affected. A snapshot that
+// belongs to another sandbox group returns 404.
+//
+// 409 with `code: snapshot_creating` while the capture is in progress.
+//
+// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `DeleteSandboxSnapshot` operationId).
+func (c *Client) DeleteSandboxSnapshot(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, snapshotId externalRef16.SnapshotId, params *DeleteSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteSandboxSnapshotRequest(c.Server, sandboxGroupId, snapshotId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RetrieveSandboxSnapshot Retrieve sandbox snapshot
+//
+// One snapshot by ID. Deleted and expired snapshots return 404. A snapshot
+// that belongs to another sandbox group returns 404.
+//
+// Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `RetrieveSandboxSnapshot` operationId).
+func (c *Client) RetrieveSandboxSnapshot(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, snapshotId externalRef16.SnapshotId, params *RetrieveSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveSandboxSnapshotRequest(c.Server, sandboxGroupId, snapshotId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // ListSandboxes List sandboxes
 //
 // List sandboxes for a single workspace. Sandboxes are scoped to the region of
@@ -6773,6 +6891,11 @@ func (c *Client) ListSandboxes(ctx context.Context, params *ListSandboxesParams,
 //
 // Create a sandbox. Returns the initial sandbox snapshot synchronously.
 //
+// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
+// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
+// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
+// different `plan`.
+//
 // Takes any type of body and a specified content type.
 //
 // Corresponds with POST /sandboxes (the `CreateSandbox` operationId).
@@ -6791,6 +6914,11 @@ func (c *Client) CreateSandboxWithBody(ctx context.Context, contentType string, 
 // CreateSandbox Create sandbox
 //
 // Create a sandbox. Returns the initial sandbox snapshot synchronously.
+//
+// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
+// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
+// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
+// different `plan`.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -6997,6 +7125,52 @@ func (c *Client) ConnectSandboxRunWithBody(ctx context.Context, sandboxId extern
 // Corresponds with POST /sandboxes/{sandboxId}/runs/{operation}/token (the `ConnectSandboxRun` operationId).
 func (c *Client) ConnectSandboxRun(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxRunParams, body ConnectSandboxRunJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewConnectSandboxRunRequest(c.Server, sandboxId, operation, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateSandboxSnapshotWithBody Create sandbox snapshot
+//
+// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
+// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
+// running; a runtime capture pauses it briefly.
+//
+// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /sandboxes/{sandboxId}/snapshots (the `CreateSandboxSnapshot` operationId).
+func (c *Client) CreateSandboxSnapshotWithBody(ctx context.Context, sandboxId externalRef16.SandboxId, params *CreateSandboxSnapshotParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateSandboxSnapshotRequestWithBody(c.Server, sandboxId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateSandboxSnapshot Create sandbox snapshot
+//
+// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
+// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
+// running; a runtime capture pauses it briefly.
+//
+// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /sandboxes/{sandboxId}/snapshots (the `CreateSandboxSnapshot` operationId).
+func (c *Client) CreateSandboxSnapshot(ctx context.Context, sandboxId externalRef16.SandboxId, params *CreateSandboxSnapshotParams, body CreateSandboxSnapshotJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateSandboxSnapshotRequest(c.Server, sandboxId, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -19121,6 +19295,235 @@ func NewListSandboxGroupsRequest(server string, params *ListSandboxGroupsParams)
 	return req, nil
 }
 
+// NewListSandboxSnapshotsRequest constructs an http.Request for the ListSandboxSnapshots method
+func NewListSandboxSnapshotsRequest(server string, sandboxGroupId externalRef16.SandboxGroupId, params *ListSandboxSnapshotsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxGroupId", sandboxGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandbox-groups/%s/snapshots", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "status", *params.Status, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteSandboxSnapshotRequest constructs an http.Request for the DeleteSandboxSnapshot method
+func NewDeleteSandboxSnapshotRequest(server string, sandboxGroupId externalRef16.SandboxGroupId, snapshotId externalRef16.SnapshotId, params *DeleteSandboxSnapshotParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxGroupId", sandboxGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "snapshotId", snapshotId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandbox-groups/%s/snapshots/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRetrieveSandboxSnapshotRequest constructs an http.Request for the RetrieveSandboxSnapshot method
+func NewRetrieveSandboxSnapshotRequest(server string, sandboxGroupId externalRef16.SandboxGroupId, snapshotId externalRef16.SnapshotId, params *RetrieveSandboxSnapshotParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxGroupId", sandboxGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "snapshotId", snapshotId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandbox-groups/%s/snapshots/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListSandboxesRequest constructs an http.Request for the ListSandboxes method
 func NewListSandboxesRequest(server string, params *ListSandboxesParams) (*http.Request, error) {
 	var err error
@@ -19822,6 +20225,80 @@ func NewConnectSandboxRunRequestWithBody(server string, sandboxId externalRef16.
 	}
 
 	operationPath := fmt.Sprintf("/sandboxes/%s/runs/%s/token", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewCreateSandboxSnapshotRequest calls the generic CreateSandboxSnapshot builder with application/json body
+func NewCreateSandboxSnapshotRequest(server string, sandboxId externalRef16.SandboxId, params *CreateSandboxSnapshotParams, body CreateSandboxSnapshotJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateSandboxSnapshotRequestWithBody(server, sandboxId, params, "application/json", bodyReader)
+}
+
+// NewCreateSandboxSnapshotRequestWithBody constructs an http.Request for the CreateSandboxSnapshot method, with any body, and a specified content type
+func NewCreateSandboxSnapshotRequestWithBody(server string, sandboxId externalRef16.SandboxId, params *CreateSandboxSnapshotParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandboxes/%s/snapshots", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -26143,6 +26620,38 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /sandbox-groups (the `ListSandboxGroups` operationId).
 	ListSandboxGroupsWithResponse(ctx context.Context, params *ListSandboxGroupsParams, reqEditors ...RequestEditorFn) (*ListSandboxGroupsResponse, error)
 
+	// ListSandboxSnapshotsWithResponse List sandbox snapshots
+	//
+	// Snapshots in a sandbox group, newest first. Expired and deleted snapshots are omitted.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots (the `ListSandboxSnapshots` operationId).
+	ListSandboxSnapshotsWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, params *ListSandboxSnapshotsParams, reqEditors ...RequestEditorFn) (*ListSandboxSnapshotsResponse, error)
+
+	// DeleteSandboxSnapshotWithResponse Delete sandbox snapshot
+	//
+	// Idempotent: returns 204 if the snapshot is already deleted or expired.
+	// Sandboxes created from the snapshot are not affected. A snapshot that
+	// belongs to another sandbox group returns 404.
+	//
+	// 409 with `code: snapshot_creating` while the capture is in progress.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `DeleteSandboxSnapshot` operationId).
+	DeleteSandboxSnapshotWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, snapshotId externalRef16.SnapshotId, params *DeleteSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*DeleteSandboxSnapshotResponse, error)
+
+	// RetrieveSandboxSnapshotWithResponse Retrieve sandbox snapshot
+	//
+	// One snapshot by ID. Deleted and expired snapshots return 404. A snapshot
+	// that belongs to another sandbox group returns 404.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `RetrieveSandboxSnapshot` operationId).
+	RetrieveSandboxSnapshotWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, snapshotId externalRef16.SnapshotId, params *RetrieveSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*RetrieveSandboxSnapshotResponse, error)
+
 	// ListSandboxesWithResponse List sandboxes
 	//
 	// List sandboxes for a single workspace. Sandboxes are scoped to the region of
@@ -26157,6 +26666,11 @@ type ClientWithResponsesInterface interface {
 	//
 	// Create a sandbox. Returns the initial sandbox snapshot synchronously.
 	//
+	// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
+	// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
+	// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
+	// different `plan`.
+	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /sandboxes (the `CreateSandbox` operationId).
@@ -26165,6 +26679,11 @@ type ClientWithResponsesInterface interface {
 	// CreateSandboxWithResponse Create sandbox
 	//
 	// Create a sandbox. Returns the initial sandbox snapshot synchronously.
+	//
+	// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
+	// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
+	// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
+	// different `plan`.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -26282,6 +26801,32 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /sandboxes/{sandboxId}/runs/{operation}/token (the `ConnectSandboxRun` operationId).
 	ConnectSandboxRunWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxRunParams, body ConnectSandboxRunJSONRequestBody, reqEditors ...RequestEditorFn) (*ConnectSandboxRunResponse, error)
+
+	// CreateSandboxSnapshotWithBodyWithResponse Create sandbox snapshot
+	//
+	// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
+	// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
+	// running; a runtime capture pauses it briefly.
+	//
+	// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /sandboxes/{sandboxId}/snapshots (the `CreateSandboxSnapshot` operationId).
+	CreateSandboxSnapshotWithBodyWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *CreateSandboxSnapshotParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateSandboxSnapshotResponse, error)
+
+	// CreateSandboxSnapshotWithResponse Create sandbox snapshot
+	//
+	// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
+	// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
+	// running; a runtime capture pauses it briefly.
+	//
+	// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /sandboxes/{sandboxId}/snapshots (the `CreateSandboxSnapshot` operationId).
+	CreateSandboxSnapshotWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *CreateSandboxSnapshotParams, body CreateSandboxSnapshotJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateSandboxSnapshotResponse, error)
 
 	// TerminateSandboxWithResponse Terminate sandbox
 	//
@@ -42620,6 +43165,292 @@ func (r ListSandboxGroupsResponse) ContentType() string {
 	return ""
 }
 
+// ListSandboxSnapshotsResponse429Headers the declared response headers of an HTTP 429 response for ListSandboxSnapshots
+type ListSandboxSnapshotsResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type ListSandboxSnapshotsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]SandboxSnapshotWithCursor
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *ListSandboxSnapshotsResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListSandboxSnapshotsResponse) GetJSON200() *[]SandboxSnapshotWithCursor {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListSandboxSnapshotsResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListSandboxSnapshotsResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ListSandboxSnapshotsResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListSandboxSnapshotsResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r ListSandboxSnapshotsResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r ListSandboxSnapshotsResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ListSandboxSnapshotsResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ListSandboxSnapshotsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSandboxSnapshotsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSandboxSnapshotsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListSandboxSnapshotsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// DeleteSandboxSnapshotResponse429Headers the declared response headers of an HTTP 429 response for DeleteSandboxSnapshot
+type DeleteSandboxSnapshotResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type DeleteSandboxSnapshotResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *N409Conflict
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *DeleteSandboxSnapshotResponse429Headers
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r DeleteSandboxSnapshotResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r DeleteSandboxSnapshotResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r DeleteSandboxSnapshotResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r DeleteSandboxSnapshotResponse) GetJSON409() *N409Conflict {
+	return r.JSON409
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r DeleteSandboxSnapshotResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r DeleteSandboxSnapshotResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r DeleteSandboxSnapshotResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteSandboxSnapshotResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteSandboxSnapshotResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteSandboxSnapshotResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteSandboxSnapshotResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// RetrieveSandboxSnapshotResponse429Headers the declared response headers of an HTTP 429 response for RetrieveSandboxSnapshot
+type RetrieveSandboxSnapshotResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type RetrieveSandboxSnapshotResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *externalRef16.SandboxSnapshot
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *RetrieveSandboxSnapshotResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RetrieveSandboxSnapshotResponse) GetJSON200() *externalRef16.SandboxSnapshot {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RetrieveSandboxSnapshotResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r RetrieveSandboxSnapshotResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r RetrieveSandboxSnapshotResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r RetrieveSandboxSnapshotResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r RetrieveSandboxSnapshotResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r RetrieveSandboxSnapshotResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r RetrieveSandboxSnapshotResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RetrieveSandboxSnapshotResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RetrieveSandboxSnapshotResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RetrieveSandboxSnapshotResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // ListSandboxesResponse429Headers the declared response headers of an HTTP 429 response for ListSandboxes
 type ListSandboxesResponse429Headers struct {
 	RateLimitLimit     *int
@@ -42739,6 +43570,10 @@ type CreateSandboxResponse struct {
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
 	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *N409Conflict
 	// JSON429 the response for an HTTP 429 `application/json` response
 	JSON429 *N429RateLimit
 	// JSON500 the response for an HTTP 500 `application/json` response
@@ -42767,6 +43602,16 @@ func (r CreateSandboxResponse) GetJSON401() *N401Unauthorized {
 // GetJSON403 returns the response for an HTTP 403 `application/json` response
 func (r CreateSandboxResponse) GetJSON403() *N403Forbidden {
 	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r CreateSandboxResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r CreateSandboxResponse) GetJSON409() *N409Conflict {
+	return r.JSON409
 }
 
 // GetJSON429 returns the response for an HTTP 429 `application/json` response
@@ -43594,6 +44439,113 @@ func (r ConnectSandboxRunResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ConnectSandboxRunResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// CreateSandboxSnapshotResponse429Headers the declared response headers of an HTTP 429 response for CreateSandboxSnapshot
+type CreateSandboxSnapshotResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type CreateSandboxSnapshotResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *externalRef16.SandboxSnapshot
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *N409Conflict
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *CreateSandboxSnapshotResponse429Headers
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r CreateSandboxSnapshotResponse) GetJSON202() *externalRef16.SandboxSnapshot {
+	return r.JSON202
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r CreateSandboxSnapshotResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r CreateSandboxSnapshotResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r CreateSandboxSnapshotResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r CreateSandboxSnapshotResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r CreateSandboxSnapshotResponse) GetJSON409() *N409Conflict {
+	return r.JSON409
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r CreateSandboxSnapshotResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r CreateSandboxSnapshotResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r CreateSandboxSnapshotResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateSandboxSnapshotResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateSandboxSnapshotResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateSandboxSnapshotResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateSandboxSnapshotResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -54289,6 +55241,56 @@ func (c *ClientWithResponses) ListSandboxGroupsWithResponse(ctx context.Context,
 	return ParseListSandboxGroupsResponse(rsp)
 }
 
+// ListSandboxSnapshotsWithResponse List sandbox snapshots
+//
+// Snapshots in a sandbox group, newest first. Expired and deleted snapshots are omitted.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots (the `ListSandboxSnapshots` operationId).
+func (c *ClientWithResponses) ListSandboxSnapshotsWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, params *ListSandboxSnapshotsParams, reqEditors ...RequestEditorFn) (*ListSandboxSnapshotsResponse, error) {
+	rsp, err := c.ListSandboxSnapshots(ctx, sandboxGroupId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSandboxSnapshotsResponse(rsp)
+}
+
+// DeleteSandboxSnapshotWithResponse Delete sandbox snapshot
+//
+// Idempotent: returns 204 if the snapshot is already deleted or expired.
+// Sandboxes created from the snapshot are not affected. A snapshot that
+// belongs to another sandbox group returns 404.
+//
+// 409 with `code: snapshot_creating` while the capture is in progress.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `DeleteSandboxSnapshot` operationId).
+func (c *ClientWithResponses) DeleteSandboxSnapshotWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, snapshotId externalRef16.SnapshotId, params *DeleteSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*DeleteSandboxSnapshotResponse, error) {
+	rsp, err := c.DeleteSandboxSnapshot(ctx, sandboxGroupId, snapshotId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteSandboxSnapshotResponse(rsp)
+}
+
+// RetrieveSandboxSnapshotWithResponse Retrieve sandbox snapshot
+//
+// One snapshot by ID. Deleted and expired snapshots return 404. A snapshot
+// that belongs to another sandbox group returns 404.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `RetrieveSandboxSnapshot` operationId).
+func (c *ClientWithResponses) RetrieveSandboxSnapshotWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, snapshotId externalRef16.SnapshotId, params *RetrieveSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*RetrieveSandboxSnapshotResponse, error) {
+	rsp, err := c.RetrieveSandboxSnapshot(ctx, sandboxGroupId, snapshotId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRetrieveSandboxSnapshotResponse(rsp)
+}
+
 // ListSandboxesWithResponse List sandboxes
 //
 // List sandboxes for a single workspace. Sandboxes are scoped to the region of
@@ -54309,6 +55311,11 @@ func (c *ClientWithResponses) ListSandboxesWithResponse(ctx context.Context, par
 //
 // Create a sandbox. Returns the initial sandbox snapshot synchronously.
 //
+// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
+// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
+// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
+// different `plan`.
+//
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /sandboxes (the `CreateSandbox` operationId).
@@ -54323,6 +55330,11 @@ func (c *ClientWithResponses) CreateSandboxWithBodyWithResponse(ctx context.Cont
 // CreateSandboxWithResponse Create sandbox
 //
 // Create a sandbox. Returns the initial sandbox snapshot synchronously.
+//
+// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
+// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
+// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
+// different `plan`.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -54505,6 +55517,44 @@ func (c *ClientWithResponses) ConnectSandboxRunWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseConnectSandboxRunResponse(rsp)
+}
+
+// CreateSandboxSnapshotWithBodyWithResponse Create sandbox snapshot
+//
+// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
+// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
+// running; a runtime capture pauses it briefly.
+//
+// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /sandboxes/{sandboxId}/snapshots (the `CreateSandboxSnapshot` operationId).
+func (c *ClientWithResponses) CreateSandboxSnapshotWithBodyWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *CreateSandboxSnapshotParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateSandboxSnapshotResponse, error) {
+	rsp, err := c.CreateSandboxSnapshotWithBody(ctx, sandboxId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateSandboxSnapshotResponse(rsp)
+}
+
+// CreateSandboxSnapshotWithResponse Create sandbox snapshot
+//
+// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
+// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
+// running; a runtime capture pauses it briefly.
+//
+// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /sandboxes/{sandboxId}/snapshots (the `CreateSandboxSnapshot` operationId).
+func (c *ClientWithResponses) CreateSandboxSnapshotWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *CreateSandboxSnapshotParams, body CreateSandboxSnapshotJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateSandboxSnapshotResponse, error) {
+	rsp, err := c.CreateSandboxSnapshot(ctx, sandboxId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateSandboxSnapshotResponse(rsp)
 }
 
 // TerminateSandboxWithResponse Terminate sandbox
@@ -72450,6 +73500,322 @@ func ParseListSandboxGroupsResponse(rsp *http.Response) (*ListSandboxGroupsRespo
 	return response, nil
 }
 
+// ParseListSandboxSnapshotsResponse parses an HTTP response from a ListSandboxSnapshotsWithResponse call
+func ParseListSandboxSnapshotsResponse(rsp *http.Response) (*ListSandboxSnapshotsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSandboxSnapshotsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []SandboxSnapshotWithCursor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers ListSandboxSnapshotsResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseDeleteSandboxSnapshotResponse parses an HTTP response from a DeleteSandboxSnapshotWithResponse call
+func ParseDeleteSandboxSnapshotResponse(rsp *http.Response) (*DeleteSandboxSnapshotResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteSandboxSnapshotResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest N409Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers DeleteSandboxSnapshotResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseRetrieveSandboxSnapshotResponse parses an HTTP response from a RetrieveSandboxSnapshotWithResponse call
+func ParseRetrieveSandboxSnapshotResponse(rsp *http.Response) (*RetrieveSandboxSnapshotResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RetrieveSandboxSnapshotResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef16.SandboxSnapshot
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers RetrieveSandboxSnapshotResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
 // ParseListSandboxesResponse parses an HTTP response from a ListSandboxesWithResponse call
 func ParseListSandboxesResponse(rsp *http.Response) (*ListSandboxesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -72600,6 +73966,20 @@ func ParseCreateSandboxResponse(rsp *http.Response) (*CreateSandboxResponse, err
 			return nil, err
 		}
 		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest N409Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest N429RateLimit
@@ -73495,6 +74875,122 @@ func ParseConnectSandboxRunResponse(rsp *http.Response) (*ConnectSandboxRunRespo
 	switch {
 	case rsp.StatusCode == 429:
 		var headers ConnectSandboxRunResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseCreateSandboxSnapshotResponse parses an HTTP response from a CreateSandboxSnapshotWithResponse call
+func ParseCreateSandboxSnapshotResponse(rsp *http.Response) (*CreateSandboxSnapshotResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateSandboxSnapshotResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest externalRef16.SandboxSnapshot
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest N409Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers CreateSandboxSnapshotResponse429Headers
 		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
 			var value int
 			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
