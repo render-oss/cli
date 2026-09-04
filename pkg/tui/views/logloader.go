@@ -54,6 +54,21 @@ func (l *LogLoader) LoadLogData(ctx context.Context, in LogInput) (*tui.LogResul
 	return &tui.LogResult{Logs: logs, LogChannel: nil}, nil
 }
 
+// LoadLogStream uses the same filtering and repository path as LoadLogData,
+// while retaining disconnect errors for callers that can safely reconnect.
+func (l *LogLoader) LoadLogStream(ctx context.Context, in LogInput) (*logs.TailStream, error) {
+	params, err := l.ToParam(ctx, in)
+	if err != nil {
+		return nil, fmt.Errorf("error processing arguments: %v", err)
+	}
+
+	stream, err := l.logRepo.TailLogsWithErrors(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("error tailing logs: %w", err)
+	}
+	return stream, nil
+}
+
 func (l *LogLoader) getResourceIDsFromIDOrNames(ctx context.Context, idOrNames []string) ([]string, error) {
 	resourceIds := make([]string, len(idOrNames))
 
