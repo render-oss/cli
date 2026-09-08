@@ -3,8 +3,13 @@ package views_test
 import (
 	"context"
 	"testing"
+	"time"
 
+	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/render-oss/cli/pkg/client"
+	logclient "github.com/render-oss/cli/pkg/client/logs"
 	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/logs"
 	"github.com/render-oss/cli/pkg/tui/views"
 	"github.com/stretchr/testify/require"
 )
@@ -53,4 +58,33 @@ func TestLogLoaderToParam(t *testing.T) {
 		require.Equal(t, "wrk-test123", params.OwnerId)
 		require.Equal(t, []string{resourceID}, params.Resource)
 	})
+}
+
+func TestLoadLogStreamUsesExistingRepositoryAndClosesOnCancel(t *testing.T) {
+	server := renderapi.NewServer(t)
+	server.Logs.QueueStream(renderapi.LogStreamAttempt{
+		Logs: []logclient.Log{{
+			Id: "log-1", Message: "hello", Timestamp: time.Unix(100, 0).UTC(),
+		}},
+		HoldOpen: true,
+	})
+	c, err := client.NewClientWithResponses(server.URL())
+	require.NoError(t, err)
+	loader := views.NewLocalLogLoader(logs.NewLogRepo(c, &config.APIConfig{Host: server.URL()}))
+	ctx, cancel := context.WithCancel(context.Background())
+
+	stream, err := loader.LoadLogStream(ctx, views.LogInput{
+		ResourceIDs: []string{"job-fake0000000000000000"},
+		Tail:        true,
+	})
+	require.NoError(t, err)
+	<-server.Logs.Opened()
+	entry := <-stream.Logs
+	require.Equal(t, "hello", entry.Message)
+	cancel()
+	<-server.Logs.Closed()
+	for range stream.Logs {
+	}
+	for range stream.Errors {
+	}
 }

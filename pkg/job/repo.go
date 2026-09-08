@@ -14,6 +14,16 @@ type Repo struct {
 	client *client.ClientWithResponses
 }
 
+// HTTPError preserves a retrieve response's status code so polling can retry
+// only explicitly transient API failures.
+type HTTPError struct {
+	StatusCode int
+	Err        error
+}
+
+func (e *HTTPError) Error() string { return e.Err.Error() }
+func (e *HTTPError) Unwrap() error { return e.Err }
+
 func NewRepo(c *client.ClientWithResponses) *Repo {
 	return &Repo{client: c}
 }
@@ -131,7 +141,7 @@ func (r *Repo) GetJob(ctx context.Context, serviceID, jobID string) (*clientjob.
 	}
 
 	if err := client.ErrorFromResponse(resp); err != nil {
-		return nil, err
+		return nil, &HTTPError{StatusCode: resp.StatusCode(), Err: err}
 	}
 
 	return resp.JSON200, nil
