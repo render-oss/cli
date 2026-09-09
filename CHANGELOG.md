@@ -6,6 +6,7 @@
 
 - `render ea sandboxes snapshots create` command to snapshot a running sandbox
 - `render ea sandboxes snapshots get` command to fetch details of a sandbox snapshot
+- `render ea sandboxes snapshots list` command to list the snapshots in a sandbox group
 - `render ea sandboxes create --snapshot-id` to restore a new sandbox from a snapshot
 
 ### Changed
