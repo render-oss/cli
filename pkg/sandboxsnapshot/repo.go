@@ -54,3 +54,55 @@ func (r *Repo) Get(ctx context.Context, sandboxGroupID, snapshotID string) (*san
 	}
 	return resp.JSON200, nil
 }
+
+func (r *Repo) ListForGroup(ctx context.Context, sandboxGroupID string, statuses []sandboxesclient.SandboxSnapshotStatus) ([]*sandboxesclient.SandboxSnapshot, error) {
+	workspace, err := config.WorkspaceID()
+	if err != nil {
+		return nil, err
+	}
+
+	params := &client.ListSandboxSnapshotsParams{OwnerId: workspace}
+	if len(statuses) > 0 {
+		params.Status = &statuses
+	}
+	return listAll(ctx, params, func(ctx context.Context, params *client.ListSandboxSnapshotsParams) ([]*sandboxesclient.SandboxSnapshot, *client.Cursor, error) {
+		resp, err := r.client.ListSandboxSnapshotsWithResponse(ctx, sandboxGroupID, params)
+		if err != nil {
+			return nil, nil, err
+		}
+		if err := client.ErrorFromResponse(resp); err != nil {
+			return nil, nil, err
+		}
+		return unwrapPage(resp.JSON200)
+	})
+}
+
+type pageParams interface {
+	SetCursor(cursor *client.Cursor)
+	SetLimit(int)
+}
+
+// encoding/json writes a nil slice as null; an empty list must print as [].
+func listAll[P pageParams](ctx context.Context, params P, listPage func(context.Context, P) ([]*sandboxesclient.SandboxSnapshot, *client.Cursor, error)) ([]*sandboxesclient.SandboxSnapshot, error) {
+	snapshots, err := client.ListAll(ctx, params, listPage)
+	if err != nil {
+		return nil, err
+	}
+	if snapshots == nil {
+		return []*sandboxesclient.SandboxSnapshot{}, nil
+	}
+	return snapshots, nil
+}
+
+func unwrapPage(page *[]client.SandboxSnapshotWithCursor) ([]*sandboxesclient.SandboxSnapshot, *client.Cursor, error) {
+	if page == nil || len(*page) == 0 {
+		return nil, nil, nil
+	}
+	items := *page
+	snapshots := make([]*sandboxesclient.SandboxSnapshot, 0, len(items))
+	for _, item := range items {
+		snapshot := item.Snapshot
+		snapshots = append(snapshots, &snapshot)
+	}
+	return snapshots, &items[len(items)-1].Cursor, nil
+}

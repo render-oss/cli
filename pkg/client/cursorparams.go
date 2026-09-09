@@ -90,3 +90,10 @@ func (p *ListSecretFilesForServiceParams) SetCursor(c *Cursor) {
 func (p *ListSecretFilesForServiceParams) SetLimit(l int) {
 	p.Limit = &l
 }
+
+func (p *ListSandboxSnapshotsParams) SetCursor(c *Cursor) {
+	p.Cursor = c
+}
+func (p *ListSandboxSnapshotsParams) SetLimit(l int) {
+	p.Limit = &l
+}

@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,12 +53,28 @@ func (h sandboxSnapshotsHarness) seedSnapshot(s sandboxesclient.SandboxSnapshot)
 	return h.server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(s))
 }
 
+func unmarshalJSONArray(t *testing.T, stdout string) []map[string]any {
+	t.Helper()
+	var data []map[string]any
+	require.NoError(t, json.Unmarshal([]byte(stdout), &data), "expected a JSON array, got: %s", stdout)
+	return data
+}
+
+func snapshotIDs(items []map[string]any) []string {
+	ids := make([]string, 0, len(items))
+	for _, item := range items {
+		id, _ := item["id"].(string)
+		ids = append(ids, id)
+	}
+	return ids
+}
+
 func TestSandboxSnapshots_HelpListsSubcommands(t *testing.T) {
 	h := newSandboxSnapshotsHarness(t)
 
 	result, err := h.execute("--help")
 	require.NoError(t, err)
-	for _, sub := range []string{"create", "get"} {
+	for _, sub := range []string{"create", "get", "list"} {
 		assert.Contains(t, result.Stdout, sub, "expected subcommand %q in help output", sub)
 	}
 }
@@ -254,4 +273,149 @@ func TestSandboxSnapshotsGet_UnknownSnapshot(t *testing.T) {
 			assert.Contains(t, err.Error(), "snapshot not found")
 		})
 	}
+}
+
+func TestSandboxSnapshotsList_ByGroup(t *testing.T) {
+	h := newSandboxSnapshotsHarness(t)
+	mine := h.seedSnapshot(sandboxesclient.SandboxSnapshot{})
+	other := h.seedSnapshot(sandboxesclient.SandboxSnapshot{SandboxGroupId: testids.SandboxGroupID("other")})
+
+	result, err := h.execute("list", "--group", h.group.Id, "--output", "json")
+	require.NoError(t, err)
+	assert.Equal(t, []string{mine.Id}, snapshotIDs(unmarshalJSONArray(t, result.Stdout)))
+	assert.NotContains(t, result.Stdout, other.Id)
+}
+
+func TestSandboxSnapshotsList_TextOutput(t *testing.T) {
+	h := newSandboxSnapshotsHarness(t)
+	size := int64(5 * 1024 * 1024)
+	captured := time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC)
+	available := h.seedSnapshot(sandboxesclient.SandboxSnapshot{SizeBytes: &size, CapturedAt: &captured, RequestedAt: captured.Add(-time.Minute)})
+	creating := h.seedSnapshot(sandboxesclient.SandboxSnapshot{Status: sandboxesclient.SandboxSnapshotStatusCreating, RequestedAt: captured.Add(time.Minute)})
+
+	result, err := h.execute("list", "--group", h.group.Id, "--output", "text")
+	require.NoError(t, err)
+
+	lines := strings.Split(strings.TrimSpace(result.Stdout), "\n")
+	require.Len(t, lines, 3)
+	assert.Equal(t, []string{"ID", "KIND", "STATUS", "PLAN", "SIZE", "EXPIRES", "CAPTURED"}, strings.Fields(lines[0]))
+	assert.Equal(t, []string{creating.Id, "filesystem", "creating", "starter", "-", "-", "-"}, strings.Fields(lines[1]))
+	assert.Equal(t, []string{available.Id, "filesystem", "available", "starter", "5.0", "MB", "-", "2026-09-01T10:00:00Z"}, strings.Fields(lines[2]))
+}
+
+func TestSandboxSnapshotsList_StatusFilter(t *testing.T) {
+	h := newSandboxSnapshotsHarness(t)
+	creating := h.seedSnapshot(sandboxesclient.SandboxSnapshot{Status: sandboxesclient.SandboxSnapshotStatusCreating})
+	available := h.seedSnapshot(sandboxesclient.SandboxSnapshot{Status: sandboxesclient.SandboxSnapshotStatusAvailable})
+	failed := h.seedSnapshot(sandboxesclient.SandboxSnapshot{Status: sandboxesclient.SandboxSnapshotStatusFailed})
+
+	tests := []struct {
+		name    string
+		args    []string
+		wantIDs []string
+	}{
+		{name: "single status", args: []string{"--status", "creating"}, wantIDs: []string{creating.Id}},
+		{name: "repeated status flag", args: []string{"--status", "failed", "--status", "available"}, wantIDs: []string{failed.Id, available.Id}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := h.execute(append([]string{"list", "--group", h.group.Id, "--output", "json"}, tc.args...)...)
+			require.NoError(t, err)
+			assert.ElementsMatch(t, tc.wantIDs, snapshotIDs(unmarshalJSONArray(t, result.Stdout)))
+		})
+	}
+}
+
+func TestSandboxSnapshotsList_InvalidStatusRejected(t *testing.T) {
+	h := newSandboxSnapshotsHarness(t)
+
+	_, err := h.execute("list", "--group", h.group.Id, "--status", "deleted")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `invalid status "deleted"`)
+	for _, want := range []string{"creating", "available", "failed"} {
+		assert.Contains(t, err.Error(), want)
+	}
+	assert.False(t, h.server.HasRequest("GET", "/snapshots"))
+}
+
+func TestSandboxSnapshotsList_GroupResolution(t *testing.T) {
+	tests := []struct {
+		name        string
+		groups      []bool
+		explicit    bool
+		groupStatus int
+		errContains string
+	}{
+		{name: "default group", groups: []bool{true}},
+		{name: "default group after non-default group", groups: []bool{false, true}},
+		{name: "explicit group skips lookup", groups: []bool{false}, explicit: true, groupStatus: http.StatusForbidden},
+		{name: "no groups", errContains: "no default sandbox group"},
+		{name: "only non-default groups", groups: []bool{false}, errContains: "no default sandbox group"},
+		{name: "lookup error", groups: []bool{true}, groupStatus: http.StatusForbidden, errContains: "not allowed"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newSandboxSnapshotsHarness(t)
+			h.server.SandboxGroups.Instances = nil
+			for _, isDefault := range tc.groups {
+				group := h.server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxesclient.SandboxGroup{OwnerId: sandboxSnapshotsActiveWorkspaceID}))
+				group.IsDefault = isDefault
+				h.group = group
+			}
+			snap := h.seedSnapshot(sandboxesclient.SandboxSnapshot{})
+			other := h.seedSnapshot(sandboxesclient.SandboxSnapshot{SandboxGroupId: testids.SandboxGroupID("other")})
+			if tc.groupStatus != 0 {
+				h.server.SandboxGroups.RespondWith(tc.groupStatus)
+			}
+			args := []string{"list", "--output", "json"}
+			if tc.explicit {
+				args = append(args, "--group", h.group.Id)
+			}
+
+			result, err := h.execute(args...)
+			if tc.errContains != "" {
+				require.ErrorContains(t, err, tc.errContains)
+				assert.False(t, h.server.HasRequest("GET", "/snapshots?"))
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, []string{snap.Id}, snapshotIDs(unmarshalJSONArray(t, result.Stdout)))
+			assert.NotContains(t, result.Stdout, other.Id)
+			assert.Equal(t, !tc.explicit, h.server.HasRequest("GET", "/sandbox-groups?"))
+		})
+	}
+}
+
+func TestSandboxSnapshotsList_PagesThroughEveryPage(t *testing.T) {
+	h := newSandboxSnapshotsHarness(t)
+	newest := time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC)
+	want := make([]string, 0, 101)
+	for i := range 101 {
+		snap := h.seedSnapshot(sandboxesclient.SandboxSnapshot{RequestedAt: newest.Add(-time.Duration(i) * time.Minute)})
+		want = append(want, snap.Id)
+	}
+
+	result, err := h.execute("list", "--group", h.group.Id, "--output", "json")
+	require.NoError(t, err)
+	assert.Equal(t, want, snapshotIDs(unmarshalJSONArray(t, result.Stdout)))
+	assert.True(t, h.server.HasRequest("GET", "cursor=c99"), "second page must start after the last cursor of the first")
+	assert.False(t, h.server.HasRequest("GET", "cursor=c100"), "a short final page must end the walk")
+}
+
+func TestSandboxSnapshotsList_NoSnapshots(t *testing.T) {
+	h := newSandboxSnapshotsHarness(t)
+
+	result, err := h.execute("list", "--group", h.group.Id, "--output", "json")
+	require.NoError(t, err)
+	assert.JSONEq(t, "[]", result.Stdout)
+}
+
+func TestSandboxSnapshotsList_APIError_Surfaces(t *testing.T) {
+	h := newSandboxSnapshotsHarness(t)
+	h.server.SandboxSnapshots.RespondWith(500)
+
+	_, err := h.execute("list", "--group", h.group.Id, "--output", "text")
+	require.Error(t, err)
 }

@@ -24,6 +24,11 @@ type CreateInput struct {
 	Kind      string
 }
 
+type ListInput struct {
+	SandboxGroupID string
+	Statuses       []string
+}
+
 func (s *Service) Create(ctx context.Context, input CreateInput) (*sandboxesclient.SandboxSnapshot, error) {
 	body := client.CreateSandboxSnapshotJSONRequestBody{}
 	if input.Kind != "" {
@@ -34,24 +39,41 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*sandboxesclie
 }
 
 func (s *Service) Get(ctx context.Context, sandboxGroupID, snapshotID string) (*sandboxesclient.SandboxSnapshot, error) {
-	if sandboxGroupID == "" {
-		workspace, err := config.WorkspaceID()
-		if err != nil {
-			return nil, err
-		}
-		groups, err := s.groupRepo.List(ctx, workspace)
-		if err != nil {
-			return nil, err
-		}
-		for _, group := range groups {
-			if group.IsDefault {
-				sandboxGroupID = group.Id
-				break
-			}
-		}
-		if sandboxGroupID == "" {
-			return nil, fmt.Errorf("no default sandbox group found in the active workspace; specify --group")
-		}
+	sandboxGroupID, err := s.resolveGroupID(ctx, sandboxGroupID)
+	if err != nil {
+		return nil, err
 	}
 	return s.repo.Get(ctx, sandboxGroupID, snapshotID)
+}
+
+func (s *Service) List(ctx context.Context, input ListInput) ([]*sandboxesclient.SandboxSnapshot, error) {
+	sandboxGroupID, err := s.resolveGroupID(ctx, input.SandboxGroupID)
+	if err != nil {
+		return nil, err
+	}
+	statuses := make([]sandboxesclient.SandboxSnapshotStatus, len(input.Statuses))
+	for i, status := range input.Statuses {
+		statuses[i] = sandboxesclient.SandboxSnapshotStatus(status)
+	}
+	return s.repo.ListForGroup(ctx, sandboxGroupID, statuses)
+}
+
+func (s *Service) resolveGroupID(ctx context.Context, sandboxGroupID string) (string, error) {
+	if sandboxGroupID != "" {
+		return sandboxGroupID, nil
+	}
+	workspace, err := config.WorkspaceID()
+	if err != nil {
+		return "", err
+	}
+	groups, err := s.groupRepo.List(ctx, workspace)
+	if err != nil {
+		return "", err
+	}
+	for _, group := range groups {
+		if group.IsDefault {
+			return group.Id, nil
+		}
+	}
+	return "", fmt.Errorf("no default sandbox group found in the active workspace; specify --group")
 }

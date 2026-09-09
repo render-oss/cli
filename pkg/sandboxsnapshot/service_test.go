@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -87,6 +88,71 @@ func TestServiceCreate_KindBody(t *testing.T) {
 			assert.Equal(t, tc.wantKind, kind)
 		})
 	}
+}
+
+func TestServiceList_Routes(t *testing.T) {
+	tests := []struct {
+		name       string
+		input      sandboxsnapshot.ListInput
+		wantPath   string
+		wantStatus []string
+	}{
+		{
+			name:     "group lists the group route",
+			input:    sandboxsnapshot.ListInput{SandboxGroupID: "sbg-1"},
+			wantPath: "/sandbox-groups/sbg-1/snapshots",
+		},
+		{
+			name:       "statuses pass through as a filter",
+			input:      sandboxsnapshot.ListInput{SandboxGroupID: "sbg-1", Statuses: []string{"creating", "available"}},
+			wantPath:   "/sandbox-groups/sbg-1/snapshots",
+			wantStatus: []string{"creating", "available"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			svc, rec := newTestService(t, respondJSON(http.StatusOK, []client.SandboxSnapshotWithCursor{
+				{Cursor: "c0", Snapshot: sandboxesclient.SandboxSnapshot{Id: "snp-1"}},
+			}))
+
+			got, err := svc.List(context.Background(), tc.input)
+			require.NoError(t, err)
+			require.Len(t, got, 1)
+			assert.Equal(t, "snp-1", got[0].Id)
+
+			assert.Equal(t, http.MethodGet, rec.Method)
+			assert.Equal(t, tc.wantPath, rec.Path)
+			assert.Equal(t, []string{testWorkspace}, rec.Query["ownerId"])
+			if tc.wantStatus == nil {
+				assert.NotContains(t, rec.Query, "status")
+				return
+			}
+			assert.Equal(t, tc.wantStatus, splitStatusQuery(rec.Query["status"]))
+		})
+	}
+}
+
+// The generated client may encode the array param as ?status=a,b or ?status=a&status=b.
+func splitStatusQuery(values []string) []string {
+	var out []string
+	for _, v := range values {
+		for _, part := range strings.Split(v, ",") {
+			if part != "" {
+				out = append(out, part)
+			}
+		}
+	}
+	return out
+}
+
+func TestServiceList_EmptyResponseIsEmptySlice(t *testing.T) {
+	svc, _ := newTestService(t, respondJSON(http.StatusOK, []client.SandboxSnapshotWithCursor{}))
+
+	got, err := svc.List(context.Background(), sandboxsnapshot.ListInput{SandboxGroupID: "sbg-1"})
+	require.NoError(t, err)
+	assert.NotNil(t, got)
+	assert.Empty(t, got)
 }
 
 func TestServiceGet_SendsGroupAndOwner(t *testing.T) {

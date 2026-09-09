@@ -25,6 +25,7 @@ Examples:
   render ea sandboxes copy ./main.py sbx-abc123:/app/main.py
   render ea sandboxes exec sbx-abc123 -- echo hello
   render ea sandboxes snapshots create sbx-abc123
+  render ea sandboxes snapshots list --group sbg-abc123
   render ea sandboxes stop sbx-abc123 --confirm
 `,
 	}

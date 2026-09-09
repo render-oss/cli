@@ -5,9 +5,28 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jedib0t/go-pretty/table"
+
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
 	"github.com/render-oss/cli/pkg/utils"
 )
+
+func SandboxSnapshotTable(snapshots []*sandboxesclient.SandboxSnapshot) string {
+	t := newTable()
+	t.AppendHeader(table.Row{"ID", "Kind", "Status", "Plan", "Size", "Expires", "Captured"})
+	for _, s := range snapshots {
+		t.AppendRow(table.Row{
+			s.Id,
+			s.Kind,
+			s.Status,
+			s.Plan,
+			snapshotSize(s.SizeBytes),
+			snapshotTime(s.ExpiresAt),
+			snapshotTime(s.CapturedAt),
+		})
+	}
+	return FormatString(t.Render())
+}
 
 func SandboxSnapshotDetail(s *sandboxesclient.SandboxSnapshot) string {
 	lines := []string{

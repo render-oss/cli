@@ -3,9 +3,11 @@ package renderapi
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/render-oss/cli/internal/testids"
@@ -100,6 +102,43 @@ func (s *Server) snapshotIndex(groupID, snapshotID string) int {
 	})
 }
 
+func (s *Server) snapshotList(r *http.Request, keep func(*sandboxesclient.SandboxSnapshot) bool) []client.SandboxSnapshotWithCursor {
+	statuses := queryListValues(r, "status")
+	var matched []*sandboxesclient.SandboxSnapshot
+	for _, snap := range s.SandboxSnapshots.Instances {
+		if !keep(snap) {
+			continue
+		}
+		if len(statuses) > 0 && !slices.Contains(statuses, string(snap.Status)) {
+			continue
+		}
+		matched = append(matched, snap)
+	}
+	slices.SortStableFunc(matched, func(a, b *sandboxesclient.SandboxSnapshot) int {
+		return b.RequestedAt.Compare(a.RequestedAt)
+	})
+	result := make([]client.SandboxSnapshotWithCursor, 0, len(matched))
+	for i, snap := range matched {
+		result = append(result, client.SandboxSnapshotWithCursor{
+			Cursor:   client.Cursor(fmt.Sprintf("c%d", i)),
+			Snapshot: *snap,
+		})
+	}
+	return pageOf(result, r)
+}
+
+func pageOf(all []client.SandboxSnapshotWithCursor, r *http.Request) []client.SandboxSnapshotWithCursor {
+	start := 0
+	if cursor := r.URL.Query().Get("cursor"); cursor != "" {
+		start = slices.IndexFunc(all, func(item client.SandboxSnapshotWithCursor) bool { return string(item.Cursor) == cursor }) + 1
+	}
+	end := len(all)
+	if limit, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil && limit > 0 && start+limit < end {
+		end = start + limit
+	}
+	return all[start:end]
+}
+
 func registerSandboxSnapshotRoutes(mux *http.ServeMux, s *Server, record func(*http.Request)) {
 	mux.HandleFunc("POST /sandboxes/{sandboxId}/snapshots", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
@@ -138,6 +177,21 @@ func registerSandboxSnapshotRoutes(mux *http.ServeMux, s *Server, record func(*h
 			Plan:            sb.Plan,
 		}))
 		writeJSON(w, http.StatusAccepted, snapshot)
+	})
+
+	mux.HandleFunc("GET /sandbox-groups/{groupId}/snapshots", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.SandboxSnapshots.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		if _, ok := s.ownerFromQuery(w, r); !ok {
+			return
+		}
+		groupID := r.PathValue("groupId")
+		writeJSON(w, http.StatusOK, s.snapshotList(r, func(snap *sandboxesclient.SandboxSnapshot) bool {
+			return snap.SandboxGroupId == groupID
+		}))
 	})
 
 	mux.HandleFunc("GET /sandbox-groups/{groupId}/snapshots/{snapshotId}", func(w http.ResponseWriter, r *http.Request) {
