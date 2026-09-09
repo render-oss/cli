@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
+	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/user"
 	"github.com/spf13/cobra"
 
@@ -16,27 +16,31 @@ var whoamiCmd = &cobra.Command{
 	Example: `  # Show the currently authenticated user
   render whoami`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runWhoami(cmd.Context())
+		command.DefaultFormatNonInteractive(cmd)
+		return runWhoami(cmd)
 	},
 	GroupID: GroupAuth.ID,
 }
 
-func runWhoami(ctx context.Context) error {
+func runWhoami(cmd *cobra.Command) error {
 	c, err := client.NewDefaultClient()
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
 
 	userRepo := user.NewRepo(c)
-	currentUser, err := userRepo.CurrentUser(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get current user: %w", err)
-	}
+	_, err = command.NonInteractive(cmd, func() (*client.User, error) {
+		currentUser, err := userRepo.CurrentUser(cmd.Context())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get current user: %w", err)
+		}
+		return currentUser, nil
+	}, formatWhoamiText)
+	return err
+}
 
-	fmt.Printf("Name: %s\n", currentUser.Name)
-	fmt.Printf("Email: %s\n", currentUser.Email)
-
-	return nil
+func formatWhoamiText(currentUser *client.User) string {
+	return fmt.Sprintf("Name: %s\nEmail: %s\nID: %s\n", currentUser.Name, currentUser.Email, currentUser.Id)
 }
 
 func init() {

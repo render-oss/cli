@@ -309,6 +309,7 @@ type Server struct {
 	SandboxSnapshots *SandboxSnapshotResource
 	CliTelemetry     *CliTelemetryResource
 	OAuth            *OAuthResource
+	userErrorQueue []int
 }
 
 // ownerByID returns the Owner with the given ID from the seeded owners. The
@@ -363,6 +364,12 @@ func (s *Server) URL() string {
 func (s *Server) SetCurrentUser(u client.User) client.User {
 	s.CurrentUser = &u
 	return u
+}
+
+// RespondToGetUsersWithError queues an HTTP error status for the next GET /users.
+// Queued responses take precedence over the seeded current user.
+func (s *Server) RespondToGetUsersWithError(status int) {
+	s.userErrorQueue = append(s.userErrorQueue, status)
 }
 
 // HasRequest returns true if any recorded request matches the given method and URI substring.
@@ -438,6 +445,13 @@ func NewServer(t *testing.T) *Server {
 		record(r)
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if len(s.userErrorQueue) > 0 {
+			status := s.userErrorQueue[0]
+			s.userErrorQueue = s.userErrorQueue[1:]
+			message := http.StatusText(status)
+			writeJSON(w, status, client.Error{Message: &message})
 			return
 		}
 		if s.CurrentUser == nil {

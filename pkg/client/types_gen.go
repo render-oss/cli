@@ -3517,7 +3517,10 @@ type TeamMembers = []TeamMember
 // User defines model for user.
 type User struct {
 	Email string `json:"email"`
-	Name  string `json:"name"`
+
+	// Id The authenticated user's ID.
+	Id   string `json:"id"`
+	Name string `json:"name"`
 }
 
 // WebServiceDetails defines model for webServiceDetails.
