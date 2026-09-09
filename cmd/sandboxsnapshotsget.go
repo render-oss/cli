@@ -23,7 +23,7 @@ func newSandboxSnapshotsGetCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Long: `Get one sandbox snapshot by ID.
 
 Uses the active workspace's default sandbox group unless --group is provided.
-A deleted or expired snapshot is reported as not found.`,
+An expired snapshot is reported as not found.`,
 		Example: `  # Get a snapshot
   render ea sandboxes snapshots get snp-abc123
 

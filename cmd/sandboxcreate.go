@@ -22,6 +22,7 @@ type SandboxCreateInput struct {
 	NetworkPolicy string   `cli:"network-policy"`
 	EnvVars       []string `cli:"env-var"`
 	EnvFiles      []string `cli:"env-file"`
+	SnapshotID    string   `cli:"snapshot-id"`
 }
 
 func (i *SandboxCreateInput) Validate(_ bool) error {
@@ -94,6 +95,7 @@ Examples:
   render ea sandboxes create --network-policy=deny-all
   render ea sandboxes create --env-var FOO=bar --env-var BAZ=qux
   render ea sandboxes create --env-file .env.production --env-var LOG_LEVEL=debug
+  render ea sandboxes create --snapshot-id snp-abc123
 `,
 	}
 
@@ -106,6 +108,8 @@ Examples:
 	cmd.Flags().StringSlice("env-file", nil, "Path to an env file to load. Repeat to load multiple files (later files override earlier ones). Every listed file must exist.")
 	setFlagPlaceholder(cmd.Flags(), "env-var", "KEY_VALUE")
 	setFlagPlaceholder(cmd.Flags(), "env-file", "PATH")
+	cmd.Flags().String("snapshot-id", "", "Start from this snapshot instead of the base image. The snapshot must be available and in the same sandbox group. A runtime snapshot requires --plan to match its plan.")
+	setFlagPlaceholder(cmd.Flags(), "snapshot-id", "SNAPSHOT_ID")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)
@@ -136,6 +140,7 @@ Examples:
 				Timeout:       input.Timeout,
 				NetworkPolicy: input.NetworkPolicy,
 				Env:           env,
+				SnapshotID:    input.SnapshotID,
 			}, onEvent)
 		}, text.SandboxDetail)
 		return err

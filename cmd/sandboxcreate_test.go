@@ -8,6 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/render-oss/cli/internal/testids"
+	"github.com/render-oss/cli/internal/testrequire"
+	"github.com/render-oss/cli/pkg/client"
 	sandboxclient "github.com/render-oss/cli/pkg/client/sandboxes"
 )
 
@@ -186,6 +190,117 @@ func TestResolveSandboxEnv(t *testing.T) {
 			}
 			require.NoError(t, err)
 			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+var sandboxCreateActiveWorkspaceID = testids.WorkspaceID("create")
+
+func newSandboxCreateServer(t *testing.T) *renderapi.Server {
+	t.Helper()
+	server := renderapi.NewServer(t)
+	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: sandboxCreateActiveWorkspaceID, Name: "Test Workspace"}))
+	t.Setenv("RENDER_WORKSPACE", sandboxCreateActiveWorkspaceID)
+	server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxclient.SandboxGroup{OwnerId: sandboxCreateActiveWorkspaceID}))
+	return server
+}
+
+func sandboxCreateDefaultGroup(t *testing.T, server *renderapi.Server) *sandboxclient.SandboxGroup {
+	t.Helper()
+	for _, g := range server.SandboxGroups.Instances {
+		if g.OwnerId == sandboxCreateActiveWorkspaceID {
+			return g
+		}
+	}
+	t.Fatal("no sandbox group seeded for the active workspace")
+	return nil
+}
+
+func TestSandboxCreate_SnapshotIDSent(t *testing.T) {
+	server := newSandboxCreateServer(t)
+	group := sandboxCreateDefaultGroup(t, server)
+	snap := server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(sandboxclient.SandboxSnapshot{SandboxGroupId: group.Id}))
+
+	_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--snapshot-id", snap.Id, "--output", "json")
+	require.NoError(t, err)
+
+	req, ok := server.LastRequest("POST", "/sandboxes")
+	require.True(t, ok, "expected a create request")
+	body := testrequire.ParseJSONMap(t, string(req.Body))
+	assert.Equal(t, snap.Id, body["snapshotId"])
+}
+
+func TestSandboxCreate_WithoutSnapshotIDOmitsIt(t *testing.T) {
+	server := newSandboxCreateServer(t)
+
+	_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--output", "json")
+	require.NoError(t, err)
+
+	req, ok := server.LastRequest("POST", "/sandboxes")
+	require.True(t, ok, "expected a create request")
+	body := testrequire.ParseJSONMap(t, string(req.Body))
+	_, present := body["snapshotId"]
+	assert.False(t, present, "snapshotId should be omitted, got %v", body["snapshotId"])
+}
+
+func TestSandboxCreate_SnapshotIDErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		seed        func(server *renderapi.Server, group *sandboxclient.SandboxGroup) string
+		extraArgs   []string
+		errContains []string
+	}{
+		{
+			name: "unknown snapshot is not found",
+			seed: func(*renderapi.Server, *sandboxclient.SandboxGroup) string {
+				return testids.SandboxSnapshotID("missing")
+			},
+			errContains: []string{"404 (snapshot_not_found)", "snapshot not found"},
+		},
+		{
+			name: "snapshot still being created surfaces the error code",
+			seed: func(server *renderapi.Server, group *sandboxclient.SandboxGroup) string {
+				return server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(sandboxclient.SandboxSnapshot{SandboxGroupId: group.Id, Status: sandboxclient.SandboxSnapshotStatusCreating})).Id
+			},
+			errContains: []string{"409 (snapshot_not_available)"},
+		},
+		{
+			name: "runtime snapshot with a different plan surfaces the error code",
+			seed: func(server *renderapi.Server, group *sandboxclient.SandboxGroup) string {
+				return server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(sandboxclient.SandboxSnapshot{SandboxGroupId: group.Id, Kind: sandboxclient.Runtime, Plan: sandboxclient.Starter})).Id
+			},
+			extraArgs:   []string{"--plan", "pro"},
+			errContains: []string{"409 (snapshot_plan_mismatch)"},
+		},
+		{
+			name: "snapshot owned by another workspace is not found",
+			seed: func(server *renderapi.Server, _ *sandboxclient.SandboxGroup) string {
+				other := server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxclient.SandboxGroup{OwnerId: testids.WorkspaceID("other")}))
+				return server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(sandboxclient.SandboxSnapshot{SandboxGroupId: other.Id})).Id
+			},
+			errContains: []string{"404 (snapshot_not_found)"},
+		},
+		{
+			name: "snapshot in another group of the workspace is not available",
+			seed: func(server *renderapi.Server, _ *sandboxclient.SandboxGroup) string {
+				other := server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxclient.SandboxGroup{OwnerId: sandboxCreateActiveWorkspaceID, Name: "Secondary"}))
+				return server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(sandboxclient.SandboxSnapshot{SandboxGroupId: other.Id})).Id
+			},
+			errContains: []string{"409 (snapshot_not_available)"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			server := newSandboxCreateServer(t)
+			snapshotID := tc.seed(server, sandboxCreateDefaultGroup(t, server))
+
+			_, err := executeSandboxCommand(t, server, append([]string{"ea", "sandboxes", "create", "--snapshot-id", snapshotID, "--output", "json"}, tc.extraArgs...)...)
+			require.Error(t, err)
+			for _, want := range tc.errContains {
+				assert.Contains(t, err.Error(), want)
+			}
+			assert.Empty(t, server.Sandboxes.Instances)
 		})
 	}
 }

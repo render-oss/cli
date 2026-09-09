@@ -15,15 +15,15 @@ Sandboxes are ephemeral compute environments for running code, agents, and exper
 Every sandbox belongs to a sandbox group, which scopes it to a region. Manage
 groups with "render ea sandbox-groups".
 
-Snapshot a sandbox with "render ea sandboxes snapshots create".
+Snapshot a sandbox with "render ea sandboxes snapshots create" and restore new
+sandboxes from it with "render ea sandboxes create --snapshot-id".
 
 Examples:
   render ea sandboxes create
   render ea sandboxes create --plan=standard --region=oregon
+  render ea sandboxes create --snapshot-id snp-abc123
   render ea sandboxes copy ./main.py sbx-abc123:/app/main.py
   render ea sandboxes exec sbx-abc123 -- echo hello
-  render ea sandboxes list
-  render ea sandboxes list --all
   render ea sandboxes snapshots create sbx-abc123
   render ea sandboxes stop sbx-abc123 --confirm
 `,

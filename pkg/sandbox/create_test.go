@@ -109,3 +109,37 @@ func TestServiceCreate_EnvBody(t *testing.T) {
 		})
 	}
 }
+
+func TestServiceCreate_SnapshotIDBody(t *testing.T) {
+	tests := []struct {
+		name           string
+		input          CreateInput
+		wantSnapshotID string
+		wantAbsent     bool
+	}{
+		{name: "unset omits snapshotId so the sandbox starts from the base image", input: CreateInput{}, wantAbsent: true},
+		{name: "snapshot id is sent", input: CreateInput{SnapshotID: "snp-abc123"}, wantSnapshotID: "snp-abc123"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var gotBody map[string]any
+			svc := newTestService(t, func(w http.ResponseWriter, r *http.Request) {
+				require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusCreated)
+				_ = json.NewEncoder(w).Encode(sandboxclient.Sandbox{Id: "sbx-1", Status: sandboxclient.SandboxStatusCreating})
+			})
+
+			_, err := svc.Create(context.Background(), tc.input, nil)
+			require.NoError(t, err)
+
+			snapshotID, present := gotBody["snapshotId"]
+			if tc.wantAbsent {
+				assert.False(t, present, "snapshotId should be omitted, got %v", snapshotID)
+				return
+			}
+			assert.Equal(t, tc.wantSnapshotID, snapshotID)
+		})
+	}
+}

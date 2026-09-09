@@ -10,10 +10,10 @@ func newSandboxSnapshotsCmd(children ...*cobra.Command) *cobra.Command {
 		Short: "Manage sandbox snapshots",
 		Long: `Manage snapshots of sandboxes in your Render workspace.
 
-A snapshot captures a running sandbox so a new sandbox can start from it. A
-filesystem snapshot captures the writable filesystem and restores onto any
-plan. A runtime snapshot also captures memory and CPU state and restores only
-onto the plan of the source sandbox.
+A snapshot captures a running sandbox so a new sandbox can be restored from it with
+"render ea sandboxes create --snapshot-id". A filesystem snapshot captures the
+writable filesystem and restores onto any plan. A runtime snapshot also captures
+memory and CPU state and restores only onto the plan of the source sandbox.
 
 Snapshots belong to the sandbox group of their source sandbox. Getting a snapshot
 uses the active workspace's default group unless --group is provided.`,

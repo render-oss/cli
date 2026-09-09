@@ -1066,6 +1066,7 @@ func NewServer(t *testing.T) *Server {
 	registerServiceRoutes(mux, s, record)
 	registerBlueprintRoutes(mux, s, record)
 	registerSandboxGroupRoutes(mux, s, record)
+	registerSandboxRoutes(mux, s, record)
 	registerSandboxSnapshotRoutes(mux, s, record)
 	registerCliTelemetryRoutes(mux, s, record)
 	registerOAuthRoutes(mux, s, record)

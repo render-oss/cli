@@ -27,6 +27,7 @@ type CreateInput struct {
 	Timeout       int
 	NetworkPolicy string
 	Env           map[string]string
+	SnapshotID    string
 }
 
 // allSandboxStatuses is every sandbox status. --all sends the full set so the
@@ -89,6 +90,9 @@ func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*s
 	}
 	if len(input.Env) > 0 {
 		body.Env = &input.Env
+	}
+	if input.SnapshotID != "" {
+		body.SnapshotId = &input.SnapshotID
 	}
 
 	return s.repo.CreateSandbox(ctx, body, onEvent)
