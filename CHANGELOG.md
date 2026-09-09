@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.27.0] - 2026-09-08
+
+### Added
+
+- `render ea sandboxes snapshots create` command to snapshot a running sandbox
+- `render ea sandboxes snapshots get` command to fetch details of a sandbox snapshot
+- `render ea sandboxes create --snapshot-id` to restore a new sandbox from a snapshot
+
+### Changed
+
+- `render blueprints validate` now reports the workflows in a Blueprint
+
+### Fixed
+
+- Updated `golang.org/x/crypto` to address an upstream security advisory
+
 ## [2.26.0] - 2026-09-01
 
 ### Added
