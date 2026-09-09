@@ -19,6 +19,7 @@ import (
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/sandbox"
 	"github.com/render-oss/cli/pkg/sandboxgroup"
+	"github.com/render-oss/cli/pkg/sandboxsnapshot"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/tasks"
 	"github.com/render-oss/cli/pkg/tui"
@@ -42,34 +43,36 @@ func (c *cache[T]) Get(fn func() T) T {
 }
 
 type cachedDependencies struct {
-	workflowLoader      cache[*workflowviews.WorkflowLoader]
-	workflowService     cache[*workflow.Service]
-	workflowRepo        cache[*workflow.Repo]
-	workflowVersionRepo cache[*version.Repo]
-	taskRepo            cache[*tasks.Repo]
-	projectRepo         cache[*project.Repo]
-	environmentRepo     cache[*environment.Repo]
-	serviceRepo         cache[*service.Repo]
-	registryRepo        cache[*registry.Repo]
-	registryService     cache[*registry.Service]
-	postgresRepo        cache[*postgres.Repo]
-	sandboxRepo         cache[*sandbox.Repo]
-	sandboxGroupRepo    cache[*sandboxgroup.Repo]
-	keyValueRepo        cache[*keyvalue.Repo]
-	userRepo            cache[*user.Repo]
-	ownerRepo           cache[*owner.Repo]
-	deployRepo          cache[*deploy.Repo]
-	resolver            cache[*resolve.Resolver]
-	serviceService      cache[*service.Service]
-	postgresService     cache[*postgres.Service]
-	sandboxService      cache[*sandbox.Service]
-	sandboxGroupService cache[*sandboxgroup.Service]
-	keyValueService     cache[*keyvalue.Service]
-	resourceService     cache[*resource.Service]
-	logRepo             cache[*logs.LogRepo]
-	logLoader           cache[*views.LogLoader]
-	resourceLoader      cache[*views.ResourceLoader]
-	apiConfig           cache[*config.APIConfig]
+	workflowLoader         cache[*workflowviews.WorkflowLoader]
+	workflowService        cache[*workflow.Service]
+	workflowRepo           cache[*workflow.Repo]
+	workflowVersionRepo    cache[*version.Repo]
+	taskRepo               cache[*tasks.Repo]
+	projectRepo            cache[*project.Repo]
+	environmentRepo        cache[*environment.Repo]
+	serviceRepo            cache[*service.Repo]
+	registryRepo           cache[*registry.Repo]
+	registryService        cache[*registry.Service]
+	postgresRepo           cache[*postgres.Repo]
+	sandboxRepo            cache[*sandbox.Repo]
+	sandboxGroupRepo       cache[*sandboxgroup.Repo]
+	sandboxSnapshotRepo    cache[*sandboxsnapshot.Repo]
+	keyValueRepo           cache[*keyvalue.Repo]
+	userRepo               cache[*user.Repo]
+	ownerRepo              cache[*owner.Repo]
+	deployRepo             cache[*deploy.Repo]
+	resolver               cache[*resolve.Resolver]
+	serviceService         cache[*service.Service]
+	postgresService        cache[*postgres.Service]
+	sandboxService         cache[*sandbox.Service]
+	sandboxGroupService    cache[*sandboxgroup.Service]
+	sandboxSnapshotService cache[*sandboxsnapshot.Service]
+	keyValueService        cache[*keyvalue.Service]
+	resourceService        cache[*resource.Service]
+	logRepo                cache[*logs.LogRepo]
+	logLoader              cache[*views.LogLoader]
+	resourceLoader         cache[*views.ResourceLoader]
+	apiConfig              cache[*config.APIConfig]
 }
 
 type Dependencies struct {
@@ -168,6 +171,12 @@ func (d *Dependencies) SandboxGroupRepo() *sandboxgroup.Repo {
 	})
 }
 
+func (d *Dependencies) SandboxSnapshotRepo() *sandboxsnapshot.Repo {
+	return d.cache.sandboxSnapshotRepo.Get(func() *sandboxsnapshot.Repo {
+		return sandboxsnapshot.NewRepo(d.client)
+	})
+}
+
 func (d *Dependencies) KeyValueRepo() *keyvalue.Repo {
 	return d.cache.keyValueRepo.Get(func() *keyvalue.Repo {
 		return keyvalue.NewRepo(d.client)
@@ -219,6 +228,12 @@ func (d *Dependencies) SandboxService() *sandbox.Service {
 func (d *Dependencies) SandboxGroupService() *sandboxgroup.Service {
 	return d.cache.sandboxGroupService.Get(func() *sandboxgroup.Service {
 		return sandboxgroup.NewService(d.SandboxGroupRepo())
+	})
+}
+
+func (d *Dependencies) SandboxSnapshotService() *sandboxsnapshot.Service {
+	return d.cache.sandboxSnapshotService.Get(func() *sandboxsnapshot.Service {
+		return sandboxsnapshot.NewService(d.SandboxSnapshotRepo())
 	})
 }
 

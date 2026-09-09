@@ -12,6 +12,7 @@ import (
 	"github.com/render-oss/cli/pkg/cfg"
 	"github.com/render-oss/cli/pkg/client/oauth"
 	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/pointers"
 )
 
 var ErrUnauthorized = errors.New("unauthorized")
@@ -116,11 +117,18 @@ func ErrorFromResponse(v any) error {
 		return ErrTooManyRequests
 	}
 
-	if responseErr.Message != nil && *responseErr.Message != "" {
-		return fmt.Errorf("received response code %d: %s", responseErr.Code, *responseErr.Message)
+	message := pointers.StringValue(responseErr.Message)
+	errorCode := pointers.StringValue(responseErr.Error.Code)
+	switch {
+	case message != "" && errorCode != "":
+		return fmt.Errorf("received response code %d (%s): %s", responseErr.Code, errorCode, message)
+	case message != "":
+		return fmt.Errorf("received response code %d: %s", responseErr.Code, message)
+	case errorCode != "":
+		return fmt.Errorf("received response code %d (%s)", responseErr.Code, errorCode)
+	default:
+		return fmt.Errorf("received response code %d", responseErr.Code)
 	}
-
-	return fmt.Errorf("unknown error")
 }
 
 type ErrorWithCode struct {

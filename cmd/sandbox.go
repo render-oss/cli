@@ -15,6 +15,8 @@ Sandboxes are ephemeral compute environments for running code, agents, and exper
 Every sandbox belongs to a sandbox group, which scopes it to a region. Manage
 groups with "render ea sandbox-groups".
 
+Snapshot a sandbox with "render ea sandboxes snapshots create".
+
 Examples:
   render ea sandboxes create
   render ea sandboxes create --plan=standard --region=oregon
@@ -22,6 +24,7 @@ Examples:
   render ea sandboxes exec sbx-abc123 -- echo hello
   render ea sandboxes list
   render ea sandboxes list --all
+  render ea sandboxes snapshots create sbx-abc123
   render ea sandboxes stop sbx-abc123 --confirm
 `,
 	}

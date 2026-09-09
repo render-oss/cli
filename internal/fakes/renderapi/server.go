@@ -294,19 +294,21 @@ func NewUser(u client.User) client.User {
 // Server is a fake Render API HTTP server for command-level tests.
 // All HTTP plumbing is internal — tests seed state via Add() methods and assert against resource Instances.
 type Server struct {
-	server        *httptest.Server
-	Requests      []RecordedRequest
-	CurrentUser   *client.User
-	Owners        *Resource[*client.Owner]
-	Projects      *Resource[*client.Project]
-	Environments  *Resource[*client.Environment]
-	KV            *KVResource
-	Postgres      *PostgresResource
-	Services      *ServiceResource
-	Blueprints    *BlueprintResource
-	SandboxGroups *SandboxGroupResource
-	CliTelemetry  *CliTelemetryResource
-	OAuth         *OAuthResource
+	server           *httptest.Server
+	Requests         []RecordedRequest
+	CurrentUser      *client.User
+	Owners           *Resource[*client.Owner]
+	Projects         *Resource[*client.Project]
+	Environments     *Resource[*client.Environment]
+	KV               *KVResource
+	Postgres         *PostgresResource
+	Services         *ServiceResource
+	Blueprints       *BlueprintResource
+	SandboxGroups    *SandboxGroupResource
+	Sandboxes        *SandboxResource
+	SandboxSnapshots *SandboxSnapshotResource
+	CliTelemetry     *CliTelemetryResource
+	OAuth            *OAuthResource
 }
 
 // ownerByID returns the Owner with the given ID from the seeded owners. The
@@ -403,16 +405,18 @@ func NewServer(t *testing.T) *Server {
 	t.Helper()
 
 	s := &Server{
-		Owners:        &Resource[*client.Owner]{},
-		Projects:      &Resource[*client.Project]{},
-		Environments:  &Resource[*client.Environment]{},
-		KV:            &KVResource{},
-		Postgres:      &PostgresResource{},
-		Services:      &ServiceResource{},
-		Blueprints:    &BlueprintResource{},
-		SandboxGroups: &SandboxGroupResource{},
-		CliTelemetry:  &CliTelemetryResource{},
-		OAuth:         &OAuthResource{},
+		Owners:           &Resource[*client.Owner]{},
+		Projects:         &Resource[*client.Project]{},
+		Environments:     &Resource[*client.Environment]{},
+		KV:               &KVResource{},
+		Postgres:         &PostgresResource{},
+		Services:         &ServiceResource{},
+		Blueprints:       &BlueprintResource{},
+		SandboxGroups:    &SandboxGroupResource{},
+		Sandboxes:        &SandboxResource{},
+		SandboxSnapshots: &SandboxSnapshotResource{},
+		CliTelemetry:     &CliTelemetryResource{},
+		OAuth:            &OAuthResource{},
 	}
 
 	mux := http.NewServeMux()
@@ -1062,6 +1066,7 @@ func NewServer(t *testing.T) *Server {
 	registerServiceRoutes(mux, s, record)
 	registerBlueprintRoutes(mux, s, record)
 	registerSandboxGroupRoutes(mux, s, record)
+	registerSandboxSnapshotRoutes(mux, s, record)
 	registerCliTelemetryRoutes(mux, s, record)
 	registerOAuthRoutes(mux, s, record)
 

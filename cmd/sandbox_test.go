@@ -74,7 +74,7 @@ func TestSandboxes_HelpListsSubcommands(t *testing.T) {
 
 	result, err := executeSandboxCommand(t, server, "ea", "sandboxes", "--help")
 	require.NoError(t, err)
-	for _, sub := range []string{"create", "exec", "list", "stop"} {
+	for _, sub := range []string{"create", "exec", "list", "snapshots", "stop"} {
 		assert.Contains(t, result.Stdout, sub, "expected subcommand %q in help output", sub)
 	}
 }
