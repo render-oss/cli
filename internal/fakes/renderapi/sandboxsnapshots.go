@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/render-oss/cli/internal/testids"
@@ -93,6 +94,12 @@ func (s *Server) defaultSandboxGroupID(ownerID string) string {
 	return ""
 }
 
+func (s *Server) snapshotIndex(groupID, snapshotID string) int {
+	return slices.IndexFunc(s.SandboxSnapshots.Instances, func(snap *sandboxesclient.SandboxSnapshot) bool {
+		return snap.Id == snapshotID && snap.SandboxGroupId == groupID
+	})
+}
+
 func registerSandboxSnapshotRoutes(mux *http.ServeMux, s *Server, record func(*http.Request)) {
 	mux.HandleFunc("POST /sandboxes/{sandboxId}/snapshots", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
@@ -131,5 +138,22 @@ func registerSandboxSnapshotRoutes(mux *http.ServeMux, s *Server, record func(*h
 			Plan:            sb.Plan,
 		}))
 		writeJSON(w, http.StatusAccepted, snapshot)
+	})
+
+	mux.HandleFunc("GET /sandbox-groups/{groupId}/snapshots/{snapshotId}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.SandboxSnapshots.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		if _, ok := s.ownerFromQuery(w, r); !ok {
+			return
+		}
+		idx := s.snapshotIndex(r.PathValue("groupId"), r.PathValue("snapshotId"))
+		if idx == -1 {
+			writeAPIError(w, http.StatusNotFound, "snapshot not found", "")
+			return
+		}
+		writeJSON(w, http.StatusOK, s.SandboxSnapshots.Instances[idx])
 	})
 }

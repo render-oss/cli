@@ -12,6 +12,7 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
+	"github.com/render-oss/cli/pkg/sandboxgroup"
 	"github.com/render-oss/cli/pkg/sandboxsnapshot"
 )
 
@@ -41,7 +42,7 @@ func newTestService(t *testing.T, respond func(w http.ResponseWriter)) (*sandbox
 
 	c, err := client.NewClientWithResponses(server.URL)
 	require.NoError(t, err)
-	return sandboxsnapshot.NewService(sandboxsnapshot.NewRepo(c)), rec
+	return sandboxsnapshot.NewService(sandboxsnapshot.NewRepo(c), sandboxgroup.NewRepo(c)), rec
 }
 
 func respondJSON(status int, v any) func(w http.ResponseWriter) {
@@ -86,6 +87,17 @@ func TestServiceCreate_KindBody(t *testing.T) {
 			assert.Equal(t, tc.wantKind, kind)
 		})
 	}
+}
+
+func TestServiceGet_SendsGroupAndOwner(t *testing.T) {
+	svc, rec := newTestService(t, respondJSON(http.StatusOK, sandboxesclient.SandboxSnapshot{Id: "snp-1"}))
+
+	got, err := svc.Get(context.Background(), "sbg-1", "snp-1")
+	require.NoError(t, err)
+	assert.Equal(t, "snp-1", got.Id)
+	assert.Equal(t, http.MethodGet, rec.Method)
+	assert.Equal(t, "/sandbox-groups/sbg-1/snapshots/snp-1", rec.Path)
+	assert.Equal(t, []string{testWorkspace}, rec.Query["ownerId"])
 }
 
 func TestService_MissingWorkspaceReturnsError(t *testing.T) {

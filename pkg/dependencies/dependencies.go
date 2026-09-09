@@ -233,7 +233,7 @@ func (d *Dependencies) SandboxGroupService() *sandboxgroup.Service {
 
 func (d *Dependencies) SandboxSnapshotService() *sandboxsnapshot.Service {
 	return d.cache.sandboxSnapshotService.Get(func() *sandboxsnapshot.Service {
-		return sandboxsnapshot.NewService(d.SandboxSnapshotRepo())
+		return sandboxsnapshot.NewService(d.SandboxSnapshotRepo(), d.SandboxGroupRepo())
 	})
 }
 

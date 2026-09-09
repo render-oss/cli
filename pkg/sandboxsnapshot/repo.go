@@ -35,3 +35,22 @@ func (r *Repo) Create(ctx context.Context, sandboxID string, body client.CreateS
 	}
 	return resp.JSON202, nil
 }
+
+func (r *Repo) Get(ctx context.Context, sandboxGroupID, snapshotID string) (*sandboxesclient.SandboxSnapshot, error) {
+	workspace, err := config.WorkspaceID()
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := r.client.RetrieveSandboxSnapshotWithResponse(ctx, sandboxGroupID, snapshotID, &client.RetrieveSandboxSnapshotParams{OwnerId: &workspace})
+	if err != nil {
+		return nil, err
+	}
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("get sandbox snapshot: success response missing snapshot body")
+	}
+	return resp.JSON200, nil
+}

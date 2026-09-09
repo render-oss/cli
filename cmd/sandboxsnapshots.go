@@ -15,9 +15,13 @@ filesystem snapshot captures the writable filesystem and restores onto any
 plan. A runtime snapshot also captures memory and CPU state and restores only
 onto the plan of the source sandbox.
 
-Snapshots belong to the sandbox group of their source sandbox.`,
+Snapshots belong to the sandbox group of their source sandbox. Getting a snapshot
+uses the active workspace's default group unless --group is provided.`,
 		Example: `  # Snapshot a running sandbox
-  render ea sandboxes snapshots create sbx-abc123`,
+  render ea sandboxes snapshots create sbx-abc123
+
+  # Get one snapshot
+  render ea sandboxes snapshots get snp-abc123`,
 	}
 	cmd.AddCommand(children...)
 	return cmd
