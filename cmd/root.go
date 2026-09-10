@@ -415,6 +415,7 @@ func init() {
 	// per-command and lives in newRootCmd.
 	cobra.AddTemplateFunc("combinedFlagUsages", CombinedFlagUsages)
 	cobra.AddTemplateFunc("wrapText", wrapText)
+	cobra.AddTemplateFunc("helpTextWidth", helpTextWidth)
 	cobra.AddTemplateFunc("cliVersion", cliVersion)
 	cobra.AddTemplateFunc("boldText", renderstyle.Bold)
 	cobra.AddTemplateFunc("formatExamples", formatExamples)

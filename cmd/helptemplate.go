@@ -6,11 +6,14 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/render-oss/cli/pkg/cfg"
+	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/style"
 	"github.com/spf13/cobra"
 )
 
 var wrapTextTokenPattern = regexp.MustCompile(`\s+|\S+`)
+
+const maxHelpTextWidth = 80
 
 // cliVersion returns a styled version string for the help template
 func cliVersion() string {
@@ -57,8 +60,23 @@ func formatExamples(text string) string {
 	return strings.Join(result, "\n")
 }
 
-// wrapText wraps prose lines at the specified width, respecting word boundaries.
-// It preserves existing line breaks and leaves indented lines unwrapped.
+func helpTextWidth(cmd *cobra.Command) int {
+	if cmd == nil {
+		return maxHelpTextWidth
+	}
+	return boundedHelpTextWidth(command.NewStream(cmd.OutOrStdout()).Width())
+}
+
+func boundedHelpTextWidth(terminalWidth int) int {
+	if terminalWidth <= 0 {
+		return maxHelpTextWidth
+	}
+	return min(terminalWidth, maxHelpTextWidth)
+}
+
+// wrapText wraps prose paragraphs at the specified width, respecting word
+// boundaries. Blank lines separate paragraphs, and indented lines are left
+// untouched.
 func wrapText(text string, width int) string {
 	if text == "" {
 		return ""
@@ -66,65 +84,79 @@ func wrapText(text string, width int) string {
 
 	lines := strings.Split(text, "\n")
 	var result []string
+	var paragraph []string
+
+	flushParagraph := func() {
+		if len(paragraph) == 0 {
+			return
+		}
+		result = append(result, wrapTextLine(strings.Join(paragraph, " "), width)...)
+		paragraph = nil
+	}
 
 	for _, line := range lines {
-		// Preserve empty lines
 		if strings.TrimSpace(line) == "" {
+			flushParagraph()
 			result = append(result, "")
 			continue
 		}
 
-		// Keep preformatted lines untouched to avoid collapsing spacing.
 		if isPreformattedLine(line) {
+			flushParagraph()
 			result = append(result, line)
 			continue
 		}
 
-		if lipgloss.Width(line) <= width {
-			result = append(result, line)
-			continue
-		}
+		paragraph = append(paragraph, strings.TrimSpace(line))
+	}
+	flushParagraph()
 
-		tokens := wrapTextTokenPattern.FindAllString(line, -1)
-		if len(tokens) == 0 {
-			result = append(result, line)
-			continue
-		}
+	return strings.Join(result, "\n")
+}
 
-		currentLine := ""
-		currentWidth := 0
+func wrapTextLine(line string, width int) []string {
+	if lipgloss.Width(line) <= width {
+		return []string{line}
+	}
 
-		for _, token := range tokens {
-			tokenIsSpace := strings.TrimSpace(token) == ""
-			tokenWidth := lipgloss.Width(token)
+	tokens := wrapTextTokenPattern.FindAllString(line, -1)
+	if len(tokens) == 0 {
+		return []string{line}
+	}
 
-			if tokenIsSpace {
-				// Skip leading whitespace on wrapped lines.
-				if currentLine == "" {
-					continue
-				}
-				if currentWidth+tokenWidth <= width {
-					currentLine += token
-					currentWidth += tokenWidth
-				}
+	var result []string
+	currentLine := ""
+	currentWidth := 0
+
+	for _, token := range tokens {
+		tokenIsSpace := strings.TrimSpace(token) == ""
+		tokenWidth := lipgloss.Width(token)
+
+		if tokenIsSpace {
+			if currentLine == "" {
 				continue
 			}
-
-			if currentLine != "" && currentWidth+tokenWidth > width {
-				result = append(result, strings.TrimRight(currentLine, " \t"))
-				currentLine = token
-				currentWidth = tokenWidth
-			} else {
+			if currentWidth+tokenWidth <= width {
 				currentLine += token
 				currentWidth += tokenWidth
 			}
+			continue
 		}
-		if currentLine != "" {
+
+		if currentLine != "" && currentWidth+tokenWidth > width {
 			result = append(result, strings.TrimRight(currentLine, " \t"))
+			currentLine = token
+			currentWidth = tokenWidth
+		} else {
+			currentLine += token
+			currentWidth += tokenWidth
 		}
 	}
+	if currentLine != "" {
+		result = append(result, strings.TrimRight(currentLine, " \t"))
+	}
 
-	return strings.Join(result, "\n")
+	return result
 }
 
 func isPreformattedLine(line string) bool {
@@ -182,7 +214,7 @@ var CustomHelpTemplate = `{{cliVersion}}
 {{formatExamples .Example}}
 
 {{end}}{{if .Long}}{{if ne .Long .Short}}` + style.Title.Render("DETAILS") + `
-{{wrapText .Long 80}}
+{{wrapText .Long (helpTextWidth .)}}
 
 {{end}}{{end}}{{if .HasAvailableSubCommands}}Use "{{.CommandPath}}{{if .Runnable}} [subcommand]{{else}} <subcommand>{{end}} --help" for more information about a command.
 {{end}}`
