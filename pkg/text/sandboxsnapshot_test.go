@@ -26,7 +26,7 @@ func TestSandboxSnapshotTable_ContainsHeadersAndRow(t *testing.T) {
 			Plan:            sandboxesclient.Standard,
 			RequestedAt:     captured.Add(-time.Minute),
 			CapturedAt:      &captured,
-			ExpiresAt:       &expires,
+			ExpiresAt:       expires,
 			SizeBytes:       &size,
 		},
 	}
@@ -50,6 +50,7 @@ func TestSandboxSnapshotTable_NullFieldsShowDash(t *testing.T) {
 			Status:      sandboxesclient.SandboxSnapshotStatusCreating,
 			Plan:        sandboxesclient.Starter,
 			RequestedAt: time.Now(),
+			ExpiresAt:   time.Date(2026, 9, 8, 10, 0, 0, 0, time.UTC),
 		},
 	}
 
@@ -58,7 +59,7 @@ func TestSandboxSnapshotTable_NullFieldsShowDash(t *testing.T) {
 	lines := strings.Split(strings.TrimSpace(out), "\n")
 	require.Len(t, lines, 2)
 	fields := strings.Fields(lines[1])
-	assert.Equal(t, []string{"snp-new", "filesystem", "creating", "starter", "-", "-", "-"}, fields)
+	assert.Equal(t, []string{"snp-new", "filesystem", "creating", "starter", "-", "2026-09-08T10:00:00Z", "-"}, fields)
 }
 
 func TestSandboxSnapshotDetail(t *testing.T) {

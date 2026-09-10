@@ -59,6 +59,9 @@ func NewSandboxSnapshot(s sandboxesclient.SandboxSnapshot) *sandboxesclient.Sand
 	if s.RequestedAt.IsZero() {
 		s.RequestedAt = time.Now()
 	}
+	if s.ExpiresAt.IsZero() {
+		s.ExpiresAt = s.RequestedAt.Add(7 * 24 * time.Hour)
+	}
 	return &s
 }
 

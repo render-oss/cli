@@ -299,8 +299,8 @@ func TestSandboxSnapshotsList_TextOutput(t *testing.T) {
 	lines := strings.Split(strings.TrimSpace(result.Stdout), "\n")
 	require.Len(t, lines, 3)
 	assert.Equal(t, []string{"ID", "KIND", "STATUS", "PLAN", "SIZE", "EXPIRES", "CAPTURED"}, strings.Fields(lines[0]))
-	assert.Equal(t, []string{creating.Id, "filesystem", "creating", "starter", "-", "-", "-"}, strings.Fields(lines[1]))
-	assert.Equal(t, []string{available.Id, "filesystem", "available", "starter", "5.0", "MB", "-", "2026-09-01T10:00:00Z"}, strings.Fields(lines[2]))
+	assert.Equal(t, []string{creating.Id, "filesystem", "creating", "starter", "-", "2026-09-08T10:01:00Z", "-"}, strings.Fields(lines[1]))
+	assert.Equal(t, []string{available.Id, "filesystem", "available", "starter", "5.0", "MB", "2026-09-08T09:59:00Z", "2026-09-01T10:00:00Z"}, strings.Fields(lines[2]))
 }
 
 func TestSandboxSnapshotsList_StatusFilter(t *testing.T) {

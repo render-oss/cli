@@ -17,9 +17,9 @@ import (
 	"strings"
 
 	"github.com/oapi-codegen/runtime"
-	externalRef0 "github.com/render-oss/cli/pkg/client/artifactsources"
-	externalRef2 "github.com/render-oss/cli/pkg/client/autoscaling"
-	externalRef3 "github.com/render-oss/cli/pkg/client/blueprints"
+	externalRef1 "github.com/render-oss/cli/pkg/client/autoscaling"
+	externalRef2 "github.com/render-oss/cli/pkg/client/blueprints"
+	externalRef3 "github.com/render-oss/cli/pkg/client/buildsources"
 	externalRef5 "github.com/render-oss/cli/pkg/client/disks"
 	externalRef7 "github.com/render-oss/cli/pkg/client/events"
 	externalRef10 "github.com/render-oss/cli/pkg/client/jobs"
@@ -108,265 +108,6 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 
-	// ListArtifactSources List artifact sources
-	//
-	// List artifact sources matching the provided filters. If `ownerId` is
-	// omitted, returns artifact sources across every workspace you can view.
-	//
-	// Corresponds with GET /artifact-sources (the `ListArtifactSources` operationId).
-	ListArtifactSources(ctx context.Context, params *ListArtifactSourcesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CreateArtifactSourceWithBody Create an artifact source
-	//
-	// Create an artifact source that can be linked to one or more
-	// services in the same workspace.
-	//
-	// Exactly one of `git` or `image` must be set:
-	// - `git`: the artifact source is git-backed. The code is built in
-	//    the requested `region` (defaults to `oregon`).
-	// - `image`: the artifact source is image-backed. It points at an
-	//   existing image in an external registry; no build is performed.
-	//
-	// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
-	// environment and are only valid for `git` sources; the request fails
-	// if any are provided with `image`.
-	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with POST /artifact-sources (the `CreateArtifactSource` operationId).
-	CreateArtifactSourceWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CreateArtifactSource Create an artifact source
-	//
-	// Create an artifact source that can be linked to one or more
-	// services in the same workspace.
-	//
-	// Exactly one of `git` or `image` must be set:
-	// - `git`: the artifact source is git-backed. The code is built in
-	//    the requested `region` (defaults to `oregon`).
-	// - `image`: the artifact source is image-backed. It points at an
-	//   existing image in an external registry; no build is performed.
-	//
-	// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
-	// environment and are only valid for `git` sources; the request fails
-	// if any are provided with `image`.
-	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with POST /artifact-sources (the `CreateArtifactSource` operationId).
-	CreateArtifactSource(ctx context.Context, body CreateArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// DeleteArtifactSource Delete an artifact source
-	//
-	// Delete the artifact source with the provided ID.
-	//
-	// Corresponds with DELETE /artifact-sources/{artifactSourceId} (the `DeleteArtifactSource` operationId).
-	DeleteArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetArtifactSource Retrieve an artifact source
-	//
-	// Retrieve a shared artifact source by ID.
-	//
-	// Corresponds with GET /artifact-sources/{artifactSourceId} (the `GetArtifactSource` operationId).
-	GetArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateArtifactSourceWithBody Update an artifact source
-	//
-	// Update a shared artifact source. Each top-level field is a true patch,
-	// unset fields are left unchanged.
-	//
-	// Supplying `git` or `image` can change the artifact source's
-	// underlying identity:
-	// - `image` on a git-backed artifact source switches it to image-backed
-	// - `git` on an image-backed artifact source switches it to git-backed
-	// - `git` on an artifact source that's already git-backed is a pure
-	//   patch onto the existing config
-	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with PATCH /artifact-sources/{artifactSourceId} (the `UpdateArtifactSource` operationId).
-	UpdateArtifactSourceWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateArtifactSource Update an artifact source
-	//
-	// Update a shared artifact source. Each top-level field is a true patch,
-	// unset fields are left unchanged.
-	//
-	// Supplying `git` or `image` can change the artifact source's
-	// underlying identity:
-	// - `image` on a git-backed artifact source switches it to image-backed
-	// - `git` on an image-backed artifact source switches it to git-backed
-	// - `git` on an artifact source that's already git-backed is a pure
-	//   patch onto the existing config
-	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with PATCH /artifact-sources/{artifactSourceId} (the `UpdateArtifactSource` operationId).
-	UpdateArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ListArtifactsInArtifactSource List artifacts in an artifact source
-	//
-	// List artifacts in an artifact source.
-	//
-	// Corresponds with GET /artifact-sources/{artifactSourceId}/artifacts (the `ListArtifactsInArtifactSource` operationId).
-	ListArtifactsInArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *ListArtifactsInArtifactSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UnlinkEnvGroupFromArtifactSource Unlink environment group
-	//
-	// Unlink a particular environment group from a particular artifact source.
-	//
-	// The artifact source will lose access to the environment variables and secret files in the group.
-	//
-	// Corresponds with DELETE /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `UnlinkEnvGroupFromArtifactSource` operationId).
-	UnlinkEnvGroupFromArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// LinkEnvGroupToArtifactSource Link environment group
-	//
-	// Link a particular environment group to a particular artifact source.
-	//
-	// The artifact source will have access to the environment variables and secret files in the group at build time.
-	//
-	// Corresponds with POST /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `LinkEnvGroupToArtifactSource` operationId).
-	LinkEnvGroupToArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetEnvVarsForArtifactSource List environment variables
-	//
-	// List all environment variables for the artifact source with the provided ID.
-	//
-	// Corresponds with GET /artifact-sources/{artifactSourceId}/env-vars (the `GetEnvVarsForArtifactSource` operationId).
-	GetEnvVarsForArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *GetEnvVarsForArtifactSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateEnvVarsForArtifactSourceWithBody Update environment variables
-	//
-	// Replace all environment variables for an artifact source with the provided list of environment variables.
-	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars (the `UpdateEnvVarsForArtifactSource` operationId).
-	UpdateEnvVarsForArtifactSourceWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateEnvVarsForArtifactSource Update environment variables
-	//
-	// Replace all environment variables for an artifact source with the provided list of environment variables.
-	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars (the `UpdateEnvVarsForArtifactSource` operationId).
-	UpdateEnvVarsForArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateEnvVarsForArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// DeleteArtifactSourceEnvVar Delete environment variable
-	//
-	// Delete a particular environment variable from a particular artifact source.
-	//
-	// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-	//
-	// Corresponds with DELETE /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `DeleteArtifactSourceEnvVar` operationId).
-	DeleteArtifactSourceEnvVar(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// RetrieveArtifactSourceEnvVar Retrieve environment variable
-	//
-	// Retrieve a particular environment variable for a particular artifact source.
-	//
-	// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-	//
-	// Corresponds with GET /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `RetrieveArtifactSourceEnvVar` operationId).
-	RetrieveArtifactSourceEnvVar(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateArtifactSourceEnvVarWithBody Add or update environment variable
-	//
-	// Add or update a particular environment variable for a particular artifact source.
-	//
-	// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `UpdateArtifactSourceEnvVar` operationId).
-	UpdateArtifactSourceEnvVarWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateArtifactSourceEnvVar Add or update environment variable
-	//
-	// Add or update a particular environment variable for a particular artifact source.
-	//
-	// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `UpdateArtifactSourceEnvVar` operationId).
-	UpdateArtifactSourceEnvVar(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, body UpdateArtifactSourceEnvVarJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ListSecretFilesForArtifactSource List secret files
-	//
-	// List all secret files for the artifact source with the provided ID.
-	//
-	// Corresponds with GET /artifact-sources/{artifactSourceId}/secret-files (the `ListSecretFilesForArtifactSource` operationId).
-	ListSecretFilesForArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *ListSecretFilesForArtifactSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateSecretFilesForArtifactSourceWithBody Update secret files
-	//
-	// Replace all secret files for an artifact source with the provided list of secret files.
-	//
-	// **Any of the artifact source's existing secret files not included in this request will be deleted.**
-	//
-	// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files (the `UpdateSecretFilesForArtifactSource` operationId).
-	UpdateSecretFilesForArtifactSourceWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateSecretFilesForArtifactSource Update secret files
-	//
-	// Replace all secret files for an artifact source with the provided list of secret files.
-	//
-	// **Any of the artifact source's existing secret files not included in this request will be deleted.**
-	//
-	// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files (the `UpdateSecretFilesForArtifactSource` operationId).
-	UpdateSecretFilesForArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateSecretFilesForArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// DeleteArtifactSourceSecretFile Delete secret file
-	//
-	// Delete a particular secret file from a particular artifact source.
-	//
-	// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-	//
-	// Corresponds with DELETE /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `DeleteArtifactSourceSecretFile` operationId).
-	DeleteArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// RetrieveArtifactSourceSecretFile Retrieve secret file
-	//
-	// Retrieve a particular secret file for a particular artifact source.
-	//
-	// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-	//
-	// Corresponds with GET /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `RetrieveArtifactSourceSecretFile` operationId).
-	RetrieveArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// AddOrUpdateArtifactSourceSecretFileWithBody Add or update secret file
-	//
-	// Add or update a particular secret file for a particular artifact source.
-	//
-	// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `AddOrUpdateArtifactSourceSecretFile` operationId).
-	AddOrUpdateArtifactSourceSecretFileWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// AddOrUpdateArtifactSourceSecretFile Add or update secret file
-	//
-	// Add or update a particular secret file for a particular artifact source.
-	//
-	// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `AddOrUpdateArtifactSourceSecretFile` operationId).
-	AddOrUpdateArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// ListBlueprints List Blueprints
 	//
 	// List Blueprints for the specified workspaces. If no workspaces are provided, returns all Blueprints the API key has access to.
@@ -392,14 +133,14 @@ type ClientInterface interface {
 	// Disconnecting a Blueprint stops automatic resource syncing via the associated `render.yaml` file. It does not _delete_ any services or other resources that were managed by the blueprint.
 	//
 	// Corresponds with DELETE /blueprints/{blueprintId} (the `DisconnectBlueprint` operationId).
-	DisconnectBlueprint(ctx context.Context, blueprintId externalRef3.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DisconnectBlueprint(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveBlueprint Retrieve Blueprint
 	//
 	// Retrieve the Blueprint with the provided ID.
 	//
 	// Corresponds with GET /blueprints/{blueprintId} (the `RetrieveBlueprint` operationId).
-	RetrieveBlueprint(ctx context.Context, blueprintId externalRef3.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RetrieveBlueprint(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateBlueprintWithBody Update Blueprint
 	//
@@ -408,7 +149,7 @@ type ClientInterface interface {
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with PATCH /blueprints/{blueprintId} (the `UpdateBlueprint` operationId).
-	UpdateBlueprintWithBody(ctx context.Context, blueprintId externalRef3.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateBlueprintWithBody(ctx context.Context, blueprintId externalRef2.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateBlueprint Update Blueprint
 	//
@@ -417,14 +158,288 @@ type ClientInterface interface {
 	// Takes a body of the `application/json` content type.
 	//
 	// Corresponds with PATCH /blueprints/{blueprintId} (the `UpdateBlueprint` operationId).
-	UpdateBlueprint(ctx context.Context, blueprintId externalRef3.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateBlueprint(ctx context.Context, blueprintId externalRef2.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListBlueprintSyncs List Blueprint syncs
 	//
 	// List syncs for the Blueprint with the provided ID.
 	//
 	// Corresponds with GET /blueprints/{blueprintId}/syncs (the `ListBlueprintSyncs` operationId).
-	ListBlueprintSyncs(ctx context.Context, blueprintId externalRef3.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListBlueprintSyncs(ctx context.Context, blueprintId externalRef2.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBuildSources List build sources
+	//
+	// List build sources matching the provided filters. If `ownerId` is
+	// omitted, returns build sources across every workspace you can view.
+	//
+	// Corresponds with GET /build-sources (the `ListBuildSources` operationId).
+	ListBuildSources(ctx context.Context, params *ListBuildSourcesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateBuildSourceWithBody Create a build source
+	//
+	// Create a build source that can be linked to one or more
+	// services in the same workspace.
+	//
+	// Exactly one of `git` or `image` must be set:
+	// - `git`: the build source is git-backed. The code is built in
+	//    the requested `region` (defaults to `oregon`).
+	// - `image`: the build source is image-backed. It points at an
+	//   existing image in an external registry; no build is performed.
+	//
+	// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
+	// environment and are only valid for `git` sources; the request fails
+	// if any are provided with `image`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /build-sources (the `CreateBuildSource` operationId).
+	CreateBuildSourceWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateBuildSource Create a build source
+	//
+	// Create a build source that can be linked to one or more
+	// services in the same workspace.
+	//
+	// Exactly one of `git` or `image` must be set:
+	// - `git`: the build source is git-backed. The code is built in
+	//    the requested `region` (defaults to `oregon`).
+	// - `image`: the build source is image-backed. It points at an
+	//   existing image in an external registry; no build is performed.
+	//
+	// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
+	// environment and are only valid for `git` sources; the request fails
+	// if any are provided with `image`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /build-sources (the `CreateBuildSource` operationId).
+	CreateBuildSource(ctx context.Context, body CreateBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteBuildSource Delete a build source
+	//
+	// Delete the build source with the provided ID.
+	//
+	// Corresponds with DELETE /build-sources/{buildSourceId} (the `DeleteBuildSource` operationId).
+	DeleteBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBuildSource Retrieve a build source
+	//
+	// Retrieve a shared build source by ID.
+	//
+	// Corresponds with GET /build-sources/{buildSourceId} (the `GetBuildSource` operationId).
+	GetBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateBuildSourceWithBody Update a build source
+	//
+	// Update a shared build source. Each top-level field is a true patch,
+	// unset fields are left unchanged.
+	//
+	// Supplying `git` or `image` can change the build source's
+	// underlying identity:
+	// - `image` on a git-backed build source switches it to image-backed
+	// - `git` on an image-backed build source switches it to git-backed
+	// - `git` on a build source that's already git-backed is a pure
+	//   patch onto the existing config
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PATCH /build-sources/{buildSourceId} (the `UpdateBuildSource` operationId).
+	UpdateBuildSourceWithBody(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateBuildSource Update a build source
+	//
+	// Update a shared build source. Each top-level field is a true patch,
+	// unset fields are left unchanged.
+	//
+	// Supplying `git` or `image` can change the build source's
+	// underlying identity:
+	// - `image` on a git-backed build source switches it to image-backed
+	// - `git` on an image-backed build source switches it to git-backed
+	// - `git` on a build source that's already git-backed is a pure
+	//   patch onto the existing config
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PATCH /build-sources/{buildSourceId} (the `UpdateBuildSource` operationId).
+	UpdateBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body UpdateBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBuildsInBuildSource List builds in a build source
+	//
+	// List builds in a build source.
+	//
+	// Corresponds with GET /build-sources/{buildSourceId}/builds (the `ListBuildsInBuildSource` operationId).
+	ListBuildsInBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *ListBuildsInBuildSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TriggerBuildSourceBuild Trigger a build
+	//
+	// Start a new build of the build source at the current HEAD of its
+	// branch, even if an up-to-date build already exists. Services linked to
+	// the build source with autodeploy enabled are deployed with the result.
+	//
+	// Updating a build source or its build-time environment (env vars,
+	// secret files, env groups) with the REST API does not build it. Call
+	// this endpoint after those changes to build them.
+	//
+	// Only `git` build sources can be built.
+	//
+	// Corresponds with POST /build-sources/{buildSourceId}/builds (the `TriggerBuildSourceBuild` operationId).
+	TriggerBuildSourceBuild(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UnlinkEnvGroupFromBuildSource Unlink environment group
+	//
+	// Unlink a particular environment group from a particular build source.
+	//
+	// The build source will lose access to the environment variables and secret files in the group.
+	//
+	// Corresponds with DELETE /build-sources/{buildSourceId}/env-groups/{envGroupId} (the `UnlinkEnvGroupFromBuildSource` operationId).
+	UnlinkEnvGroupFromBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// LinkEnvGroupToBuildSource Link environment group
+	//
+	// Link a particular environment group to a particular build source.
+	//
+	// The build source will have access to the environment variables and secret files in the group at build time.
+	//
+	// Corresponds with POST /build-sources/{buildSourceId}/env-groups/{envGroupId} (the `LinkEnvGroupToBuildSource` operationId).
+	LinkEnvGroupToBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetEnvVarsForBuildSource List environment variables
+	//
+	// List all environment variables for the build source with the provided ID.
+	//
+	// Corresponds with GET /build-sources/{buildSourceId}/env-vars (the `GetEnvVarsForBuildSource` operationId).
+	GetEnvVarsForBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *GetEnvVarsForBuildSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateEnvVarsForBuildSourceWithBody Update environment variables
+	//
+	// Replace all environment variables for a build source with the provided list of environment variables.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/env-vars (the `UpdateEnvVarsForBuildSource` operationId).
+	UpdateEnvVarsForBuildSourceWithBody(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateEnvVarsForBuildSource Update environment variables
+	//
+	// Replace all environment variables for a build source with the provided list of environment variables.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/env-vars (the `UpdateEnvVarsForBuildSource` operationId).
+	UpdateEnvVarsForBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body UpdateEnvVarsForBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteBuildSourceEnvVar Delete environment variable
+	//
+	// Delete a particular environment variable from a particular build source.
+	//
+	// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+	//
+	// Corresponds with DELETE /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `DeleteBuildSourceEnvVar` operationId).
+	DeleteBuildSourceEnvVar(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RetrieveBuildSourceEnvVar Retrieve environment variable
+	//
+	// Retrieve a particular environment variable for a particular build source.
+	//
+	// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+	//
+	// Corresponds with GET /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `RetrieveBuildSourceEnvVar` operationId).
+	RetrieveBuildSourceEnvVar(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateBuildSourceEnvVarWithBody Add or update environment variable
+	//
+	// Add or update a particular environment variable for a particular build source.
+	//
+	// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `UpdateBuildSourceEnvVar` operationId).
+	UpdateBuildSourceEnvVarWithBody(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateBuildSourceEnvVar Add or update environment variable
+	//
+	// Add or update a particular environment variable for a particular build source.
+	//
+	// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `UpdateBuildSourceEnvVar` operationId).
+	UpdateBuildSourceEnvVar(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, body UpdateBuildSourceEnvVarJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListSecretFilesForBuildSource List secret files
+	//
+	// List all secret files for the build source with the provided ID.
+	//
+	// Corresponds with GET /build-sources/{buildSourceId}/secret-files (the `ListSecretFilesForBuildSource` operationId).
+	ListSecretFilesForBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *ListSecretFilesForBuildSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateSecretFilesForBuildSourceWithBody Update secret files
+	//
+	// Replace all secret files for a build source with the provided list of secret files.
+	//
+	// **Any of the build source's existing secret files not included in this request will be deleted.**
+	//
+	// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/secret-files (the `UpdateSecretFilesForBuildSource` operationId).
+	UpdateSecretFilesForBuildSourceWithBody(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateSecretFilesForBuildSource Update secret files
+	//
+	// Replace all secret files for a build source with the provided list of secret files.
+	//
+	// **Any of the build source's existing secret files not included in this request will be deleted.**
+	//
+	// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/secret-files (the `UpdateSecretFilesForBuildSource` operationId).
+	UpdateSecretFilesForBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body UpdateSecretFilesForBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteBuildSourceSecretFile Delete secret file
+	//
+	// Delete a particular secret file from a particular build source.
+	//
+	// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+	//
+	// Corresponds with DELETE /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `DeleteBuildSourceSecretFile` operationId).
+	DeleteBuildSourceSecretFile(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RetrieveBuildSourceSecretFile Retrieve secret file
+	//
+	// Retrieve a particular secret file for a particular build source.
+	//
+	// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+	//
+	// Corresponds with GET /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `RetrieveBuildSourceSecretFile` operationId).
+	RetrieveBuildSourceSecretFile(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddOrUpdateBuildSourceSecretFileWithBody Add or update secret file
+	//
+	// Add or update a particular secret file for a particular build source.
+	//
+	// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `AddOrUpdateBuildSourceSecretFile` operationId).
+	AddOrUpdateBuildSourceSecretFileWithBody(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddOrUpdateBuildSourceSecretFile Add or update secret file
+	//
+	// Add or update a particular secret file for a particular build source.
+	//
+	// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `AddOrUpdateBuildSourceSecretFile` operationId).
+	AddOrUpdateBuildSourceSecretFile(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, body AddOrUpdateBuildSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateCliTelemetryEventWithBody Record a CLI telemetry event
 	//
@@ -1903,7 +1918,14 @@ type ClientInterface interface {
 
 	// ListSandboxSnapshots List sandbox snapshots
 	//
-	// Snapshots in a sandbox group, newest first. Expired and deleted snapshots are omitted.
+	// Snapshots in a sandbox group, newest first. Expired and deleted snapshots
+	// are omitted.
+	//
+	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
+	// well-formed `sbg-` ID, `code: invalid_owner_id` if `ownerId` is missing or
+	// repeated, `code: invalid_status` for a status outside the snapshot status
+	// vocabulary, `code: invalid_cursor` for a malformed or unknown cursor, or
+	// `code: invalid_limit` for a limit outside 1 to 100.
 	//
 	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots (the `ListSandboxSnapshots` operationId).
 	ListSandboxSnapshots(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, params *ListSandboxSnapshotsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1914,6 +1936,8 @@ type ClientInterface interface {
 	// Sandboxes created from the snapshot are not affected. A snapshot that
 	// belongs to another sandbox group returns 404.
 	//
+	// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
+	// 400 with `code: invalid_snapshot_id` when `snapshotId` is malformed.
 	// 409 with `code: snapshot_creating` while the capture is in progress.
 	//
 	// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `DeleteSandboxSnapshot` operationId).
@@ -1923,6 +1947,10 @@ type ClientInterface interface {
 	//
 	// One snapshot by ID. Deleted and expired snapshots return 404. A snapshot
 	// that belongs to another sandbox group returns 404.
+	//
+	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
+	// well-formed `sbg-` ID, or `code: invalid_snapshot_id` if `snapshotId` is
+	// not a well-formed `snp-` ID.
 	//
 	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `RetrieveSandboxSnapshot` operationId).
 	RetrieveSandboxSnapshot(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, snapshotId externalRef16.SnapshotId, params *RetrieveSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2757,8 +2785,21 @@ type ClientInterface interface {
 	// StreamTaskRunsEvents Stream realtime events (SSE)
 	//
 	// Establishes a unidirectional event stream. The server sends events as lines
-	// formatted per the SSE spec. Clients SHOULD set `Accept: text/event-stream`
+	// formatted per the SSE spec. Clients should set `Accept: text/event-stream`
 	// and keep the connection open.
+	//
+	// The server sends a `task.completed` event whenever a requested task run reaches
+	// any terminal state (`completed`, `failed`, or `canceled`).
+	// The `status` field of the payload indicates which state was reached.
+	//
+	// The server automatically closes the stream in the following cases:
+	//
+	// - All requested task runs have reached a terminal state.
+	// - The stream has not sent any events for 30 minutes.
+	//
+	// For tasks with a timeout higher than 30 minutes, waiting clients should fall back
+	// to polling with the [Retrieve task run](https://api-docs.render.com/reference/gettaskrun)
+	// endpoint.
 	//
 	// Corresponds with GET /task-runs/events (the `StreamTaskRunsEvents` operationId).
 	StreamTaskRunsEvents(ctx context.Context, params *StreamTaskRunsEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2950,505 +2991,6 @@ type ClientInterface interface {
 	GetWorkflowVersion(ctx context.Context, workflowVersionId externalRef19.WorkflowVersionIDParam, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
-// ListArtifactSources List artifact sources
-//
-// List artifact sources matching the provided filters. If `ownerId` is
-// omitted, returns artifact sources across every workspace you can view.
-//
-// Corresponds with GET /artifact-sources (the `ListArtifactSources` operationId).
-func (c *Client) ListArtifactSources(ctx context.Context, params *ListArtifactSourcesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListArtifactSourcesRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// CreateArtifactSourceWithBody Create an artifact source
-//
-// Create an artifact source that can be linked to one or more
-// services in the same workspace.
-//
-// Exactly one of `git` or `image` must be set:
-//   - `git`: the artifact source is git-backed. The code is built in
-//     the requested `region` (defaults to `oregon`).
-//   - `image`: the artifact source is image-backed. It points at an
-//     existing image in an external registry; no build is performed.
-//
-// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
-// environment and are only valid for `git` sources; the request fails
-// if any are provided with `image`.
-//
-// Takes any type of body and a specified content type.
-//
-// Corresponds with POST /artifact-sources (the `CreateArtifactSource` operationId).
-func (c *Client) CreateArtifactSourceWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateArtifactSourceRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// CreateArtifactSource Create an artifact source
-//
-// Create an artifact source that can be linked to one or more
-// services in the same workspace.
-//
-// Exactly one of `git` or `image` must be set:
-//   - `git`: the artifact source is git-backed. The code is built in
-//     the requested `region` (defaults to `oregon`).
-//   - `image`: the artifact source is image-backed. It points at an
-//     existing image in an external registry; no build is performed.
-//
-// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
-// environment and are only valid for `git` sources; the request fails
-// if any are provided with `image`.
-//
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with POST /artifact-sources (the `CreateArtifactSource` operationId).
-func (c *Client) CreateArtifactSource(ctx context.Context, body CreateArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateArtifactSourceRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// DeleteArtifactSource Delete an artifact source
-//
-// Delete the artifact source with the provided ID.
-//
-// Corresponds with DELETE /artifact-sources/{artifactSourceId} (the `DeleteArtifactSource` operationId).
-func (c *Client) DeleteArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteArtifactSourceRequest(c.Server, artifactSourceId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// GetArtifactSource Retrieve an artifact source
-//
-// Retrieve a shared artifact source by ID.
-//
-// Corresponds with GET /artifact-sources/{artifactSourceId} (the `GetArtifactSource` operationId).
-func (c *Client) GetArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetArtifactSourceRequest(c.Server, artifactSourceId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UpdateArtifactSourceWithBody Update an artifact source
-//
-// Update a shared artifact source. Each top-level field is a true patch,
-// unset fields are left unchanged.
-//
-// Supplying `git` or `image` can change the artifact source's
-// underlying identity:
-//   - `image` on a git-backed artifact source switches it to image-backed
-//   - `git` on an image-backed artifact source switches it to git-backed
-//   - `git` on an artifact source that's already git-backed is a pure
-//     patch onto the existing config
-//
-// Takes any type of body and a specified content type.
-//
-// Corresponds with PATCH /artifact-sources/{artifactSourceId} (the `UpdateArtifactSource` operationId).
-func (c *Client) UpdateArtifactSourceWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateArtifactSourceRequestWithBody(c.Server, artifactSourceId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UpdateArtifactSource Update an artifact source
-//
-// Update a shared artifact source. Each top-level field is a true patch,
-// unset fields are left unchanged.
-//
-// Supplying `git` or `image` can change the artifact source's
-// underlying identity:
-//   - `image` on a git-backed artifact source switches it to image-backed
-//   - `git` on an image-backed artifact source switches it to git-backed
-//   - `git` on an artifact source that's already git-backed is a pure
-//     patch onto the existing config
-//
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with PATCH /artifact-sources/{artifactSourceId} (the `UpdateArtifactSource` operationId).
-func (c *Client) UpdateArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateArtifactSourceRequest(c.Server, artifactSourceId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// ListArtifactsInArtifactSource List artifacts in an artifact source
-//
-// List artifacts in an artifact source.
-//
-// Corresponds with GET /artifact-sources/{artifactSourceId}/artifacts (the `ListArtifactsInArtifactSource` operationId).
-func (c *Client) ListArtifactsInArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *ListArtifactsInArtifactSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListArtifactsInArtifactSourceRequest(c.Server, artifactSourceId, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UnlinkEnvGroupFromArtifactSource Unlink environment group
-//
-// Unlink a particular environment group from a particular artifact source.
-//
-// The artifact source will lose access to the environment variables and secret files in the group.
-//
-// Corresponds with DELETE /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `UnlinkEnvGroupFromArtifactSource` operationId).
-func (c *Client) UnlinkEnvGroupFromArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUnlinkEnvGroupFromArtifactSourceRequest(c.Server, artifactSourceId, envGroupId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// LinkEnvGroupToArtifactSource Link environment group
-//
-// Link a particular environment group to a particular artifact source.
-//
-// The artifact source will have access to the environment variables and secret files in the group at build time.
-//
-// Corresponds with POST /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `LinkEnvGroupToArtifactSource` operationId).
-func (c *Client) LinkEnvGroupToArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewLinkEnvGroupToArtifactSourceRequest(c.Server, artifactSourceId, envGroupId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// GetEnvVarsForArtifactSource List environment variables
-//
-// List all environment variables for the artifact source with the provided ID.
-//
-// Corresponds with GET /artifact-sources/{artifactSourceId}/env-vars (the `GetEnvVarsForArtifactSource` operationId).
-func (c *Client) GetEnvVarsForArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *GetEnvVarsForArtifactSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetEnvVarsForArtifactSourceRequest(c.Server, artifactSourceId, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UpdateEnvVarsForArtifactSourceWithBody Update environment variables
-//
-// Replace all environment variables for an artifact source with the provided list of environment variables.
-//
-// Takes any type of body and a specified content type.
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars (the `UpdateEnvVarsForArtifactSource` operationId).
-func (c *Client) UpdateEnvVarsForArtifactSourceWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateEnvVarsForArtifactSourceRequestWithBody(c.Server, artifactSourceId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UpdateEnvVarsForArtifactSource Update environment variables
-//
-// Replace all environment variables for an artifact source with the provided list of environment variables.
-//
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars (the `UpdateEnvVarsForArtifactSource` operationId).
-func (c *Client) UpdateEnvVarsForArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateEnvVarsForArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateEnvVarsForArtifactSourceRequest(c.Server, artifactSourceId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// DeleteArtifactSourceEnvVar Delete environment variable
-//
-// Delete a particular environment variable from a particular artifact source.
-//
-// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-//
-// Corresponds with DELETE /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `DeleteArtifactSourceEnvVar` operationId).
-func (c *Client) DeleteArtifactSourceEnvVar(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteArtifactSourceEnvVarRequest(c.Server, artifactSourceId, envVarKey)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// RetrieveArtifactSourceEnvVar Retrieve environment variable
-//
-// Retrieve a particular environment variable for a particular artifact source.
-//
-// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-//
-// Corresponds with GET /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `RetrieveArtifactSourceEnvVar` operationId).
-func (c *Client) RetrieveArtifactSourceEnvVar(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRetrieveArtifactSourceEnvVarRequest(c.Server, artifactSourceId, envVarKey)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UpdateArtifactSourceEnvVarWithBody Add or update environment variable
-//
-// Add or update a particular environment variable for a particular artifact source.
-//
-// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-//
-// Takes any type of body and a specified content type.
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `UpdateArtifactSourceEnvVar` operationId).
-func (c *Client) UpdateArtifactSourceEnvVarWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateArtifactSourceEnvVarRequestWithBody(c.Server, artifactSourceId, envVarKey, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UpdateArtifactSourceEnvVar Add or update environment variable
-//
-// Add or update a particular environment variable for a particular artifact source.
-//
-// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-//
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `UpdateArtifactSourceEnvVar` operationId).
-func (c *Client) UpdateArtifactSourceEnvVar(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, body UpdateArtifactSourceEnvVarJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateArtifactSourceEnvVarRequest(c.Server, artifactSourceId, envVarKey, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// ListSecretFilesForArtifactSource List secret files
-//
-// List all secret files for the artifact source with the provided ID.
-//
-// Corresponds with GET /artifact-sources/{artifactSourceId}/secret-files (the `ListSecretFilesForArtifactSource` operationId).
-func (c *Client) ListSecretFilesForArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *ListSecretFilesForArtifactSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListSecretFilesForArtifactSourceRequest(c.Server, artifactSourceId, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UpdateSecretFilesForArtifactSourceWithBody Update secret files
-//
-// Replace all secret files for an artifact source with the provided list of secret files.
-//
-// **Any of the artifact source's existing secret files not included in this request will be deleted.**
-//
-// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-//
-// Takes any type of body and a specified content type.
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files (the `UpdateSecretFilesForArtifactSource` operationId).
-func (c *Client) UpdateSecretFilesForArtifactSourceWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateSecretFilesForArtifactSourceRequestWithBody(c.Server, artifactSourceId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UpdateSecretFilesForArtifactSource Update secret files
-//
-// Replace all secret files for an artifact source with the provided list of secret files.
-//
-// **Any of the artifact source's existing secret files not included in this request will be deleted.**
-//
-// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-//
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files (the `UpdateSecretFilesForArtifactSource` operationId).
-func (c *Client) UpdateSecretFilesForArtifactSource(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateSecretFilesForArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateSecretFilesForArtifactSourceRequest(c.Server, artifactSourceId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// DeleteArtifactSourceSecretFile Delete secret file
-//
-// Delete a particular secret file from a particular artifact source.
-//
-// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-//
-// Corresponds with DELETE /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `DeleteArtifactSourceSecretFile` operationId).
-func (c *Client) DeleteArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteArtifactSourceSecretFileRequest(c.Server, artifactSourceId, envVarKey)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// RetrieveArtifactSourceSecretFile Retrieve secret file
-//
-// Retrieve a particular secret file for a particular artifact source.
-//
-// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-//
-// Corresponds with GET /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `RetrieveArtifactSourceSecretFile` operationId).
-func (c *Client) RetrieveArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRetrieveArtifactSourceSecretFileRequest(c.Server, artifactSourceId, envVarKey)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// AddOrUpdateArtifactSourceSecretFileWithBody Add or update secret file
-//
-// Add or update a particular secret file for a particular artifact source.
-//
-// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-//
-// Takes any type of body and a specified content type.
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `AddOrUpdateArtifactSourceSecretFile` operationId).
-func (c *Client) AddOrUpdateArtifactSourceSecretFileWithBody(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAddOrUpdateArtifactSourceSecretFileRequestWithBody(c.Server, artifactSourceId, envVarKey, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// AddOrUpdateArtifactSourceSecretFile Add or update secret file
-//
-// Add or update a particular secret file for a particular artifact source.
-//
-// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-//
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `AddOrUpdateArtifactSourceSecretFile` operationId).
-func (c *Client) AddOrUpdateArtifactSourceSecretFile(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAddOrUpdateArtifactSourceSecretFileRequest(c.Server, artifactSourceId, envVarKey, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 // ListBlueprints List Blueprints
 //
 // List Blueprints for the specified workspaces. If no workspaces are provided, returns all Blueprints the API key has access to.
@@ -3494,7 +3036,7 @@ func (c *Client) ValidateBlueprintWithBody(ctx context.Context, contentType stri
 // Disconnecting a Blueprint stops automatic resource syncing via the associated `render.yaml` file. It does not _delete_ any services or other resources that were managed by the blueprint.
 //
 // Corresponds with DELETE /blueprints/{blueprintId} (the `DisconnectBlueprint` operationId).
-func (c *Client) DisconnectBlueprint(ctx context.Context, blueprintId externalRef3.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) DisconnectBlueprint(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDisconnectBlueprintRequest(c.Server, blueprintId)
 	if err != nil {
 		return nil, err
@@ -3511,7 +3053,7 @@ func (c *Client) DisconnectBlueprint(ctx context.Context, blueprintId externalRe
 // Retrieve the Blueprint with the provided ID.
 //
 // Corresponds with GET /blueprints/{blueprintId} (the `RetrieveBlueprint` operationId).
-func (c *Client) RetrieveBlueprint(ctx context.Context, blueprintId externalRef3.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) RetrieveBlueprint(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRetrieveBlueprintRequest(c.Server, blueprintId)
 	if err != nil {
 		return nil, err
@@ -3530,7 +3072,7 @@ func (c *Client) RetrieveBlueprint(ctx context.Context, blueprintId externalRef3
 // Takes any type of body and a specified content type.
 //
 // Corresponds with PATCH /blueprints/{blueprintId} (the `UpdateBlueprint` operationId).
-func (c *Client) UpdateBlueprintWithBody(ctx context.Context, blueprintId externalRef3.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) UpdateBlueprintWithBody(ctx context.Context, blueprintId externalRef2.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateBlueprintRequestWithBody(c.Server, blueprintId, contentType, body)
 	if err != nil {
 		return nil, err
@@ -3549,7 +3091,7 @@ func (c *Client) UpdateBlueprintWithBody(ctx context.Context, blueprintId extern
 // Takes a body of the `application/json` content type.
 //
 // Corresponds with PATCH /blueprints/{blueprintId} (the `UpdateBlueprint` operationId).
-func (c *Client) UpdateBlueprint(ctx context.Context, blueprintId externalRef3.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) UpdateBlueprint(ctx context.Context, blueprintId externalRef2.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateBlueprintRequest(c.Server, blueprintId, body)
 	if err != nil {
 		return nil, err
@@ -3566,8 +3108,532 @@ func (c *Client) UpdateBlueprint(ctx context.Context, blueprintId externalRef3.B
 // List syncs for the Blueprint with the provided ID.
 //
 // Corresponds with GET /blueprints/{blueprintId}/syncs (the `ListBlueprintSyncs` operationId).
-func (c *Client) ListBlueprintSyncs(ctx context.Context, blueprintId externalRef3.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) ListBlueprintSyncs(ctx context.Context, blueprintId externalRef2.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBlueprintSyncsRequest(c.Server, blueprintId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListBuildSources List build sources
+//
+// List build sources matching the provided filters. If `ownerId` is
+// omitted, returns build sources across every workspace you can view.
+//
+// Corresponds with GET /build-sources (the `ListBuildSources` operationId).
+func (c *Client) ListBuildSources(ctx context.Context, params *ListBuildSourcesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBuildSourcesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateBuildSourceWithBody Create a build source
+//
+// Create a build source that can be linked to one or more
+// services in the same workspace.
+//
+// Exactly one of `git` or `image` must be set:
+//   - `git`: the build source is git-backed. The code is built in
+//     the requested `region` (defaults to `oregon`).
+//   - `image`: the build source is image-backed. It points at an
+//     existing image in an external registry; no build is performed.
+//
+// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
+// environment and are only valid for `git` sources; the request fails
+// if any are provided with `image`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /build-sources (the `CreateBuildSource` operationId).
+func (c *Client) CreateBuildSourceWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBuildSourceRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateBuildSource Create a build source
+//
+// Create a build source that can be linked to one or more
+// services in the same workspace.
+//
+// Exactly one of `git` or `image` must be set:
+//   - `git`: the build source is git-backed. The code is built in
+//     the requested `region` (defaults to `oregon`).
+//   - `image`: the build source is image-backed. It points at an
+//     existing image in an external registry; no build is performed.
+//
+// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
+// environment and are only valid for `git` sources; the request fails
+// if any are provided with `image`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /build-sources (the `CreateBuildSource` operationId).
+func (c *Client) CreateBuildSource(ctx context.Context, body CreateBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBuildSourceRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteBuildSource Delete a build source
+//
+// Delete the build source with the provided ID.
+//
+// Corresponds with DELETE /build-sources/{buildSourceId} (the `DeleteBuildSource` operationId).
+func (c *Client) DeleteBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteBuildSourceRequest(c.Server, buildSourceId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetBuildSource Retrieve a build source
+//
+// Retrieve a shared build source by ID.
+//
+// Corresponds with GET /build-sources/{buildSourceId} (the `GetBuildSource` operationId).
+func (c *Client) GetBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBuildSourceRequest(c.Server, buildSourceId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateBuildSourceWithBody Update a build source
+//
+// Update a shared build source. Each top-level field is a true patch,
+// unset fields are left unchanged.
+//
+// Supplying `git` or `image` can change the build source's
+// underlying identity:
+//   - `image` on a git-backed build source switches it to image-backed
+//   - `git` on an image-backed build source switches it to git-backed
+//   - `git` on a build source that's already git-backed is a pure
+//     patch onto the existing config
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PATCH /build-sources/{buildSourceId} (the `UpdateBuildSource` operationId).
+func (c *Client) UpdateBuildSourceWithBody(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateBuildSourceRequestWithBody(c.Server, buildSourceId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateBuildSource Update a build source
+//
+// Update a shared build source. Each top-level field is a true patch,
+// unset fields are left unchanged.
+//
+// Supplying `git` or `image` can change the build source's
+// underlying identity:
+//   - `image` on a git-backed build source switches it to image-backed
+//   - `git` on an image-backed build source switches it to git-backed
+//   - `git` on a build source that's already git-backed is a pure
+//     patch onto the existing config
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PATCH /build-sources/{buildSourceId} (the `UpdateBuildSource` operationId).
+func (c *Client) UpdateBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body UpdateBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateBuildSourceRequest(c.Server, buildSourceId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListBuildsInBuildSource List builds in a build source
+//
+// List builds in a build source.
+//
+// Corresponds with GET /build-sources/{buildSourceId}/builds (the `ListBuildsInBuildSource` operationId).
+func (c *Client) ListBuildsInBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *ListBuildsInBuildSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBuildsInBuildSourceRequest(c.Server, buildSourceId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TriggerBuildSourceBuild Trigger a build
+//
+// Start a new build of the build source at the current HEAD of its
+// branch, even if an up-to-date build already exists. Services linked to
+// the build source with autodeploy enabled are deployed with the result.
+//
+// Updating a build source or its build-time environment (env vars,
+// secret files, env groups) with the REST API does not build it. Call
+// this endpoint after those changes to build them.
+//
+// Only `git` build sources can be built.
+//
+// Corresponds with POST /build-sources/{buildSourceId}/builds (the `TriggerBuildSourceBuild` operationId).
+func (c *Client) TriggerBuildSourceBuild(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTriggerBuildSourceBuildRequest(c.Server, buildSourceId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UnlinkEnvGroupFromBuildSource Unlink environment group
+//
+// Unlink a particular environment group from a particular build source.
+//
+// The build source will lose access to the environment variables and secret files in the group.
+//
+// Corresponds with DELETE /build-sources/{buildSourceId}/env-groups/{envGroupId} (the `UnlinkEnvGroupFromBuildSource` operationId).
+func (c *Client) UnlinkEnvGroupFromBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUnlinkEnvGroupFromBuildSourceRequest(c.Server, buildSourceId, envGroupId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// LinkEnvGroupToBuildSource Link environment group
+//
+// Link a particular environment group to a particular build source.
+//
+// The build source will have access to the environment variables and secret files in the group at build time.
+//
+// Corresponds with POST /build-sources/{buildSourceId}/env-groups/{envGroupId} (the `LinkEnvGroupToBuildSource` operationId).
+func (c *Client) LinkEnvGroupToBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewLinkEnvGroupToBuildSourceRequest(c.Server, buildSourceId, envGroupId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetEnvVarsForBuildSource List environment variables
+//
+// List all environment variables for the build source with the provided ID.
+//
+// Corresponds with GET /build-sources/{buildSourceId}/env-vars (the `GetEnvVarsForBuildSource` operationId).
+func (c *Client) GetEnvVarsForBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *GetEnvVarsForBuildSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetEnvVarsForBuildSourceRequest(c.Server, buildSourceId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateEnvVarsForBuildSourceWithBody Update environment variables
+//
+// Replace all environment variables for a build source with the provided list of environment variables.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/env-vars (the `UpdateEnvVarsForBuildSource` operationId).
+func (c *Client) UpdateEnvVarsForBuildSourceWithBody(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateEnvVarsForBuildSourceRequestWithBody(c.Server, buildSourceId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateEnvVarsForBuildSource Update environment variables
+//
+// Replace all environment variables for a build source with the provided list of environment variables.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/env-vars (the `UpdateEnvVarsForBuildSource` operationId).
+func (c *Client) UpdateEnvVarsForBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body UpdateEnvVarsForBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateEnvVarsForBuildSourceRequest(c.Server, buildSourceId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteBuildSourceEnvVar Delete environment variable
+//
+// Delete a particular environment variable from a particular build source.
+//
+// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+//
+// Corresponds with DELETE /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `DeleteBuildSourceEnvVar` operationId).
+func (c *Client) DeleteBuildSourceEnvVar(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteBuildSourceEnvVarRequest(c.Server, buildSourceId, envVarKey)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RetrieveBuildSourceEnvVar Retrieve environment variable
+//
+// Retrieve a particular environment variable for a particular build source.
+//
+// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+//
+// Corresponds with GET /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `RetrieveBuildSourceEnvVar` operationId).
+func (c *Client) RetrieveBuildSourceEnvVar(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveBuildSourceEnvVarRequest(c.Server, buildSourceId, envVarKey)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateBuildSourceEnvVarWithBody Add or update environment variable
+//
+// Add or update a particular environment variable for a particular build source.
+//
+// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `UpdateBuildSourceEnvVar` operationId).
+func (c *Client) UpdateBuildSourceEnvVarWithBody(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateBuildSourceEnvVarRequestWithBody(c.Server, buildSourceId, envVarKey, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateBuildSourceEnvVar Add or update environment variable
+//
+// Add or update a particular environment variable for a particular build source.
+//
+// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `UpdateBuildSourceEnvVar` operationId).
+func (c *Client) UpdateBuildSourceEnvVar(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, body UpdateBuildSourceEnvVarJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateBuildSourceEnvVarRequest(c.Server, buildSourceId, envVarKey, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListSecretFilesForBuildSource List secret files
+//
+// List all secret files for the build source with the provided ID.
+//
+// Corresponds with GET /build-sources/{buildSourceId}/secret-files (the `ListSecretFilesForBuildSource` operationId).
+func (c *Client) ListSecretFilesForBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *ListSecretFilesForBuildSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSecretFilesForBuildSourceRequest(c.Server, buildSourceId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateSecretFilesForBuildSourceWithBody Update secret files
+//
+// Replace all secret files for a build source with the provided list of secret files.
+//
+// **Any of the build source's existing secret files not included in this request will be deleted.**
+//
+// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/secret-files (the `UpdateSecretFilesForBuildSource` operationId).
+func (c *Client) UpdateSecretFilesForBuildSourceWithBody(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateSecretFilesForBuildSourceRequestWithBody(c.Server, buildSourceId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateSecretFilesForBuildSource Update secret files
+//
+// Replace all secret files for a build source with the provided list of secret files.
+//
+// **Any of the build source's existing secret files not included in this request will be deleted.**
+//
+// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/secret-files (the `UpdateSecretFilesForBuildSource` operationId).
+func (c *Client) UpdateSecretFilesForBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body UpdateSecretFilesForBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateSecretFilesForBuildSourceRequest(c.Server, buildSourceId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteBuildSourceSecretFile Delete secret file
+//
+// Delete a particular secret file from a particular build source.
+//
+// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+//
+// Corresponds with DELETE /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `DeleteBuildSourceSecretFile` operationId).
+func (c *Client) DeleteBuildSourceSecretFile(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteBuildSourceSecretFileRequest(c.Server, buildSourceId, envVarKey)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RetrieveBuildSourceSecretFile Retrieve secret file
+//
+// Retrieve a particular secret file for a particular build source.
+//
+// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+//
+// Corresponds with GET /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `RetrieveBuildSourceSecretFile` operationId).
+func (c *Client) RetrieveBuildSourceSecretFile(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveBuildSourceSecretFileRequest(c.Server, buildSourceId, envVarKey)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AddOrUpdateBuildSourceSecretFileWithBody Add or update secret file
+//
+// Add or update a particular secret file for a particular build source.
+//
+// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `AddOrUpdateBuildSourceSecretFile` operationId).
+func (c *Client) AddOrUpdateBuildSourceSecretFileWithBody(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddOrUpdateBuildSourceSecretFileRequestWithBody(c.Server, buildSourceId, envVarKey, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AddOrUpdateBuildSourceSecretFile Add or update secret file
+//
+// Add or update a particular secret file for a particular build source.
+//
+// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `AddOrUpdateBuildSourceSecretFile` operationId).
+func (c *Client) AddOrUpdateBuildSourceSecretFile(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, body AddOrUpdateBuildSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddOrUpdateBuildSourceSecretFileRequest(c.Server, buildSourceId, envVarKey, body)
 	if err != nil {
 		return nil, err
 	}
@@ -6815,7 +6881,14 @@ func (c *Client) ListSandboxGroups(ctx context.Context, params *ListSandboxGroup
 
 // ListSandboxSnapshots List sandbox snapshots
 //
-// Snapshots in a sandbox group, newest first. Expired and deleted snapshots are omitted.
+// Snapshots in a sandbox group, newest first. Expired and deleted snapshots
+// are omitted.
+//
+// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
+// well-formed `sbg-` ID, `code: invalid_owner_id` if `ownerId` is missing or
+// repeated, `code: invalid_status` for a status outside the snapshot status
+// vocabulary, `code: invalid_cursor` for a malformed or unknown cursor, or
+// `code: invalid_limit` for a limit outside 1 to 100.
 //
 // Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots (the `ListSandboxSnapshots` operationId).
 func (c *Client) ListSandboxSnapshots(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, params *ListSandboxSnapshotsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -6836,6 +6909,8 @@ func (c *Client) ListSandboxSnapshots(ctx context.Context, sandboxGroupId extern
 // Sandboxes created from the snapshot are not affected. A snapshot that
 // belongs to another sandbox group returns 404.
 //
+// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
+// 400 with `code: invalid_snapshot_id` when `snapshotId` is malformed.
 // 409 with `code: snapshot_creating` while the capture is in progress.
 //
 // Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `DeleteSandboxSnapshot` operationId).
@@ -6855,6 +6930,10 @@ func (c *Client) DeleteSandboxSnapshot(ctx context.Context, sandboxGroupId exter
 //
 // One snapshot by ID. Deleted and expired snapshots return 404. A snapshot
 // that belongs to another sandbox group returns 404.
+//
+// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
+// well-formed `sbg-` ID, or `code: invalid_snapshot_id` if `snapshotId` is
+// not a well-formed `snp-` ID.
 //
 // Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `RetrieveSandboxSnapshot` operationId).
 func (c *Client) RetrieveSandboxSnapshot(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, snapshotId externalRef16.SnapshotId, params *RetrieveSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -8579,8 +8658,21 @@ func (c *Client) CreateTask(ctx context.Context, body CreateTaskJSONRequestBody,
 // StreamTaskRunsEvents Stream realtime events (SSE)
 //
 // Establishes a unidirectional event stream. The server sends events as lines
-// formatted per the SSE spec. Clients SHOULD set `Accept: text/event-stream`
+// formatted per the SSE spec. Clients should set `Accept: text/event-stream`
 // and keep the connection open.
+//
+// The server sends a `task.completed` event whenever a requested task run reaches
+// any terminal state (`completed`, `failed`, or `canceled`).
+// The `status` field of the payload indicates which state was reached.
+//
+// The server automatically closes the stream in the following cases:
+//
+// - All requested task runs have reached a terminal state.
+// - The stream has not sent any events for 30 minutes.
+//
+// For tasks with a timeout higher than 30 minutes, waiting clients should fall back
+// to polling with the [Retrieve task run](https://api-docs.render.com/reference/gettaskrun)
+// endpoint.
 //
 // Corresponds with GET /task-runs/events (the `StreamTaskRunsEvents` operationId).
 func (c *Client) StreamTaskRunsEvents(ctx context.Context, params *StreamTaskRunsEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9021,8 +9113,8 @@ func (c *Client) GetWorkflowVersion(ctx context.Context, workflowVersionId exter
 	return c.Client.Do(req)
 }
 
-// NewListArtifactSourcesRequest constructs an http.Request for the ListArtifactSources method
-func NewListArtifactSourcesRequest(server string, params *ListArtifactSourcesParams) (*http.Request, error) {
+// NewListBlueprintsRequest constructs an http.Request for the ListBlueprints method
+func NewListBlueprintsRequest(server string, params *ListBlueprintsParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -9030,7 +9122,302 @@ func NewListArtifactSourcesRequest(server string, params *ListArtifactSourcesPar
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources")
+	operationPath := fmt.Sprintf("/blueprints")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewValidateBlueprintRequestWithBody constructs an http.Request for the ValidateBlueprint method, with any body, and a specified content type
+func NewValidateBlueprintRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints/validate")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDisconnectBlueprintRequest constructs an http.Request for the DisconnectBlueprint method
+func NewDisconnectBlueprintRequest(server string, blueprintId externalRef2.BlueprintId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "blueprintId", blueprintId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRetrieveBlueprintRequest constructs an http.Request for the RetrieveBlueprint method
+func NewRetrieveBlueprintRequest(server string, blueprintId externalRef2.BlueprintId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "blueprintId", blueprintId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateBlueprintRequest calls the generic UpdateBlueprint builder with application/json body
+func NewUpdateBlueprintRequest(server string, blueprintId externalRef2.BlueprintId, body UpdateBlueprintJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateBlueprintRequestWithBody(server, blueprintId, "application/json", bodyReader)
+}
+
+// NewUpdateBlueprintRequestWithBody constructs an http.Request for the UpdateBlueprint method, with any body, and a specified content type
+func NewUpdateBlueprintRequestWithBody(server string, blueprintId externalRef2.BlueprintId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "blueprintId", blueprintId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListBlueprintSyncsRequest constructs an http.Request for the ListBlueprintSyncs method
+func NewListBlueprintSyncsRequest(server string, blueprintId externalRef2.BlueprintId, params *ListBlueprintSyncsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "blueprintId", blueprintId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints/%s/syncs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListBuildSourcesRequest constructs an http.Request for the ListBuildSources method
+func NewListBuildSourcesRequest(server string, params *ListBuildSourcesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/build-sources")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9171,19 +9558,19 @@ func NewListArtifactSourcesRequest(server string, params *ListArtifactSourcesPar
 	return req, nil
 }
 
-// NewCreateArtifactSourceRequest calls the generic CreateArtifactSource builder with application/json body
-func NewCreateArtifactSourceRequest(server string, body CreateArtifactSourceJSONRequestBody) (*http.Request, error) {
+// NewCreateBuildSourceRequest calls the generic CreateBuildSource builder with application/json body
+func NewCreateBuildSourceRequest(server string, body CreateBuildSourceJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewCreateArtifactSourceRequestWithBody(server, "application/json", bodyReader)
+	return NewCreateBuildSourceRequestWithBody(server, "application/json", bodyReader)
 }
 
-// NewCreateArtifactSourceRequestWithBody constructs an http.Request for the CreateArtifactSource method, with any body, and a specified content type
-func NewCreateArtifactSourceRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewCreateBuildSourceRequestWithBody constructs an http.Request for the CreateBuildSource method, with any body, and a specified content type
+func NewCreateBuildSourceRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -9191,7 +9578,7 @@ func NewCreateArtifactSourceRequestWithBody(server string, contentType string, b
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources")
+	operationPath := fmt.Sprintf("/build-sources")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9211,13 +9598,13 @@ func NewCreateArtifactSourceRequestWithBody(server string, contentType string, b
 	return req, nil
 }
 
-// NewDeleteArtifactSourceRequest constructs an http.Request for the DeleteArtifactSource method
-func NewDeleteArtifactSourceRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam) (*http.Request, error) {
+// NewDeleteBuildSourceRequest constructs an http.Request for the DeleteBuildSource method
+func NewDeleteBuildSourceRequest(server string, buildSourceId externalRef3.BuildSourceIdParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9227,7 +9614,7 @@ func NewDeleteArtifactSourceRequest(server string, artifactSourceId externalRef0
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources/%s", pathParam0)
+	operationPath := fmt.Sprintf("/build-sources/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9245,13 +9632,13 @@ func NewDeleteArtifactSourceRequest(server string, artifactSourceId externalRef0
 	return req, nil
 }
 
-// NewGetArtifactSourceRequest constructs an http.Request for the GetArtifactSource method
-func NewGetArtifactSourceRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam) (*http.Request, error) {
+// NewGetBuildSourceRequest constructs an http.Request for the GetBuildSource method
+func NewGetBuildSourceRequest(server string, buildSourceId externalRef3.BuildSourceIdParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9261,7 +9648,7 @@ func NewGetArtifactSourceRequest(server string, artifactSourceId externalRef0.Ar
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources/%s", pathParam0)
+	operationPath := fmt.Sprintf("/build-sources/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9279,24 +9666,24 @@ func NewGetArtifactSourceRequest(server string, artifactSourceId externalRef0.Ar
 	return req, nil
 }
 
-// NewUpdateArtifactSourceRequest calls the generic UpdateArtifactSource builder with application/json body
-func NewUpdateArtifactSourceRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateArtifactSourceJSONRequestBody) (*http.Request, error) {
+// NewUpdateBuildSourceRequest calls the generic UpdateBuildSource builder with application/json body
+func NewUpdateBuildSourceRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, body UpdateBuildSourceJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewUpdateArtifactSourceRequestWithBody(server, artifactSourceId, "application/json", bodyReader)
+	return NewUpdateBuildSourceRequestWithBody(server, buildSourceId, "application/json", bodyReader)
 }
 
-// NewUpdateArtifactSourceRequestWithBody constructs an http.Request for the UpdateArtifactSource method, with any body, and a specified content type
-func NewUpdateArtifactSourceRequestWithBody(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader) (*http.Request, error) {
+// NewUpdateBuildSourceRequestWithBody constructs an http.Request for the UpdateBuildSource method, with any body, and a specified content type
+func NewUpdateBuildSourceRequestWithBody(server string, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9306,7 +9693,7 @@ func NewUpdateArtifactSourceRequestWithBody(server string, artifactSourceId exte
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources/%s", pathParam0)
+	operationPath := fmt.Sprintf("/build-sources/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9326,13 +9713,13 @@ func NewUpdateArtifactSourceRequestWithBody(server string, artifactSourceId exte
 	return req, nil
 }
 
-// NewListArtifactsInArtifactSourceRequest constructs an http.Request for the ListArtifactsInArtifactSource method
-func NewListArtifactsInArtifactSourceRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, params *ListArtifactsInArtifactSourceParams) (*http.Request, error) {
+// NewListBuildsInBuildSourceRequest constructs an http.Request for the ListBuildsInBuildSource method
+func NewListBuildsInBuildSourceRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, params *ListBuildsInBuildSourceParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9342,7 +9729,7 @@ func NewListArtifactsInArtifactSourceRequest(server string, artifactSourceId ext
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources/%s/artifacts", pathParam0)
+	operationPath := fmt.Sprintf("/build-sources/%s/builds", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9399,20 +9786,13 @@ func NewListArtifactsInArtifactSourceRequest(server string, artifactSourceId ext
 	return req, nil
 }
 
-// NewUnlinkEnvGroupFromArtifactSourceRequest constructs an http.Request for the UnlinkEnvGroupFromArtifactSource method
-func NewUnlinkEnvGroupFromArtifactSourceRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam) (*http.Request, error) {
+// NewTriggerBuildSourceBuildRequest constructs an http.Request for the TriggerBuildSourceBuild method
+func NewTriggerBuildSourceBuildRequest(server string, buildSourceId externalRef3.BuildSourceIdParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envGroupId", envGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9422,48 +9802,7 @@ func NewUnlinkEnvGroupFromArtifactSourceRequest(server string, artifactSourceId 
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources/%s/env-groups/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewLinkEnvGroupToArtifactSourceRequest constructs an http.Request for the LinkEnvGroupToArtifactSource method
-func NewLinkEnvGroupToArtifactSourceRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envGroupId", envGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/artifact-sources/%s/env-groups/%s", pathParam0, pathParam1)
+	operationPath := fmt.Sprintf("/build-sources/%s/builds", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9481,140 +9820,20 @@ func NewLinkEnvGroupToArtifactSourceRequest(server string, artifactSourceId exte
 	return req, nil
 }
 
-// NewGetEnvVarsForArtifactSourceRequest constructs an http.Request for the GetEnvVarsForArtifactSource method
-func NewGetEnvVarsForArtifactSourceRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, params *GetEnvVarsForArtifactSourceParams) (*http.Request, error) {
+// NewUnlinkEnvGroupFromBuildSourceRequest constructs an http.Request for the UnlinkEnvGroupFromBuildSource method
+func NewUnlinkEnvGroupFromBuildSourceRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, envGroupId EnvGroupIdParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/artifact-sources/%s/env-vars", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		// queryValues collects non-styled parameters (passthrough, JSON)
-		// that are safe to round-trip through url.Values.Encode().
-		queryValues := queryURL.Query()
-		// rawQueryFragments collects pre-encoded query fragments from
-		// styled parameters, preserving literal commas as delimiters
-		// per the OpenAPI spec (e.g. "color=blue,black,brown").
-		var rawQueryFragments []string
-
-		if params.Cursor != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if params.Limit != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if encoded := queryValues.Encode(); encoded != "" {
-			rawQueryFragments = append(rawQueryFragments, encoded)
-		}
-		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
-	}
-
-	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewUpdateEnvVarsForArtifactSourceRequest calls the generic UpdateEnvVarsForArtifactSource builder with application/json body
-func NewUpdateEnvVarsForArtifactSourceRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateEnvVarsForArtifactSourceJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewUpdateEnvVarsForArtifactSourceRequestWithBody(server, artifactSourceId, "application/json", bodyReader)
-}
-
-// NewUpdateEnvVarsForArtifactSourceRequestWithBody constructs an http.Request for the UpdateEnvVarsForArtifactSource method, with any body, and a specified content type
-func NewUpdateEnvVarsForArtifactSourceRequestWithBody(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/artifact-sources/%s/env-vars", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewDeleteArtifactSourceEnvVarRequest constructs an http.Request for the DeleteArtifactSourceEnvVar method
-func NewDeleteArtifactSourceEnvVarRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envGroupId", envGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9624,7 +9843,7 @@ func NewDeleteArtifactSourceEnvVarRequest(server string, artifactSourceId extern
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources/%s/env-vars/%s", pathParam0, pathParam1)
+	operationPath := fmt.Sprintf("/build-sources/%s/env-groups/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9642,20 +9861,20 @@ func NewDeleteArtifactSourceEnvVarRequest(server string, artifactSourceId extern
 	return req, nil
 }
 
-// NewRetrieveArtifactSourceEnvVarRequest constructs an http.Request for the RetrieveArtifactSourceEnvVar method
-func NewRetrieveArtifactSourceEnvVarRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam) (*http.Request, error) {
+// NewLinkEnvGroupToBuildSourceRequest constructs an http.Request for the LinkEnvGroupToBuildSource method
+func NewLinkEnvGroupToBuildSourceRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, envGroupId EnvGroupIdParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envGroupId", envGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9665,7 +9884,7 @@ func NewRetrieveArtifactSourceEnvVarRequest(server string, artifactSourceId exte
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources/%s/env-vars/%s", pathParam0, pathParam1)
+	operationPath := fmt.Sprintf("/build-sources/%s/env-groups/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9675,7 +9894,7 @@ func NewRetrieveArtifactSourceEnvVarRequest(server string, artifactSourceId exte
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9683,31 +9902,13 @@ func NewRetrieveArtifactSourceEnvVarRequest(server string, artifactSourceId exte
 	return req, nil
 }
 
-// NewUpdateArtifactSourceEnvVarRequest calls the generic UpdateArtifactSourceEnvVar builder with application/json body
-func NewUpdateArtifactSourceEnvVarRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, body UpdateArtifactSourceEnvVarJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewUpdateArtifactSourceEnvVarRequestWithBody(server, artifactSourceId, envVarKey, "application/json", bodyReader)
-}
-
-// NewUpdateArtifactSourceEnvVarRequestWithBody constructs an http.Request for the UpdateArtifactSourceEnvVar method, with any body, and a specified content type
-func NewUpdateArtifactSourceEnvVarRequestWithBody(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, contentType string, body io.Reader) (*http.Request, error) {
+// NewGetEnvVarsForBuildSourceRequest constructs an http.Request for the GetEnvVarsForBuildSource method
+func NewGetEnvVarsForBuildSourceRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, params *GetEnvVarsForBuildSourceParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9717,43 +9918,7 @@ func NewUpdateArtifactSourceEnvVarRequestWithBody(server string, artifactSourceI
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources/%s/env-vars/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewListSecretFilesForArtifactSourceRequest constructs an http.Request for the ListSecretFilesForArtifactSource method
-func NewListSecretFilesForArtifactSourceRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, params *ListSecretFilesForArtifactSourceParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/artifact-sources/%s/secret-files", pathParam0)
+	operationPath := fmt.Sprintf("/build-sources/%s/env-vars", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9810,24 +9975,24 @@ func NewListSecretFilesForArtifactSourceRequest(server string, artifactSourceId 
 	return req, nil
 }
 
-// NewUpdateSecretFilesForArtifactSourceRequest calls the generic UpdateSecretFilesForArtifactSource builder with application/json body
-func NewUpdateSecretFilesForArtifactSourceRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateSecretFilesForArtifactSourceJSONRequestBody) (*http.Request, error) {
+// NewUpdateEnvVarsForBuildSourceRequest calls the generic UpdateEnvVarsForBuildSource builder with application/json body
+func NewUpdateEnvVarsForBuildSourceRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, body UpdateEnvVarsForBuildSourceJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewUpdateSecretFilesForArtifactSourceRequestWithBody(server, artifactSourceId, "application/json", bodyReader)
+	return NewUpdateEnvVarsForBuildSourceRequestWithBody(server, buildSourceId, "application/json", bodyReader)
 }
 
-// NewUpdateSecretFilesForArtifactSourceRequestWithBody constructs an http.Request for the UpdateSecretFilesForArtifactSource method, with any body, and a specified content type
-func NewUpdateSecretFilesForArtifactSourceRequestWithBody(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader) (*http.Request, error) {
+// NewUpdateEnvVarsForBuildSourceRequestWithBody constructs an http.Request for the UpdateEnvVarsForBuildSource method, with any body, and a specified content type
+func NewUpdateEnvVarsForBuildSourceRequestWithBody(server string, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9837,7 +10002,7 @@ func NewUpdateSecretFilesForArtifactSourceRequestWithBody(server string, artifac
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources/%s/secret-files", pathParam0)
+	operationPath := fmt.Sprintf("/build-sources/%s/env-vars", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9857,13 +10022,13 @@ func NewUpdateSecretFilesForArtifactSourceRequestWithBody(server string, artifac
 	return req, nil
 }
 
-// NewDeleteArtifactSourceSecretFileRequest constructs an http.Request for the DeleteArtifactSourceSecretFile method
-func NewDeleteArtifactSourceSecretFileRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string) (*http.Request, error) {
+// NewDeleteBuildSourceEnvVarRequest constructs an http.Request for the DeleteBuildSourceEnvVar method
+func NewDeleteBuildSourceEnvVarRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9880,7 +10045,7 @@ func NewDeleteArtifactSourceSecretFileRequest(server string, artifactSourceId ex
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources/%s/secret-files/%s", pathParam0, pathParam1)
+	operationPath := fmt.Sprintf("/build-sources/%s/env-vars/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9898,13 +10063,13 @@ func NewDeleteArtifactSourceSecretFileRequest(server string, artifactSourceId ex
 	return req, nil
 }
 
-// NewRetrieveArtifactSourceSecretFileRequest constructs an http.Request for the RetrieveArtifactSourceSecretFile method
-func NewRetrieveArtifactSourceSecretFileRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string) (*http.Request, error) {
+// NewRetrieveBuildSourceEnvVarRequest constructs an http.Request for the RetrieveBuildSourceEnvVar method
+func NewRetrieveBuildSourceEnvVarRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9921,7 +10086,7 @@ func NewRetrieveArtifactSourceSecretFileRequest(server string, artifactSourceId 
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources/%s/secret-files/%s", pathParam0, pathParam1)
+	operationPath := fmt.Sprintf("/build-sources/%s/env-vars/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9939,24 +10104,24 @@ func NewRetrieveArtifactSourceSecretFileRequest(server string, artifactSourceId 
 	return req, nil
 }
 
-// NewAddOrUpdateArtifactSourceSecretFileRequest calls the generic AddOrUpdateArtifactSourceSecretFile builder with application/json body
-func NewAddOrUpdateArtifactSourceSecretFileRequest(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody) (*http.Request, error) {
+// NewUpdateBuildSourceEnvVarRequest calls the generic UpdateBuildSourceEnvVar builder with application/json body
+func NewUpdateBuildSourceEnvVarRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, body UpdateBuildSourceEnvVarJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewAddOrUpdateArtifactSourceSecretFileRequestWithBody(server, artifactSourceId, envVarKey, "application/json", bodyReader)
+	return NewUpdateBuildSourceEnvVarRequestWithBody(server, buildSourceId, envVarKey, "application/json", bodyReader)
 }
 
-// NewAddOrUpdateArtifactSourceSecretFileRequestWithBody constructs an http.Request for the AddOrUpdateArtifactSourceSecretFile method, with any body, and a specified content type
-func NewAddOrUpdateArtifactSourceSecretFileRequestWithBody(server string, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, contentType string, body io.Reader) (*http.Request, error) {
+// NewUpdateBuildSourceEnvVarRequestWithBody constructs an http.Request for the UpdateBuildSourceEnvVar method, with any body, and a specified content type
+func NewUpdateBuildSourceEnvVarRequestWithBody(server string, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "artifactSourceId", artifactSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -9973,7 +10138,7 @@ func NewAddOrUpdateArtifactSourceSecretFileRequestWithBody(server string, artifa
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact-sources/%s/secret-files/%s", pathParam0, pathParam1)
+	operationPath := fmt.Sprintf("/build-sources/%s/env-vars/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9993,16 +10158,23 @@ func NewAddOrUpdateArtifactSourceSecretFileRequestWithBody(server string, artifa
 	return req, nil
 }
 
-// NewListBlueprintsRequest constructs an http.Request for the ListBlueprints method
-func NewListBlueprintsRequest(server string, params *ListBlueprintsParams) (*http.Request, error) {
+// NewListSecretFilesForBuildSourceRequest constructs an http.Request for the ListSecretFilesForBuildSource method
+func NewListSecretFilesForBuildSourceRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, params *ListSecretFilesForBuildSourceParams) (*http.Request, error) {
 	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/blueprints")
+	operationPath := fmt.Sprintf("/build-sources/%s/secret-files", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -10020,18 +10192,6 @@ func NewListBlueprintsRequest(server string, params *ListBlueprintsParams) (*htt
 		// styled parameters, preserving literal commas as delimiters
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
-
-		if params.OwnerId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
 
 		if params.Cursor != nil {
 
@@ -10071,16 +10231,34 @@ func NewListBlueprintsRequest(server string, params *ListBlueprintsParams) (*htt
 	return req, nil
 }
 
-// NewValidateBlueprintRequestWithBody constructs an http.Request for the ValidateBlueprint method, with any body, and a specified content type
-func NewValidateBlueprintRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewUpdateSecretFilesForBuildSourceRequest calls the generic UpdateSecretFilesForBuildSource builder with application/json body
+func NewUpdateSecretFilesForBuildSourceRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, body UpdateSecretFilesForBuildSourceJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateSecretFilesForBuildSourceRequestWithBody(server, buildSourceId, "application/json", bodyReader)
+}
+
+// NewUpdateSecretFilesForBuildSourceRequestWithBody constructs an http.Request for the UpdateSecretFilesForBuildSource method, with any body, and a specified content type
+func NewUpdateSecretFilesForBuildSourceRequestWithBody(server string, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/blueprints/validate")
+	operationPath := fmt.Sprintf("/build-sources/%s/secret-files", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -10090,7 +10268,7 @@ func NewValidateBlueprintRequestWithBody(server string, contentType string, body
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -10100,13 +10278,20 @@ func NewValidateBlueprintRequestWithBody(server string, contentType string, body
 	return req, nil
 }
 
-// NewDisconnectBlueprintRequest constructs an http.Request for the DisconnectBlueprint method
-func NewDisconnectBlueprintRequest(server string, blueprintId externalRef3.BlueprintId) (*http.Request, error) {
+// NewDeleteBuildSourceSecretFileRequest constructs an http.Request for the DeleteBuildSourceSecretFile method
+func NewDeleteBuildSourceSecretFileRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "blueprintId", blueprintId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -10116,7 +10301,7 @@ func NewDisconnectBlueprintRequest(server string, blueprintId externalRef3.Bluep
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/blueprints/%s", pathParam0)
+	operationPath := fmt.Sprintf("/build-sources/%s/secret-files/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -10134,13 +10319,20 @@ func NewDisconnectBlueprintRequest(server string, blueprintId externalRef3.Bluep
 	return req, nil
 }
 
-// NewRetrieveBlueprintRequest constructs an http.Request for the RetrieveBlueprint method
-func NewRetrieveBlueprintRequest(server string, blueprintId externalRef3.BlueprintId) (*http.Request, error) {
+// NewRetrieveBuildSourceSecretFileRequest constructs an http.Request for the RetrieveBuildSourceSecretFile method
+func NewRetrieveBuildSourceSecretFileRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "blueprintId", blueprintId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -10150,7 +10342,7 @@ func NewRetrieveBlueprintRequest(server string, blueprintId externalRef3.Bluepri
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/blueprints/%s", pathParam0)
+	operationPath := fmt.Sprintf("/build-sources/%s/secret-files/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -10168,24 +10360,31 @@ func NewRetrieveBlueprintRequest(server string, blueprintId externalRef3.Bluepri
 	return req, nil
 }
 
-// NewUpdateBlueprintRequest calls the generic UpdateBlueprint builder with application/json body
-func NewUpdateBlueprintRequest(server string, blueprintId externalRef3.BlueprintId, body UpdateBlueprintJSONRequestBody) (*http.Request, error) {
+// NewAddOrUpdateBuildSourceSecretFileRequest calls the generic AddOrUpdateBuildSourceSecretFile builder with application/json body
+func NewAddOrUpdateBuildSourceSecretFileRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, body AddOrUpdateBuildSourceSecretFileJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewUpdateBlueprintRequestWithBody(server, blueprintId, "application/json", bodyReader)
+	return NewAddOrUpdateBuildSourceSecretFileRequestWithBody(server, buildSourceId, envVarKey, "application/json", bodyReader)
 }
 
-// NewUpdateBlueprintRequestWithBody constructs an http.Request for the UpdateBlueprint method, with any body, and a specified content type
-func NewUpdateBlueprintRequestWithBody(server string, blueprintId externalRef3.BlueprintId, contentType string, body io.Reader) (*http.Request, error) {
+// NewAddOrUpdateBuildSourceSecretFileRequestWithBody constructs an http.Request for the AddOrUpdateBuildSourceSecretFile method, with any body, and a specified content type
+func NewAddOrUpdateBuildSourceSecretFileRequestWithBody(server string, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "blueprintId", blueprintId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildSourceId", buildSourceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "envVarKey", envVarKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -10195,7 +10394,7 @@ func NewUpdateBlueprintRequestWithBody(server string, blueprintId externalRef3.B
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/blueprints/%s", pathParam0)
+	operationPath := fmt.Sprintf("/build-sources/%s/secret-files/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -10205,85 +10404,12 @@ func NewUpdateBlueprintRequestWithBody(server string, blueprintId externalRef3.B
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewListBlueprintSyncsRequest constructs an http.Request for the ListBlueprintSyncs method
-func NewListBlueprintSyncsRequest(server string, blueprintId externalRef3.BlueprintId, params *ListBlueprintSyncsParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "blueprintId", blueprintId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/blueprints/%s/syncs", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		// queryValues collects non-styled parameters (passthrough, JSON)
-		// that are safe to round-trip through url.Values.Encode().
-		queryValues := queryURL.Query()
-		// rawQueryFragments collects pre-encoded query fragments from
-		// styled parameters, preserving literal commas as delimiters
-		// per the OpenAPI spec (e.g. "color=blue,black,brown").
-		var rawQueryFragments []string
-
-		if params.Cursor != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if params.Limit != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if encoded := queryValues.Encode(); encoded != "" {
-			rawQueryFragments = append(rawQueryFragments, encoded)
-		}
-		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
-	}
-
-	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
 
 	return req, nil
 }
@@ -24581,289 +24707,6 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
-	// ListArtifactSourcesWithResponse List artifact sources
-	//
-	// List artifact sources matching the provided filters. If `ownerId` is
-	// omitted, returns artifact sources across every workspace you can view.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with GET /artifact-sources (the `ListArtifactSources` operationId).
-	ListArtifactSourcesWithResponse(ctx context.Context, params *ListArtifactSourcesParams, reqEditors ...RequestEditorFn) (*ListArtifactSourcesResponse, error)
-
-	// CreateArtifactSourceWithBodyWithResponse Create an artifact source
-	//
-	// Create an artifact source that can be linked to one or more
-	// services in the same workspace.
-	//
-	// Exactly one of `git` or `image` must be set:
-	// - `git`: the artifact source is git-backed. The code is built in
-	//    the requested `region` (defaults to `oregon`).
-	// - `image`: the artifact source is image-backed. It points at an
-	//   existing image in an external registry; no build is performed.
-	//
-	// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
-	// environment and are only valid for `git` sources; the request fails
-	// if any are provided with `image`.
-	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with POST /artifact-sources (the `CreateArtifactSource` operationId).
-	CreateArtifactSourceWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateArtifactSourceResponse, error)
-
-	// CreateArtifactSourceWithResponse Create an artifact source
-	//
-	// Create an artifact source that can be linked to one or more
-	// services in the same workspace.
-	//
-	// Exactly one of `git` or `image` must be set:
-	// - `git`: the artifact source is git-backed. The code is built in
-	//    the requested `region` (defaults to `oregon`).
-	// - `image`: the artifact source is image-backed. It points at an
-	//   existing image in an external registry; no build is performed.
-	//
-	// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
-	// environment and are only valid for `git` sources; the request fails
-	// if any are provided with `image`.
-	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with POST /artifact-sources (the `CreateArtifactSource` operationId).
-	CreateArtifactSourceWithResponse(ctx context.Context, body CreateArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateArtifactSourceResponse, error)
-
-	// DeleteArtifactSourceWithResponse Delete an artifact source
-	//
-	// Delete the artifact source with the provided ID.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with DELETE /artifact-sources/{artifactSourceId} (the `DeleteArtifactSource` operationId).
-	DeleteArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*DeleteArtifactSourceResponse, error)
-
-	// GetArtifactSourceWithResponse Retrieve an artifact source
-	//
-	// Retrieve a shared artifact source by ID.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with GET /artifact-sources/{artifactSourceId} (the `GetArtifactSource` operationId).
-	GetArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*GetArtifactSourceResponse, error)
-
-	// UpdateArtifactSourceWithBodyWithResponse Update an artifact source
-	//
-	// Update a shared artifact source. Each top-level field is a true patch,
-	// unset fields are left unchanged.
-	//
-	// Supplying `git` or `image` can change the artifact source's
-	// underlying identity:
-	// - `image` on a git-backed artifact source switches it to image-backed
-	// - `git` on an image-backed artifact source switches it to git-backed
-	// - `git` on an artifact source that's already git-backed is a pure
-	//   patch onto the existing config
-	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PATCH /artifact-sources/{artifactSourceId} (the `UpdateArtifactSource` operationId).
-	UpdateArtifactSourceWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateArtifactSourceResponse, error)
-
-	// UpdateArtifactSourceWithResponse Update an artifact source
-	//
-	// Update a shared artifact source. Each top-level field is a true patch,
-	// unset fields are left unchanged.
-	//
-	// Supplying `git` or `image` can change the artifact source's
-	// underlying identity:
-	// - `image` on a git-backed artifact source switches it to image-backed
-	// - `git` on an image-backed artifact source switches it to git-backed
-	// - `git` on an artifact source that's already git-backed is a pure
-	//   patch onto the existing config
-	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PATCH /artifact-sources/{artifactSourceId} (the `UpdateArtifactSource` operationId).
-	UpdateArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateArtifactSourceResponse, error)
-
-	// ListArtifactsInArtifactSourceWithResponse List artifacts in an artifact source
-	//
-	// List artifacts in an artifact source.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with GET /artifact-sources/{artifactSourceId}/artifacts (the `ListArtifactsInArtifactSource` operationId).
-	ListArtifactsInArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *ListArtifactsInArtifactSourceParams, reqEditors ...RequestEditorFn) (*ListArtifactsInArtifactSourceResponse, error)
-
-	// UnlinkEnvGroupFromArtifactSourceWithResponse Unlink environment group
-	//
-	// Unlink a particular environment group from a particular artifact source.
-	//
-	// The artifact source will lose access to the environment variables and secret files in the group.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with DELETE /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `UnlinkEnvGroupFromArtifactSource` operationId).
-	UnlinkEnvGroupFromArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*UnlinkEnvGroupFromArtifactSourceResponse, error)
-
-	// LinkEnvGroupToArtifactSourceWithResponse Link environment group
-	//
-	// Link a particular environment group to a particular artifact source.
-	//
-	// The artifact source will have access to the environment variables and secret files in the group at build time.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with POST /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `LinkEnvGroupToArtifactSource` operationId).
-	LinkEnvGroupToArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*LinkEnvGroupToArtifactSourceResponse, error)
-
-	// GetEnvVarsForArtifactSourceWithResponse List environment variables
-	//
-	// List all environment variables for the artifact source with the provided ID.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with GET /artifact-sources/{artifactSourceId}/env-vars (the `GetEnvVarsForArtifactSource` operationId).
-	GetEnvVarsForArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *GetEnvVarsForArtifactSourceParams, reqEditors ...RequestEditorFn) (*GetEnvVarsForArtifactSourceResponse, error)
-
-	// UpdateEnvVarsForArtifactSourceWithBodyWithResponse Update environment variables
-	//
-	// Replace all environment variables for an artifact source with the provided list of environment variables.
-	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars (the `UpdateEnvVarsForArtifactSource` operationId).
-	UpdateEnvVarsForArtifactSourceWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateEnvVarsForArtifactSourceResponse, error)
-
-	// UpdateEnvVarsForArtifactSourceWithResponse Update environment variables
-	//
-	// Replace all environment variables for an artifact source with the provided list of environment variables.
-	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars (the `UpdateEnvVarsForArtifactSource` operationId).
-	UpdateEnvVarsForArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateEnvVarsForArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateEnvVarsForArtifactSourceResponse, error)
-
-	// DeleteArtifactSourceEnvVarWithResponse Delete environment variable
-	//
-	// Delete a particular environment variable from a particular artifact source.
-	//
-	// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with DELETE /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `DeleteArtifactSourceEnvVar` operationId).
-	DeleteArtifactSourceEnvVarWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*DeleteArtifactSourceEnvVarResponse, error)
-
-	// RetrieveArtifactSourceEnvVarWithResponse Retrieve environment variable
-	//
-	// Retrieve a particular environment variable for a particular artifact source.
-	//
-	// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with GET /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `RetrieveArtifactSourceEnvVar` operationId).
-	RetrieveArtifactSourceEnvVarWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*RetrieveArtifactSourceEnvVarResponse, error)
-
-	// UpdateArtifactSourceEnvVarWithBodyWithResponse Add or update environment variable
-	//
-	// Add or update a particular environment variable for a particular artifact source.
-	//
-	// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `UpdateArtifactSourceEnvVar` operationId).
-	UpdateArtifactSourceEnvVarWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateArtifactSourceEnvVarResponse, error)
-
-	// UpdateArtifactSourceEnvVarWithResponse Add or update environment variable
-	//
-	// Add or update a particular environment variable for a particular artifact source.
-	//
-	// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `UpdateArtifactSourceEnvVar` operationId).
-	UpdateArtifactSourceEnvVarWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, body UpdateArtifactSourceEnvVarJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateArtifactSourceEnvVarResponse, error)
-
-	// ListSecretFilesForArtifactSourceWithResponse List secret files
-	//
-	// List all secret files for the artifact source with the provided ID.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with GET /artifact-sources/{artifactSourceId}/secret-files (the `ListSecretFilesForArtifactSource` operationId).
-	ListSecretFilesForArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *ListSecretFilesForArtifactSourceParams, reqEditors ...RequestEditorFn) (*ListSecretFilesForArtifactSourceResponse, error)
-
-	// UpdateSecretFilesForArtifactSourceWithBodyWithResponse Update secret files
-	//
-	// Replace all secret files for an artifact source with the provided list of secret files.
-	//
-	// **Any of the artifact source's existing secret files not included in this request will be deleted.**
-	//
-	// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files (the `UpdateSecretFilesForArtifactSource` operationId).
-	UpdateSecretFilesForArtifactSourceWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSecretFilesForArtifactSourceResponse, error)
-
-	// UpdateSecretFilesForArtifactSourceWithResponse Update secret files
-	//
-	// Replace all secret files for an artifact source with the provided list of secret files.
-	//
-	// **Any of the artifact source's existing secret files not included in this request will be deleted.**
-	//
-	// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files (the `UpdateSecretFilesForArtifactSource` operationId).
-	UpdateSecretFilesForArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateSecretFilesForArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSecretFilesForArtifactSourceResponse, error)
-
-	// DeleteArtifactSourceSecretFileWithResponse Delete secret file
-	//
-	// Delete a particular secret file from a particular artifact source.
-	//
-	// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with DELETE /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `DeleteArtifactSourceSecretFile` operationId).
-	DeleteArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*DeleteArtifactSourceSecretFileResponse, error)
-
-	// RetrieveArtifactSourceSecretFileWithResponse Retrieve secret file
-	//
-	// Retrieve a particular secret file for a particular artifact source.
-	//
-	// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with GET /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `RetrieveArtifactSourceSecretFile` operationId).
-	RetrieveArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*RetrieveArtifactSourceSecretFileResponse, error)
-
-	// AddOrUpdateArtifactSourceSecretFileWithBodyWithResponse Add or update secret file
-	//
-	// Add or update a particular secret file for a particular artifact source.
-	//
-	// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `AddOrUpdateArtifactSourceSecretFile` operationId).
-	AddOrUpdateArtifactSourceSecretFileWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddOrUpdateArtifactSourceSecretFileResponse, error)
-
-	// AddOrUpdateArtifactSourceSecretFileWithResponse Add or update secret file
-	//
-	// Add or update a particular secret file for a particular artifact source.
-	//
-	// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `AddOrUpdateArtifactSourceSecretFile` operationId).
-	AddOrUpdateArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*AddOrUpdateArtifactSourceSecretFileResponse, error)
-
 	// ListBlueprintsWithResponse List Blueprints
 	//
 	// List Blueprints for the specified workspaces. If no workspaces are provided, returns all Blueprints the API key has access to.
@@ -24893,7 +24736,7 @@ type ClientWithResponsesInterface interface {
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with DELETE /blueprints/{blueprintId} (the `DisconnectBlueprint` operationId).
-	DisconnectBlueprintWithResponse(ctx context.Context, blueprintId externalRef3.BlueprintId, reqEditors ...RequestEditorFn) (*DisconnectBlueprintResponse, error)
+	DisconnectBlueprintWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*DisconnectBlueprintResponse, error)
 
 	// RetrieveBlueprintWithResponse Retrieve Blueprint
 	//
@@ -24902,7 +24745,7 @@ type ClientWithResponsesInterface interface {
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with GET /blueprints/{blueprintId} (the `RetrieveBlueprint` operationId).
-	RetrieveBlueprintWithResponse(ctx context.Context, blueprintId externalRef3.BlueprintId, reqEditors ...RequestEditorFn) (*RetrieveBlueprintResponse, error)
+	RetrieveBlueprintWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*RetrieveBlueprintResponse, error)
 
 	// UpdateBlueprintWithBodyWithResponse Update Blueprint
 	//
@@ -24911,7 +24754,7 @@ type ClientWithResponsesInterface interface {
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with PATCH /blueprints/{blueprintId} (the `UpdateBlueprint` operationId).
-	UpdateBlueprintWithBodyWithResponse(ctx context.Context, blueprintId externalRef3.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error)
+	UpdateBlueprintWithBodyWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error)
 
 	// UpdateBlueprintWithResponse Update Blueprint
 	//
@@ -24920,7 +24763,7 @@ type ClientWithResponsesInterface interface {
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with PATCH /blueprints/{blueprintId} (the `UpdateBlueprint` operationId).
-	UpdateBlueprintWithResponse(ctx context.Context, blueprintId externalRef3.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error)
+	UpdateBlueprintWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error)
 
 	// ListBlueprintSyncsWithResponse List Blueprint syncs
 	//
@@ -24929,7 +24772,307 @@ type ClientWithResponsesInterface interface {
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with GET /blueprints/{blueprintId}/syncs (the `ListBlueprintSyncs` operationId).
-	ListBlueprintSyncsWithResponse(ctx context.Context, blueprintId externalRef3.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*ListBlueprintSyncsResponse, error)
+	ListBlueprintSyncsWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*ListBlueprintSyncsResponse, error)
+
+	// ListBuildSourcesWithResponse List build sources
+	//
+	// List build sources matching the provided filters. If `ownerId` is
+	// omitted, returns build sources across every workspace you can view.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /build-sources (the `ListBuildSources` operationId).
+	ListBuildSourcesWithResponse(ctx context.Context, params *ListBuildSourcesParams, reqEditors ...RequestEditorFn) (*ListBuildSourcesResponse, error)
+
+	// CreateBuildSourceWithBodyWithResponse Create a build source
+	//
+	// Create a build source that can be linked to one or more
+	// services in the same workspace.
+	//
+	// Exactly one of `git` or `image` must be set:
+	// - `git`: the build source is git-backed. The code is built in
+	//    the requested `region` (defaults to `oregon`).
+	// - `image`: the build source is image-backed. It points at an
+	//   existing image in an external registry; no build is performed.
+	//
+	// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
+	// environment and are only valid for `git` sources; the request fails
+	// if any are provided with `image`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /build-sources (the `CreateBuildSource` operationId).
+	CreateBuildSourceWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBuildSourceResponse, error)
+
+	// CreateBuildSourceWithResponse Create a build source
+	//
+	// Create a build source that can be linked to one or more
+	// services in the same workspace.
+	//
+	// Exactly one of `git` or `image` must be set:
+	// - `git`: the build source is git-backed. The code is built in
+	//    the requested `region` (defaults to `oregon`).
+	// - `image`: the build source is image-backed. It points at an
+	//   existing image in an external registry; no build is performed.
+	//
+	// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
+	// environment and are only valid for `git` sources; the request fails
+	// if any are provided with `image`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /build-sources (the `CreateBuildSource` operationId).
+	CreateBuildSourceWithResponse(ctx context.Context, body CreateBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBuildSourceResponse, error)
+
+	// DeleteBuildSourceWithResponse Delete a build source
+	//
+	// Delete the build source with the provided ID.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /build-sources/{buildSourceId} (the `DeleteBuildSource` operationId).
+	DeleteBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*DeleteBuildSourceResponse, error)
+
+	// GetBuildSourceWithResponse Retrieve a build source
+	//
+	// Retrieve a shared build source by ID.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /build-sources/{buildSourceId} (the `GetBuildSource` operationId).
+	GetBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*GetBuildSourceResponse, error)
+
+	// UpdateBuildSourceWithBodyWithResponse Update a build source
+	//
+	// Update a shared build source. Each top-level field is a true patch,
+	// unset fields are left unchanged.
+	//
+	// Supplying `git` or `image` can change the build source's
+	// underlying identity:
+	// - `image` on a git-backed build source switches it to image-backed
+	// - `git` on an image-backed build source switches it to git-backed
+	// - `git` on a build source that's already git-backed is a pure
+	//   patch onto the existing config
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /build-sources/{buildSourceId} (the `UpdateBuildSource` operationId).
+	UpdateBuildSourceWithBodyWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBuildSourceResponse, error)
+
+	// UpdateBuildSourceWithResponse Update a build source
+	//
+	// Update a shared build source. Each top-level field is a true patch,
+	// unset fields are left unchanged.
+	//
+	// Supplying `git` or `image` can change the build source's
+	// underlying identity:
+	// - `image` on a git-backed build source switches it to image-backed
+	// - `git` on an image-backed build source switches it to git-backed
+	// - `git` on a build source that's already git-backed is a pure
+	//   patch onto the existing config
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /build-sources/{buildSourceId} (the `UpdateBuildSource` operationId).
+	UpdateBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body UpdateBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBuildSourceResponse, error)
+
+	// ListBuildsInBuildSourceWithResponse List builds in a build source
+	//
+	// List builds in a build source.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /build-sources/{buildSourceId}/builds (the `ListBuildsInBuildSource` operationId).
+	ListBuildsInBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *ListBuildsInBuildSourceParams, reqEditors ...RequestEditorFn) (*ListBuildsInBuildSourceResponse, error)
+
+	// TriggerBuildSourceBuildWithResponse Trigger a build
+	//
+	// Start a new build of the build source at the current HEAD of its
+	// branch, even if an up-to-date build already exists. Services linked to
+	// the build source with autodeploy enabled are deployed with the result.
+	//
+	// Updating a build source or its build-time environment (env vars,
+	// secret files, env groups) with the REST API does not build it. Call
+	// this endpoint after those changes to build them.
+	//
+	// Only `git` build sources can be built.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /build-sources/{buildSourceId}/builds (the `TriggerBuildSourceBuild` operationId).
+	TriggerBuildSourceBuildWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*TriggerBuildSourceBuildResponse, error)
+
+	// UnlinkEnvGroupFromBuildSourceWithResponse Unlink environment group
+	//
+	// Unlink a particular environment group from a particular build source.
+	//
+	// The build source will lose access to the environment variables and secret files in the group.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /build-sources/{buildSourceId}/env-groups/{envGroupId} (the `UnlinkEnvGroupFromBuildSource` operationId).
+	UnlinkEnvGroupFromBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*UnlinkEnvGroupFromBuildSourceResponse, error)
+
+	// LinkEnvGroupToBuildSourceWithResponse Link environment group
+	//
+	// Link a particular environment group to a particular build source.
+	//
+	// The build source will have access to the environment variables and secret files in the group at build time.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /build-sources/{buildSourceId}/env-groups/{envGroupId} (the `LinkEnvGroupToBuildSource` operationId).
+	LinkEnvGroupToBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*LinkEnvGroupToBuildSourceResponse, error)
+
+	// GetEnvVarsForBuildSourceWithResponse List environment variables
+	//
+	// List all environment variables for the build source with the provided ID.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /build-sources/{buildSourceId}/env-vars (the `GetEnvVarsForBuildSource` operationId).
+	GetEnvVarsForBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *GetEnvVarsForBuildSourceParams, reqEditors ...RequestEditorFn) (*GetEnvVarsForBuildSourceResponse, error)
+
+	// UpdateEnvVarsForBuildSourceWithBodyWithResponse Update environment variables
+	//
+	// Replace all environment variables for a build source with the provided list of environment variables.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/env-vars (the `UpdateEnvVarsForBuildSource` operationId).
+	UpdateEnvVarsForBuildSourceWithBodyWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateEnvVarsForBuildSourceResponse, error)
+
+	// UpdateEnvVarsForBuildSourceWithResponse Update environment variables
+	//
+	// Replace all environment variables for a build source with the provided list of environment variables.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/env-vars (the `UpdateEnvVarsForBuildSource` operationId).
+	UpdateEnvVarsForBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body UpdateEnvVarsForBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateEnvVarsForBuildSourceResponse, error)
+
+	// DeleteBuildSourceEnvVarWithResponse Delete environment variable
+	//
+	// Delete a particular environment variable from a particular build source.
+	//
+	// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `DeleteBuildSourceEnvVar` operationId).
+	DeleteBuildSourceEnvVarWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*DeleteBuildSourceEnvVarResponse, error)
+
+	// RetrieveBuildSourceEnvVarWithResponse Retrieve environment variable
+	//
+	// Retrieve a particular environment variable for a particular build source.
+	//
+	// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `RetrieveBuildSourceEnvVar` operationId).
+	RetrieveBuildSourceEnvVarWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*RetrieveBuildSourceEnvVarResponse, error)
+
+	// UpdateBuildSourceEnvVarWithBodyWithResponse Add or update environment variable
+	//
+	// Add or update a particular environment variable for a particular build source.
+	//
+	// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `UpdateBuildSourceEnvVar` operationId).
+	UpdateBuildSourceEnvVarWithBodyWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBuildSourceEnvVarResponse, error)
+
+	// UpdateBuildSourceEnvVarWithResponse Add or update environment variable
+	//
+	// Add or update a particular environment variable for a particular build source.
+	//
+	// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `UpdateBuildSourceEnvVar` operationId).
+	UpdateBuildSourceEnvVarWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, body UpdateBuildSourceEnvVarJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBuildSourceEnvVarResponse, error)
+
+	// ListSecretFilesForBuildSourceWithResponse List secret files
+	//
+	// List all secret files for the build source with the provided ID.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /build-sources/{buildSourceId}/secret-files (the `ListSecretFilesForBuildSource` operationId).
+	ListSecretFilesForBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *ListSecretFilesForBuildSourceParams, reqEditors ...RequestEditorFn) (*ListSecretFilesForBuildSourceResponse, error)
+
+	// UpdateSecretFilesForBuildSourceWithBodyWithResponse Update secret files
+	//
+	// Replace all secret files for a build source with the provided list of secret files.
+	//
+	// **Any of the build source's existing secret files not included in this request will be deleted.**
+	//
+	// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/secret-files (the `UpdateSecretFilesForBuildSource` operationId).
+	UpdateSecretFilesForBuildSourceWithBodyWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSecretFilesForBuildSourceResponse, error)
+
+	// UpdateSecretFilesForBuildSourceWithResponse Update secret files
+	//
+	// Replace all secret files for a build source with the provided list of secret files.
+	//
+	// **Any of the build source's existing secret files not included in this request will be deleted.**
+	//
+	// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/secret-files (the `UpdateSecretFilesForBuildSource` operationId).
+	UpdateSecretFilesForBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body UpdateSecretFilesForBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSecretFilesForBuildSourceResponse, error)
+
+	// DeleteBuildSourceSecretFileWithResponse Delete secret file
+	//
+	// Delete a particular secret file from a particular build source.
+	//
+	// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `DeleteBuildSourceSecretFile` operationId).
+	DeleteBuildSourceSecretFileWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*DeleteBuildSourceSecretFileResponse, error)
+
+	// RetrieveBuildSourceSecretFileWithResponse Retrieve secret file
+	//
+	// Retrieve a particular secret file for a particular build source.
+	//
+	// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `RetrieveBuildSourceSecretFile` operationId).
+	RetrieveBuildSourceSecretFileWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*RetrieveBuildSourceSecretFileResponse, error)
+
+	// AddOrUpdateBuildSourceSecretFileWithBodyWithResponse Add or update secret file
+	//
+	// Add or update a particular secret file for a particular build source.
+	//
+	// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `AddOrUpdateBuildSourceSecretFile` operationId).
+	AddOrUpdateBuildSourceSecretFileWithBodyWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddOrUpdateBuildSourceSecretFileResponse, error)
+
+	// AddOrUpdateBuildSourceSecretFileWithResponse Add or update secret file
+	//
+	// Add or update a particular secret file for a particular build source.
+	//
+	// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `AddOrUpdateBuildSourceSecretFile` operationId).
+	AddOrUpdateBuildSourceSecretFileWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, body AddOrUpdateBuildSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*AddOrUpdateBuildSourceSecretFileResponse, error)
 
 	// CreateCliTelemetryEventWithBodyWithResponse Record a CLI telemetry event
 	//
@@ -26622,7 +26765,14 @@ type ClientWithResponsesInterface interface {
 
 	// ListSandboxSnapshotsWithResponse List sandbox snapshots
 	//
-	// Snapshots in a sandbox group, newest first. Expired and deleted snapshots are omitted.
+	// Snapshots in a sandbox group, newest first. Expired and deleted snapshots
+	// are omitted.
+	//
+	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
+	// well-formed `sbg-` ID, `code: invalid_owner_id` if `ownerId` is missing or
+	// repeated, `code: invalid_status` for a status outside the snapshot status
+	// vocabulary, `code: invalid_cursor` for a malformed or unknown cursor, or
+	// `code: invalid_limit` for a limit outside 1 to 100.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -26635,6 +26785,8 @@ type ClientWithResponsesInterface interface {
 	// Sandboxes created from the snapshot are not affected. A snapshot that
 	// belongs to another sandbox group returns 404.
 	//
+	// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
+	// 400 with `code: invalid_snapshot_id` when `snapshotId` is malformed.
 	// 409 with `code: snapshot_creating` while the capture is in progress.
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -26646,6 +26798,10 @@ type ClientWithResponsesInterface interface {
 	//
 	// One snapshot by ID. Deleted and expired snapshots return 404. A snapshot
 	// that belongs to another sandbox group returns 404.
+	//
+	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
+	// well-formed `sbg-` ID, or `code: invalid_snapshot_id` if `snapshotId` is
+	// not a well-formed `snp-` ID.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -27560,8 +27716,21 @@ type ClientWithResponsesInterface interface {
 	// StreamTaskRunsEventsWithResponse Stream realtime events (SSE)
 	//
 	// Establishes a unidirectional event stream. The server sends events as lines
-	// formatted per the SSE spec. Clients SHOULD set `Accept: text/event-stream`
+	// formatted per the SSE spec. Clients should set `Accept: text/event-stream`
 	// and keep the connection open.
+	//
+	// The server sends a `task.completed` event whenever a requested task run reaches
+	// any terminal state (`completed`, `failed`, or `canceled`).
+	// The `status` field of the payload indicates which state was reached.
+	//
+	// The server automatically closes the stream in the following cases:
+	//
+	// - All requested task runs have reached a terminal state.
+	// - The stream has not sent any events for 30 minutes.
+	//
+	// For tasks with a timeout higher than 30 minutes, waiting clients should fall back
+	// to polling with the [Retrieve task run](https://api-docs.render.com/reference/gettaskrun)
+	// endpoint.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -27783,1813 +27952,6 @@ type ClientWithResponsesInterface interface {
 	GetWorkflowVersionWithResponse(ctx context.Context, workflowVersionId externalRef19.WorkflowVersionIDParam, reqEditors ...RequestEditorFn) (*GetWorkflowVersionResponse, error)
 }
 
-// ListArtifactSourcesResponse429Headers the declared response headers of an HTTP 429 response for ListArtifactSources
-type ListArtifactSourcesResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type ListArtifactSourcesResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *[]externalRef0.ArtifactSourceWithCursor
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *ListArtifactSourcesResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ListArtifactSourcesResponse) GetJSON200() *[]externalRef0.ArtifactSourceWithCursor {
-	return r.JSON200
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r ListArtifactSourcesResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r ListArtifactSourcesResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r ListArtifactSourcesResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r ListArtifactSourcesResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetBody returns the raw response body bytes
-func (r ListArtifactSourcesResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r ListArtifactSourcesResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListArtifactSourcesResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r ListArtifactSourcesResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// CreateArtifactSourceResponse429Headers the declared response headers of an HTTP 429 response for CreateArtifactSource
-type CreateArtifactSourceResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type CreateArtifactSourceResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON201 the response for an HTTP 201 `application/json` response
-	JSON201 *externalRef0.ArtifactSource
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *CreateArtifactSourceResponse429Headers
-}
-
-// GetJSON201 returns the response for an HTTP 201 `application/json` response
-func (r CreateArtifactSourceResponse) GetJSON201() *externalRef0.ArtifactSource {
-	return r.JSON201
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r CreateArtifactSourceResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r CreateArtifactSourceResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r CreateArtifactSourceResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r CreateArtifactSourceResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r CreateArtifactSourceResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r CreateArtifactSourceResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetBody returns the raw response body bytes
-func (r CreateArtifactSourceResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r CreateArtifactSourceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CreateArtifactSourceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r CreateArtifactSourceResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// DeleteArtifactSourceResponse429Headers the declared response headers of an HTTP 429 response for DeleteArtifactSource
-type DeleteArtifactSourceResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type DeleteArtifactSourceResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *DeleteArtifactSourceResponse429Headers
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r DeleteArtifactSourceResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r DeleteArtifactSourceResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r DeleteArtifactSourceResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r DeleteArtifactSourceResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r DeleteArtifactSourceResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r DeleteArtifactSourceResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetBody returns the raw response body bytes
-func (r DeleteArtifactSourceResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteArtifactSourceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteArtifactSourceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r DeleteArtifactSourceResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// GetArtifactSourceResponse429Headers the declared response headers of an HTTP 429 response for GetArtifactSource
-type GetArtifactSourceResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type GetArtifactSourceResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *externalRef0.ArtifactSource
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *GetArtifactSourceResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r GetArtifactSourceResponse) GetJSON200() *externalRef0.ArtifactSource {
-	return r.JSON200
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetArtifactSourceResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r GetArtifactSourceResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r GetArtifactSourceResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r GetArtifactSourceResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r GetArtifactSourceResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetBody returns the raw response body bytes
-func (r GetArtifactSourceResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r GetArtifactSourceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetArtifactSourceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r GetArtifactSourceResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// UpdateArtifactSourceResponse429Headers the declared response headers of an HTTP 429 response for UpdateArtifactSource
-type UpdateArtifactSourceResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type UpdateArtifactSourceResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *externalRef0.ArtifactSource
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *UpdateArtifactSourceResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r UpdateArtifactSourceResponse) GetJSON200() *externalRef0.ArtifactSource {
-	return r.JSON200
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r UpdateArtifactSourceResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r UpdateArtifactSourceResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r UpdateArtifactSourceResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r UpdateArtifactSourceResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r UpdateArtifactSourceResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r UpdateArtifactSourceResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetBody returns the raw response body bytes
-func (r UpdateArtifactSourceResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r UpdateArtifactSourceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UpdateArtifactSourceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r UpdateArtifactSourceResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// ListArtifactsInArtifactSourceResponse429Headers the declared response headers of an HTTP 429 response for ListArtifactsInArtifactSource
-type ListArtifactsInArtifactSourceResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type ListArtifactsInArtifactSourceResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *[]externalRef0.Artifact
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON406 the response for an HTTP 406 `application/json` response
-	JSON406 *N406NotAcceptable
-	// JSON410 the response for an HTTP 410 `application/json` response
-	JSON410 *N410Gone
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *ListArtifactsInArtifactSourceResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ListArtifactsInArtifactSourceResponse) GetJSON200() *[]externalRef0.Artifact {
-	return r.JSON200
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r ListArtifactsInArtifactSourceResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r ListArtifactsInArtifactSourceResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r ListArtifactsInArtifactSourceResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON406 returns the response for an HTTP 406 `application/json` response
-func (r ListArtifactsInArtifactSourceResponse) GetJSON406() *N406NotAcceptable {
-	return r.JSON406
-}
-
-// GetJSON410 returns the response for an HTTP 410 `application/json` response
-func (r ListArtifactsInArtifactSourceResponse) GetJSON410() *N410Gone {
-	return r.JSON410
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r ListArtifactsInArtifactSourceResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r ListArtifactsInArtifactSourceResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r ListArtifactsInArtifactSourceResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r ListArtifactsInArtifactSourceResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r ListArtifactsInArtifactSourceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListArtifactsInArtifactSourceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r ListArtifactsInArtifactSourceResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// UnlinkEnvGroupFromArtifactSourceResponse429Headers the declared response headers of an HTTP 429 response for UnlinkEnvGroupFromArtifactSource
-type UnlinkEnvGroupFromArtifactSourceResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type UnlinkEnvGroupFromArtifactSourceResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *UnlinkEnvGroupFromArtifactSourceResponse429Headers
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r UnlinkEnvGroupFromArtifactSourceResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r UnlinkEnvGroupFromArtifactSourceResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r UnlinkEnvGroupFromArtifactSourceResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r UnlinkEnvGroupFromArtifactSourceResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r UnlinkEnvGroupFromArtifactSourceResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r UnlinkEnvGroupFromArtifactSourceResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r UnlinkEnvGroupFromArtifactSourceResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r UnlinkEnvGroupFromArtifactSourceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UnlinkEnvGroupFromArtifactSourceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r UnlinkEnvGroupFromArtifactSourceResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// LinkEnvGroupToArtifactSourceResponse429Headers the declared response headers of an HTTP 429 response for LinkEnvGroupToArtifactSource
-type LinkEnvGroupToArtifactSourceResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type LinkEnvGroupToArtifactSourceResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *EnvGroup
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *LinkEnvGroupToArtifactSourceResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r LinkEnvGroupToArtifactSourceResponse) GetJSON200() *EnvGroup {
-	return r.JSON200
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r LinkEnvGroupToArtifactSourceResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r LinkEnvGroupToArtifactSourceResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r LinkEnvGroupToArtifactSourceResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r LinkEnvGroupToArtifactSourceResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r LinkEnvGroupToArtifactSourceResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r LinkEnvGroupToArtifactSourceResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r LinkEnvGroupToArtifactSourceResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r LinkEnvGroupToArtifactSourceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r LinkEnvGroupToArtifactSourceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r LinkEnvGroupToArtifactSourceResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// GetEnvVarsForArtifactSourceResponse429Headers the declared response headers of an HTTP 429 response for GetEnvVarsForArtifactSource
-type GetEnvVarsForArtifactSourceResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type GetEnvVarsForArtifactSourceResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *[]EnvVarWithCursor
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON406 the response for an HTTP 406 `application/json` response
-	JSON406 *N406NotAcceptable
-	// JSON410 the response for an HTTP 410 `application/json` response
-	JSON410 *N410Gone
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *GetEnvVarsForArtifactSourceResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r GetEnvVarsForArtifactSourceResponse) GetJSON200() *[]EnvVarWithCursor {
-	return r.JSON200
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r GetEnvVarsForArtifactSourceResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r GetEnvVarsForArtifactSourceResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r GetEnvVarsForArtifactSourceResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON406 returns the response for an HTTP 406 `application/json` response
-func (r GetEnvVarsForArtifactSourceResponse) GetJSON406() *N406NotAcceptable {
-	return r.JSON406
-}
-
-// GetJSON410 returns the response for an HTTP 410 `application/json` response
-func (r GetEnvVarsForArtifactSourceResponse) GetJSON410() *N410Gone {
-	return r.JSON410
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r GetEnvVarsForArtifactSourceResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r GetEnvVarsForArtifactSourceResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r GetEnvVarsForArtifactSourceResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r GetEnvVarsForArtifactSourceResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r GetEnvVarsForArtifactSourceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetEnvVarsForArtifactSourceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r GetEnvVarsForArtifactSourceResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// UpdateEnvVarsForArtifactSourceResponse429Headers the declared response headers of an HTTP 429 response for UpdateEnvVarsForArtifactSource
-type UpdateEnvVarsForArtifactSourceResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type UpdateEnvVarsForArtifactSourceResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *[]EnvVarWithCursor
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON406 the response for an HTTP 406 `application/json` response
-	JSON406 *N406NotAcceptable
-	// JSON410 the response for an HTTP 410 `application/json` response
-	JSON410 *N410Gone
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *UpdateEnvVarsForArtifactSourceResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r UpdateEnvVarsForArtifactSourceResponse) GetJSON200() *[]EnvVarWithCursor {
-	return r.JSON200
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r UpdateEnvVarsForArtifactSourceResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r UpdateEnvVarsForArtifactSourceResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r UpdateEnvVarsForArtifactSourceResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r UpdateEnvVarsForArtifactSourceResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON406 returns the response for an HTTP 406 `application/json` response
-func (r UpdateEnvVarsForArtifactSourceResponse) GetJSON406() *N406NotAcceptable {
-	return r.JSON406
-}
-
-// GetJSON410 returns the response for an HTTP 410 `application/json` response
-func (r UpdateEnvVarsForArtifactSourceResponse) GetJSON410() *N410Gone {
-	return r.JSON410
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r UpdateEnvVarsForArtifactSourceResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r UpdateEnvVarsForArtifactSourceResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r UpdateEnvVarsForArtifactSourceResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r UpdateEnvVarsForArtifactSourceResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r UpdateEnvVarsForArtifactSourceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UpdateEnvVarsForArtifactSourceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r UpdateEnvVarsForArtifactSourceResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// DeleteArtifactSourceEnvVarResponse429Headers the declared response headers of an HTTP 429 response for DeleteArtifactSourceEnvVar
-type DeleteArtifactSourceEnvVarResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type DeleteArtifactSourceEnvVarResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON406 the response for an HTTP 406 `application/json` response
-	JSON406 *N406NotAcceptable
-	// JSON410 the response for an HTTP 410 `application/json` response
-	JSON410 *N410Gone
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *DeleteArtifactSourceEnvVarResponse429Headers
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r DeleteArtifactSourceEnvVarResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r DeleteArtifactSourceEnvVarResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r DeleteArtifactSourceEnvVarResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON406 returns the response for an HTTP 406 `application/json` response
-func (r DeleteArtifactSourceEnvVarResponse) GetJSON406() *N406NotAcceptable {
-	return r.JSON406
-}
-
-// GetJSON410 returns the response for an HTTP 410 `application/json` response
-func (r DeleteArtifactSourceEnvVarResponse) GetJSON410() *N410Gone {
-	return r.JSON410
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r DeleteArtifactSourceEnvVarResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r DeleteArtifactSourceEnvVarResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r DeleteArtifactSourceEnvVarResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r DeleteArtifactSourceEnvVarResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteArtifactSourceEnvVarResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteArtifactSourceEnvVarResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r DeleteArtifactSourceEnvVarResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// RetrieveArtifactSourceEnvVarResponse429Headers the declared response headers of an HTTP 429 response for RetrieveArtifactSourceEnvVar
-type RetrieveArtifactSourceEnvVarResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type RetrieveArtifactSourceEnvVarResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *EnvVar
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON406 the response for an HTTP 406 `application/json` response
-	JSON406 *N406NotAcceptable
-	// JSON410 the response for an HTTP 410 `application/json` response
-	JSON410 *N410Gone
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *RetrieveArtifactSourceEnvVarResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r RetrieveArtifactSourceEnvVarResponse) GetJSON200() *EnvVar {
-	return r.JSON200
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r RetrieveArtifactSourceEnvVarResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r RetrieveArtifactSourceEnvVarResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r RetrieveArtifactSourceEnvVarResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON406 returns the response for an HTTP 406 `application/json` response
-func (r RetrieveArtifactSourceEnvVarResponse) GetJSON406() *N406NotAcceptable {
-	return r.JSON406
-}
-
-// GetJSON410 returns the response for an HTTP 410 `application/json` response
-func (r RetrieveArtifactSourceEnvVarResponse) GetJSON410() *N410Gone {
-	return r.JSON410
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r RetrieveArtifactSourceEnvVarResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r RetrieveArtifactSourceEnvVarResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r RetrieveArtifactSourceEnvVarResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r RetrieveArtifactSourceEnvVarResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r RetrieveArtifactSourceEnvVarResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r RetrieveArtifactSourceEnvVarResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r RetrieveArtifactSourceEnvVarResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// UpdateArtifactSourceEnvVarResponse429Headers the declared response headers of an HTTP 429 response for UpdateArtifactSourceEnvVar
-type UpdateArtifactSourceEnvVarResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type UpdateArtifactSourceEnvVarResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *EnvVar
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON406 the response for an HTTP 406 `application/json` response
-	JSON406 *N406NotAcceptable
-	// JSON410 the response for an HTTP 410 `application/json` response
-	JSON410 *N410Gone
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *UpdateArtifactSourceEnvVarResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r UpdateArtifactSourceEnvVarResponse) GetJSON200() *EnvVar {
-	return r.JSON200
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r UpdateArtifactSourceEnvVarResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r UpdateArtifactSourceEnvVarResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r UpdateArtifactSourceEnvVarResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r UpdateArtifactSourceEnvVarResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON406 returns the response for an HTTP 406 `application/json` response
-func (r UpdateArtifactSourceEnvVarResponse) GetJSON406() *N406NotAcceptable {
-	return r.JSON406
-}
-
-// GetJSON410 returns the response for an HTTP 410 `application/json` response
-func (r UpdateArtifactSourceEnvVarResponse) GetJSON410() *N410Gone {
-	return r.JSON410
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r UpdateArtifactSourceEnvVarResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r UpdateArtifactSourceEnvVarResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r UpdateArtifactSourceEnvVarResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r UpdateArtifactSourceEnvVarResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r UpdateArtifactSourceEnvVarResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UpdateArtifactSourceEnvVarResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r UpdateArtifactSourceEnvVarResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// ListSecretFilesForArtifactSourceResponse429Headers the declared response headers of an HTTP 429 response for ListSecretFilesForArtifactSource
-type ListSecretFilesForArtifactSourceResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type ListSecretFilesForArtifactSourceResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *[]SecretFileWithCursor
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON406 the response for an HTTP 406 `application/json` response
-	JSON406 *N406NotAcceptable
-	// JSON410 the response for an HTTP 410 `application/json` response
-	JSON410 *N410Gone
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *ListSecretFilesForArtifactSourceResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ListSecretFilesForArtifactSourceResponse) GetJSON200() *[]SecretFileWithCursor {
-	return r.JSON200
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r ListSecretFilesForArtifactSourceResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r ListSecretFilesForArtifactSourceResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r ListSecretFilesForArtifactSourceResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON406 returns the response for an HTTP 406 `application/json` response
-func (r ListSecretFilesForArtifactSourceResponse) GetJSON406() *N406NotAcceptable {
-	return r.JSON406
-}
-
-// GetJSON410 returns the response for an HTTP 410 `application/json` response
-func (r ListSecretFilesForArtifactSourceResponse) GetJSON410() *N410Gone {
-	return r.JSON410
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r ListSecretFilesForArtifactSourceResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r ListSecretFilesForArtifactSourceResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r ListSecretFilesForArtifactSourceResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r ListSecretFilesForArtifactSourceResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r ListSecretFilesForArtifactSourceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListSecretFilesForArtifactSourceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r ListSecretFilesForArtifactSourceResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// UpdateSecretFilesForArtifactSourceResponse429Headers the declared response headers of an HTTP 429 response for UpdateSecretFilesForArtifactSource
-type UpdateSecretFilesForArtifactSourceResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type UpdateSecretFilesForArtifactSourceResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *[]SecretFileWithCursor
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON406 the response for an HTTP 406 `application/json` response
-	JSON406 *N406NotAcceptable
-	// JSON410 the response for an HTTP 410 `application/json` response
-	JSON410 *N410Gone
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *UpdateSecretFilesForArtifactSourceResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r UpdateSecretFilesForArtifactSourceResponse) GetJSON200() *[]SecretFileWithCursor {
-	return r.JSON200
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r UpdateSecretFilesForArtifactSourceResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r UpdateSecretFilesForArtifactSourceResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r UpdateSecretFilesForArtifactSourceResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r UpdateSecretFilesForArtifactSourceResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON406 returns the response for an HTTP 406 `application/json` response
-func (r UpdateSecretFilesForArtifactSourceResponse) GetJSON406() *N406NotAcceptable {
-	return r.JSON406
-}
-
-// GetJSON410 returns the response for an HTTP 410 `application/json` response
-func (r UpdateSecretFilesForArtifactSourceResponse) GetJSON410() *N410Gone {
-	return r.JSON410
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r UpdateSecretFilesForArtifactSourceResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r UpdateSecretFilesForArtifactSourceResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r UpdateSecretFilesForArtifactSourceResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r UpdateSecretFilesForArtifactSourceResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r UpdateSecretFilesForArtifactSourceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UpdateSecretFilesForArtifactSourceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r UpdateSecretFilesForArtifactSourceResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// DeleteArtifactSourceSecretFileResponse429Headers the declared response headers of an HTTP 429 response for DeleteArtifactSourceSecretFile
-type DeleteArtifactSourceSecretFileResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type DeleteArtifactSourceSecretFileResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON406 the response for an HTTP 406 `application/json` response
-	JSON406 *N406NotAcceptable
-	// JSON410 the response for an HTTP 410 `application/json` response
-	JSON410 *N410Gone
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *DeleteArtifactSourceSecretFileResponse429Headers
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r DeleteArtifactSourceSecretFileResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r DeleteArtifactSourceSecretFileResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r DeleteArtifactSourceSecretFileResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON406 returns the response for an HTTP 406 `application/json` response
-func (r DeleteArtifactSourceSecretFileResponse) GetJSON406() *N406NotAcceptable {
-	return r.JSON406
-}
-
-// GetJSON410 returns the response for an HTTP 410 `application/json` response
-func (r DeleteArtifactSourceSecretFileResponse) GetJSON410() *N410Gone {
-	return r.JSON410
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r DeleteArtifactSourceSecretFileResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r DeleteArtifactSourceSecretFileResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r DeleteArtifactSourceSecretFileResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r DeleteArtifactSourceSecretFileResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteArtifactSourceSecretFileResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteArtifactSourceSecretFileResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r DeleteArtifactSourceSecretFileResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// RetrieveArtifactSourceSecretFileResponse429Headers the declared response headers of an HTTP 429 response for RetrieveArtifactSourceSecretFile
-type RetrieveArtifactSourceSecretFileResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type RetrieveArtifactSourceSecretFileResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *SecretFile
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON406 the response for an HTTP 406 `application/json` response
-	JSON406 *N406NotAcceptable
-	// JSON410 the response for an HTTP 410 `application/json` response
-	JSON410 *N410Gone
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *RetrieveArtifactSourceSecretFileResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r RetrieveArtifactSourceSecretFileResponse) GetJSON200() *SecretFile {
-	return r.JSON200
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r RetrieveArtifactSourceSecretFileResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r RetrieveArtifactSourceSecretFileResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r RetrieveArtifactSourceSecretFileResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON406 returns the response for an HTTP 406 `application/json` response
-func (r RetrieveArtifactSourceSecretFileResponse) GetJSON406() *N406NotAcceptable {
-	return r.JSON406
-}
-
-// GetJSON410 returns the response for an HTTP 410 `application/json` response
-func (r RetrieveArtifactSourceSecretFileResponse) GetJSON410() *N410Gone {
-	return r.JSON410
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r RetrieveArtifactSourceSecretFileResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r RetrieveArtifactSourceSecretFileResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r RetrieveArtifactSourceSecretFileResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r RetrieveArtifactSourceSecretFileResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r RetrieveArtifactSourceSecretFileResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r RetrieveArtifactSourceSecretFileResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r RetrieveArtifactSourceSecretFileResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// AddOrUpdateArtifactSourceSecretFileResponse429Headers the declared response headers of an HTTP 429 response for AddOrUpdateArtifactSourceSecretFile
-type AddOrUpdateArtifactSourceSecretFileResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type AddOrUpdateArtifactSourceSecretFileResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON201 the response for an HTTP 201 `application/json` response
-	JSON201 *SecretFile
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON406 the response for an HTTP 406 `application/json` response
-	JSON406 *N406NotAcceptable
-	// JSON410 the response for an HTTP 410 `application/json` response
-	JSON410 *N410Gone
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *AddOrUpdateArtifactSourceSecretFileResponse429Headers
-}
-
-// GetJSON201 returns the response for an HTTP 201 `application/json` response
-func (r AddOrUpdateArtifactSourceSecretFileResponse) GetJSON201() *SecretFile {
-	return r.JSON201
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r AddOrUpdateArtifactSourceSecretFileResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r AddOrUpdateArtifactSourceSecretFileResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r AddOrUpdateArtifactSourceSecretFileResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r AddOrUpdateArtifactSourceSecretFileResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON406 returns the response for an HTTP 406 `application/json` response
-func (r AddOrUpdateArtifactSourceSecretFileResponse) GetJSON406() *N406NotAcceptable {
-	return r.JSON406
-}
-
-// GetJSON410 returns the response for an HTTP 410 `application/json` response
-func (r AddOrUpdateArtifactSourceSecretFileResponse) GetJSON410() *N410Gone {
-	return r.JSON410
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r AddOrUpdateArtifactSourceSecretFileResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r AddOrUpdateArtifactSourceSecretFileResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r AddOrUpdateArtifactSourceSecretFileResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r AddOrUpdateArtifactSourceSecretFileResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r AddOrUpdateArtifactSourceSecretFileResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r AddOrUpdateArtifactSourceSecretFileResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r AddOrUpdateArtifactSourceSecretFileResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
 // ListBlueprintsResponse429Headers the declared response headers of an HTTP 429 response for ListBlueprints
 type ListBlueprintsResponse429Headers struct {
 	RateLimitLimit     *int
@@ -29709,7 +28071,7 @@ type ValidateBlueprintResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *externalRef3.ValidateBlueprintResponse
+	JSON200 *externalRef2.ValidateBlueprintResponse
 	// JSON400 the response for an HTTP 400 `application/json` response
 	JSON400 *N400BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
@@ -29727,7 +28089,7 @@ type ValidateBlueprintResponse struct {
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ValidateBlueprintResponse) GetJSON200() *externalRef3.ValidateBlueprintResponse {
+func (r ValidateBlueprintResponse) GetJSON200() *externalRef2.ValidateBlueprintResponse {
 	return r.JSON200
 }
 
@@ -29902,7 +28264,7 @@ type RetrieveBlueprintResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *externalRef3.BlueprintDetail
+	JSON200 *externalRef2.BlueprintDetail
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -29924,7 +28286,7 @@ type RetrieveBlueprintResponse struct {
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r RetrieveBlueprintResponse) GetJSON200() *externalRef3.BlueprintDetail {
+func (r RetrieveBlueprintResponse) GetJSON200() *externalRef2.BlueprintDetail {
 	return r.JSON200
 }
 
@@ -30009,7 +28371,7 @@ type UpdateBlueprintResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *externalRef3.Blueprint
+	JSON200 *externalRef2.Blueprint
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -30031,7 +28393,7 @@ type UpdateBlueprintResponse struct {
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r UpdateBlueprintResponse) GetJSON200() *externalRef3.Blueprint {
+func (r UpdateBlueprintResponse) GetJSON200() *externalRef2.Blueprint {
 	return r.JSON200
 }
 
@@ -30205,6 +28567,1913 @@ func (r ListBlueprintSyncsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ListBlueprintSyncsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ListBuildSourcesResponse429Headers the declared response headers of an HTTP 429 response for ListBuildSources
+type ListBuildSourcesResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type ListBuildSourcesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]externalRef3.BuildSourceWithCursor
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *ListBuildSourcesResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListBuildSourcesResponse) GetJSON200() *[]externalRef3.BuildSourceWithCursor {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListBuildSourcesResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListBuildSourcesResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r ListBuildSourcesResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r ListBuildSourcesResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r ListBuildSourcesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBuildSourcesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBuildSourcesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListBuildSourcesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// CreateBuildSourceResponse429Headers the declared response headers of an HTTP 429 response for CreateBuildSource
+type CreateBuildSourceResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type CreateBuildSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *externalRef3.BuildSource
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *CreateBuildSourceResponse429Headers
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateBuildSourceResponse) GetJSON201() *externalRef3.BuildSource {
+	return r.JSON201
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r CreateBuildSourceResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r CreateBuildSourceResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r CreateBuildSourceResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r CreateBuildSourceResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r CreateBuildSourceResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r CreateBuildSourceResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateBuildSourceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateBuildSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateBuildSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateBuildSourceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// DeleteBuildSourceResponse429Headers the declared response headers of an HTTP 429 response for DeleteBuildSource
+type DeleteBuildSourceResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type DeleteBuildSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *DeleteBuildSourceResponse429Headers
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r DeleteBuildSourceResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r DeleteBuildSourceResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r DeleteBuildSourceResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r DeleteBuildSourceResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r DeleteBuildSourceResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r DeleteBuildSourceResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteBuildSourceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteBuildSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteBuildSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteBuildSourceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// GetBuildSourceResponse429Headers the declared response headers of an HTTP 429 response for GetBuildSource
+type GetBuildSourceResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type GetBuildSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *externalRef3.BuildSource
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *GetBuildSourceResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetBuildSourceResponse) GetJSON200() *externalRef3.BuildSource {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetBuildSourceResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetBuildSourceResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetBuildSourceResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r GetBuildSourceResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r GetBuildSourceResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r GetBuildSourceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBuildSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBuildSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetBuildSourceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// UpdateBuildSourceResponse429Headers the declared response headers of an HTTP 429 response for UpdateBuildSource
+type UpdateBuildSourceResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type UpdateBuildSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *externalRef3.BuildSource
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *UpdateBuildSourceResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateBuildSourceResponse) GetJSON200() *externalRef3.BuildSource {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r UpdateBuildSourceResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r UpdateBuildSourceResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r UpdateBuildSourceResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r UpdateBuildSourceResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r UpdateBuildSourceResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r UpdateBuildSourceResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateBuildSourceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateBuildSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateBuildSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateBuildSourceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ListBuildsInBuildSourceResponse429Headers the declared response headers of an HTTP 429 response for ListBuildsInBuildSource
+type ListBuildsInBuildSourceResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type ListBuildsInBuildSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]externalRef3.Build
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON406 the response for an HTTP 406 `application/json` response
+	JSON406 *N406NotAcceptable
+	// JSON410 the response for an HTTP 410 `application/json` response
+	JSON410 *N410Gone
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *ListBuildsInBuildSourceResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListBuildsInBuildSourceResponse) GetJSON200() *[]externalRef3.Build {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListBuildsInBuildSourceResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ListBuildsInBuildSourceResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListBuildsInBuildSourceResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON406 returns the response for an HTTP 406 `application/json` response
+func (r ListBuildsInBuildSourceResponse) GetJSON406() *N406NotAcceptable {
+	return r.JSON406
+}
+
+// GetJSON410 returns the response for an HTTP 410 `application/json` response
+func (r ListBuildsInBuildSourceResponse) GetJSON410() *N410Gone {
+	return r.JSON410
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r ListBuildsInBuildSourceResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r ListBuildsInBuildSourceResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ListBuildsInBuildSourceResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ListBuildsInBuildSourceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBuildsInBuildSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBuildsInBuildSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListBuildsInBuildSourceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// TriggerBuildSourceBuildResponse429Headers the declared response headers of an HTTP 429 response for TriggerBuildSourceBuild
+type TriggerBuildSourceBuildResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type TriggerBuildSourceBuildResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *externalRef3.Build
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *TriggerBuildSourceBuildResponse429Headers
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r TriggerBuildSourceBuildResponse) GetJSON201() *externalRef3.Build {
+	return r.JSON201
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r TriggerBuildSourceBuildResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r TriggerBuildSourceBuildResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r TriggerBuildSourceBuildResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r TriggerBuildSourceBuildResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r TriggerBuildSourceBuildResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r TriggerBuildSourceBuildResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r TriggerBuildSourceBuildResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r TriggerBuildSourceBuildResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TriggerBuildSourceBuildResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TriggerBuildSourceBuildResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TriggerBuildSourceBuildResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// UnlinkEnvGroupFromBuildSourceResponse429Headers the declared response headers of an HTTP 429 response for UnlinkEnvGroupFromBuildSource
+type UnlinkEnvGroupFromBuildSourceResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type UnlinkEnvGroupFromBuildSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *UnlinkEnvGroupFromBuildSourceResponse429Headers
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r UnlinkEnvGroupFromBuildSourceResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r UnlinkEnvGroupFromBuildSourceResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r UnlinkEnvGroupFromBuildSourceResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r UnlinkEnvGroupFromBuildSourceResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r UnlinkEnvGroupFromBuildSourceResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r UnlinkEnvGroupFromBuildSourceResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r UnlinkEnvGroupFromBuildSourceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UnlinkEnvGroupFromBuildSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UnlinkEnvGroupFromBuildSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UnlinkEnvGroupFromBuildSourceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// LinkEnvGroupToBuildSourceResponse429Headers the declared response headers of an HTTP 429 response for LinkEnvGroupToBuildSource
+type LinkEnvGroupToBuildSourceResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type LinkEnvGroupToBuildSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *EnvGroup
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *LinkEnvGroupToBuildSourceResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r LinkEnvGroupToBuildSourceResponse) GetJSON200() *EnvGroup {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r LinkEnvGroupToBuildSourceResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r LinkEnvGroupToBuildSourceResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r LinkEnvGroupToBuildSourceResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r LinkEnvGroupToBuildSourceResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r LinkEnvGroupToBuildSourceResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r LinkEnvGroupToBuildSourceResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r LinkEnvGroupToBuildSourceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r LinkEnvGroupToBuildSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r LinkEnvGroupToBuildSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r LinkEnvGroupToBuildSourceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// GetEnvVarsForBuildSourceResponse429Headers the declared response headers of an HTTP 429 response for GetEnvVarsForBuildSource
+type GetEnvVarsForBuildSourceResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type GetEnvVarsForBuildSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]EnvVarWithCursor
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON406 the response for an HTTP 406 `application/json` response
+	JSON406 *N406NotAcceptable
+	// JSON410 the response for an HTTP 410 `application/json` response
+	JSON410 *N410Gone
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *GetEnvVarsForBuildSourceResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetEnvVarsForBuildSourceResponse) GetJSON200() *[]EnvVarWithCursor {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetEnvVarsForBuildSourceResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetEnvVarsForBuildSourceResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetEnvVarsForBuildSourceResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON406 returns the response for an HTTP 406 `application/json` response
+func (r GetEnvVarsForBuildSourceResponse) GetJSON406() *N406NotAcceptable {
+	return r.JSON406
+}
+
+// GetJSON410 returns the response for an HTTP 410 `application/json` response
+func (r GetEnvVarsForBuildSourceResponse) GetJSON410() *N410Gone {
+	return r.JSON410
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r GetEnvVarsForBuildSourceResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r GetEnvVarsForBuildSourceResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetEnvVarsForBuildSourceResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetEnvVarsForBuildSourceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetEnvVarsForBuildSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetEnvVarsForBuildSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetEnvVarsForBuildSourceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// UpdateEnvVarsForBuildSourceResponse429Headers the declared response headers of an HTTP 429 response for UpdateEnvVarsForBuildSource
+type UpdateEnvVarsForBuildSourceResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type UpdateEnvVarsForBuildSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]EnvVarWithCursor
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON406 the response for an HTTP 406 `application/json` response
+	JSON406 *N406NotAcceptable
+	// JSON410 the response for an HTTP 410 `application/json` response
+	JSON410 *N410Gone
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *UpdateEnvVarsForBuildSourceResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateEnvVarsForBuildSourceResponse) GetJSON200() *[]EnvVarWithCursor {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r UpdateEnvVarsForBuildSourceResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r UpdateEnvVarsForBuildSourceResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r UpdateEnvVarsForBuildSourceResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r UpdateEnvVarsForBuildSourceResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON406 returns the response for an HTTP 406 `application/json` response
+func (r UpdateEnvVarsForBuildSourceResponse) GetJSON406() *N406NotAcceptable {
+	return r.JSON406
+}
+
+// GetJSON410 returns the response for an HTTP 410 `application/json` response
+func (r UpdateEnvVarsForBuildSourceResponse) GetJSON410() *N410Gone {
+	return r.JSON410
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r UpdateEnvVarsForBuildSourceResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r UpdateEnvVarsForBuildSourceResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r UpdateEnvVarsForBuildSourceResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateEnvVarsForBuildSourceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateEnvVarsForBuildSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateEnvVarsForBuildSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateEnvVarsForBuildSourceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// DeleteBuildSourceEnvVarResponse429Headers the declared response headers of an HTTP 429 response for DeleteBuildSourceEnvVar
+type DeleteBuildSourceEnvVarResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type DeleteBuildSourceEnvVarResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON406 the response for an HTTP 406 `application/json` response
+	JSON406 *N406NotAcceptable
+	// JSON410 the response for an HTTP 410 `application/json` response
+	JSON410 *N410Gone
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *DeleteBuildSourceEnvVarResponse429Headers
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r DeleteBuildSourceEnvVarResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r DeleteBuildSourceEnvVarResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r DeleteBuildSourceEnvVarResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON406 returns the response for an HTTP 406 `application/json` response
+func (r DeleteBuildSourceEnvVarResponse) GetJSON406() *N406NotAcceptable {
+	return r.JSON406
+}
+
+// GetJSON410 returns the response for an HTTP 410 `application/json` response
+func (r DeleteBuildSourceEnvVarResponse) GetJSON410() *N410Gone {
+	return r.JSON410
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r DeleteBuildSourceEnvVarResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r DeleteBuildSourceEnvVarResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r DeleteBuildSourceEnvVarResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteBuildSourceEnvVarResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteBuildSourceEnvVarResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteBuildSourceEnvVarResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteBuildSourceEnvVarResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// RetrieveBuildSourceEnvVarResponse429Headers the declared response headers of an HTTP 429 response for RetrieveBuildSourceEnvVar
+type RetrieveBuildSourceEnvVarResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type RetrieveBuildSourceEnvVarResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *EnvVar
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON406 the response for an HTTP 406 `application/json` response
+	JSON406 *N406NotAcceptable
+	// JSON410 the response for an HTTP 410 `application/json` response
+	JSON410 *N410Gone
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *RetrieveBuildSourceEnvVarResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RetrieveBuildSourceEnvVarResponse) GetJSON200() *EnvVar {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RetrieveBuildSourceEnvVarResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r RetrieveBuildSourceEnvVarResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r RetrieveBuildSourceEnvVarResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON406 returns the response for an HTTP 406 `application/json` response
+func (r RetrieveBuildSourceEnvVarResponse) GetJSON406() *N406NotAcceptable {
+	return r.JSON406
+}
+
+// GetJSON410 returns the response for an HTTP 410 `application/json` response
+func (r RetrieveBuildSourceEnvVarResponse) GetJSON410() *N410Gone {
+	return r.JSON410
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r RetrieveBuildSourceEnvVarResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r RetrieveBuildSourceEnvVarResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r RetrieveBuildSourceEnvVarResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r RetrieveBuildSourceEnvVarResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RetrieveBuildSourceEnvVarResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RetrieveBuildSourceEnvVarResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RetrieveBuildSourceEnvVarResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// UpdateBuildSourceEnvVarResponse429Headers the declared response headers of an HTTP 429 response for UpdateBuildSourceEnvVar
+type UpdateBuildSourceEnvVarResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type UpdateBuildSourceEnvVarResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *EnvVar
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON406 the response for an HTTP 406 `application/json` response
+	JSON406 *N406NotAcceptable
+	// JSON410 the response for an HTTP 410 `application/json` response
+	JSON410 *N410Gone
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *UpdateBuildSourceEnvVarResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateBuildSourceEnvVarResponse) GetJSON200() *EnvVar {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r UpdateBuildSourceEnvVarResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r UpdateBuildSourceEnvVarResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r UpdateBuildSourceEnvVarResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r UpdateBuildSourceEnvVarResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON406 returns the response for an HTTP 406 `application/json` response
+func (r UpdateBuildSourceEnvVarResponse) GetJSON406() *N406NotAcceptable {
+	return r.JSON406
+}
+
+// GetJSON410 returns the response for an HTTP 410 `application/json` response
+func (r UpdateBuildSourceEnvVarResponse) GetJSON410() *N410Gone {
+	return r.JSON410
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r UpdateBuildSourceEnvVarResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r UpdateBuildSourceEnvVarResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r UpdateBuildSourceEnvVarResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateBuildSourceEnvVarResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateBuildSourceEnvVarResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateBuildSourceEnvVarResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateBuildSourceEnvVarResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ListSecretFilesForBuildSourceResponse429Headers the declared response headers of an HTTP 429 response for ListSecretFilesForBuildSource
+type ListSecretFilesForBuildSourceResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type ListSecretFilesForBuildSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]SecretFileWithCursor
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON406 the response for an HTTP 406 `application/json` response
+	JSON406 *N406NotAcceptable
+	// JSON410 the response for an HTTP 410 `application/json` response
+	JSON410 *N410Gone
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *ListSecretFilesForBuildSourceResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListSecretFilesForBuildSourceResponse) GetJSON200() *[]SecretFileWithCursor {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListSecretFilesForBuildSourceResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ListSecretFilesForBuildSourceResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListSecretFilesForBuildSourceResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON406 returns the response for an HTTP 406 `application/json` response
+func (r ListSecretFilesForBuildSourceResponse) GetJSON406() *N406NotAcceptable {
+	return r.JSON406
+}
+
+// GetJSON410 returns the response for an HTTP 410 `application/json` response
+func (r ListSecretFilesForBuildSourceResponse) GetJSON410() *N410Gone {
+	return r.JSON410
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r ListSecretFilesForBuildSourceResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r ListSecretFilesForBuildSourceResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ListSecretFilesForBuildSourceResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ListSecretFilesForBuildSourceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSecretFilesForBuildSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSecretFilesForBuildSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListSecretFilesForBuildSourceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// UpdateSecretFilesForBuildSourceResponse429Headers the declared response headers of an HTTP 429 response for UpdateSecretFilesForBuildSource
+type UpdateSecretFilesForBuildSourceResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type UpdateSecretFilesForBuildSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]SecretFileWithCursor
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON406 the response for an HTTP 406 `application/json` response
+	JSON406 *N406NotAcceptable
+	// JSON410 the response for an HTTP 410 `application/json` response
+	JSON410 *N410Gone
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *UpdateSecretFilesForBuildSourceResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateSecretFilesForBuildSourceResponse) GetJSON200() *[]SecretFileWithCursor {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r UpdateSecretFilesForBuildSourceResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r UpdateSecretFilesForBuildSourceResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r UpdateSecretFilesForBuildSourceResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r UpdateSecretFilesForBuildSourceResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON406 returns the response for an HTTP 406 `application/json` response
+func (r UpdateSecretFilesForBuildSourceResponse) GetJSON406() *N406NotAcceptable {
+	return r.JSON406
+}
+
+// GetJSON410 returns the response for an HTTP 410 `application/json` response
+func (r UpdateSecretFilesForBuildSourceResponse) GetJSON410() *N410Gone {
+	return r.JSON410
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r UpdateSecretFilesForBuildSourceResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r UpdateSecretFilesForBuildSourceResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r UpdateSecretFilesForBuildSourceResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateSecretFilesForBuildSourceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateSecretFilesForBuildSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateSecretFilesForBuildSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateSecretFilesForBuildSourceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// DeleteBuildSourceSecretFileResponse429Headers the declared response headers of an HTTP 429 response for DeleteBuildSourceSecretFile
+type DeleteBuildSourceSecretFileResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type DeleteBuildSourceSecretFileResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON406 the response for an HTTP 406 `application/json` response
+	JSON406 *N406NotAcceptable
+	// JSON410 the response for an HTTP 410 `application/json` response
+	JSON410 *N410Gone
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *DeleteBuildSourceSecretFileResponse429Headers
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r DeleteBuildSourceSecretFileResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r DeleteBuildSourceSecretFileResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r DeleteBuildSourceSecretFileResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON406 returns the response for an HTTP 406 `application/json` response
+func (r DeleteBuildSourceSecretFileResponse) GetJSON406() *N406NotAcceptable {
+	return r.JSON406
+}
+
+// GetJSON410 returns the response for an HTTP 410 `application/json` response
+func (r DeleteBuildSourceSecretFileResponse) GetJSON410() *N410Gone {
+	return r.JSON410
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r DeleteBuildSourceSecretFileResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r DeleteBuildSourceSecretFileResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r DeleteBuildSourceSecretFileResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteBuildSourceSecretFileResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteBuildSourceSecretFileResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteBuildSourceSecretFileResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteBuildSourceSecretFileResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// RetrieveBuildSourceSecretFileResponse429Headers the declared response headers of an HTTP 429 response for RetrieveBuildSourceSecretFile
+type RetrieveBuildSourceSecretFileResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type RetrieveBuildSourceSecretFileResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SecretFile
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON406 the response for an HTTP 406 `application/json` response
+	JSON406 *N406NotAcceptable
+	// JSON410 the response for an HTTP 410 `application/json` response
+	JSON410 *N410Gone
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *RetrieveBuildSourceSecretFileResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RetrieveBuildSourceSecretFileResponse) GetJSON200() *SecretFile {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RetrieveBuildSourceSecretFileResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r RetrieveBuildSourceSecretFileResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r RetrieveBuildSourceSecretFileResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON406 returns the response for an HTTP 406 `application/json` response
+func (r RetrieveBuildSourceSecretFileResponse) GetJSON406() *N406NotAcceptable {
+	return r.JSON406
+}
+
+// GetJSON410 returns the response for an HTTP 410 `application/json` response
+func (r RetrieveBuildSourceSecretFileResponse) GetJSON410() *N410Gone {
+	return r.JSON410
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r RetrieveBuildSourceSecretFileResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r RetrieveBuildSourceSecretFileResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r RetrieveBuildSourceSecretFileResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r RetrieveBuildSourceSecretFileResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RetrieveBuildSourceSecretFileResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RetrieveBuildSourceSecretFileResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RetrieveBuildSourceSecretFileResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// AddOrUpdateBuildSourceSecretFileResponse429Headers the declared response headers of an HTTP 429 response for AddOrUpdateBuildSourceSecretFile
+type AddOrUpdateBuildSourceSecretFileResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type AddOrUpdateBuildSourceSecretFileResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *SecretFile
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON406 the response for an HTTP 406 `application/json` response
+	JSON406 *N406NotAcceptable
+	// JSON410 the response for an HTTP 410 `application/json` response
+	JSON410 *N410Gone
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *AddOrUpdateBuildSourceSecretFileResponse429Headers
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r AddOrUpdateBuildSourceSecretFileResponse) GetJSON201() *SecretFile {
+	return r.JSON201
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r AddOrUpdateBuildSourceSecretFileResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r AddOrUpdateBuildSourceSecretFileResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r AddOrUpdateBuildSourceSecretFileResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r AddOrUpdateBuildSourceSecretFileResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON406 returns the response for an HTTP 406 `application/json` response
+func (r AddOrUpdateBuildSourceSecretFileResponse) GetJSON406() *N406NotAcceptable {
+	return r.JSON406
+}
+
+// GetJSON410 returns the response for an HTTP 410 `application/json` response
+func (r AddOrUpdateBuildSourceSecretFileResponse) GetJSON410() *N410Gone {
+	return r.JSON410
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r AddOrUpdateBuildSourceSecretFileResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r AddOrUpdateBuildSourceSecretFileResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r AddOrUpdateBuildSourceSecretFileResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r AddOrUpdateBuildSourceSecretFileResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r AddOrUpdateBuildSourceSecretFileResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddOrUpdateBuildSourceSecretFileResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r AddOrUpdateBuildSourceSecretFileResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -43276,6 +43545,8 @@ type DeleteSandboxSnapshotResponse429Headers struct {
 type DeleteSandboxSnapshotResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -43292,6 +43563,11 @@ type DeleteSandboxSnapshotResponse struct {
 	JSON503 *N503ServiceUnavailable
 	// Headers429 the parsed response headers for an HTTP 429 response
 	Headers429 *DeleteSandboxSnapshotResponse429Headers
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r DeleteSandboxSnapshotResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
 }
 
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
@@ -43371,6 +43647,8 @@ type RetrieveSandboxSnapshotResponse struct {
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef16.SandboxSnapshot
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -43390,6 +43668,11 @@ type RetrieveSandboxSnapshotResponse struct {
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
 func (r RetrieveSandboxSnapshotResponse) GetJSON200() *externalRef16.SandboxSnapshot {
 	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r RetrieveSandboxSnapshotResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
 }
 
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
@@ -45285,7 +45568,7 @@ type AutoscaleServiceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *externalRef2.AutoscalingConfig
+	JSON200 *externalRef1.AutoscalingConfig
 	// JSON400 the response for an HTTP 400 `application/json` response
 	JSON400 *N400BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
@@ -45309,7 +45592,7 @@ type AutoscaleServiceResponse struct {
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r AutoscaleServiceResponse) GetJSON200() *externalRef2.AutoscalingConfig {
+func (r AutoscaleServiceResponse) GetJSON200() *externalRef1.AutoscalingConfig {
 	return r.JSON200
 }
 
@@ -51956,433 +52239,6 @@ func (r GetWorkflowVersionResponse) ContentType() string {
 	return ""
 }
 
-// ListArtifactSourcesWithResponse List artifact sources
-//
-// List artifact sources matching the provided filters. If `ownerId` is
-// omitted, returns artifact sources across every workspace you can view.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with GET /artifact-sources (the `ListArtifactSources` operationId).
-func (c *ClientWithResponses) ListArtifactSourcesWithResponse(ctx context.Context, params *ListArtifactSourcesParams, reqEditors ...RequestEditorFn) (*ListArtifactSourcesResponse, error) {
-	rsp, err := c.ListArtifactSources(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListArtifactSourcesResponse(rsp)
-}
-
-// CreateArtifactSourceWithBodyWithResponse Create an artifact source
-//
-// Create an artifact source that can be linked to one or more
-// services in the same workspace.
-//
-// Exactly one of `git` or `image` must be set:
-//   - `git`: the artifact source is git-backed. The code is built in
-//     the requested `region` (defaults to `oregon`).
-//   - `image`: the artifact source is image-backed. It points at an
-//     existing image in an external registry; no build is performed.
-//
-// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
-// environment and are only valid for `git` sources; the request fails
-// if any are provided with `image`.
-//
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with POST /artifact-sources (the `CreateArtifactSource` operationId).
-func (c *ClientWithResponses) CreateArtifactSourceWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateArtifactSourceResponse, error) {
-	rsp, err := c.CreateArtifactSourceWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateArtifactSourceResponse(rsp)
-}
-
-// CreateArtifactSourceWithResponse Create an artifact source
-//
-// Create an artifact source that can be linked to one or more
-// services in the same workspace.
-//
-// Exactly one of `git` or `image` must be set:
-//   - `git`: the artifact source is git-backed. The code is built in
-//     the requested `region` (defaults to `oregon`).
-//   - `image`: the artifact source is image-backed. It points at an
-//     existing image in an external registry; no build is performed.
-//
-// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
-// environment and are only valid for `git` sources; the request fails
-// if any are provided with `image`.
-//
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with POST /artifact-sources (the `CreateArtifactSource` operationId).
-func (c *ClientWithResponses) CreateArtifactSourceWithResponse(ctx context.Context, body CreateArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateArtifactSourceResponse, error) {
-	rsp, err := c.CreateArtifactSource(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateArtifactSourceResponse(rsp)
-}
-
-// DeleteArtifactSourceWithResponse Delete an artifact source
-//
-// Delete the artifact source with the provided ID.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with DELETE /artifact-sources/{artifactSourceId} (the `DeleteArtifactSource` operationId).
-func (c *ClientWithResponses) DeleteArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*DeleteArtifactSourceResponse, error) {
-	rsp, err := c.DeleteArtifactSource(ctx, artifactSourceId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteArtifactSourceResponse(rsp)
-}
-
-// GetArtifactSourceWithResponse Retrieve an artifact source
-//
-// Retrieve a shared artifact source by ID.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with GET /artifact-sources/{artifactSourceId} (the `GetArtifactSource` operationId).
-func (c *ClientWithResponses) GetArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, reqEditors ...RequestEditorFn) (*GetArtifactSourceResponse, error) {
-	rsp, err := c.GetArtifactSource(ctx, artifactSourceId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetArtifactSourceResponse(rsp)
-}
-
-// UpdateArtifactSourceWithBodyWithResponse Update an artifact source
-//
-// Update a shared artifact source. Each top-level field is a true patch,
-// unset fields are left unchanged.
-//
-// Supplying `git` or `image` can change the artifact source's
-// underlying identity:
-//   - `image` on a git-backed artifact source switches it to image-backed
-//   - `git` on an image-backed artifact source switches it to git-backed
-//   - `git` on an artifact source that's already git-backed is a pure
-//     patch onto the existing config
-//
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PATCH /artifact-sources/{artifactSourceId} (the `UpdateArtifactSource` operationId).
-func (c *ClientWithResponses) UpdateArtifactSourceWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateArtifactSourceResponse, error) {
-	rsp, err := c.UpdateArtifactSourceWithBody(ctx, artifactSourceId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateArtifactSourceResponse(rsp)
-}
-
-// UpdateArtifactSourceWithResponse Update an artifact source
-//
-// Update a shared artifact source. Each top-level field is a true patch,
-// unset fields are left unchanged.
-//
-// Supplying `git` or `image` can change the artifact source's
-// underlying identity:
-//   - `image` on a git-backed artifact source switches it to image-backed
-//   - `git` on an image-backed artifact source switches it to git-backed
-//   - `git` on an artifact source that's already git-backed is a pure
-//     patch onto the existing config
-//
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PATCH /artifact-sources/{artifactSourceId} (the `UpdateArtifactSource` operationId).
-func (c *ClientWithResponses) UpdateArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateArtifactSourceResponse, error) {
-	rsp, err := c.UpdateArtifactSource(ctx, artifactSourceId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateArtifactSourceResponse(rsp)
-}
-
-// ListArtifactsInArtifactSourceWithResponse List artifacts in an artifact source
-//
-// List artifacts in an artifact source.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with GET /artifact-sources/{artifactSourceId}/artifacts (the `ListArtifactsInArtifactSource` operationId).
-func (c *ClientWithResponses) ListArtifactsInArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *ListArtifactsInArtifactSourceParams, reqEditors ...RequestEditorFn) (*ListArtifactsInArtifactSourceResponse, error) {
-	rsp, err := c.ListArtifactsInArtifactSource(ctx, artifactSourceId, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListArtifactsInArtifactSourceResponse(rsp)
-}
-
-// UnlinkEnvGroupFromArtifactSourceWithResponse Unlink environment group
-//
-// Unlink a particular environment group from a particular artifact source.
-//
-// The artifact source will lose access to the environment variables and secret files in the group.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with DELETE /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `UnlinkEnvGroupFromArtifactSource` operationId).
-func (c *ClientWithResponses) UnlinkEnvGroupFromArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*UnlinkEnvGroupFromArtifactSourceResponse, error) {
-	rsp, err := c.UnlinkEnvGroupFromArtifactSource(ctx, artifactSourceId, envGroupId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUnlinkEnvGroupFromArtifactSourceResponse(rsp)
-}
-
-// LinkEnvGroupToArtifactSourceWithResponse Link environment group
-//
-// Link a particular environment group to a particular artifact source.
-//
-// The artifact source will have access to the environment variables and secret files in the group at build time.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with POST /artifact-sources/{artifactSourceId}/env-groups/{envGroupId} (the `LinkEnvGroupToArtifactSource` operationId).
-func (c *ClientWithResponses) LinkEnvGroupToArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*LinkEnvGroupToArtifactSourceResponse, error) {
-	rsp, err := c.LinkEnvGroupToArtifactSource(ctx, artifactSourceId, envGroupId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseLinkEnvGroupToArtifactSourceResponse(rsp)
-}
-
-// GetEnvVarsForArtifactSourceWithResponse List environment variables
-//
-// List all environment variables for the artifact source with the provided ID.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with GET /artifact-sources/{artifactSourceId}/env-vars (the `GetEnvVarsForArtifactSource` operationId).
-func (c *ClientWithResponses) GetEnvVarsForArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *GetEnvVarsForArtifactSourceParams, reqEditors ...RequestEditorFn) (*GetEnvVarsForArtifactSourceResponse, error) {
-	rsp, err := c.GetEnvVarsForArtifactSource(ctx, artifactSourceId, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetEnvVarsForArtifactSourceResponse(rsp)
-}
-
-// UpdateEnvVarsForArtifactSourceWithBodyWithResponse Update environment variables
-//
-// Replace all environment variables for an artifact source with the provided list of environment variables.
-//
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars (the `UpdateEnvVarsForArtifactSource` operationId).
-func (c *ClientWithResponses) UpdateEnvVarsForArtifactSourceWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateEnvVarsForArtifactSourceResponse, error) {
-	rsp, err := c.UpdateEnvVarsForArtifactSourceWithBody(ctx, artifactSourceId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateEnvVarsForArtifactSourceResponse(rsp)
-}
-
-// UpdateEnvVarsForArtifactSourceWithResponse Update environment variables
-//
-// Replace all environment variables for an artifact source with the provided list of environment variables.
-//
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars (the `UpdateEnvVarsForArtifactSource` operationId).
-func (c *ClientWithResponses) UpdateEnvVarsForArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateEnvVarsForArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateEnvVarsForArtifactSourceResponse, error) {
-	rsp, err := c.UpdateEnvVarsForArtifactSource(ctx, artifactSourceId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateEnvVarsForArtifactSourceResponse(rsp)
-}
-
-// DeleteArtifactSourceEnvVarWithResponse Delete environment variable
-//
-// Delete a particular environment variable from a particular artifact source.
-//
-// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with DELETE /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `DeleteArtifactSourceEnvVar` operationId).
-func (c *ClientWithResponses) DeleteArtifactSourceEnvVarWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*DeleteArtifactSourceEnvVarResponse, error) {
-	rsp, err := c.DeleteArtifactSourceEnvVar(ctx, artifactSourceId, envVarKey, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteArtifactSourceEnvVarResponse(rsp)
-}
-
-// RetrieveArtifactSourceEnvVarWithResponse Retrieve environment variable
-//
-// Retrieve a particular environment variable for a particular artifact source.
-//
-// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with GET /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `RetrieveArtifactSourceEnvVar` operationId).
-func (c *ClientWithResponses) RetrieveArtifactSourceEnvVarWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*RetrieveArtifactSourceEnvVarResponse, error) {
-	rsp, err := c.RetrieveArtifactSourceEnvVar(ctx, artifactSourceId, envVarKey, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseRetrieveArtifactSourceEnvVarResponse(rsp)
-}
-
-// UpdateArtifactSourceEnvVarWithBodyWithResponse Add or update environment variable
-//
-// Add or update a particular environment variable for a particular artifact source.
-//
-// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-//
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `UpdateArtifactSourceEnvVar` operationId).
-func (c *ClientWithResponses) UpdateArtifactSourceEnvVarWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateArtifactSourceEnvVarResponse, error) {
-	rsp, err := c.UpdateArtifactSourceEnvVarWithBody(ctx, artifactSourceId, envVarKey, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateArtifactSourceEnvVarResponse(rsp)
-}
-
-// UpdateArtifactSourceEnvVarWithResponse Add or update environment variable
-//
-// Add or update a particular environment variable for a particular artifact source.
-//
-// This only applies to environment variables set directly on the artifact source, not to environment variables in a linked environment group.
-//
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/env-vars/{envVarKey} (the `UpdateArtifactSourceEnvVar` operationId).
-func (c *ClientWithResponses) UpdateArtifactSourceEnvVarWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey EnvVarKeyParam, body UpdateArtifactSourceEnvVarJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateArtifactSourceEnvVarResponse, error) {
-	rsp, err := c.UpdateArtifactSourceEnvVar(ctx, artifactSourceId, envVarKey, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateArtifactSourceEnvVarResponse(rsp)
-}
-
-// ListSecretFilesForArtifactSourceWithResponse List secret files
-//
-// List all secret files for the artifact source with the provided ID.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with GET /artifact-sources/{artifactSourceId}/secret-files (the `ListSecretFilesForArtifactSource` operationId).
-func (c *ClientWithResponses) ListSecretFilesForArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, params *ListSecretFilesForArtifactSourceParams, reqEditors ...RequestEditorFn) (*ListSecretFilesForArtifactSourceResponse, error) {
-	rsp, err := c.ListSecretFilesForArtifactSource(ctx, artifactSourceId, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListSecretFilesForArtifactSourceResponse(rsp)
-}
-
-// UpdateSecretFilesForArtifactSourceWithBodyWithResponse Update secret files
-//
-// Replace all secret files for an artifact source with the provided list of secret files.
-//
-// **Any of the artifact source's existing secret files not included in this request will be deleted.**
-//
-// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-//
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files (the `UpdateSecretFilesForArtifactSource` operationId).
-func (c *ClientWithResponses) UpdateSecretFilesForArtifactSourceWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSecretFilesForArtifactSourceResponse, error) {
-	rsp, err := c.UpdateSecretFilesForArtifactSourceWithBody(ctx, artifactSourceId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateSecretFilesForArtifactSourceResponse(rsp)
-}
-
-// UpdateSecretFilesForArtifactSourceWithResponse Update secret files
-//
-// Replace all secret files for an artifact source with the provided list of secret files.
-//
-// **Any of the artifact source's existing secret files not included in this request will be deleted.**
-//
-// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-//
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files (the `UpdateSecretFilesForArtifactSource` operationId).
-func (c *ClientWithResponses) UpdateSecretFilesForArtifactSourceWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, body UpdateSecretFilesForArtifactSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSecretFilesForArtifactSourceResponse, error) {
-	rsp, err := c.UpdateSecretFilesForArtifactSource(ctx, artifactSourceId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateSecretFilesForArtifactSourceResponse(rsp)
-}
-
-// DeleteArtifactSourceSecretFileWithResponse Delete secret file
-//
-// Delete a particular secret file from a particular artifact source.
-//
-// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with DELETE /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `DeleteArtifactSourceSecretFile` operationId).
-func (c *ClientWithResponses) DeleteArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*DeleteArtifactSourceSecretFileResponse, error) {
-	rsp, err := c.DeleteArtifactSourceSecretFile(ctx, artifactSourceId, envVarKey, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteArtifactSourceSecretFileResponse(rsp)
-}
-
-// RetrieveArtifactSourceSecretFileWithResponse Retrieve secret file
-//
-// Retrieve a particular secret file for a particular artifact source.
-//
-// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with GET /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `RetrieveArtifactSourceSecretFile` operationId).
-func (c *ClientWithResponses) RetrieveArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*RetrieveArtifactSourceSecretFileResponse, error) {
-	rsp, err := c.RetrieveArtifactSourceSecretFile(ctx, artifactSourceId, envVarKey, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseRetrieveArtifactSourceSecretFileResponse(rsp)
-}
-
-// AddOrUpdateArtifactSourceSecretFileWithBodyWithResponse Add or update secret file
-//
-// Add or update a particular secret file for a particular artifact source.
-//
-// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-//
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `AddOrUpdateArtifactSourceSecretFile` operationId).
-func (c *ClientWithResponses) AddOrUpdateArtifactSourceSecretFileWithBodyWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddOrUpdateArtifactSourceSecretFileResponse, error) {
-	rsp, err := c.AddOrUpdateArtifactSourceSecretFileWithBody(ctx, artifactSourceId, envVarKey, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseAddOrUpdateArtifactSourceSecretFileResponse(rsp)
-}
-
-// AddOrUpdateArtifactSourceSecretFileWithResponse Add or update secret file
-//
-// Add or update a particular secret file for a particular artifact source.
-//
-// This only applies to secret files set directly on the artifact source, not to secret files in a linked environment group.
-//
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /artifact-sources/{artifactSourceId}/secret-files/{envVarKey} (the `AddOrUpdateArtifactSourceSecretFile` operationId).
-func (c *ClientWithResponses) AddOrUpdateArtifactSourceSecretFileWithResponse(ctx context.Context, artifactSourceId externalRef0.ArtifactSourceIdParam, envVarKey string, body AddOrUpdateArtifactSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*AddOrUpdateArtifactSourceSecretFileResponse, error) {
-	rsp, err := c.AddOrUpdateArtifactSourceSecretFile(ctx, artifactSourceId, envVarKey, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseAddOrUpdateArtifactSourceSecretFileResponse(rsp)
-}
-
 // ListBlueprintsWithResponse List Blueprints
 //
 // List Blueprints for the specified workspaces. If no workspaces are provided, returns all Blueprints the API key has access to.
@@ -52424,7 +52280,7 @@ func (c *ClientWithResponses) ValidateBlueprintWithBodyWithResponse(ctx context.
 // Returns a wrapper object for the known response body format(s).
 //
 // Corresponds with DELETE /blueprints/{blueprintId} (the `DisconnectBlueprint` operationId).
-func (c *ClientWithResponses) DisconnectBlueprintWithResponse(ctx context.Context, blueprintId externalRef3.BlueprintId, reqEditors ...RequestEditorFn) (*DisconnectBlueprintResponse, error) {
+func (c *ClientWithResponses) DisconnectBlueprintWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*DisconnectBlueprintResponse, error) {
 	rsp, err := c.DisconnectBlueprint(ctx, blueprintId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -52439,7 +52295,7 @@ func (c *ClientWithResponses) DisconnectBlueprintWithResponse(ctx context.Contex
 // Returns a wrapper object for the known response body format(s).
 //
 // Corresponds with GET /blueprints/{blueprintId} (the `RetrieveBlueprint` operationId).
-func (c *ClientWithResponses) RetrieveBlueprintWithResponse(ctx context.Context, blueprintId externalRef3.BlueprintId, reqEditors ...RequestEditorFn) (*RetrieveBlueprintResponse, error) {
+func (c *ClientWithResponses) RetrieveBlueprintWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, reqEditors ...RequestEditorFn) (*RetrieveBlueprintResponse, error) {
 	rsp, err := c.RetrieveBlueprint(ctx, blueprintId, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -52454,7 +52310,7 @@ func (c *ClientWithResponses) RetrieveBlueprintWithResponse(ctx context.Context,
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with PATCH /blueprints/{blueprintId} (the `UpdateBlueprint` operationId).
-func (c *ClientWithResponses) UpdateBlueprintWithBodyWithResponse(ctx context.Context, blueprintId externalRef3.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error) {
+func (c *ClientWithResponses) UpdateBlueprintWithBodyWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error) {
 	rsp, err := c.UpdateBlueprintWithBody(ctx, blueprintId, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -52469,7 +52325,7 @@ func (c *ClientWithResponses) UpdateBlueprintWithBodyWithResponse(ctx context.Co
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with PATCH /blueprints/{blueprintId} (the `UpdateBlueprint` operationId).
-func (c *ClientWithResponses) UpdateBlueprintWithResponse(ctx context.Context, blueprintId externalRef3.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error) {
+func (c *ClientWithResponses) UpdateBlueprintWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, body UpdateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBlueprintResponse, error) {
 	rsp, err := c.UpdateBlueprint(ctx, blueprintId, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -52484,12 +52340,462 @@ func (c *ClientWithResponses) UpdateBlueprintWithResponse(ctx context.Context, b
 // Returns a wrapper object for the known response body format(s).
 //
 // Corresponds with GET /blueprints/{blueprintId}/syncs (the `ListBlueprintSyncs` operationId).
-func (c *ClientWithResponses) ListBlueprintSyncsWithResponse(ctx context.Context, blueprintId externalRef3.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*ListBlueprintSyncsResponse, error) {
+func (c *ClientWithResponses) ListBlueprintSyncsWithResponse(ctx context.Context, blueprintId externalRef2.BlueprintId, params *ListBlueprintSyncsParams, reqEditors ...RequestEditorFn) (*ListBlueprintSyncsResponse, error) {
 	rsp, err := c.ListBlueprintSyncs(ctx, blueprintId, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseListBlueprintSyncsResponse(rsp)
+}
+
+// ListBuildSourcesWithResponse List build sources
+//
+// List build sources matching the provided filters. If `ownerId` is
+// omitted, returns build sources across every workspace you can view.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /build-sources (the `ListBuildSources` operationId).
+func (c *ClientWithResponses) ListBuildSourcesWithResponse(ctx context.Context, params *ListBuildSourcesParams, reqEditors ...RequestEditorFn) (*ListBuildSourcesResponse, error) {
+	rsp, err := c.ListBuildSources(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBuildSourcesResponse(rsp)
+}
+
+// CreateBuildSourceWithBodyWithResponse Create a build source
+//
+// Create a build source that can be linked to one or more
+// services in the same workspace.
+//
+// Exactly one of `git` or `image` must be set:
+//   - `git`: the build source is git-backed. The code is built in
+//     the requested `region` (defaults to `oregon`).
+//   - `image`: the build source is image-backed. It points at an
+//     existing image in an external registry; no build is performed.
+//
+// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
+// environment and are only valid for `git` sources; the request fails
+// if any are provided with `image`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /build-sources (the `CreateBuildSource` operationId).
+func (c *ClientWithResponses) CreateBuildSourceWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBuildSourceResponse, error) {
+	rsp, err := c.CreateBuildSourceWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBuildSourceResponse(rsp)
+}
+
+// CreateBuildSourceWithResponse Create a build source
+//
+// Create a build source that can be linked to one or more
+// services in the same workspace.
+//
+// Exactly one of `git` or `image` must be set:
+//   - `git`: the build source is git-backed. The code is built in
+//     the requested `region` (defaults to `oregon`).
+//   - `image`: the build source is image-backed. It points at an
+//     existing image in an external registry; no build is performed.
+//
+// `envVars`, `secretFiles`, and `envGroupIds` set the build-time
+// environment and are only valid for `git` sources; the request fails
+// if any are provided with `image`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /build-sources (the `CreateBuildSource` operationId).
+func (c *ClientWithResponses) CreateBuildSourceWithResponse(ctx context.Context, body CreateBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBuildSourceResponse, error) {
+	rsp, err := c.CreateBuildSource(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBuildSourceResponse(rsp)
+}
+
+// DeleteBuildSourceWithResponse Delete a build source
+//
+// Delete the build source with the provided ID.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /build-sources/{buildSourceId} (the `DeleteBuildSource` operationId).
+func (c *ClientWithResponses) DeleteBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*DeleteBuildSourceResponse, error) {
+	rsp, err := c.DeleteBuildSource(ctx, buildSourceId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteBuildSourceResponse(rsp)
+}
+
+// GetBuildSourceWithResponse Retrieve a build source
+//
+// Retrieve a shared build source by ID.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /build-sources/{buildSourceId} (the `GetBuildSource` operationId).
+func (c *ClientWithResponses) GetBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*GetBuildSourceResponse, error) {
+	rsp, err := c.GetBuildSource(ctx, buildSourceId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBuildSourceResponse(rsp)
+}
+
+// UpdateBuildSourceWithBodyWithResponse Update a build source
+//
+// Update a shared build source. Each top-level field is a true patch,
+// unset fields are left unchanged.
+//
+// Supplying `git` or `image` can change the build source's
+// underlying identity:
+//   - `image` on a git-backed build source switches it to image-backed
+//   - `git` on an image-backed build source switches it to git-backed
+//   - `git` on a build source that's already git-backed is a pure
+//     patch onto the existing config
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /build-sources/{buildSourceId} (the `UpdateBuildSource` operationId).
+func (c *ClientWithResponses) UpdateBuildSourceWithBodyWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBuildSourceResponse, error) {
+	rsp, err := c.UpdateBuildSourceWithBody(ctx, buildSourceId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateBuildSourceResponse(rsp)
+}
+
+// UpdateBuildSourceWithResponse Update a build source
+//
+// Update a shared build source. Each top-level field is a true patch,
+// unset fields are left unchanged.
+//
+// Supplying `git` or `image` can change the build source's
+// underlying identity:
+//   - `image` on a git-backed build source switches it to image-backed
+//   - `git` on an image-backed build source switches it to git-backed
+//   - `git` on a build source that's already git-backed is a pure
+//     patch onto the existing config
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /build-sources/{buildSourceId} (the `UpdateBuildSource` operationId).
+func (c *ClientWithResponses) UpdateBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body UpdateBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBuildSourceResponse, error) {
+	rsp, err := c.UpdateBuildSource(ctx, buildSourceId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateBuildSourceResponse(rsp)
+}
+
+// ListBuildsInBuildSourceWithResponse List builds in a build source
+//
+// List builds in a build source.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /build-sources/{buildSourceId}/builds (the `ListBuildsInBuildSource` operationId).
+func (c *ClientWithResponses) ListBuildsInBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *ListBuildsInBuildSourceParams, reqEditors ...RequestEditorFn) (*ListBuildsInBuildSourceResponse, error) {
+	rsp, err := c.ListBuildsInBuildSource(ctx, buildSourceId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBuildsInBuildSourceResponse(rsp)
+}
+
+// TriggerBuildSourceBuildWithResponse Trigger a build
+//
+// Start a new build of the build source at the current HEAD of its
+// branch, even if an up-to-date build already exists. Services linked to
+// the build source with autodeploy enabled are deployed with the result.
+//
+// Updating a build source or its build-time environment (env vars,
+// secret files, env groups) with the REST API does not build it. Call
+// this endpoint after those changes to build them.
+//
+// Only `git` build sources can be built.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /build-sources/{buildSourceId}/builds (the `TriggerBuildSourceBuild` operationId).
+func (c *ClientWithResponses) TriggerBuildSourceBuildWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*TriggerBuildSourceBuildResponse, error) {
+	rsp, err := c.TriggerBuildSourceBuild(ctx, buildSourceId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTriggerBuildSourceBuildResponse(rsp)
+}
+
+// UnlinkEnvGroupFromBuildSourceWithResponse Unlink environment group
+//
+// Unlink a particular environment group from a particular build source.
+//
+// The build source will lose access to the environment variables and secret files in the group.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /build-sources/{buildSourceId}/env-groups/{envGroupId} (the `UnlinkEnvGroupFromBuildSource` operationId).
+func (c *ClientWithResponses) UnlinkEnvGroupFromBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*UnlinkEnvGroupFromBuildSourceResponse, error) {
+	rsp, err := c.UnlinkEnvGroupFromBuildSource(ctx, buildSourceId, envGroupId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUnlinkEnvGroupFromBuildSourceResponse(rsp)
+}
+
+// LinkEnvGroupToBuildSourceWithResponse Link environment group
+//
+// Link a particular environment group to a particular build source.
+//
+// The build source will have access to the environment variables and secret files in the group at build time.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /build-sources/{buildSourceId}/env-groups/{envGroupId} (the `LinkEnvGroupToBuildSource` operationId).
+func (c *ClientWithResponses) LinkEnvGroupToBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envGroupId EnvGroupIdParam, reqEditors ...RequestEditorFn) (*LinkEnvGroupToBuildSourceResponse, error) {
+	rsp, err := c.LinkEnvGroupToBuildSource(ctx, buildSourceId, envGroupId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseLinkEnvGroupToBuildSourceResponse(rsp)
+}
+
+// GetEnvVarsForBuildSourceWithResponse List environment variables
+//
+// List all environment variables for the build source with the provided ID.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /build-sources/{buildSourceId}/env-vars (the `GetEnvVarsForBuildSource` operationId).
+func (c *ClientWithResponses) GetEnvVarsForBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *GetEnvVarsForBuildSourceParams, reqEditors ...RequestEditorFn) (*GetEnvVarsForBuildSourceResponse, error) {
+	rsp, err := c.GetEnvVarsForBuildSource(ctx, buildSourceId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetEnvVarsForBuildSourceResponse(rsp)
+}
+
+// UpdateEnvVarsForBuildSourceWithBodyWithResponse Update environment variables
+//
+// Replace all environment variables for a build source with the provided list of environment variables.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/env-vars (the `UpdateEnvVarsForBuildSource` operationId).
+func (c *ClientWithResponses) UpdateEnvVarsForBuildSourceWithBodyWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateEnvVarsForBuildSourceResponse, error) {
+	rsp, err := c.UpdateEnvVarsForBuildSourceWithBody(ctx, buildSourceId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateEnvVarsForBuildSourceResponse(rsp)
+}
+
+// UpdateEnvVarsForBuildSourceWithResponse Update environment variables
+//
+// Replace all environment variables for a build source with the provided list of environment variables.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/env-vars (the `UpdateEnvVarsForBuildSource` operationId).
+func (c *ClientWithResponses) UpdateEnvVarsForBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body UpdateEnvVarsForBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateEnvVarsForBuildSourceResponse, error) {
+	rsp, err := c.UpdateEnvVarsForBuildSource(ctx, buildSourceId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateEnvVarsForBuildSourceResponse(rsp)
+}
+
+// DeleteBuildSourceEnvVarWithResponse Delete environment variable
+//
+// Delete a particular environment variable from a particular build source.
+//
+// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `DeleteBuildSourceEnvVar` operationId).
+func (c *ClientWithResponses) DeleteBuildSourceEnvVarWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*DeleteBuildSourceEnvVarResponse, error) {
+	rsp, err := c.DeleteBuildSourceEnvVar(ctx, buildSourceId, envVarKey, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteBuildSourceEnvVarResponse(rsp)
+}
+
+// RetrieveBuildSourceEnvVarWithResponse Retrieve environment variable
+//
+// Retrieve a particular environment variable for a particular build source.
+//
+// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `RetrieveBuildSourceEnvVar` operationId).
+func (c *ClientWithResponses) RetrieveBuildSourceEnvVarWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, reqEditors ...RequestEditorFn) (*RetrieveBuildSourceEnvVarResponse, error) {
+	rsp, err := c.RetrieveBuildSourceEnvVar(ctx, buildSourceId, envVarKey, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRetrieveBuildSourceEnvVarResponse(rsp)
+}
+
+// UpdateBuildSourceEnvVarWithBodyWithResponse Add or update environment variable
+//
+// Add or update a particular environment variable for a particular build source.
+//
+// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `UpdateBuildSourceEnvVar` operationId).
+func (c *ClientWithResponses) UpdateBuildSourceEnvVarWithBodyWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBuildSourceEnvVarResponse, error) {
+	rsp, err := c.UpdateBuildSourceEnvVarWithBody(ctx, buildSourceId, envVarKey, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateBuildSourceEnvVarResponse(rsp)
+}
+
+// UpdateBuildSourceEnvVarWithResponse Add or update environment variable
+//
+// Add or update a particular environment variable for a particular build source.
+//
+// This only applies to environment variables set directly on the build source, not to environment variables in a linked environment group.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/env-vars/{envVarKey} (the `UpdateBuildSourceEnvVar` operationId).
+func (c *ClientWithResponses) UpdateBuildSourceEnvVarWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey EnvVarKeyParam, body UpdateBuildSourceEnvVarJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBuildSourceEnvVarResponse, error) {
+	rsp, err := c.UpdateBuildSourceEnvVar(ctx, buildSourceId, envVarKey, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateBuildSourceEnvVarResponse(rsp)
+}
+
+// ListSecretFilesForBuildSourceWithResponse List secret files
+//
+// List all secret files for the build source with the provided ID.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /build-sources/{buildSourceId}/secret-files (the `ListSecretFilesForBuildSource` operationId).
+func (c *ClientWithResponses) ListSecretFilesForBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *ListSecretFilesForBuildSourceParams, reqEditors ...RequestEditorFn) (*ListSecretFilesForBuildSourceResponse, error) {
+	rsp, err := c.ListSecretFilesForBuildSource(ctx, buildSourceId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSecretFilesForBuildSourceResponse(rsp)
+}
+
+// UpdateSecretFilesForBuildSourceWithBodyWithResponse Update secret files
+//
+// Replace all secret files for a build source with the provided list of secret files.
+//
+// **Any of the build source's existing secret files not included in this request will be deleted.**
+//
+// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/secret-files (the `UpdateSecretFilesForBuildSource` operationId).
+func (c *ClientWithResponses) UpdateSecretFilesForBuildSourceWithBodyWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSecretFilesForBuildSourceResponse, error) {
+	rsp, err := c.UpdateSecretFilesForBuildSourceWithBody(ctx, buildSourceId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateSecretFilesForBuildSourceResponse(rsp)
+}
+
+// UpdateSecretFilesForBuildSourceWithResponse Update secret files
+//
+// Replace all secret files for a build source with the provided list of secret files.
+//
+// **Any of the build source's existing secret files not included in this request will be deleted.**
+//
+// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/secret-files (the `UpdateSecretFilesForBuildSource` operationId).
+func (c *ClientWithResponses) UpdateSecretFilesForBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body UpdateSecretFilesForBuildSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSecretFilesForBuildSourceResponse, error) {
+	rsp, err := c.UpdateSecretFilesForBuildSource(ctx, buildSourceId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateSecretFilesForBuildSourceResponse(rsp)
+}
+
+// DeleteBuildSourceSecretFileWithResponse Delete secret file
+//
+// Delete a particular secret file from a particular build source.
+//
+// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `DeleteBuildSourceSecretFile` operationId).
+func (c *ClientWithResponses) DeleteBuildSourceSecretFileWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*DeleteBuildSourceSecretFileResponse, error) {
+	rsp, err := c.DeleteBuildSourceSecretFile(ctx, buildSourceId, envVarKey, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteBuildSourceSecretFileResponse(rsp)
+}
+
+// RetrieveBuildSourceSecretFileWithResponse Retrieve secret file
+//
+// Retrieve a particular secret file for a particular build source.
+//
+// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `RetrieveBuildSourceSecretFile` operationId).
+func (c *ClientWithResponses) RetrieveBuildSourceSecretFileWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, reqEditors ...RequestEditorFn) (*RetrieveBuildSourceSecretFileResponse, error) {
+	rsp, err := c.RetrieveBuildSourceSecretFile(ctx, buildSourceId, envVarKey, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRetrieveBuildSourceSecretFileResponse(rsp)
+}
+
+// AddOrUpdateBuildSourceSecretFileWithBodyWithResponse Add or update secret file
+//
+// Add or update a particular secret file for a particular build source.
+//
+// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `AddOrUpdateBuildSourceSecretFile` operationId).
+func (c *ClientWithResponses) AddOrUpdateBuildSourceSecretFileWithBodyWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddOrUpdateBuildSourceSecretFileResponse, error) {
+	rsp, err := c.AddOrUpdateBuildSourceSecretFileWithBody(ctx, buildSourceId, envVarKey, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddOrUpdateBuildSourceSecretFileResponse(rsp)
+}
+
+// AddOrUpdateBuildSourceSecretFileWithResponse Add or update secret file
+//
+// Add or update a particular secret file for a particular build source.
+//
+// This only applies to secret files set directly on the build source, not to secret files in a linked environment group.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /build-sources/{buildSourceId}/secret-files/{envVarKey} (the `AddOrUpdateBuildSourceSecretFile` operationId).
+func (c *ClientWithResponses) AddOrUpdateBuildSourceSecretFileWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, envVarKey string, body AddOrUpdateBuildSourceSecretFileJSONRequestBody, reqEditors ...RequestEditorFn) (*AddOrUpdateBuildSourceSecretFileResponse, error) {
+	rsp, err := c.AddOrUpdateBuildSourceSecretFile(ctx, buildSourceId, envVarKey, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddOrUpdateBuildSourceSecretFileResponse(rsp)
 }
 
 // CreateCliTelemetryEventWithBodyWithResponse Record a CLI telemetry event
@@ -55243,7 +55549,14 @@ func (c *ClientWithResponses) ListSandboxGroupsWithResponse(ctx context.Context,
 
 // ListSandboxSnapshotsWithResponse List sandbox snapshots
 //
-// Snapshots in a sandbox group, newest first. Expired and deleted snapshots are omitted.
+// Snapshots in a sandbox group, newest first. Expired and deleted snapshots
+// are omitted.
+//
+// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
+// well-formed `sbg-` ID, `code: invalid_owner_id` if `ownerId` is missing or
+// repeated, `code: invalid_status` for a status outside the snapshot status
+// vocabulary, `code: invalid_cursor` for a malformed or unknown cursor, or
+// `code: invalid_limit` for a limit outside 1 to 100.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -55262,6 +55575,8 @@ func (c *ClientWithResponses) ListSandboxSnapshotsWithResponse(ctx context.Conte
 // Sandboxes created from the snapshot are not affected. A snapshot that
 // belongs to another sandbox group returns 404.
 //
+// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
+// 400 with `code: invalid_snapshot_id` when `snapshotId` is malformed.
 // 409 with `code: snapshot_creating` while the capture is in progress.
 //
 // Returns a wrapper object for the known response body format(s).
@@ -55279,6 +55594,10 @@ func (c *ClientWithResponses) DeleteSandboxSnapshotWithResponse(ctx context.Cont
 //
 // One snapshot by ID. Deleted and expired snapshots return 404. A snapshot
 // that belongs to another sandbox group returns 404.
+//
+// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
+// well-formed `sbg-` ID, or `code: invalid_snapshot_id` if `snapshotId` is
+// not a well-formed `snp-` ID.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -56727,8 +57046,21 @@ func (c *ClientWithResponses) CreateTaskWithResponse(ctx context.Context, body C
 // StreamTaskRunsEventsWithResponse Stream realtime events (SSE)
 //
 // Establishes a unidirectional event stream. The server sends events as lines
-// formatted per the SSE spec. Clients SHOULD set `Accept: text/event-stream`
+// formatted per the SSE spec. Clients should set `Accept: text/event-stream`
 // and keep the connection open.
+//
+// The server sends a `task.completed` event whenever a requested task run reaches
+// any terminal state (`completed`, `failed`, or `canceled`).
+// The `status` field of the payload indicates which state was reached.
+//
+// The server automatically closes the stream in the following cases:
+//
+// - All requested task runs have reached a terminal state.
+// - The stream has not sent any events for 30 minutes.
+//
+// For tasks with a timeout higher than 30 minutes, waiting clients should fall back
+// to polling with the [Retrieve task run](https://api-docs.render.com/reference/gettaskrun)
+// endpoint.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -57099,1987 +57431,6 @@ func (c *ClientWithResponses) GetWorkflowVersionWithResponse(ctx context.Context
 	return ParseGetWorkflowVersionResponse(rsp)
 }
 
-// ParseListArtifactSourcesResponse parses an HTTP response from a ListArtifactSourcesWithResponse call
-func ParseListArtifactSourcesResponse(rsp *http.Response) (*ListArtifactSourcesResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListArtifactSourcesResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []externalRef0.ArtifactSourceWithCursor
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers ListArtifactSourcesResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseCreateArtifactSourceResponse parses an HTTP response from a CreateArtifactSourceWithResponse call
-func ParseCreateArtifactSourceResponse(rsp *http.Response) (*CreateArtifactSourceResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CreateArtifactSourceResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest externalRef0.ArtifactSource
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers CreateArtifactSourceResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseDeleteArtifactSourceResponse parses an HTTP response from a DeleteArtifactSourceWithResponse call
-func ParseDeleteArtifactSourceResponse(rsp *http.Response) (*DeleteArtifactSourceResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteArtifactSourceResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case rsp.StatusCode == 204:
-		break // No content-type
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers DeleteArtifactSourceResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseGetArtifactSourceResponse parses an HTTP response from a GetArtifactSourceWithResponse call
-func ParseGetArtifactSourceResponse(rsp *http.Response) (*GetArtifactSourceResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetArtifactSourceResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef0.ArtifactSource
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers GetArtifactSourceResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseUpdateArtifactSourceResponse parses an HTTP response from a UpdateArtifactSourceWithResponse call
-func ParseUpdateArtifactSourceResponse(rsp *http.Response) (*UpdateArtifactSourceResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UpdateArtifactSourceResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef0.ArtifactSource
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers UpdateArtifactSourceResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseListArtifactsInArtifactSourceResponse parses an HTTP response from a ListArtifactsInArtifactSourceWithResponse call
-func ParseListArtifactsInArtifactSourceResponse(rsp *http.Response) (*ListArtifactsInArtifactSourceResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListArtifactsInArtifactSourceResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []externalRef0.Artifact
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
-		var dest N406NotAcceptable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON406 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest N410Gone
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers ListArtifactsInArtifactSourceResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseUnlinkEnvGroupFromArtifactSourceResponse parses an HTTP response from a UnlinkEnvGroupFromArtifactSourceWithResponse call
-func ParseUnlinkEnvGroupFromArtifactSourceResponse(rsp *http.Response) (*UnlinkEnvGroupFromArtifactSourceResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UnlinkEnvGroupFromArtifactSourceResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case rsp.StatusCode == 204:
-		break // No content-type
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers UnlinkEnvGroupFromArtifactSourceResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseLinkEnvGroupToArtifactSourceResponse parses an HTTP response from a LinkEnvGroupToArtifactSourceWithResponse call
-func ParseLinkEnvGroupToArtifactSourceResponse(rsp *http.Response) (*LinkEnvGroupToArtifactSourceResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &LinkEnvGroupToArtifactSourceResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest EnvGroup
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers LinkEnvGroupToArtifactSourceResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseGetEnvVarsForArtifactSourceResponse parses an HTTP response from a GetEnvVarsForArtifactSourceWithResponse call
-func ParseGetEnvVarsForArtifactSourceResponse(rsp *http.Response) (*GetEnvVarsForArtifactSourceResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetEnvVarsForArtifactSourceResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []EnvVarWithCursor
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
-		var dest N406NotAcceptable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON406 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest N410Gone
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers GetEnvVarsForArtifactSourceResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseUpdateEnvVarsForArtifactSourceResponse parses an HTTP response from a UpdateEnvVarsForArtifactSourceWithResponse call
-func ParseUpdateEnvVarsForArtifactSourceResponse(rsp *http.Response) (*UpdateEnvVarsForArtifactSourceResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UpdateEnvVarsForArtifactSourceResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []EnvVarWithCursor
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
-		var dest N406NotAcceptable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON406 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest N410Gone
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers UpdateEnvVarsForArtifactSourceResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseDeleteArtifactSourceEnvVarResponse parses an HTTP response from a DeleteArtifactSourceEnvVarWithResponse call
-func ParseDeleteArtifactSourceEnvVarResponse(rsp *http.Response) (*DeleteArtifactSourceEnvVarResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteArtifactSourceEnvVarResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case rsp.StatusCode == 204:
-		break // No content-type
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
-		var dest N406NotAcceptable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON406 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest N410Gone
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers DeleteArtifactSourceEnvVarResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseRetrieveArtifactSourceEnvVarResponse parses an HTTP response from a RetrieveArtifactSourceEnvVarWithResponse call
-func ParseRetrieveArtifactSourceEnvVarResponse(rsp *http.Response) (*RetrieveArtifactSourceEnvVarResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &RetrieveArtifactSourceEnvVarResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest EnvVar
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
-		var dest N406NotAcceptable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON406 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest N410Gone
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers RetrieveArtifactSourceEnvVarResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseUpdateArtifactSourceEnvVarResponse parses an HTTP response from a UpdateArtifactSourceEnvVarWithResponse call
-func ParseUpdateArtifactSourceEnvVarResponse(rsp *http.Response) (*UpdateArtifactSourceEnvVarResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UpdateArtifactSourceEnvVarResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest EnvVar
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
-		var dest N406NotAcceptable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON406 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest N410Gone
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers UpdateArtifactSourceEnvVarResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseListSecretFilesForArtifactSourceResponse parses an HTTP response from a ListSecretFilesForArtifactSourceWithResponse call
-func ParseListSecretFilesForArtifactSourceResponse(rsp *http.Response) (*ListSecretFilesForArtifactSourceResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListSecretFilesForArtifactSourceResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []SecretFileWithCursor
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
-		var dest N406NotAcceptable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON406 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest N410Gone
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers ListSecretFilesForArtifactSourceResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseUpdateSecretFilesForArtifactSourceResponse parses an HTTP response from a UpdateSecretFilesForArtifactSourceWithResponse call
-func ParseUpdateSecretFilesForArtifactSourceResponse(rsp *http.Response) (*UpdateSecretFilesForArtifactSourceResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UpdateSecretFilesForArtifactSourceResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []SecretFileWithCursor
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
-		var dest N406NotAcceptable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON406 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest N410Gone
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers UpdateSecretFilesForArtifactSourceResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseDeleteArtifactSourceSecretFileResponse parses an HTTP response from a DeleteArtifactSourceSecretFileWithResponse call
-func ParseDeleteArtifactSourceSecretFileResponse(rsp *http.Response) (*DeleteArtifactSourceSecretFileResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteArtifactSourceSecretFileResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case rsp.StatusCode == 204:
-		break // No content-type
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
-		var dest N406NotAcceptable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON406 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest N410Gone
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers DeleteArtifactSourceSecretFileResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseRetrieveArtifactSourceSecretFileResponse parses an HTTP response from a RetrieveArtifactSourceSecretFileWithResponse call
-func ParseRetrieveArtifactSourceSecretFileResponse(rsp *http.Response) (*RetrieveArtifactSourceSecretFileResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &RetrieveArtifactSourceSecretFileResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SecretFile
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
-		var dest N406NotAcceptable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON406 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest N410Gone
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers RetrieveArtifactSourceSecretFileResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseAddOrUpdateArtifactSourceSecretFileResponse parses an HTTP response from a AddOrUpdateArtifactSourceSecretFileWithResponse call
-func ParseAddOrUpdateArtifactSourceSecretFileResponse(rsp *http.Response) (*AddOrUpdateArtifactSourceSecretFileResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &AddOrUpdateArtifactSourceSecretFileResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest SecretFile
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
-		var dest N406NotAcceptable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON406 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest N410Gone
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers AddOrUpdateArtifactSourceSecretFileResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
 // ParseListBlueprintsResponse parses an HTTP response from a ListBlueprintsWithResponse call
 func ParseListBlueprintsResponse(rsp *http.Response) (*ListBlueprintsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -59211,7 +57562,7 @@ func ParseValidateBlueprintResponse(rsp *http.Response) (*ValidateBlueprintRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef3.ValidateBlueprintResponse
+		var dest externalRef2.ValidateBlueprintResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -59425,7 +57776,7 @@ func ParseRetrieveBlueprintResponse(rsp *http.Response) (*RetrieveBlueprintRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef3.BlueprintDetail
+		var dest externalRef2.BlueprintDetail
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -59541,7 +57892,7 @@ func ParseUpdateBlueprintResponse(rsp *http.Response) (*UpdateBlueprintResponse,
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef3.Blueprint
+		var dest externalRef2.Blueprint
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -59724,6 +58075,2096 @@ func ParseListBlueprintSyncsResponse(rsp *http.Response) (*ListBlueprintSyncsRes
 	switch {
 	case rsp.StatusCode == 429:
 		var headers ListBlueprintSyncsResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseListBuildSourcesResponse parses an HTTP response from a ListBuildSourcesWithResponse call
+func ParseListBuildSourcesResponse(rsp *http.Response) (*ListBuildSourcesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBuildSourcesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []externalRef3.BuildSourceWithCursor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers ListBuildSourcesResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseCreateBuildSourceResponse parses an HTTP response from a CreateBuildSourceWithResponse call
+func ParseCreateBuildSourceResponse(rsp *http.Response) (*CreateBuildSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateBuildSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest externalRef3.BuildSource
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers CreateBuildSourceResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseDeleteBuildSourceResponse parses an HTTP response from a DeleteBuildSourceWithResponse call
+func ParseDeleteBuildSourceResponse(rsp *http.Response) (*DeleteBuildSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteBuildSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers DeleteBuildSourceResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseGetBuildSourceResponse parses an HTTP response from a GetBuildSourceWithResponse call
+func ParseGetBuildSourceResponse(rsp *http.Response) (*GetBuildSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBuildSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef3.BuildSource
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers GetBuildSourceResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseUpdateBuildSourceResponse parses an HTTP response from a UpdateBuildSourceWithResponse call
+func ParseUpdateBuildSourceResponse(rsp *http.Response) (*UpdateBuildSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateBuildSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef3.BuildSource
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers UpdateBuildSourceResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseListBuildsInBuildSourceResponse parses an HTTP response from a ListBuildsInBuildSourceWithResponse call
+func ParseListBuildsInBuildSourceResponse(rsp *http.Response) (*ListBuildsInBuildSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBuildsInBuildSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []externalRef3.Build
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers ListBuildsInBuildSourceResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseTriggerBuildSourceBuildResponse parses an HTTP response from a TriggerBuildSourceBuildWithResponse call
+func ParseTriggerBuildSourceBuildResponse(rsp *http.Response) (*TriggerBuildSourceBuildResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TriggerBuildSourceBuildResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest externalRef3.Build
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers TriggerBuildSourceBuildResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseUnlinkEnvGroupFromBuildSourceResponse parses an HTTP response from a UnlinkEnvGroupFromBuildSourceWithResponse call
+func ParseUnlinkEnvGroupFromBuildSourceResponse(rsp *http.Response) (*UnlinkEnvGroupFromBuildSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UnlinkEnvGroupFromBuildSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers UnlinkEnvGroupFromBuildSourceResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseLinkEnvGroupToBuildSourceResponse parses an HTTP response from a LinkEnvGroupToBuildSourceWithResponse call
+func ParseLinkEnvGroupToBuildSourceResponse(rsp *http.Response) (*LinkEnvGroupToBuildSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &LinkEnvGroupToBuildSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest EnvGroup
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers LinkEnvGroupToBuildSourceResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseGetEnvVarsForBuildSourceResponse parses an HTTP response from a GetEnvVarsForBuildSourceWithResponse call
+func ParseGetEnvVarsForBuildSourceResponse(rsp *http.Response) (*GetEnvVarsForBuildSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetEnvVarsForBuildSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []EnvVarWithCursor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers GetEnvVarsForBuildSourceResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseUpdateEnvVarsForBuildSourceResponse parses an HTTP response from a UpdateEnvVarsForBuildSourceWithResponse call
+func ParseUpdateEnvVarsForBuildSourceResponse(rsp *http.Response) (*UpdateEnvVarsForBuildSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateEnvVarsForBuildSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []EnvVarWithCursor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers UpdateEnvVarsForBuildSourceResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseDeleteBuildSourceEnvVarResponse parses an HTTP response from a DeleteBuildSourceEnvVarWithResponse call
+func ParseDeleteBuildSourceEnvVarResponse(rsp *http.Response) (*DeleteBuildSourceEnvVarResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteBuildSourceEnvVarResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers DeleteBuildSourceEnvVarResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseRetrieveBuildSourceEnvVarResponse parses an HTTP response from a RetrieveBuildSourceEnvVarWithResponse call
+func ParseRetrieveBuildSourceEnvVarResponse(rsp *http.Response) (*RetrieveBuildSourceEnvVarResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RetrieveBuildSourceEnvVarResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest EnvVar
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers RetrieveBuildSourceEnvVarResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseUpdateBuildSourceEnvVarResponse parses an HTTP response from a UpdateBuildSourceEnvVarWithResponse call
+func ParseUpdateBuildSourceEnvVarResponse(rsp *http.Response) (*UpdateBuildSourceEnvVarResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateBuildSourceEnvVarResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest EnvVar
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers UpdateBuildSourceEnvVarResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseListSecretFilesForBuildSourceResponse parses an HTTP response from a ListSecretFilesForBuildSourceWithResponse call
+func ParseListSecretFilesForBuildSourceResponse(rsp *http.Response) (*ListSecretFilesForBuildSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSecretFilesForBuildSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []SecretFileWithCursor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers ListSecretFilesForBuildSourceResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseUpdateSecretFilesForBuildSourceResponse parses an HTTP response from a UpdateSecretFilesForBuildSourceWithResponse call
+func ParseUpdateSecretFilesForBuildSourceResponse(rsp *http.Response) (*UpdateSecretFilesForBuildSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateSecretFilesForBuildSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []SecretFileWithCursor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers UpdateSecretFilesForBuildSourceResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseDeleteBuildSourceSecretFileResponse parses an HTTP response from a DeleteBuildSourceSecretFileWithResponse call
+func ParseDeleteBuildSourceSecretFileResponse(rsp *http.Response) (*DeleteBuildSourceSecretFileResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteBuildSourceSecretFileResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers DeleteBuildSourceSecretFileResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseRetrieveBuildSourceSecretFileResponse parses an HTTP response from a RetrieveBuildSourceSecretFileWithResponse call
+func ParseRetrieveBuildSourceSecretFileResponse(rsp *http.Response) (*RetrieveBuildSourceSecretFileResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RetrieveBuildSourceSecretFileResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SecretFile
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers RetrieveBuildSourceSecretFileResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseAddOrUpdateBuildSourceSecretFileResponse parses an HTTP response from a AddOrUpdateBuildSourceSecretFileWithResponse call
+func ParseAddOrUpdateBuildSourceSecretFileResponse(rsp *http.Response) (*AddOrUpdateBuildSourceSecretFileResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddOrUpdateBuildSourceSecretFileResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest SecretFile
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest N406NotAcceptable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON406 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest N410Gone
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers AddOrUpdateBuildSourceSecretFileResponse429Headers
 		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
 			var value int
 			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
@@ -73626,6 +74067,13 @@ func ParseDeleteSandboxSnapshotResponse(rsp *http.Response) (*DeleteSandboxSnaps
 	case rsp.StatusCode == 204:
 		break // No content-type
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest N401Unauthorized
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -73734,6 +74182,13 @@ func ParseRetrieveSandboxSnapshotResponse(rsp *http.Response) (*RetrieveSandboxS
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest N401Unauthorized
@@ -75833,7 +76288,7 @@ func ParseAutoscaleServiceResponse(rsp *http.Response) (*AutoscaleServiceRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef2.AutoscalingConfig
+		var dest externalRef1.AutoscalingConfig
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

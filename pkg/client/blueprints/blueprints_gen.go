@@ -14,8 +14,8 @@ import (
 
 // Defines values for ResourceRefType.
 const (
-	ArtifactSource   ResourceRefType = "artifact_source"
 	BackgroundWorker ResourceRefType = "background_worker"
+	BuildSource      ResourceRefType = "build_source"
 	CronJob          ResourceRefType = "cron_job"
 	EnvironmentGroup ResourceRefType = "environment_group"
 	KeyValue         ResourceRefType = "key_value"
@@ -30,9 +30,9 @@ const (
 // Valid indicates whether the value is a known member of the ResourceRefType enum.
 func (e ResourceRefType) Valid() bool {
 	switch e {
-	case ArtifactSource:
-		return true
 	case BackgroundWorker:
+		return true
+	case BuildSource:
 		return true
 	case CronJob:
 		return true

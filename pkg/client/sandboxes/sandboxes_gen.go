@@ -495,8 +495,9 @@ type SandboxSnapshot struct {
 	// Error Null unless `failed`.
 	Error *string `json:"error,omitempty"`
 
-	// ExpiresAt Null unless a TTL is set. Snapshots are kept until deleted.
-	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+	// ExpiresAt The time after which the snapshot can no longer be retrieved or restored.
+	// Set by Render when the create request did not specify one.
+	ExpiresAt time.Time `json:"expiresAt"`
 
 	// Id Example: snp-cph1rs3idesc73a2b2mg
 	Id SandboxSnapshotId `json:"id"`
@@ -531,7 +532,10 @@ type SandboxSnapshotKind string
 
 // SandboxSnapshotPOST defines model for sandboxSnapshotPOST.
 type SandboxSnapshotPOST struct {
-	Kind *SandboxSnapshotKind `json:"kind,omitempty"`
+	// ExpiresAt The time after which the snapshot can no longer be retrieved or restored.
+	// Must be in the future. Omit to use Render's default snapshot lifetime.
+	ExpiresAt *time.Time           `json:"expiresAt,omitempty"`
+	Kind      *SandboxSnapshotKind `json:"kind,omitempty"`
 }
 
 // SandboxSnapshotStatus defines model for sandboxSnapshotStatus.

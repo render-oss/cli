@@ -163,7 +163,7 @@ type BuildConfig struct {
 	// BuildCommand The command to run to build the workflow.
 	BuildCommand string `json:"buildCommand"`
 
-	// Repo The repository URL to use for the build.
+	// Repo The repository URL to use for the build. Cannot be blank.
 	Repo string `json:"repo"`
 
 	// RootDir The root directory of the repository to use for the build, if applicable.
@@ -171,6 +171,24 @@ type BuildConfig struct {
 
 	// Runtime The runtime environment for the workflow (e.g., node, python, etc.).
 	Runtime Runtime `json:"runtime"`
+}
+
+// BuildConfigUpdate A partial update to a workflow's build config. Every field is optional; omitted fields are left unchanged.
+type BuildConfigUpdate struct {
+	// Branch The branch to use for the build, if applicable.
+	Branch *string `json:"branch,omitempty"`
+
+	// BuildCommand The command to run to build the workflow.
+	BuildCommand *string `json:"buildCommand,omitempty"`
+
+	// Repo The repository URL to use for the build. Cannot be blank.
+	Repo *string `json:"repo,omitempty"`
+
+	// RootDir The root directory of the repository to use for the build, if applicable.
+	RootDir *string `json:"rootDir,omitempty"`
+
+	// Runtime The runtime environment for the workflow (e.g., node, python, etc.).
+	Runtime *Runtime `json:"runtime,omitempty"`
 }
 
 // CreateVersion defines model for CreateVersion.
@@ -208,7 +226,7 @@ type RunTask struct {
 	// Input Input data for a task. Can be either an array (for positional arguments) or an object (for named parameters).
 	Input TaskData `json:"input"`
 
-	// Task A task slug in the format workflow-slug/task-name. An optional version can be appended (workflow-slug/task-name:version). If no version is provided, the latest version is used.
+	// Task A task slug in the format workflow-slug/task-name. An optional version can be appended (workflow-slug/task-name:version). If no version is provided, the latest version is used. Cannot be blank.
 	//
 	// Example: my-workflow-slug/my-task, my-workflow-slug/my-task:SHA123
 	Task TaskSlug `json:"task"`
@@ -312,7 +330,7 @@ type TaskRunResult = []interface{}
 // TaskRunStatus defines model for TaskRunStatus.
 type TaskRunStatus string
 
-// TaskSlug A task slug in the format workflow-slug/task-name. An optional version can be appended (workflow-slug/task-name:version). If no version is provided, the latest version is used.
+// TaskSlug A task slug in the format workflow-slug/task-name. An optional version can be appended (workflow-slug/task-name:version). If no version is provided, the latest version is used. Cannot be blank.
 //
 // Example: my-workflow-slug/my-task, my-workflow-slug/my-task:SHA123
 type TaskSlug = string
@@ -349,7 +367,7 @@ type WorkflowCreate struct {
 	// Region Defaults to "oregon"
 	Region Region `json:"region"`
 
-	// RunCommand The command to run the workflow
+	// RunCommand The command to run the workflow. Cannot be blank.
 	RunCommand string `json:"runCommand"`
 }
 
@@ -357,10 +375,12 @@ type WorkflowCreate struct {
 type WorkflowUpdate struct {
 	// AutoDeployTrigger Controls autodeploy behavior. "commit" deploys when a commit is pushed to the branch. "checksPass" waits for CI checks to pass before deploying. "off" disables autodeploy.
 	AutoDeployTrigger *AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
-	BuildConfig       *BuildConfig       `json:"buildConfig,omitempty"`
-	Name              *string            `json:"name,omitempty"`
 
-	// RunCommand The command to run the workflow
+	// BuildConfig A partial update to a workflow's build config. Every field is optional; omitted fields are left unchanged.
+	BuildConfig *BuildConfigUpdate `json:"buildConfig,omitempty"`
+	Name        *string            `json:"name,omitempty"`
+
+	// RunCommand The command to run the workflow. Cannot be blank.
 	RunCommand *string `json:"runCommand,omitempty"`
 }
 

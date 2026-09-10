@@ -21,7 +21,7 @@ func SandboxSnapshotTable(snapshots []*sandboxesclient.SandboxSnapshot) string {
 			s.Status,
 			s.Plan,
 			snapshotSize(s.SizeBytes),
-			snapshotTime(s.ExpiresAt),
+			s.ExpiresAt.UTC().Format(time.RFC3339),
 			snapshotTime(s.CapturedAt),
 		})
 	}
@@ -39,7 +39,7 @@ func SandboxSnapshotDetail(s *sandboxesclient.SandboxSnapshot) string {
 		fmt.Sprintf("Source sandbox: %s", s.SourceSandboxId),
 		fmt.Sprintf("Requested:      %s", s.RequestedAt.UTC().Format(time.RFC3339)),
 		fmt.Sprintf("Captured:       %s", snapshotTime(s.CapturedAt)),
-		fmt.Sprintf("Expires:        %s", snapshotTime(s.ExpiresAt)),
+		fmt.Sprintf("Expires:        %s", s.ExpiresAt.UTC().Format(time.RFC3339)),
 	}
 	if s.Error != nil && *s.Error != "" {
 		lines = append(lines, fmt.Sprintf("Error:          %s", *s.Error))
