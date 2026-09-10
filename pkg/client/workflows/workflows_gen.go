@@ -160,7 +160,7 @@ type BuildConfig struct {
 	// Branch The branch to use for the build, if applicable.
 	Branch *string `json:"branch,omitempty"`
 
-	// BuildCommand The command to run to build the workflow.
+	// BuildCommand The command to run to build the workflow. Required for every runtime except docker, which builds from its Dockerfile.
 	BuildCommand string `json:"buildCommand"`
 
 	// Repo The repository URL to use for the build. Cannot be blank.
@@ -178,7 +178,7 @@ type BuildConfigUpdate struct {
 	// Branch The branch to use for the build, if applicable.
 	Branch *string `json:"branch,omitempty"`
 
-	// BuildCommand The command to run to build the workflow.
+	// BuildCommand The command to run to build the workflow. Required for every runtime except docker, which builds from its Dockerfile.
 	BuildCommand *string `json:"buildCommand,omitempty"`
 
 	// Repo The repository URL to use for the build. Cannot be blank.
