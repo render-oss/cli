@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.28.0] - 2026-09-10
+
+### Added
+
+- `render ea sandboxes snapshots delete` command to delete a sandbox snapshot
+
+### Changed
+
+- `render whoami` now includes your user ID
+- `render whoami` now supports JSON and YAML output via `--output`
+
+### Fixed
+
+- CLI help text now wraps to the terminal width (up to 80 columns) instead of wrapping twice in narrow terminals
+
 ## [2.27.0] - 2026-09-08
 
 ### Added
