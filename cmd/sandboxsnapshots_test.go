@@ -74,7 +74,7 @@ func TestSandboxSnapshots_HelpListsSubcommands(t *testing.T) {
 
 	result, err := h.execute("--help")
 	require.NoError(t, err)
-	for _, sub := range []string{"create", "get", "list"} {
+	for _, sub := range []string{"create", "get", "list", "delete"} {
 		assert.Contains(t, result.Stdout, sub, "expected subcommand %q in help output", sub)
 	}
 }
@@ -418,4 +418,126 @@ func TestSandboxSnapshotsList_APIError_Surfaces(t *testing.T) {
 
 	_, err := h.execute("list", "--group", h.group.Id, "--output", "text")
 	require.Error(t, err)
+}
+
+func TestSandboxSnapshotsDelete_GroupResolution(t *testing.T) {
+	tests := []struct {
+		name        string
+		groups      []bool
+		explicit    bool
+		groupStatus int
+		errContains string
+	}{
+		{name: "default group", groups: []bool{true}},
+		{name: "default group after non-default group", groups: []bool{false, true}},
+		{name: "explicit group skips lookup", groups: []bool{false}, explicit: true, groupStatus: http.StatusForbidden},
+		{name: "no groups", errContains: "no default sandbox group"},
+		{name: "only non-default groups", groups: []bool{false}, errContains: "no default sandbox group"},
+		{name: "lookup error", groups: []bool{true}, groupStatus: http.StatusForbidden, errContains: "not allowed"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newSandboxSnapshotsHarness(t)
+			h.server.SandboxGroups.Instances = nil
+			for _, isDefault := range tc.groups {
+				group := h.server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxesclient.SandboxGroup{OwnerId: sandboxSnapshotsActiveWorkspaceID}))
+				group.IsDefault = isDefault
+				h.group = group
+			}
+			snap := h.seedSnapshot(sandboxesclient.SandboxSnapshot{})
+			if tc.groupStatus != 0 {
+				h.server.SandboxGroups.RespondWith(tc.groupStatus)
+			}
+			args := []string{"delete", snap.Id, "--confirm", "--output", "json"}
+			if tc.explicit {
+				args = append(args, "--group", h.group.Id)
+			}
+
+			result, err := h.execute(args...)
+			if tc.errContains != "" {
+				require.ErrorContains(t, err, tc.errContains)
+				assert.False(t, h.server.HasDeleteRequest())
+				assert.Len(t, h.server.SandboxSnapshots.Instances, 1)
+				return
+			}
+			require.NoError(t, err)
+			body := testrequire.ParseJSONMap(t, result.Stdout)
+			assert.Equal(t, snap.Id, testrequire.SubMap(t, body, "data")["id"])
+			assert.Equal(t, !tc.explicit, h.server.HasRequest("GET", "/sandbox-groups?"))
+			assert.True(t, h.server.HasRequest("DELETE", "/sandbox-groups/"+h.group.Id+"/snapshots/"+snap.Id))
+			assert.Empty(t, h.server.SandboxSnapshots.Instances)
+		})
+	}
+}
+
+func TestSandboxSnapshotsDelete_PreviewByDefault(t *testing.T) {
+	h := newSandboxSnapshotsHarness(t)
+	snap := h.seedSnapshot(sandboxesclient.SandboxSnapshot{})
+
+	result, err := h.execute("delete", snap.Id, "--group", h.group.Id, "--output", "text")
+	require.NoError(t, err)
+	assert.Contains(t, result.Stdout, "would delete")
+	assert.Contains(t, result.Stdout, snap.Id)
+	assert.Contains(t, result.Stdout, "Re-run with --confirm")
+	assert.False(t, h.server.HasDeleteRequest())
+	assert.Len(t, h.server.SandboxSnapshots.Instances, 1)
+}
+
+func TestSandboxSnapshotsDelete_Confirm(t *testing.T) {
+	h := newSandboxSnapshotsHarness(t)
+	snap := h.seedSnapshot(sandboxesclient.SandboxSnapshot{})
+
+	result, err := h.execute("delete", snap.Id, "--group", h.group.Id, "--confirm", "--output", "text")
+	require.NoError(t, err)
+	assert.Contains(t, result.Stdout, "Deleted")
+	assert.Contains(t, result.Stdout, snap.Id)
+	assert.NotContains(t, result.Stdout, "Re-run")
+	assert.True(t, h.server.HasRequest("DELETE", "/sandbox-groups/"+h.group.Id+"/snapshots/"+snap.Id))
+	assert.Empty(t, h.server.SandboxSnapshots.Instances)
+}
+
+func TestSandboxSnapshotsDelete_JSONOutput(t *testing.T) {
+	tests := []struct {
+		name        string
+		confirm     bool
+		wantDeleted bool
+	}{
+		{name: "preview", confirm: false, wantDeleted: false},
+		{name: "confirmed", confirm: true, wantDeleted: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newSandboxSnapshotsHarness(t)
+			snap := h.seedSnapshot(sandboxesclient.SandboxSnapshot{})
+			args := []string{"delete", snap.Id, "--group", h.group.Id, "--output", "json"}
+			if tc.confirm {
+				args = append(args, "--confirm")
+			}
+
+			result, err := h.execute(args...)
+			require.NoError(t, err)
+
+			body := testrequire.ParseJSONMap(t, result.Stdout)
+			assert.Equal(t, snap.Id, testrequire.SubMap(t, body, "data")["id"])
+			meta := testrequire.SubMap(t, body, "meta")
+			assert.Equal(t, tc.wantDeleted, meta["deleted"])
+			if tc.wantDeleted {
+				assert.NotContains(t, meta, "message")
+			} else {
+				assert.Contains(t, meta["message"], "--confirm")
+			}
+		})
+	}
+}
+
+func TestSandboxSnapshotsDelete_SnapshotCreating_SurfacesCode(t *testing.T) {
+	h := newSandboxSnapshotsHarness(t)
+	snap := h.seedSnapshot(sandboxesclient.SandboxSnapshot{Status: sandboxesclient.SandboxSnapshotStatusCreating})
+
+	_, err := h.execute("delete", snap.Id, "--group", h.group.Id, "--confirm", "--output", "text")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "409 (snapshot_creating)")
+	assert.Len(t, h.server.SandboxSnapshots.Instances, 1)
 }

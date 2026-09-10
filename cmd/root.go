@@ -167,7 +167,7 @@ func setupKVCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
 }
 
 func setupSandboxCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
-	snapshots := newSandboxSnapshotsCmd(newSandboxSnapshotsCreateCmd(deps), newSandboxSnapshotsGetCmd(deps), newSandboxSnapshotsListCmd(deps))
+	snapshots := newSandboxSnapshotsCmd(newSandboxSnapshotsCreateCmd(deps), newSandboxSnapshotsGetCmd(deps), newSandboxSnapshotsListCmd(deps), newSandboxSnapshotsDeleteCmd(deps))
 	earlyAccess.AddCommand(newSandboxCmd(newSandboxCreateCmd(deps), newSandboxCopyCmd(deps), newSandboxExecCmd(deps), newSandboxListCmd(deps), snapshots, newSandboxStopCmd(deps)))
 }
 

@@ -166,6 +166,15 @@ func TestServiceGet_SendsGroupAndOwner(t *testing.T) {
 	assert.Equal(t, []string{testWorkspace}, rec.Query["ownerId"])
 }
 
+func TestServiceDelete_SendsGroupAndOwner(t *testing.T) {
+	svc, rec := newTestService(t, func(w http.ResponseWriter) { w.WriteHeader(http.StatusNoContent) })
+
+	require.NoError(t, svc.Delete(context.Background(), "sbg-1", "snp-1"))
+	assert.Equal(t, http.MethodDelete, rec.Method)
+	assert.Equal(t, "/sandbox-groups/sbg-1/snapshots/snp-1", rec.Path)
+	assert.Equal(t, []string{testWorkspace}, rec.Query["ownerId"])
+}
+
 func TestService_MissingWorkspaceReturnsError(t *testing.T) {
 	svc, rec := newTestService(t, respondJSON(http.StatusAccepted, sandboxesclient.SandboxSnapshot{}))
 	t.Setenv("RENDER_WORKSPACE", "")

@@ -15,8 +15,8 @@ A snapshot captures a running sandbox so a new sandbox can be restored from it w
 writable filesystem and restores onto any plan. A runtime snapshot also captures
 memory and CPU state and restores only onto the plan of the source sandbox.
 
-Snapshots belong to the sandbox group of their source sandbox. Getting or listing
-snapshots uses the active workspace's default group unless --group is provided.`,
+Snapshots belong to the sandbox group of their source sandbox. Getting, listing, or
+deleting a snapshot uses the active workspace's default group unless --group is provided.`,
 		Example: `  # Snapshot a running sandbox
   render ea sandboxes snapshots create sbx-abc123
 
@@ -27,7 +27,13 @@ snapshots uses the active workspace's default group unless --group is provided.`
   render ea sandboxes snapshots list --group sbg-abc123
 
   # Get one snapshot
-  render ea sandboxes snapshots get snp-abc123`,
+  render ea sandboxes snapshots get snp-abc123
+
+  # Delete a snapshot
+  render ea sandboxes snapshots delete snp-abc123 --confirm
+
+  # Delete a snapshot in a specific group
+  render ea sandboxes snapshots delete snp-abc123 --group sbg-abc123 --confirm`,
 	}
 	cmd.AddCommand(children...)
 	return cmd

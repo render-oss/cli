@@ -17,6 +17,7 @@ import (
 
 const (
 	ErrorCodeSandboxNotRunning = "sandbox_not_running"
+	ErrorCodeSnapshotCreating  = "snapshot_creating"
 )
 
 type SandboxSnapshotResource struct {
@@ -212,5 +213,27 @@ func registerSandboxSnapshotRoutes(mux *http.ServeMux, s *Server, record func(*h
 			return
 		}
 		writeJSON(w, http.StatusOK, s.SandboxSnapshots.Instances[idx])
+	})
+
+	mux.HandleFunc("DELETE /sandbox-groups/{groupId}/snapshots/{snapshotId}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.SandboxSnapshots.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		if _, ok := s.ownerFromQuery(w, r); !ok {
+			return
+		}
+		idx := s.snapshotIndex(r.PathValue("groupId"), r.PathValue("snapshotId"))
+		if idx == -1 {
+			writeAPIError(w, http.StatusNotFound, "snapshot not found", "")
+			return
+		}
+		if s.SandboxSnapshots.Instances[idx].Status == sandboxesclient.SandboxSnapshotStatusCreating {
+			writeAPIError(w, http.StatusConflict, "snapshot is still being created", ErrorCodeSnapshotCreating)
+			return
+		}
+		s.SandboxSnapshots.Instances = slices.Delete(s.SandboxSnapshots.Instances, idx, idx+1)
+		w.WriteHeader(http.StatusNoContent)
 	})
 }

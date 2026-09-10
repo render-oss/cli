@@ -106,3 +106,16 @@ func unwrapPage(page *[]client.SandboxSnapshotWithCursor) ([]*sandboxesclient.Sa
 	}
 	return snapshots, &items[len(items)-1].Cursor, nil
 }
+
+func (r *Repo) Delete(ctx context.Context, sandboxGroupID, snapshotID string) error {
+	workspace, err := config.WorkspaceID()
+	if err != nil {
+		return err
+	}
+
+	resp, err := r.client.DeleteSandboxSnapshotWithResponse(ctx, sandboxGroupID, snapshotID, &client.DeleteSandboxSnapshotParams{OwnerId: &workspace})
+	if err != nil {
+		return err
+	}
+	return client.ErrorFromResponse(resp)
+}

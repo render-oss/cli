@@ -77,3 +77,7 @@ func (s *Service) resolveGroupID(ctx context.Context, sandboxGroupID string) (st
 	}
 	return "", fmt.Errorf("no default sandbox group found in the active workspace; specify --group")
 }
+
+func (s *Service) Delete(ctx context.Context, sandboxGroupID, snapshotID string) error {
+	return s.repo.Delete(ctx, sandboxGroupID, snapshotID)
+}
