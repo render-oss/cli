@@ -18,6 +18,7 @@ func TestNewExecutionResult(t *testing.T) {
 	durationAfterConstruction := time.Since(startedAt)
 
 	require.True(t, result.AnalyticsEligible)
+	require.True(t, result.AnalyticsNoticeEligible)
 	require.Equal(t, "test", result.CommandPath)
 	require.Equal(t, command.CompletionKindExplicitExit, result.CompletionKind)
 	require.Equal(t, 17, result.ExitCode)

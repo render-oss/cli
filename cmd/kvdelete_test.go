@@ -172,7 +172,7 @@ func TestKVDelete_NameCollision_NarrowedByEnvironment_Deletes(t *testing.T) {
 	assert.Contains(t, result.Stdout, "Deleted")
 	assert.Contains(t, result.Stdout, prodKV.Id)
 	require.Len(t, server.KV.Instances, 1, "only the production KV should be deleted")
-	assert.Equal(t, stagingKV.Id, server.KV.Instances[0].Id)
+	assert.Equal(t, stagingKV.Id, server.KV.Only(t).Id)
 }
 
 func TestKVDelete_EnvironmentByID_Deletes(t *testing.T) {

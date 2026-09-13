@@ -13,9 +13,9 @@ import "github.com/render-oss/cli/pkg/client"
 // client.PersistenceMode. If the generator later learns to emit a
 // PersistenceModeValues(), delete this and point PersistenceModeValues at it.
 var persistenceModeValues = []client.PersistenceMode{
-	client.JournalSnapshot,
-	client.Snapshot,
-	client.Off,
+	client.PersistenceModeJournalSnapshot,
+	client.PersistenceModeSnapshot,
+	client.PersistenceModeOff,
 }
 
 // PersistenceModeValues returns the accepted --persistence-mode flag values.

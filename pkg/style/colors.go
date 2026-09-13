@@ -89,6 +89,7 @@ const (
 	gray400      = "#8f8f8f"
 	gray500      = "#6b6b6b"
 	gray600      = "#4d4d4d"
+	gray650      = "#383838"
 	gray700      = "#272727"
 	gray800      = "#141414"
 	gray900      = "#0d0d0d"

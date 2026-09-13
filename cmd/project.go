@@ -15,9 +15,9 @@ import (
 )
 
 var projectCmd = &cobra.Command{
-	Use:   "projects",
-	Short: "List projects in the active workspace",
-	Long: `Browse projects in the active workspace. In interactive mode, select a project to view its environments.`,
+	Use:     "projects",
+	Short:   "List projects in the active workspace",
+	Long:    `Browse projects in the active workspace. In interactive mode, select a project to view its environments.`,
 	GroupID: GroupManagement.ID,
 	Example: `  # List projects in JSON
   render projects --output json`,

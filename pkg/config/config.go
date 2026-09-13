@@ -37,15 +37,6 @@ type Config struct {
 
 	APIConfig    `yaml:"api"`
 	DashboardURL string `yaml:"dashboard_url,omitempty"`
-
-	Analytics AnalyticsConfig `yaml:"analytics,omitempty"`
-}
-
-// AnalyticsConfig holds the user's persisted analytics preference.
-type AnalyticsConfig struct {
-	// Disabled opts the user out of sending CLI analytics events
-	// DO_NOT_TRACK / RENDER_CLI_DISABLE_ANALYTICS environment variables are other ways to do the same thing.
-	Disabled bool `yaml:"disabled,omitempty"`
 }
 
 type APIConfig struct {

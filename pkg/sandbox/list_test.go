@@ -18,8 +18,8 @@ import (
 
 const listTestWorkspace = "tea-workspace"
 
-// newListService wires a Service backed by a generated client pointed at h.
-func newListService(t *testing.T, h http.HandlerFunc) *Service {
+// newTestService wires a Service backed by a generated client pointed at h.
+func newTestService(t *testing.T, h http.HandlerFunc) *Service {
 	t.Helper()
 	server := httptest.NewServer(h)
 	t.Cleanup(server.Close)
@@ -63,7 +63,7 @@ func TestServiceList_StatusQuery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var gotQuery url.Values
-			svc := newListService(t, func(w http.ResponseWriter, r *http.Request) {
+			svc := newTestService(t, func(w http.ResponseWriter, r *http.Request) {
 				gotQuery = r.URL.Query()
 				w.Header().Set("Content-Type", "application/json")
 				_ = json.NewEncoder(w).Encode([]client.SandboxWithCursor{})
@@ -89,7 +89,7 @@ func TestServiceList_FollowsCursorsAcrossPages(t *testing.T) {
 	const firstPageSize = 100
 
 	var gotCursors []string
-	svc := newListService(t, func(w http.ResponseWriter, r *http.Request) {
+	svc := newTestService(t, func(w http.ResponseWriter, r *http.Request) {
 		cursor := r.URL.Query().Get("cursor")
 		gotCursors = append(gotCursors, cursor)
 

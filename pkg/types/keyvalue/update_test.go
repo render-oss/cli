@@ -46,13 +46,13 @@ func TestNormalizeAndValidateUpdateInput(t *testing.T) {
 
 	t.Run("Update with PersistenceMode field alone passes validation", func(t *testing.T) {
 		input := kvtypes.KeyValueUpdateInput{
-			PersistenceMode: pointers.From(client.Off),
+			PersistenceMode: pointers.From(client.PersistenceModeOff),
 		}
 		got, err := kvtypes.NormalizeAndValidateUpdateInput(input)
 		require.NoError(t, err)
 		assert.Nil(t, got.Name)
 		assert.Nil(t, got.Plan)
-		assert.Equal(t, pointers.From(client.Off), got.PersistenceMode)
+		assert.Equal(t, pointers.From(client.PersistenceModeOff), got.PersistenceMode)
 	})
 
 	t.Run("Whitespace-only PersistenceMode is normalized to nil", func(t *testing.T) {

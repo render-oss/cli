@@ -32,7 +32,12 @@ func TestSandboxHelpExamplesResolve(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, sandboxes.Commands())
 
-	for _, cmd := range sandboxes.Commands() {
+	requireSandboxHelpExamplesResolve(t, root, sandboxes.Commands())
+}
+
+func requireSandboxHelpExamplesResolve(t *testing.T, root *cobra.Command, cmds []*cobra.Command) {
+	t.Helper()
+	for _, cmd := range cmds {
 		t.Run(cmd.Name(), func(t *testing.T) {
 			examples := exampleCommandLines(cmd.Long + "\n" + cmd.Example)
 			require.NotEmpty(t, examples, "command documents no examples")
@@ -40,8 +45,14 @@ func TestSandboxHelpExamplesResolve(t *testing.T) {
 			for _, example := range examples {
 				found, _, err := root.Find(commandPathArgs(example))
 				require.NoError(t, err, "example %q", example)
+				if cmd.HasSubCommands() {
+					assert.True(t, strings.HasPrefix(found.CommandPath(), cmd.CommandPath()+" "), "example %q does not run a subcommand of this command", example)
+					continue
+				}
 				assert.Equal(t, cmd.CommandPath(), found.CommandPath(), "example %q does not run this command", example)
 			}
+
+			requireSandboxHelpExamplesResolve(t, root, cmd.Commands())
 		})
 	}
 }

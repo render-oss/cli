@@ -1,5 +1,74 @@
 # Changelog
 
+## [2.28.0] - 2026-09-10
+
+### Added
+
+- `render ea sandboxes snapshots delete` command to delete a sandbox snapshot
+
+### Changed
+
+- `render whoami` now includes your user ID
+- `render whoami` now supports JSON and YAML output via `--output`
+
+### Fixed
+
+- CLI help text now wraps to the terminal width (up to 80 columns) instead of wrapping twice in narrow terminals
+
+## [2.27.0] - 2026-09-08
+
+### Added
+
+- `render ea sandboxes snapshots create` command to snapshot a running sandbox
+- `render ea sandboxes snapshots get` command to fetch details of a sandbox snapshot
+- `render ea sandboxes snapshots list` command to list the snapshots in a sandbox group
+- `render ea sandboxes create --snapshot-id` to restore a new sandbox from a snapshot
+
+### Changed
+
+- `render blueprints validate` now reports the workflows in a Blueprint
+
+### Fixed
+
+- Updated `golang.org/x/crypto` to address an upstream security advisory
+
+## [2.26.0] - 2026-09-01
+
+### Added
+
+- The CLI now collects usage data on commands and performance; no sensitive data is collected. Learn more at https://render.com/docs/cli#usage-telemetry, or opt out by setting `DO_NOT_TRACK=1` or `RENDER_CLI_DISABLE_ANALYTICS=1`
+- Manage the Render Postgres connection pool with `render postgres create` or `render postgres update` by passing `--connection-pool=none` or `--connection-pool=pgbouncer`; Postgres detail output now shows the current connection pool mode
+
+## [2.25.0] - 2026-08-27
+
+### Changed
+
+- Postgres and Key Value interactive plan pickers now list Render's new compute plans (e.g. `2c-8g` for Postgres, `1g` for Key Value); the previously advertised names remain valid input
+- `render blueprints validate` now exits with status code 1 if the blueprint is invalid for all `--output` modes
+- CLI help now recommends `RENDER_CLI_CONFIG_DIR` for overriding the Render CLI config directory
+
+### Fixed
+
+- OAuth token refresh requests no longer block CLI commands indefinitely
+
+## [2.24.0] - 2026-08-19
+
+### Changed
+
+- Windows release archives now contain `render.exe` instead of `cli_v<version>.exe`
+
+## [2.23.0] - 2026-08-17
+
+### Added
+
+- Added support for shell completions. Use `render completion [shell]` to enable them (e.g. `render completion zsh >> ~/.zshrc`)
+- New `RENDER_CLI_CONFIG_DIR` environment variable to override the directory the CLI reads and writes its files in, replacing `~/.render`. This is now preferred over `RENDER_CLI_CONFIG_PATH` which will be deprecated in a future release.
+
+### Fixed
+
+- `render login` now keeps waiting for authentication when the browser can't be opened automatically (e.g. missing `xdg-open`) instead of aborting; open the printed URL manually to finish logging in
+- Rate-limited API responses now report a "too many requests" error instead of "unknown error"
+
 ## [2.22.0] - 2026-07-21
 
 ### Added

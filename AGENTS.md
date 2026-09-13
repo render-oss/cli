@@ -156,7 +156,7 @@ export RENDER_API_KEY="your-api-key"
 | `RENDER_HOST` | API base URL |
 | `RENDER_API_KEY` | API key (skips OAuth) |
 | `RENDER_WORKSPACE` | Workspace ID override |
-| `RENDER_CLI_CONFIG_PATH` | Config file path override |
+| `RENDER_CLI_CONFIG_DIR` | CLI config and state directory override |
 
 ## Testing
 

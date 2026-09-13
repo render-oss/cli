@@ -14,9 +14,6 @@ Sandbox groups scope a workspace's sandboxes to a region and (optionally) an
 environment. Early Access guarantees at most one default group per workspace;
 Beta will add multi-group support.
 
-Available commands:
-  list   - List sandbox groups
-
 Examples:
   render ea sandbox-groups list
   render ea sandbox-groups list -o json

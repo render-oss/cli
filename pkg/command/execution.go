@@ -52,7 +52,7 @@ const (
 	CompletionKindExecutionError CompletionKind = "execution_error"
 	// CompletionKindExplicitExit indicates that the command deliberately chose
 	// the process exit code by returning an ExitCoder, typically to report an
-	// outcome external to the CLI rather than a CLI failure: `render sandbox exec`
+	// outcome external to the CLI rather than a CLI failure: `render sandboxes exec`
 	// propagates the remote process's exit code, and `render deploys create --wait`
 	// exits nonzero when the deploy fails.
 	CompletionKindExplicitExit CompletionKind = "explicit_exit"
@@ -80,6 +80,10 @@ type ExecutionResult struct {
 	// execution to produce an analytics event. It does not reflect whether the
 	// user has enabled or disabled analytics sending.
 	AnalyticsEligible bool
+	// AnalyticsNoticeEligible reports whether the one-time analytics notice may
+	// be shown after this execution. Commands such as login and logout are
+	// notice-eligible even though they are not analytics-eligible.
+	AnalyticsNoticeEligible bool
 	// CommandPath is the space-joined path of the command Cobra selected (for
 	// example "render services list"), or the root command's path ("render")
 	// when discovery failed. It contains only matched command names — never user
@@ -99,11 +103,6 @@ type ExecutionResult struct {
 	// OutputFormat is the resolved output format at the end of the invocation.
 	// It is nil when command setup never resolved a format.
 	OutputFormat *Output
-	// SkipAnalyticsSend reports that this execution must not send an analytics
-	// event even when analytics is otherwise enabled and the command is eligible.
-	// Unlike AnalyticsEligible, which classifies the command, this classifies the
-	// individual execution.
-	SkipAnalyticsSend bool
 	// StartedAt is the wall-clock instant the invocation began. It is emitted as
 	// the client-authoritative occurrence time so downstream analytics do not
 	// depend on server receipt time, which drifts once sends become asynchronous.

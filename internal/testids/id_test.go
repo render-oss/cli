@@ -19,6 +19,8 @@ func TestResourceIDsAreValid(t *testing.T) {
 		{"postgres", PostgresID("appdb"), validate.IsPostgresID},
 		{"service", ServiceID("api"), validate.IsServiceID},
 		{"cron job", CronJobID("daily"), func(s string) bool { return validate.IsObjectID("crn", s) }},
+		{"sandbox", SandboxID("box"), func(s string) bool { return validate.IsObjectID("sbx", s) }},
+		{"sandbox snapshot", SandboxSnapshotID("snap"), func(s string) bool { return validate.IsObjectID("snp", s) }},
 	}
 
 	for _, tc := range tests {
@@ -52,6 +54,8 @@ func TestRandomResourceIDsAreValidAndUnique(t *testing.T) {
 		{"postgres", RandomPostgresID(), RandomPostgresID(), validate.IsPostgresID},
 		{"service", RandomServiceID(), RandomServiceID(), validate.IsServiceID},
 		{"cron job", RandomCronJobID(), RandomCronJobID(), func(s string) bool { return validate.IsObjectID("crn", s) }},
+		{"sandbox", RandomSandboxID(), RandomSandboxID(), func(s string) bool { return validate.IsObjectID("sbx", s) }},
+		{"sandbox snapshot", RandomSandboxSnapshotID(), RandomSandboxSnapshotID(), func(s string) bool { return validate.IsObjectID("snp", s) }},
 	}
 
 	for _, tc := range tests {

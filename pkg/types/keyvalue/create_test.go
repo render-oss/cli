@@ -35,7 +35,7 @@ func TestNormalizeAndValidateCreateInput(t *testing.T) {
 			Region:              pointers.From("oregon"),
 			EnvironmentIDOrName: pointers.From(environmentID),
 			MaxmemoryPolicy:     pointers.From(kvtypes.MaxmemoryPolicyAllkeysLru),
-			PersistenceMode:     pointers.From(client.Snapshot),
+			PersistenceMode:     pointers.From(client.PersistenceModeSnapshot),
 		}
 		got, err := kvtypes.NormalizeAndValidateCreateInput(input)
 		require.NoError(t, err)
@@ -44,7 +44,7 @@ func TestNormalizeAndValidateCreateInput(t *testing.T) {
 		assert.Equal(t, pointers.From("oregon"), got.Region)
 		assert.Equal(t, pointers.From(environmentID), got.EnvironmentIDOrName)
 		assert.Equal(t, pointers.From(kvtypes.MaxmemoryPolicyAllkeysLru), got.MaxmemoryPolicy)
-		assert.Equal(t, pointers.From(client.Snapshot), got.PersistenceMode)
+		assert.Equal(t, pointers.From(client.PersistenceModeSnapshot), got.PersistenceMode)
 	})
 
 	t.Run("Input with empty name returns validation error", func(t *testing.T) {

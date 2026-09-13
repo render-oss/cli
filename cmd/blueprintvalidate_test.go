@@ -3,17 +3,18 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/pkg/client"
+	bptypes "github.com/render-oss/cli/pkg/client/blueprints"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 )
@@ -22,151 +23,156 @@ func TestBlueprintValidateKeepsFileCompletion(t *testing.T) {
 	requireCompletionDirective(t, []string{"blueprints", "validate", ""}, cobra.ShellCompDirectiveDefault)
 }
 
-const testBlueprintWorkspaceID = "wrk-blueprint-test"
+func TestBlueprintValidateNonInteractiveExitCode(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		result := bptypes.ValidateBlueprintResponse{Valid: true}
 
-// writeTestBlueprint writes blueprint content to a temp file and returns its path.
-func writeTestBlueprint(t *testing.T, content string) string {
-	t.Helper()
-	path := filepath.Join(t.TempDir(), "render.yaml")
-	require.NoError(t, os.WriteFile(path, []byte(content), 0o600))
-	return path
+		output := requireBlueprintValidateResult(t, result, command.TEXT, 0)
+
+		require.Empty(t, output.Stderr)
+		require.JSONEq(t, `{"valid": true}`, output.Stdout)
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		validationErrors := []bptypes.ValidationError{{Error: "services[0].type is required"}}
+		result := bptypes.ValidateBlueprintResponse{
+			Valid:  false,
+			Errors: &validationErrors,
+		}
+		expectedJSON := `{
+  "errors": [
+    {
+      "error": "services[0].type is required"
+    }
+  ],
+  "valid": false
+}`
+
+		t.Run("text renders JSON", func(t *testing.T) {
+			output := requireBlueprintValidateResult(t, result, command.TEXT, 1)
+
+			require.Empty(t, output.Stderr)
+			require.JSONEq(t, expectedJSON, output.Stdout)
+		})
+
+		t.Run("json", func(t *testing.T) {
+			output := requireBlueprintValidateResult(t, result, command.JSON, 1)
+
+			require.Empty(t, output.Stderr)
+			require.JSONEq(t, expectedJSON, output.Stdout)
+		})
+
+		t.Run("yaml", func(t *testing.T) {
+			output := requireBlueprintValidateResult(t, result, command.YAML, 1)
+
+			require.Empty(t, output.Stderr)
+			require.YAMLEq(t, expectedJSON, output.Stdout)
+			require.False(t, json.Valid([]byte(output.Stdout)), "YAML output must not use JSON syntax")
+		})
+	})
 }
 
-// blueprintValidateHarness starts an httptest server that answers
-// POST /blueprints/validate with the given handler and points the CLI's
-// env-based config at it so runBlueprintValidate's NewDefaultClient hits it.
-// It also captures the workspace ID sent in the multipart form.
-type blueprintValidateHarness struct {
-	t               *testing.T
-	server          *httptest.Server
-	sentWorkspaceID string
+func TestBlueprintValidateRejectsUnexpectedResponseBody(t *testing.T) {
+	server := renderapi.NewServer(t)
+	server.Blueprints.RespondWithRawValidation("text/html", []byte("<html>not the API</html>"))
+
+	execution, output := executeBlueprintValidate(t, server, command.TEXT)
+
+	require.Equal(t, 1, execution.ExitCode)
+	require.Empty(t, output.Stdout)
+	require.Contains(t, output.Stderr, "unexpected response from server")
+	require.Contains(t, output.Stderr, "<html>not the API</html>")
 }
 
-func newBlueprintValidateHarness(t *testing.T, validateHandler http.HandlerFunc) *blueprintValidateHarness {
+func TestPrintValidationResultInteractive(t *testing.T) {
+	services := []string{"api"}
+	workflows := []string{"nightly-etl", "weekly-report"}
+
+	result := &bptypes.ValidateBlueprintResponse{
+		Valid: true,
+		Plan: &bptypes.ValidationPlanSummary{
+			Services:     &services,
+			Workflows:    &workflows,
+			TotalActions: new(3),
+		},
+	}
+
+	out := captureStdout(t, func() {
+		require.NoError(t, printValidationResultInteractive("render.yaml", result))
+	})
+
+	require.Contains(t, out, fmt.Sprintf("  %-14s %d", "Services:", 1))
+	require.Contains(t, out, fmt.Sprintf("  %-14s %d", "Workflows:", 2))
+	require.Contains(t, out, fmt.Sprintf("  %-14s %d", "Total Actions:", 3))
+
+	// Resource types absent from the plan stay out of the summary.
+	require.NotContains(t, out, "Databases:")
+}
+
+// captureStdout collects what f writes to os.Stdout, which the interactive
+// summary prints to directly rather than through the command's output writer.
+func captureStdout(t *testing.T, f func()) string {
 	t.Helper()
 
-	h := &blueprintValidateHarness{t: t}
-	h.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/blueprints/validate" {
-			http.NotFound(w, r)
-			return
-		}
-		if err := r.ParseMultipartForm(1 << 20); err == nil {
-			h.sentWorkspaceID = r.FormValue("ownerId")
-		}
-		validateHandler(w, r)
-	}))
-	t.Cleanup(h.server.Close)
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+
+	original := os.Stdout
+	os.Stdout = w
+	defer func() { os.Stdout = original }()
+
+	f()
+	require.NoError(t, w.Close())
+
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(r)
+	require.NoError(t, err)
+
+	return buf.String()
+}
+
+func requireBlueprintValidateResult(t *testing.T, result bptypes.ValidateBlueprintResponse, outputFormat command.Output, wantExitCode int) CommandResult {
+	t.Helper()
+	server := renderapi.NewServer(t)
+	server.Blueprints.RespondWithValidation(result)
+	execution, output := executeBlueprintValidate(t, server, outputFormat)
+
+	require.Equal(t, wantExitCode, execution.ExitCode)
+	require.Equal(t, outputFormat, *execution.OutputFormat)
+	require.True(t, server.HasRequest("POST", "/blueprints/validate"))
+
+	return output
+}
+
+func executeBlueprintValidate(t *testing.T, server *renderapi.Server, outputFormat command.Output) (command.ExecutionResult, CommandResult) {
+	t.Helper()
 
 	t.Setenv("RENDER_CLI_CONFIG_PATH", newTestConfigPath(t))
+	t.Setenv("RENDER_HOST", server.URL())
 	t.Setenv("RENDER_API_KEY", "test-api-key")
-	t.Setenv("RENDER_HOST", h.server.URL)
-	t.Setenv("RENDER_WORKSPACE", testBlueprintWorkspaceID)
 
-	return h
-}
-
-// execute invokes `render blueprints validate <blueprintPath>` with extraArgs
-// appended and returns the captured output plus the execution error.
-func (h *blueprintValidateHarness) execute(blueprintPath string, extraArgs ...string) (CommandResult, error) {
-	h.t.Helper()
-
-	c, err := client.NewClientWithResponses(h.server.URL)
-	require.NoError(h.t, err)
+	c, err := client.NewClientWithResponses(server.URL())
+	require.NoError(t, err)
 	deps := dependencies.New(c)
 	deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
 		return command.RuntimeSignals{StdinTTY: false, StdoutTTY: false, StderrTTY: false}, nil
 	}
 
 	root := newRootCmd()
-	root.AddCommand(blueprintsCmd)
+	blueprints := &cobra.Command{Use: "blueprints", GroupID: GroupManagement.ID}
+	blueprints.AddCommand(newBlueprintValidateCmd())
+	root.AddCommand(blueprints)
 	setupRootCmdPersistentRun(root, deps)
 
-	args := append([]string{"blueprints", "validate", blueprintPath}, extraArgs...)
+	blueprintPath := filepath.Join(t.TempDir(), "render.yaml")
+	require.NoError(t, os.WriteFile(blueprintPath, []byte("services: []\n"), 0o600))
 
 	var stdout, stderr bytes.Buffer
 	root.SetOut(&stdout)
 	root.SetErr(&stderr)
-	root.SetArgs(args)
+	root.SetArgs([]string{"blueprints", "validate", blueprintPath, "--workspace", "tea-test", "--output", string(outputFormat)})
 
-	execErr := root.Execute()
-	return CommandResult{Stdout: stdout.String(), Stderr: stderr.String()}, execErr
-}
-
-func jsonBlueprintResponse(valid bool, errors []map[string]any) map[string]any {
-	resp := map[string]any{"valid": valid}
-	if errors != nil {
-		resp["errors"] = errors
-	}
-	return resp
-}
-
-func writeValidateResponse(t *testing.T, w http.ResponseWriter, body map[string]any) {
-	t.Helper()
-	w.Header().Set("Content-Type", "application/json")
-	require.NoError(t, json.NewEncoder(w).Encode(body))
-}
-
-func TestBlueprintValidate_Valid_SucceedsInAllNonInteractiveModes(t *testing.T) {
-	for _, format := range []string{"json", "yaml", "text"} {
-		t.Run(format, func(t *testing.T) {
-			harness := newBlueprintValidateHarness(t, func(w http.ResponseWriter, _ *http.Request) {
-				writeValidateResponse(t, w, jsonBlueprintResponse(true, nil))
-			})
-
-			blueprintPath := writeTestBlueprint(t, "services:\n  - type: web\n    name: api\n")
-			result, err := harness.execute(blueprintPath, "--output", format)
-			require.NoError(t, err, "valid blueprint should not error in %s mode", format)
-			assert.Equal(t, testBlueprintWorkspaceID, harness.sentWorkspaceID, "workspace ID should be sent to the validate endpoint")
-			assert.NotEmpty(t, result.Stdout)
-		})
-	}
-}
-
-func TestBlueprintValidate_Invalid_ExitsNonZeroInAllNonInteractiveModes(t *testing.T) {
-	validationErr := map[string]any{"error": "service 'api' is missing a required 'name' field"}
-
-	for _, format := range []string{"json", "yaml", "text"} {
-		t.Run(format, func(t *testing.T) {
-			harness := newBlueprintValidateHarness(t, func(w http.ResponseWriter, _ *http.Request) {
-				writeValidateResponse(t, w, jsonBlueprintResponse(false, []map[string]any{validationErr}))
-			})
-
-			blueprintPath := writeTestBlueprint(t, "services:\n  - type: web\n")
-			result, err := harness.execute(blueprintPath, "--output", format)
-
-			require.Error(t, err, "invalid blueprint should fail in %s mode so scripts see a non-zero exit", format)
-			assert.Contains(t, err.Error(), "has validation errors")
-			assert.Contains(t, result.Stdout, "missing a required 'name' field", "validation errors should still be printed in %s mode", format)
-		})
-	}
-}
-
-func TestBlueprintValidate_Invalid_NonInteractiveExitsNonZero(t *testing.T) {
-	harness := newBlueprintValidateHarness(t, func(w http.ResponseWriter, _ *http.Request) {
-		writeValidateResponse(t, w, jsonBlueprintResponse(false, nil))
-	})
-
-	blueprintPath := writeTestBlueprint(t, "services:\n  - type: web\n  - type: web\n")
-
-	// json: the structured result is printed, and the error drives a non-zero exit.
-	result, err := harness.execute(blueprintPath, "--output", "json")
-	require.Error(t, err)
-
-	var body map[string]any
-	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body), "expected JSON output, got: %s", result.Stdout)
-	assert.Equal(t, false, body["valid"])
-	assert.Contains(t, err.Error(), "has validation errors")
-}
-
-func TestBlueprintValidate_EmptyResponse_ReturnsErrorWithoutPanicking(t *testing.T) {
-	harness := newBlueprintValidateHarness(t, func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	blueprintPath := writeTestBlueprint(t, "services: []")
-	_, err := harness.execute(blueprintPath, "--output", "json")
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "empty response")
+	execution := runExecution(root, time.Now())
+	output := CommandResult{Stdout: stdout.String(), Stderr: stderr.String()}
+	return execution, output
 }

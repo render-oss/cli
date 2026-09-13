@@ -15,6 +15,7 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	telemetryclient "github.com/render-oss/cli/pkg/client/clitelemetry"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/config"
 )
 
 // unknownOutputFormat identifies invocations that finished before command setup
@@ -22,21 +23,20 @@ import (
 const unknownOutputFormat = "unknown"
 
 // Sender turns a completed execution into an analytics event. Sending and
-// logging are controlled independently: sending by the dev gate and
-// [ResolveConsent] (env opt-outs and the config file), logging by an
-// environment variable.
+// logging are controlled independently: sending by [ResolveConsent]
+// (environment opt-outs), logging by an environment variable.
 //
-// New configures sending only when the dev gate is open, the user has not
-// opted out, and the API client is present. A logged-out CLI still holds a
-// client
+// New configures sending only when the user has not opted out and the API
+// client is present. A logged-out CLI still holds a client
 // (client.NotLoggedInClient), whose request editor fails in-process before any
 // network I/O, so sending through it is safe. Event logging works even when
 // sending is disabled.
 type Sender struct {
 	// client sends analytics events to the Render API.
 	client cliTelemetryClient
-	// shouldSend controls whether analytics events are sent.
-	shouldSend bool
+	// sendingEnabled controls whether analytics events may be sent based on user
+	// consent and client presence.
+	sendingEnabled bool
 	// shouldLog controls whether analytics activity is logged.
 	shouldLog bool
 	// cliVersion is the Render CLI version included in each event.
@@ -64,23 +64,11 @@ type analyticsSubprocessLauncher interface {
 
 // New creates a new [Sender].
 func New(apiClient *client.ClientWithResponses) *Sender {
-	// shouldSend is a conjunction of the internal dev gate and user consent.
-	// The conjunction is what lets the opt-out consent logic ship without
-	// being activated: sending still requires the dev gate to be explicitly
-	// opened, so analytics stays opt-in by default — while a dev with the
-	// gate open and any opt-out mechanism set sends nothing, so the consent
-	// path is live end to end before the default ever changes.
-	//
-	// Deleting the cfg.AnalyticsDevGateOpen() term is the change that flips
-	// the CLI from opt-in to opt-out (GROW-3146), leaving user consent and
-	// client presence as the only conditions. Until then, order matters: the
-	// dev gate short-circuits first, so builds with the gate closed never
-	// read the config file that consent lives in.
-	shouldSend := cfg.AnalyticsDevGateOpen() && ResolveConsent().Granted && apiClient != nil
+	sendingEnabled := ResolveConsent().Granted && apiClient != nil
 
 	return newSender(
 		apiClient,
-		shouldSend,
+		sendingEnabled,
 		cfg.ShouldLogAnalytics(),
 		command.DetectTerminalSignals,
 		DetectAgentSignals,
@@ -90,7 +78,7 @@ func New(apiClient *client.ClientWithResponses) *Sender {
 
 func newSender(
 	apiClient cliTelemetryClient,
-	shouldSend bool,
+	sendingEnabled bool,
 	shouldLog bool,
 	detectTerminalSignals func() command.TerminalSignals,
 	detectAgentSignals func() []string,
@@ -98,7 +86,7 @@ func newSender(
 ) *Sender {
 	return &Sender{
 		client:                apiClient,
-		shouldSend:            shouldSend,
+		sendingEnabled:        sendingEnabled,
 		shouldLog:             shouldLog,
 		cliVersion:            cfg.Version,
 		goos:                  runtime.GOOS,
@@ -121,13 +109,24 @@ func newSender(
 //
 // In the future if we have more than 1 event type to send, we can rename / refactor this function
 func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
-	if !s.shouldSend && !s.shouldLog {
+	if !s.sendingEnabled && !s.shouldLog {
 		return
 	}
 
+	now := time.Now()
+	var currentBackoff backoff
+	if s.sendingEnabled {
+		currentBackoff = loadBackoff()
+	}
+	backingOff := currentBackoff.inEffect(now)
+	if backingOff && !s.shouldLog {
+		return
+	}
+	shouldSend := s.sendingEnabled && !backingOff
+
 	var launcher analyticsSubprocessLauncher
 	var launcherErr error
-	if s.shouldSend {
+	if shouldSend {
 		// A silent refusal has nothing to report, so stop before resolving the
 		// installation ID or creating analytics state.
 		launcher, launcherErr = s.newLauncher()
@@ -137,21 +136,25 @@ func (s *Sender) Send(result command.ExecutionResult, stderr io.Writer) {
 	}
 
 	installationID, err := s.getInstallationID()
-	if err != nil && s.shouldLog {
-		_, _ = fmt.Fprintf(stderr, "analytics error: getting installation ID: %v\n", err)
+	if err != nil {
+		s.logError(stderr, fmt.Errorf("getting installation ID: %w", err))
 	}
 
 	terminalSignals := s.detectTerminalSignals()
 	agentSignals := s.detectAgentSignals()
 	ciSignals := s.detectCISignals()
-	payload := newEventPOSTBody(result, terminalSignals, agentSignals, ciSignals, installationID, s.cliVersion, s.goos, s.goarch)
+	currentWorkspaceID, _ := config.WorkspaceID()
+	payload := newEventPOSTBody(result, terminalSignals, agentSignals, ciSignals, installationID, currentWorkspaceID, s.cliVersion, s.goos, s.goarch)
 
 	if s.shouldLog {
 		payloadJSON, _ := json.Marshal(payload)
 		_, _ = fmt.Fprintln(stderr, string(payloadJSON))
 	}
 
-	if !s.shouldSend {
+	if !shouldSend {
+		if backingOff && s.shouldLog {
+			_, _ = fmt.Fprintln(stderr, currentBackoff.skippedSendDiagnostic())
+		}
 		return
 	}
 
@@ -218,6 +221,7 @@ func newEventPOSTBody(
 	agentSignals []string,
 	ciSignals []string,
 	installationID string,
+	currentWorkspaceID string,
 	cliVersion string,
 	goos string,
 	goarch string,
@@ -229,6 +233,7 @@ func newEventPOSTBody(
 		CliVersion:            cliVersion,
 		Command:               result.CommandPath,
 		CompletionKind:        telemetryclient.CliTelemetryEventPOSTInputCompletionKind(result.CompletionKind),
+		CurrentWorkspaceId:    currentWorkspaceID,
 		DurationMs:            result.Duration.Milliseconds(),
 		ExitCode:              result.ExitCode,
 		IsStdinTty:            terminalSignals.StdinTTY,

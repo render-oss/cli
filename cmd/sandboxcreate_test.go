@@ -1,11 +1,17 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/render-oss/cli/internal/testids"
+	"github.com/render-oss/cli/internal/testrequire"
+	"github.com/render-oss/cli/pkg/client"
 	sandboxclient "github.com/render-oss/cli/pkg/client/sandboxes"
 )
 
@@ -47,5 +53,254 @@ func TestSandboxCreateValidateAcceptsEverySchemaPlan(t *testing.T) {
 	for _, p := range sandboxclient.SandboxPlanValues() {
 		input := SandboxCreateInput{Plan: string(p)}
 		assert.NoError(t, input.Validate(false), "plan %q should be accepted", p)
+	}
+}
+
+func TestSandboxCreateInputValidateNetworkPolicy(t *testing.T) {
+	cases := []struct {
+		name          string
+		networkPolicy string
+		errContains   string
+	}{
+		{name: "empty network policy is allowed (server picks default)", networkPolicy: ""},
+		{name: "allow-all", networkPolicy: "allow-all"},
+		{name: "deny-all", networkPolicy: "deny-all"},
+		{name: "unknown policy", networkPolicy: "somewhat-open", errContains: `invalid network policy "somewhat-open"`},
+		{name: "constant-style name rejected", networkPolicy: "AllowAll", errContains: `invalid network policy "AllowAll"`},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := SandboxCreateInput{NetworkPolicy: tc.networkPolicy}
+			err := input.Validate(false)
+			if tc.errContains == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.errContains)
+			for _, name := range sandboxNetworkPolicyNames() {
+				assert.Contains(t, err.Error(), name)
+			}
+		})
+	}
+}
+
+func TestSandboxCreateInputValidateTimeout(t *testing.T) {
+	cases := []struct {
+		name        string
+		timeout     int
+		errContains string
+	}{
+		{name: "zero means the server default", timeout: 0},
+		{name: "one second", timeout: 1},
+		{name: "the documented maximum", timeout: 86400},
+		{name: "negative is rejected rather than silently defaulted", timeout: -1, errContains: "invalid timeout -1"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := SandboxCreateInput{Timeout: tc.timeout}
+			err := input.Validate(false)
+			if tc.errContains == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.errContains)
+		})
+	}
+}
+
+func TestSandboxCreateNetworkPolicyNamesMatchSchema(t *testing.T) {
+	names := sandboxNetworkPolicyNames()
+	require.NotEmpty(t, names)
+	for _, name := range names {
+		assert.True(t, sandboxclient.SandboxNetworkPolicyDefault(name).Valid(), "policy %q should be valid per schema", name)
+		input := SandboxCreateInput{NetworkPolicy: name}
+		assert.NoError(t, input.Validate(false), "policy %q should be accepted", name)
+	}
+}
+
+func TestSandboxCreateInputValidateEnv(t *testing.T) {
+	cases := []struct {
+		name        string
+		env         []string
+		errContains string
+	}{
+		{name: "no env is allowed", env: nil},
+		{name: "single pair", env: []string{"FOO=bar"}},
+		{name: "multiple pairs", env: []string{"FOO=bar", "BAZ=qux"}},
+		{name: "empty value allowed", env: []string{"FOO="}},
+		{name: "value may contain equals", env: []string{"DSN=postgres://u:p@h/db?sslmode=disable"}},
+		{name: "missing equals", env: []string{"FOO"}, errContains: `invalid --env-var "FOO"`},
+		{name: "whitespace is trimmed", env: []string{" FOO = bar "}},
+		{name: "empty key", env: []string{"=bar"}, errContains: `invalid --env-var "=bar"`},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := SandboxCreateInput{EnvVars: tc.env}
+			err := input.Validate(false)
+			if tc.errContains == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.errContains)
+			assert.Contains(t, err.Error(), "KEY=VALUE")
+		})
+	}
+}
+
+func TestResolveSandboxEnv(t *testing.T) {
+	dir := t.TempDir()
+	base := filepath.Join(dir, "base.env")
+	override := filepath.Join(dir, "override.env")
+	require.NoError(t, os.WriteFile(base, []byte("FOO=from-base\nBASE_ONLY=yes\n"), 0o600))
+	require.NoError(t, os.WriteFile(override, []byte("FOO=from-override\n"), 0o600))
+
+	cases := []struct {
+		name        string
+		files       []string
+		pairs       []string
+		want        map[string]string
+		errContains string
+	}{
+		{name: "nothing set returns nil", want: nil},
+		{name: "inline only", pairs: []string{"FOO=bar"}, want: map[string]string{"FOO": "bar"}},
+		{name: "file only", files: []string{base}, want: map[string]string{"FOO": "from-base", "BASE_ONLY": "yes"}},
+		{name: "later file overrides earlier", files: []string{base, override}, want: map[string]string{"FOO": "from-override", "BASE_ONLY": "yes"}},
+		{name: "inline overrides file", files: []string{base}, pairs: []string{"FOO=inline"}, want: map[string]string{"FOO": "inline", "BASE_ONLY": "yes"}},
+		{name: "missing file errors", files: []string{filepath.Join(dir, "nope.env")}, errContains: "nope.env"},
+		{name: "invalid inline pair errors", pairs: []string{"FOO"}, errContains: `invalid --env-var "FOO"`},
+		{name: "whitespace trimmed like workflows", pairs: []string{" FOO = bar "}, want: map[string]string{"FOO": "bar"}},
+		{name: "value may contain equals", pairs: []string{"DSN=a=b=c"}, want: map[string]string{"DSN": "a=b=c"}},
+		{name: "empty value allowed", pairs: []string{"EMPTY="}, want: map[string]string{"EMPTY": ""}},
+		{name: "later inline duplicate wins", pairs: []string{"FOO=first", "FOO=second"}, want: map[string]string{"FOO": "second"}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := resolveSandboxEnv(tc.files, tc.pairs)
+			if tc.errContains != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.errContains)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+var sandboxCreateActiveWorkspaceID = testids.WorkspaceID("create")
+
+func newSandboxCreateServer(t *testing.T) *renderapi.Server {
+	t.Helper()
+	server := renderapi.NewServer(t)
+	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: sandboxCreateActiveWorkspaceID, Name: "Test Workspace"}))
+	t.Setenv("RENDER_WORKSPACE", sandboxCreateActiveWorkspaceID)
+	server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxclient.SandboxGroup{OwnerId: sandboxCreateActiveWorkspaceID}))
+	return server
+}
+
+func sandboxCreateDefaultGroup(t *testing.T, server *renderapi.Server) *sandboxclient.SandboxGroup {
+	t.Helper()
+	for _, g := range server.SandboxGroups.Instances {
+		if g.OwnerId == sandboxCreateActiveWorkspaceID {
+			return g
+		}
+	}
+	t.Fatal("no sandbox group seeded for the active workspace")
+	return nil
+}
+
+func TestSandboxCreate_SnapshotIDSent(t *testing.T) {
+	server := newSandboxCreateServer(t)
+	group := sandboxCreateDefaultGroup(t, server)
+	snap := server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(sandboxclient.SandboxSnapshot{SandboxGroupId: group.Id}))
+
+	_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--snapshot-id", snap.Id, "--output", "json")
+	require.NoError(t, err)
+
+	req, ok := server.LastRequest("POST", "/sandboxes")
+	require.True(t, ok, "expected a create request")
+	body := testrequire.ParseJSONMap(t, string(req.Body))
+	assert.Equal(t, snap.Id, body["snapshotId"])
+}
+
+func TestSandboxCreate_WithoutSnapshotIDOmitsIt(t *testing.T) {
+	server := newSandboxCreateServer(t)
+
+	_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--output", "json")
+	require.NoError(t, err)
+
+	req, ok := server.LastRequest("POST", "/sandboxes")
+	require.True(t, ok, "expected a create request")
+	body := testrequire.ParseJSONMap(t, string(req.Body))
+	_, present := body["snapshotId"]
+	assert.False(t, present, "snapshotId should be omitted, got %v", body["snapshotId"])
+}
+
+func TestSandboxCreate_SnapshotIDErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		seed        func(server *renderapi.Server, group *sandboxclient.SandboxGroup) string
+		extraArgs   []string
+		errContains []string
+	}{
+		{
+			name: "unknown snapshot is not found",
+			seed: func(*renderapi.Server, *sandboxclient.SandboxGroup) string {
+				return testids.SandboxSnapshotID("missing")
+			},
+			errContains: []string{"404 (snapshot_not_found)", "snapshot not found"},
+		},
+		{
+			name: "snapshot still being created surfaces the error code",
+			seed: func(server *renderapi.Server, group *sandboxclient.SandboxGroup) string {
+				return server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(sandboxclient.SandboxSnapshot{SandboxGroupId: group.Id, Status: sandboxclient.SandboxSnapshotStatusCreating})).Id
+			},
+			errContains: []string{"409 (snapshot_not_available)"},
+		},
+		{
+			name: "runtime snapshot with a different plan surfaces the error code",
+			seed: func(server *renderapi.Server, group *sandboxclient.SandboxGroup) string {
+				return server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(sandboxclient.SandboxSnapshot{SandboxGroupId: group.Id, Kind: sandboxclient.Runtime, Plan: sandboxclient.Starter})).Id
+			},
+			extraArgs:   []string{"--plan", "pro"},
+			errContains: []string{"409 (snapshot_plan_mismatch)"},
+		},
+		{
+			name: "snapshot owned by another workspace is not found",
+			seed: func(server *renderapi.Server, _ *sandboxclient.SandboxGroup) string {
+				other := server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxclient.SandboxGroup{OwnerId: testids.WorkspaceID("other")}))
+				return server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(sandboxclient.SandboxSnapshot{SandboxGroupId: other.Id})).Id
+			},
+			errContains: []string{"404 (snapshot_not_found)"},
+		},
+		{
+			name: "snapshot in another group of the workspace is not available",
+			seed: func(server *renderapi.Server, _ *sandboxclient.SandboxGroup) string {
+				other := server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxclient.SandboxGroup{OwnerId: sandboxCreateActiveWorkspaceID, Name: "Secondary"}))
+				return server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(sandboxclient.SandboxSnapshot{SandboxGroupId: other.Id})).Id
+			},
+			errContains: []string{"409 (snapshot_not_available)"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			server := newSandboxCreateServer(t)
+			snapshotID := tc.seed(server, sandboxCreateDefaultGroup(t, server))
+
+			_, err := executeSandboxCommand(t, server, append([]string{"ea", "sandboxes", "create", "--snapshot-id", snapshotID, "--output", "json"}, tc.extraArgs...)...)
+			require.Error(t, err)
+			for _, want := range tc.errContains {
+				assert.Contains(t, err.Error(), want)
+			}
+			assert.Empty(t, server.Sandboxes.Instances)
+		})
 	}
 }

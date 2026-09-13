@@ -36,6 +36,7 @@ type CreateRequestInput struct {
 	HighAvailability *bool
 	DiskSizeGB       *int
 	DiskAutoscaling  *bool
+	ConnectionPool   *string
 	DatadogAPIKey    *string
 	DatadogSite      *string
 	IPAllowList      []string
@@ -69,6 +70,7 @@ func buildRequestInput(in pgtypes.CreatePostgresInput, ownerID string, environme
 		HighAvailability: in.HighAvailability,
 		DiskSizeGB:       in.DiskSizeGB,
 		DiskAutoscaling:  in.DiskAutoscaling,
+		ConnectionPool:   in.ConnectionPool,
 		DatadogAPIKey:    in.DatadogAPIKey,
 		DatadogSite:      in.DatadogSite,
 		IPAllowList:      in.IPAllowList,
@@ -107,6 +109,7 @@ func BuildCreateRequest(input CreateRequestInput) (client.CreatePostgresJSONRequ
 		DatadogSite:            input.DatadogSite,
 		DiskSizeGB:             input.DiskSizeGB,
 		EnableDiskAutoscaling:  input.DiskAutoscaling,
+		ConnectionPool:         input.ConnectionPool,
 		EnableHighAvailability: input.HighAvailability,
 		EnvironmentId:          input.EnvironmentID,
 		ReadReplicas:           buildReadReplicas(input.ReadReplicas),

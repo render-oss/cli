@@ -131,8 +131,7 @@ func TestPGDelete_NameCollision_NarrowedByEnvironment_Deletes(t *testing.T) {
 
 	assert.Contains(t, result.Stdout, "Deleted")
 	assert.Contains(t, result.Stdout, prodPG.Id)
-	require.Len(t, server.Postgres.Instances, 1)
-	assert.Equal(t, stagingPG.Id, server.Postgres.Instances[0].Id)
+	assert.Equal(t, stagingPG.Id, server.Postgres.Only(t).Id)
 }
 
 func TestPGDelete_NameCollision_NarrowedByProject_Deletes(t *testing.T) {
@@ -154,8 +153,7 @@ func TestPGDelete_NameCollision_NarrowedByProject_Deletes(t *testing.T) {
 
 	assert.Contains(t, result.Stdout, "Deleted")
 	assert.Contains(t, result.Stdout, projectAPG.Id)
-	require.Len(t, server.Postgres.Instances, 1)
-	assert.Equal(t, projectBPG.Id, server.Postgres.Instances[0].Id)
+	assert.Equal(t, projectBPG.Id, server.Postgres.Only(t).Id)
 }
 
 func TestPGDelete_IDWithMismatchedEnvironment_Errors(t *testing.T) {

@@ -20,7 +20,6 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	telemetryclient "github.com/render-oss/cli/pkg/client/clitelemetry"
 	"github.com/render-oss/cli/pkg/command"
-	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/pointers"
 )
 
@@ -53,6 +52,7 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		testAgentSignals,
 		testCISignals,
 		testInstallationID,
+		"",
 		"v-test",
 		"test-os",
 		"test-arch",
@@ -61,10 +61,10 @@ func TestSenderSendAndLogGates(t *testing.T) {
 	payloadLog := string(payloadJSON) + "\n"
 
 	testCases := []struct {
-		name       string
-		shouldSend bool
-		shouldLog  bool
-		wantLog    string
+		name           string
+		sendingEnabled bool
+		shouldLog      bool
+		wantLog        string
 	}{
 		{name: "disabled"},
 		{
@@ -78,7 +78,7 @@ func TestSenderSendAndLogGates(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			configDir := t.TempDir()
 			t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
-			sender := newTestSender(&fakeTelemetryClient{}, tc.shouldSend, tc.shouldLog)
+			sender := newTestSender(&fakeTelemetryClient{}, tc.sendingEnabled, tc.shouldLog)
 			launcherCalls := 0
 			sender.newLauncher = func() (analyticsSubprocessLauncher, error) {
 				launcherCalls++
@@ -134,6 +134,7 @@ func TestSenderHandsEventFileToDetachedSubprocess(t *testing.T) {
 	require.NoError(t, json.Unmarshal(data, &payload))
 	require.Equal(t, "render services list", payload.Command)
 	require.Equal(t, telemetryclient.Success, payload.CompletionKind)
+	require.Empty(t, payload.CurrentWorkspaceId)
 }
 
 func TestSenderRemovesEventFileWhenDetachedLaunchFails(t *testing.T) {
@@ -281,7 +282,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 		LaunchedFullScreenTUI: true,
 		OutputFormat:          pointers.From(command.YAML),
 		StartedAt:             exampleStartedAt,
-	}, terminalSignals, testAgentSignals, []string{}, testInstallationID, "v-test", "test-os", "test-arch")
+	}, terminalSignals, testAgentSignals, []string{}, testInstallationID, "tea-test-workspace", "v-test", "test-os", "test-arch")
 
 	require.Equal(t, testAgentSignals, event.AgentSignals)
 	require.Equal(t, "yaml", event.OutputFormat)
@@ -303,6 +304,7 @@ func TestCommandInvokedEventCarriesRuntimeFields(t *testing.T) {
 		"cli_version": "v-test",
 		"command": "render services list",
 		"completion_kind": "success",
+		"current_workspace_id": "tea-test-workspace",
 		"duration_ms": 0,
 		"exit_code": 0,
 		"installation_id": "`+testInstallationID+`",
@@ -329,6 +331,7 @@ func TestAgentSignalValuesNeverAppearInSerializedAnalyticsEvent(t *testing.T) {
 		DetectAgentSignals(),
 		[]string{},
 		testInstallationID,
+		"",
 		"v-test",
 		"test-os",
 		"test-arch",
@@ -347,6 +350,7 @@ func TestCommandInvokedEventSerializesStartedAt(t *testing.T) {
 		[]string{},
 		[]string{},
 		testInstallationID,
+		"",
 		"v-test",
 		"test-os",
 		"test-arch",
@@ -368,6 +372,7 @@ func TestCommandInvokedEventDefaultsUnresolvedOutputToUnknown(t *testing.T) {
 		[]string{},
 		[]string{},
 		testInstallationID,
+		"",
 		"v-test",
 		"test-os",
 		"test-arch",
@@ -431,46 +436,32 @@ func TestInstallationIDResolutionFailureIsBestEffort(t *testing.T) {
 	})
 }
 
-func TestNewUsesExactEnvironmentGates(t *testing.T) {
+func TestNewGatesSendingOnConsentAndLoggingOnEnv(t *testing.T) {
 	testCases := []struct {
-		name           string
-		sendValue      string
-		logValue       string
-		doNotTrack     string
-		disableEnv     string
-		configDisabled bool
-		wantShouldSend bool
-		wantShouldLog  bool
+		name               string
+		logValue           string
+		doNotTrack         string
+		disableEnv         string
+		wantSendingEnabled bool
+		wantShouldLog      bool
 	}{
-		{name: "unset"},
-		{name: "non-one values", sendValue: "true", logValue: "true"},
-		{name: "logging only", logValue: "1", wantShouldLog: true},
-		{name: "sending only", sendValue: "1", wantShouldSend: true},
-		{name: "both", sendValue: "1", logValue: "1", wantShouldSend: true, wantShouldLog: true},
-		{name: "DO_NOT_TRACK vetoes an enabled dev gate", sendValue: "1", doNotTrack: "1"},
-		{name: "RENDER_CLI_DISABLE_ANALYTICS vetoes an enabled dev gate", sendValue: "1", disableEnv: "true"},
-		{name: "config opt-out vetoes an enabled dev gate", sendValue: "1", configDisabled: true},
-		{name: "opt-out leaves logging alone", sendValue: "1", logValue: "1", doNotTrack: "1", wantShouldLog: true},
+		{name: "unset defaults to sending enabled", wantSendingEnabled: true},
+		{name: "non-one logging value keeps sending enabled", logValue: "true", wantSendingEnabled: true},
+		{name: "logging enabled", logValue: "1", wantSendingEnabled: true, wantShouldLog: true},
+		{name: "DO_NOT_TRACK opts out", doNotTrack: "1"},
+		{name: "RENDER_CLI_DISABLE_ANALYTICS opts out", disableEnv: "true"},
+		{name: "opt-out leaves logging alone", logValue: "1", doNotTrack: "1", wantShouldLog: true},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", tc.sendValue)
 			t.Setenv("RENDER_LOG_ANALYTICS", tc.logValue)
 			t.Setenv("DO_NOT_TRACK", tc.doNotTrack)
 			t.Setenv("RENDER_CLI_DISABLE_ANALYTICS", tc.disableEnv)
-			// Consent resolution reads the config file, so isolate it from the
-			// machine's real ~/.render/cli.yaml.
-			t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
-			t.Setenv("RENDER_CLI_CONFIG_PATH", "")
-			if tc.configDisabled {
-				cfgFile := &config.Config{Analytics: config.AnalyticsConfig{Disabled: true}}
-				require.NoError(t, cfgFile.Persist())
-			}
 
 			sender := New(&client.ClientWithResponses{})
 
-			require.Equal(t, tc.wantShouldSend, sender.shouldSend)
+			require.Equal(t, tc.wantSendingEnabled, sender.sendingEnabled)
 			require.Equal(t, tc.wantShouldLog, sender.shouldLog)
 		})
 	}
@@ -480,8 +471,8 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 	server := renderapi.NewServer(t)
 	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
 	t.Setenv("RENDER_CLI_CONFIG_PATH", "")
+	t.Setenv("RENDER_WORKSPACE", "tea-current-workspace")
 	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")
-	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
 	t.Setenv("DO_NOT_TRACK", "")
 	t.Setenv("RENDER_CLI_DISABLE_ANALYTICS", "")
 	t.Setenv("RENDER_HOST", server.URL()+"/")
@@ -518,6 +509,7 @@ func TestSenderUsesConfiguredAPIClient(t *testing.T) {
 		CliVersion:            cfg.Version,
 		Command:               "render services list",
 		CompletionKind:        telemetryclient.Success,
+		CurrentWorkspaceId:    "tea-current-workspace",
 		ExitCode:              0,
 		IsStdinTty:            terminalSignals.StdinTTY,
 		IsStdoutTty:           terminalSignals.StdoutTTY,
@@ -639,10 +631,10 @@ func TestHTTPFailureIsSwallowedWithoutRetry(t *testing.T) {
 
 // newTestSender builds a Sender with fixed environment fields so tests exercise
 // the gates and transport without depending on the host's cfg/runtime values.
-func newTestSender(apiClient cliTelemetryClient, shouldSend, shouldLog bool) *Sender {
+func newTestSender(apiClient cliTelemetryClient, sendingEnabled, shouldLog bool) *Sender {
 	sender := newSender(
 		apiClient,
-		shouldSend,
+		sendingEnabled,
 		shouldLog,
 		func() command.TerminalSignals {
 			return testTerminalSignals

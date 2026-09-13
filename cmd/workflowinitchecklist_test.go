@@ -21,9 +21,9 @@ type recordingObserver struct {
 	allDoneErrs []StepError
 }
 
-func (o *recordingObserver) OnStart(totalSteps int)             { o.startCalled = totalSteps }
-func (o *recordingObserver) OnStepStart(idx int)                { o.starts = append(o.starts, idx) }
-func (o *recordingObserver) OnStepDone(idx int, _ string)       { o.dones = append(o.dones, idx) }
+func (o *recordingObserver) OnStart(totalSteps int)       { o.startCalled = totalSteps }
+func (o *recordingObserver) OnStepStart(idx int)          { o.starts = append(o.starts, idx) }
+func (o *recordingObserver) OnStepDone(idx int, _ string) { o.dones = append(o.dones, idx) }
 func (o *recordingObserver) OnStepError(idx int, err error) {
 	o.errs = append(o.errs, StepError{Index: idx, Err: err})
 }

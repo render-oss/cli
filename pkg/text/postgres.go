@@ -61,6 +61,7 @@ func PostgresDetail(pg *postgres.PostgresOut) string {
 		lines = append(lines, fmt.Sprintf("Disk size: %d GB", *pg.DiskSizeGB))
 	}
 	lines = append(lines, fmt.Sprintf("Disk autoscaling: %s", boolLabel(pg.DiskAutoscalingEnabled)))
+	lines = append(lines, fmt.Sprintf("Connection pool: %s", pg.ConnectionPool))
 	lines = append(lines, fmt.Sprintf("High availability: %s", boolLabel(pg.HighAvailabilityEnabled)))
 	lines = append(lines, fmt.Sprintf("Dashboard: %s", pg.DashboardUrl))
 	if block := readReplicasBlock(pg.ReadReplicas); block != "" {
@@ -137,6 +138,9 @@ func PostgresUpdateDiff(diff postgres.PostgresUpdateDiff) string {
 	}
 	if diff.DiskAutoscalingEnabled != nil {
 		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Disk autoscaling:", boolLabel(diff.DiskAutoscalingEnabled.Before), boolLabel(diff.DiskAutoscalingEnabled.After)))
+	}
+	if diff.ConnectionPool != nil {
+		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "Connection pool:", diff.ConnectionPool.Before, diff.ConnectionPool.After))
 	}
 	if diff.HighAvailabilityEnabled != nil {
 		lines = append(lines, fmt.Sprintf("  %-20s%s → %s", "High availability:", boolLabel(diff.HighAvailabilityEnabled.Before), boolLabel(diff.HighAvailabilityEnabled.After)))

@@ -12,6 +12,7 @@ import (
 	"github.com/render-oss/cli/pkg/cfg"
 	"github.com/render-oss/cli/pkg/client/oauth"
 	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/pointers"
 )
 
 var ErrUnauthorized = errors.New("unauthorized")
@@ -20,6 +21,9 @@ var ErrTooManyRequests = errors.New("too many requests")
 
 const (
 	LocalKey = ""
+	// oauthRefreshTimeout leaves headroom above the observed successful APAC
+	// refresh tail, whose p99.9 was approximately three seconds.
+	oauthRefreshTimeout = 5 * time.Second
 )
 
 func NotLoggedInClient() (*ClientWithResponses, error) {
@@ -53,8 +57,17 @@ func maybeRefreshAPIToken(apiCfg config.APIConfig) config.APIConfig {
 	expiresSoonThreshold := time.Now().Add(24 * time.Hour).Unix()
 
 	if apiCfg.ExpiresAt > 0 && apiCfg.ExpiresAt < expiresSoonThreshold && apiCfg.RefreshToken != "" {
-		updatedConfig, err := refreshAPIKey(apiCfg)
+		ctx, cancel := context.WithTimeout(context.Background(), oauthRefreshTimeout)
+		defer cancel()
+
+		updatedConfig, err := refreshAPIKey(ctx, apiCfg)
 		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				// Keep using the current access token. It may remain valid for up to
+				// 24 hours, and preserving the refresh token lets the next command retry.
+				return apiCfg
+			}
+
 			// failed to refresh the token, clear the refresh token so we fall back
 			// to the standard login flow
 			apiCfg.RefreshToken = ""
@@ -67,9 +80,9 @@ func maybeRefreshAPIToken(apiCfg config.APIConfig) config.APIConfig {
 	return apiCfg
 }
 
-func refreshAPIKey(apiCfg config.APIConfig) (config.APIConfig, error) {
+func refreshAPIKey(ctx context.Context, apiCfg config.APIConfig) (config.APIConfig, error) {
 	token, err := oauth.NewClient(apiCfg.Host).RefreshToken(
-		context.Background(),
+		ctx,
 		apiCfg.RefreshToken,
 	)
 	if err != nil {
@@ -104,11 +117,18 @@ func ErrorFromResponse(v any) error {
 		return ErrTooManyRequests
 	}
 
-	if responseErr.Message != nil && *responseErr.Message != "" {
-		return fmt.Errorf("received response code %d: %s", responseErr.Code, *responseErr.Message)
+	message := pointers.StringValue(responseErr.Message)
+	errorCode := pointers.StringValue(responseErr.Error.Code)
+	switch {
+	case message != "" && errorCode != "":
+		return fmt.Errorf("received response code %d (%s): %s", responseErr.Code, errorCode, message)
+	case message != "":
+		return fmt.Errorf("received response code %d: %s", responseErr.Code, message)
+	case errorCode != "":
+		return fmt.Errorf("received response code %d (%s)", responseErr.Code, errorCode)
+	default:
+		return fmt.Errorf("received response code %d", responseErr.Code)
 	}
-
-	return fmt.Errorf("unknown error")
 }
 
 type ErrorWithCode struct {

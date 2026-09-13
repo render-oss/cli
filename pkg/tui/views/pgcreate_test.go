@@ -115,6 +115,9 @@ func TestPostgresCreateWizardHappyPathCreatesDatabase(t *testing.T) {
 	testhelper.WaitForContains(t, tm.Output(), "Enable Disk Autoscaling?")
 	tm.Send(tea.KeyMsg{Type: tea.KeyEnter}) // no
 
+	testhelper.WaitForContains(t, tm.Output(), "Enable Connection Pooling?")
+	tm.Send(tea.KeyMsg{Type: tea.KeyEnter}) // no
+
 	testhelper.WaitForContains(t, tm.Output(), "Create this Postgres instance?")
 	tm.Send(tea.KeyMsg{Type: tea.KeyRight})
 	tm.Send(tea.KeyMsg{Type: tea.KeyEnter}) // yes
@@ -124,8 +127,7 @@ func TestPostgresCreateWizardHappyPathCreatesDatabase(t *testing.T) {
 			!bytes.Contains(b, []byte("render ea pg"))
 	})
 
-	require.Len(t, server.Postgres.Instances, 1)
-	pg := server.Postgres.Instances[0]
+	pg := server.Postgres.Only(t)
 	assert.Equal(t, "web-app-db", pg.Name)
 	assert.Equal(t, workspace.Id, pg.Owner.Id)
 	require.NotNil(t, pg.EnvironmentId)
@@ -135,5 +137,6 @@ func TestPostgresCreateWizardHappyPathCreatesDatabase(t *testing.T) {
 	assert.Equal(t, client.Oregon, pg.Region)
 	assert.False(t, pg.HighAvailabilityEnabled)
 	assert.False(t, pg.DiskAutoscalingEnabled)
+	assert.Equal(t, "none", pg.ConnectionPool)
 	assert.Nil(t, pg.DiskSizeGB)
 }

@@ -57,6 +57,33 @@ func TestErrorFromResponse(t *testing.T) {
 
 			require.ErrorContains(t, err, "received response code 400: unknown error")
 		})
+
+		t.Run("when body carries an error code", func(t *testing.T) {
+			err := client.ErrorFromResponse(&client.ListSnapshotsResponse{
+				Body:         []byte(`{"message":"snapshot is still being created","code":"snapshot_creating"}`),
+				HTTPResponse: &http.Response{StatusCode: 409},
+			})
+
+			require.ErrorContains(t, err, "received response code 409 (snapshot_creating): snapshot is still being created")
+		})
+
+		t.Run("when body carries only an error code", func(t *testing.T) {
+			err := client.ErrorFromResponse(&client.ListSnapshotsResponse{
+				Body:         []byte(`{"code":"snapshot_creating"}`),
+				HTTPResponse: &http.Response{StatusCode: 409},
+			})
+
+			require.ErrorContains(t, err, "received response code 409 (snapshot_creating)")
+		})
+
+		t.Run("when body is empty", func(t *testing.T) {
+			err := client.ErrorFromResponse(&client.ListSnapshotsResponse{
+				Body:         nil,
+				HTTPResponse: &http.Response{StatusCode: 500},
+			})
+
+			require.EqualError(t, err, "received response code 500")
+		})
 	})
 
 	t.Run("status code < 400", func(t *testing.T) {

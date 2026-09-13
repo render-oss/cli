@@ -36,7 +36,7 @@ func TestKVResume_ByID_Resumes(t *testing.T) {
 	result, err := executeKVResume(t, server, kv.Id, "--output", "text")
 	require.NoError(t, err)
 
-	assert.Equal(t, client.DatabaseStatusAvailable, server.KV.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusAvailable, server.KV.Only(t).Status)
 	assert.Contains(t, result.Stdout, "Resumed")
 	assert.Contains(t, result.Stdout, kv.Id)
 }
@@ -48,7 +48,7 @@ func TestKVResume_ByName_Resumes(t *testing.T) {
 	result, err := executeKVResume(t, server, "by-name-cache", "--output", "text")
 	require.NoError(t, err)
 
-	assert.Equal(t, client.DatabaseStatusAvailable, server.KV.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusAvailable, server.KV.Only(t).Status)
 	assert.Contains(t, result.Stdout, "Resumed")
 	assert.Contains(t, result.Stdout, kv.Id)
 }
@@ -89,7 +89,7 @@ func TestKVResume_JSONOutput(t *testing.T) {
 
 	result, err := executeKVResume(t, server, kv.Id, "--output", "json")
 	require.NoError(t, err)
-	assert.Equal(t, client.DatabaseStatusAvailable, server.KV.Instances[0].Status)
+	assert.Equal(t, client.DatabaseStatusAvailable, server.KV.Only(t).Status)
 
 	var body map[string]any
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
@@ -144,6 +144,6 @@ func TestKVResume_APIError_Surfaced(t *testing.T) {
 
 	_, err := executeKVResume(t, server, kv.Id, "--output", "text")
 	require.Error(t, err)
-	assert.Equal(t, client.DatabaseStatusSuspended, server.KV.Instances[0].Status, "API error must not flip status")
+	assert.Equal(t, client.DatabaseStatusSuspended, server.KV.Only(t).Status, "API error must not flip status")
 	assert.False(t, server.HasRequest("POST", "/key-value/"+kv.Id+"/resume"))
 }

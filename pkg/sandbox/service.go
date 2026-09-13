@@ -22,9 +22,12 @@ func NewService(repo *Repo) *Service {
 // CreateInput describes the parameters for creating a sandbox. Empty/zero
 // fields fall back to the API defaults.
 type CreateInput struct {
-	Plan    string
-	Region  string
-	Timeout int
+	Plan          string
+	Region        string
+	Timeout       int
+	NetworkPolicy string
+	Env           map[string]string
+	SnapshotID    string
 }
 
 // allSandboxStatuses is every sandbox status. --all sends the full set so the
@@ -79,6 +82,17 @@ func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*s
 	}
 	if input.Timeout > 0 {
 		body.TimeoutSeconds = &input.Timeout
+	}
+	if input.NetworkPolicy != "" {
+		body.NetworkPolicy = &sandboxclient.SandboxNetworkPolicy{
+			Default: sandboxclient.SandboxNetworkPolicyDefault(input.NetworkPolicy),
+		}
+	}
+	if len(input.Env) > 0 {
+		body.Env = &input.Env
+	}
+	if input.SnapshotID != "" {
+		body.SnapshotId = &input.SnapshotID
 	}
 
 	return s.repo.CreateSandbox(ctx, body, onEvent)

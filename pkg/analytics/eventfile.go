@@ -39,14 +39,24 @@ func writeEventFile(payload client.CreateCliTelemetryEventJSONRequestBody) (stri
 	return path, nil
 }
 
+// analyticsDirectory returns the absolute path to the directory that holds all
+// analytics state.
+func analyticsDirectory() (string, error) {
+	stateDir, err := config.StateDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Abs(filepath.Join(stateDir, analyticsDirectoryName))
+}
+
 // eventsDirectory returns the absolute directory that holds analytics event
 // files. Both the writer and SendFile's path validation must derive the
 // directory from here: a relative RENDER_CLI_CONFIG_DIR otherwise yields paths
 // that write fine but fail validation, orphaning every event file.
 func eventsDirectory() (string, error) {
-	stateDir, err := config.StateDir()
+	analyticsDir, err := analyticsDirectory()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Abs(filepath.Join(stateDir, analyticsDirectoryName, eventsDirectoryName))
+	return filepath.Join(analyticsDir, eventsDirectoryName), nil
 }

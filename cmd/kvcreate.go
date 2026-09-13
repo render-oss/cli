@@ -30,16 +30,16 @@ Output will be human-readable; use --output json/yaml/text for machine-readable 
   render kv create
 
   # Specify all options; wizard still asks for confirmation before creating
-  render kv create --name my-cache --plan starter --region oregon
+  render kv create --name my-cache --plan 256mb --region oregon
 
   # Skip all prompts and create immediately (no confirmation)
   render kv create --name my-cache --plan free --confirm
 
   # Machine-readable output (non-interactive, no prompts)
-  render kv create --name my-cache --plan starter --output json
+  render kv create --name my-cache --plan 256mb --output json
 
   # Use as a cache with no on-disk persistence
-  render kv create --name my-cache --plan starter --persistence-mode off
+  render kv create --name my-cache --plan 256mb --persistence-mode off
 
   # With IP allow-listing (repeat the flag for multiple entries)
   render kv create --name my-cache \

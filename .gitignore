@@ -6,4 +6,6 @@ release-notes.md
 render-cli
 render
 cli
+/bashunit_tests/bashunit
+/.bashunit/
 .DS_Store

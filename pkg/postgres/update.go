@@ -46,6 +46,10 @@ func BuildUpdateRequest(input pgtypes.UpdatePostgresInput) (client.UpdatePostgre
 		body.EnableDiskAutoscaling = input.DiskAutoscaling
 	}
 
+	if input.ConnectionPool != nil {
+		body.ConnectionPool = input.ConnectionPool
+	}
+
 	if input.HighAvailability != nil {
 		body.EnableHighAvailability = input.HighAvailability
 	}

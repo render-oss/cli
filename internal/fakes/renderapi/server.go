@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/client/oauth"
@@ -73,6 +75,14 @@ type Resource[T any] struct {
 func (r *Resource[T]) Add(item T) T {
 	r.Instances = append(r.Instances, item)
 	return item
+}
+
+// Only returns the store's single instance, failing the test unless the store
+// holds exactly one. Use it in place of asserting the length and then indexing.
+func (r *Resource[T]) Only(t testing.TB) T {
+	t.Helper()
+	require.Len(t, r.Instances, 1)
+	return r.Instances[0]
 }
 
 // KVResource holds key-value store state and error injection for the fake server.
@@ -249,6 +259,7 @@ func postgresListItem(pg *client.PostgresDetail) client.Postgres {
 		DatabaseName:            pg.DatabaseName,
 		DatabaseUser:            pg.DatabaseUser,
 		DiskAutoscalingEnabled:  pg.DiskAutoscalingEnabled,
+		ConnectionPool:          pg.ConnectionPool,
 		DiskSizeGB:              pg.DiskSizeGB,
 		EnvironmentId:           pg.EnvironmentId,
 		ExpiresAt:               pg.ExpiresAt,
@@ -283,17 +294,22 @@ func NewUser(u client.User) client.User {
 // Server is a fake Render API HTTP server for command-level tests.
 // All HTTP plumbing is internal — tests seed state via Add() methods and assert against resource Instances.
 type Server struct {
-	server        *httptest.Server
-	Requests      []RecordedRequest
-	CurrentUser   *client.User
-	Owners        *Resource[*client.Owner]
-	Projects      *Resource[*client.Project]
-	Environments  *Resource[*client.Environment]
-	KV            *KVResource
-	Postgres      *PostgresResource
-	Services      *ServiceResource
-	SandboxGroups *SandboxGroupResource
-	CliTelemetry  *Resource[client.CreateCliTelemetryEventJSONRequestBody]
+	server           *httptest.Server
+	Requests         []RecordedRequest
+	CurrentUser      *client.User
+	Owners           *Resource[*client.Owner]
+	Projects         *Resource[*client.Project]
+	Environments     *Resource[*client.Environment]
+	KV               *KVResource
+	Postgres         *PostgresResource
+	Services         *ServiceResource
+	Blueprints       *BlueprintResource
+	SandboxGroups    *SandboxGroupResource
+	Sandboxes        *SandboxResource
+	SandboxSnapshots *SandboxSnapshotResource
+	CliTelemetry     *CliTelemetryResource
+	OAuth            *OAuthResource
+	userErrorQueue []int
 }
 
 // ownerByID returns the Owner with the given ID from the seeded owners. The
@@ -350,6 +366,12 @@ func (s *Server) SetCurrentUser(u client.User) client.User {
 	return u
 }
 
+// RespondToGetUsersWithError queues an HTTP error status for the next GET /users.
+// Queued responses take precedence over the seeded current user.
+func (s *Server) RespondToGetUsersWithError(status int) {
+	s.userErrorQueue = append(s.userErrorQueue, status)
+}
+
 // HasRequest returns true if any recorded request matches the given method and URI substring.
 func (s *Server) HasRequest(method, uriSubstring string) bool {
 	for _, r := range s.Requests {
@@ -390,14 +412,18 @@ func NewServer(t *testing.T) *Server {
 	t.Helper()
 
 	s := &Server{
-		Owners:        &Resource[*client.Owner]{},
-		Projects:      &Resource[*client.Project]{},
-		Environments:  &Resource[*client.Environment]{},
-		KV:            &KVResource{},
-		Postgres:      &PostgresResource{},
-		Services:      &ServiceResource{},
-		SandboxGroups: &SandboxGroupResource{},
-		CliTelemetry:  &Resource[client.CreateCliTelemetryEventJSONRequestBody]{},
+		Owners:           &Resource[*client.Owner]{},
+		Projects:         &Resource[*client.Project]{},
+		Environments:     &Resource[*client.Environment]{},
+		KV:               &KVResource{},
+		Postgres:         &PostgresResource{},
+		Services:         &ServiceResource{},
+		Blueprints:       &BlueprintResource{},
+		SandboxGroups:    &SandboxGroupResource{},
+		Sandboxes:        &SandboxResource{},
+		SandboxSnapshots: &SandboxSnapshotResource{},
+		CliTelemetry:     &CliTelemetryResource{},
+		OAuth:            &OAuthResource{},
 	}
 
 	mux := http.NewServeMux()
@@ -419,6 +445,13 @@ func NewServer(t *testing.T) *Server {
 		record(r)
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if len(s.userErrorQueue) > 0 {
+			status := s.userErrorQueue[0]
+			s.userErrorQueue = s.userErrorQueue[1:]
+			message := http.StatusText(status)
+			writeJSON(w, status, client.Error{Message: &message})
 			return
 		}
 		if s.CurrentUser == nil {
@@ -889,6 +922,7 @@ func NewServer(t *testing.T) *Server {
 			DatabaseUser:            databaseUser,
 			DiskSizeGB:              body.DiskSizeGB,
 			DiskAutoscalingEnabled:  pointers.ValueOrDefault(body.EnableDiskAutoscaling, false),
+			ConnectionPool:          pointers.ValueOrDefault(body.ConnectionPool, "none"),
 			HighAvailabilityEnabled: pointers.ValueOrDefault(body.EnableHighAvailability, false),
 			EnvironmentId:           body.EnvironmentId,
 			IpAllowList:             ipAllowList,
@@ -1027,6 +1061,9 @@ func NewServer(t *testing.T) *Server {
 		if body.EnableDiskAutoscaling != nil {
 			pg.DiskAutoscalingEnabled = *body.EnableDiskAutoscaling
 		}
+		if body.ConnectionPool != nil {
+			pg.ConnectionPool = *body.ConnectionPool
+		}
 		if body.EnableHighAvailability != nil {
 			pg.HighAvailabilityEnabled = *body.EnableHighAvailability
 		}
@@ -1041,8 +1078,12 @@ func NewServer(t *testing.T) *Server {
 	})
 
 	registerServiceRoutes(mux, s, record)
+	registerBlueprintRoutes(mux, s, record)
 	registerSandboxGroupRoutes(mux, s, record)
+	registerSandboxRoutes(mux, s, record)
+	registerSandboxSnapshotRoutes(mux, s, record)
 	registerCliTelemetryRoutes(mux, s, record)
+	registerOAuthRoutes(mux, s, record)
 
 	s.server = httptest.NewServer(mux)
 	t.Cleanup(s.server.Close)

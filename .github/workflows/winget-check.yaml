@@ -1,0 +1,105 @@
+name: Check WinGet publish status
+
+# Checks that the latest stable release reached WinGet. Posts to Slack when
+# the winget-pkgs submission is missing, needs author action, was closed
+# without merging, or merged but did not publish.
+on:
+  schedule:
+    # Weekdays at 18:00 UTC, 11:00 PDT.
+    - cron: "0 18 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PACKAGE_IDENTIFIER: Render.CLI
+
+jobs:
+  check-winget:
+    name: Compare WinGet against the latest release
+    if: github.repository == 'render-oss/cli'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Classify the WinGet submission for the latest release
+        id: classify
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          release=$(gh api repos/render-oss/cli/releases/latest)
+          tag=$(jq -r .tag_name <<<"$release")
+          published_at=$(jq -r .published_at <<<"$release")
+          version="${tag#v}"
+          title="$PACKAGE_IDENTIFIER version $version"
+
+          status=ok
+          message=""
+
+          release_age=$(( $(date +%s) - $(date -d "$published_at" +%s) ))
+          if [ "$release_age" -lt 3600 ]; then
+            echo "$tag was published less than an hour ago; the submission may still be in flight."
+          else
+            search=$(gh api -X GET search/issues \
+              -f q="repo:microsoft/winget-pkgs type:pr in:title \"$title\"")
+            pr=$(jq --arg title "$title" \
+              '[.items[] | select(.title | contains($title))] | sort_by(.created_at) | last' <<<"$search")
+
+            if [ "$pr" = "null" ]; then
+              status=alert
+              message="No winget-pkgs PR found for $title. The submit job may not have run for $tag."
+            else
+              state=$(jq -r .state <<<"$pr")
+              merged_at=$(jq -r '.pull_request.merged_at // empty' <<<"$pr")
+              labels=$(jq -r '[.labels[].name] | join(", ")' <<<"$pr")
+              url=$(jq -r .html_url <<<"$pr")
+
+              if [ "$state" = "open" ] && grep -q "Needs-Author-Feedback" <<<"$labels"; then
+                status=alert
+                message="The PR for $title needs author action and closes after about ten days of inactivity (labels: $labels). $url"
+              elif [ "$state" = "open" ]; then
+                echo "PR is open and awaiting validation or merge: $url"
+              elif [ -z "$merged_at" ]; then
+                status=alert
+                message="The PR for $title was closed without merging (labels: ${labels:-none}). $url"
+              elif grep -q "Publish-Pipeline-Succeeded" <<<"$labels"; then
+                echo "$title is published: $url"
+              elif [ $(( $(date +%s) - $(date -d "$merged_at" +%s) )) -lt 86400 ]; then
+                echo "PR merged less than a day ago; the publish pipeline may still be running: $url"
+              else
+                status=alert
+                message="The PR for $title merged over a day ago but has no Publish-Pipeline-Succeeded label. $url"
+              fi
+            fi
+          fi
+
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "message=$message" >> "$GITHUB_OUTPUT"
+
+      - name: Post alert to Slack
+        if: steps.classify.outputs.status == 'alert'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.CLI_CI_SLACK_WEBHOOK_URL }}
+          MESSAGE: ${{ steps.classify.outputs.message }}
+          RUNBOOK_URL: ${{ vars.WINGET_RUNBOOK_URL }}
+        run: |
+          set -euo pipefail
+          payload=$(jq -n \
+            --arg message "$MESSAGE" \
+            --arg runbook_url "$RUNBOOK_URL" \
+            '{
+              text: ("WinGet publish check: " + $message),
+              blocks: [
+                {
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: (":warning: *WinGet publish check*\n" + $message
+                      + (if $runbook_url == "" then "" else "\n<" + $runbook_url + "|Runbook>" end))
+                  }
+                }
+              ]
+            }')
+          curl -sSf -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"

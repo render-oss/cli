@@ -49,8 +49,8 @@ func (m *mockInitDeps) Scaffold(opts scaffold.Options) (*scaffold.Result, error)
 		return m.scaffoldFn(opts)
 	}
 	return &scaffold.Result{
-		Dir:            opts.Dir,
-		Language:       opts.Language,
+		Dir:          opts.Dir,
+		Language:     opts.Language,
 		BuildCommand: "pip install -r requirements.txt",
 		StartCommand: "python main.py",
 	}, nil

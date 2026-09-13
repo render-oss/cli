@@ -224,8 +224,11 @@ func TestServiceUploadDownloadDirectory(t *testing.T) {
 	mux.HandleFunc("/v1/sandboxes/"+sandboxID+"/files/download/token", func(w http.ResponseWriter, r *http.Request) {
 		writeConnectResponse(w, sandboxclient.SandboxConnectResponse{Token: "tok", Uri: serverURL + "/files/download", Method: http.MethodGet})
 	})
+	// The archive goes back the way the server sends one: x-tar under a gzip
+	// Content-Encoding, which is exactly the gzipped body the upload produced.
 	mux.HandleFunc("/files/download", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", FileContentTypeGzip)
+		w.Header().Set("Content-Type", FileContentTypeTar)
+		w.Header().Set("Content-Encoding", "gzip")
 		_, _ = w.Write(uploadedTar)
 	})
 
@@ -463,24 +466,171 @@ func TestServiceDownloadKeepsUnrelatedPartialFile(t *testing.T) {
 	assert.Equal(t, "someone else's data", string(got), "the download must not write through an unrelated file")
 }
 
-// A gzipped archive truncated after the end-of-archive marker but before the
-// gzip trailer extracts every entry cleanly, so only reading to EOF catches it.
-func TestServiceDownloadDetectsTruncatedArchive(t *testing.T) {
+// dropGzipTrailer cuts a gzip stream's CRC32/ISIZE trailer, leaving the
+// compressed tar (entries and end-of-archive marker) intact. What remains
+// extracts cleanly, so only reading the decompressor to EOF catches it.
+func dropGzipTrailer(t *testing.T, compressed []byte) []byte {
+	t.Helper()
+
+	require.Greater(t, len(compressed), 8, "not a gzip stream")
+	return compressed[:len(compressed)-8]
+}
+
+// dropTarTerminator cuts the two zero blocks that close a well-formed archive,
+// on a 512-byte boundary. archive/tar reports the result as a clean io.EOF, so
+// nothing but an explicit check distinguishes it from a complete archive.
+func dropTarTerminator(t *testing.T, archive []byte) []byte {
+	t.Helper()
+
+	require.Greater(t, len(archive), 1024, "not a tar archive")
+	return archive[:len(archive)-1024]
+}
+
+// Only x-tar means "directory archive" now. application/gzip is a payload type
+// the server no longer sends, and treating it as an archive would extract a
+// user's .gz file instead of saving it, so it takes the single-file path like
+// any other content type.
+func TestServiceDownloadGzipContentTypeIsAFile(t *testing.T) {
 	const sandboxID = "sbx-abc123"
 
+	archive, _ := tarArchive(t)
+	body := gzipped(t, archive)
+
+	svc := NewService(serveDownload(t, sandboxID, "application/gzip", `attachment; filename="src.tar.gz"`, body))
+
+	dst := t.TempDir()
+	written, err := svc.Download(context.Background(), sandboxID, "/app/src.tar.gz", dst)
+	require.NoError(t, err)
+	assert.Equal(t, filepath.Join(dst, "src.tar.gz"), written)
+
+	got, err := os.ReadFile(written)
+	require.NoError(t, err)
+	assert.Equal(t, body, got, "the bytes must land as sent, not be extracted")
+}
+
+// An uncompressed x-tar has no trailer to verify, so a transfer cut off on a
+// block boundary reads as a complete archive: every entry extracts and
+// tar.Next returns io.EOF. Nothing downstream would notice, so extraction has
+// to insist on the end-of-archive marker.
+func TestExtractTarRejectsMissingTerminator(t *testing.T) {
+	archive, _ := tarArchive(t)
+
+	dst := t.TempDir()
+	err := extractTar(dst, bytes.NewReader(dropTarTerminator(t, archive)))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "end-of-archive")
+}
+
+// The same truncation through the service: an x-tar directory download that
+// stops early must fail rather than report a partial tree as a success.
+func TestServiceDownloadDetectsTruncatedTar(t *testing.T) {
+	const sandboxID = "sbx-abc123"
+
+	archive, _ := tarArchive(t)
+	svc := NewService(serveDownload(t, sandboxID, FileContentTypeTar, "", dropTarTerminator(t, archive)))
+
+	dst := t.TempDir()
+	_, err := svc.Download(context.Background(), sandboxID, "/app/src", dst)
+	require.Error(t, err)
+}
+
+// A complete archive must not trip the terminator check, including when the
+// body carries trailing padding the way tar's default blocking factor emits.
+func TestExtractTarAcceptsTrailingPadding(t *testing.T) {
+	archive, content := tarArchive(t)
+	padded := append(append([]byte{}, archive...), make([]byte, 8192)...)
+
+	dst := t.TempDir()
+	require.NoError(t, extractTar(dst, bytes.NewReader(padded)))
+
+	got, err := os.ReadFile(filepath.Join(dst, "d", "x.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, content, string(got))
+}
+
+// tarArchive returns a tar of a single-file directory tree, and the content of
+// the file it holds.
+func tarArchive(t *testing.T) ([]byte, string) {
+	t.Helper()
+
+	const content = "content-x"
 	src := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(src, "x.txt"), []byte("content-x"), 0o640))
+	require.NoError(t, os.MkdirAll(filepath.Join(src, "d"), 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(src, "d", "x.txt"), []byte(content), 0o640))
 
-	var archive bytes.Buffer
-	gz := gzip.NewWriter(&archive)
-	require.NoError(t, writeTar(gz, src))
+	var buf bytes.Buffer
+	require.NoError(t, writeTar(&buf, src))
+	return buf.Bytes(), content
+}
+
+func gzipped(t *testing.T, b []byte) []byte {
+	t.Helper()
+
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	_, err := gz.Write(b)
+	require.NoError(t, err)
 	require.NoError(t, gz.Close())
+	return buf.Bytes()
+}
 
-	// Drop the CRC32/ISIZE trailer, leaving the tar entries and the
-	// end-of-archive marker intact.
-	truncated := archive.Bytes()[:archive.Len()-8]
+// The server relabels a directory download from application/gzip to x-tar, with
+// compression moving to Content-Encoding. An x-tar response is a directory
+// archive and must be extracted, not written out as one file.
+func TestServiceDownloadDirectoryTar(t *testing.T) {
+	const sandboxID = "sbx-abc123"
 
-	svc := NewService(serveDownload(t, sandboxID, FileContentTypeGzip, "", truncated))
+	archive, content := tarArchive(t)
+	svc := NewService(serveDownload(t, sandboxID, FileContentTypeTar, "", archive))
+
+	dst := t.TempDir()
+	written, err := svc.Download(context.Background(), sandboxID, "/app/src", dst)
+	require.NoError(t, err)
+	assert.Equal(t, dst, written)
+
+	got, err := os.ReadFile(filepath.Join(dst, "d", "x.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, content, string(got))
+}
+
+// Content-Encoding: gzip is wire compression, orthogonal to the x-tar payload.
+// Go's transport negotiates and strips it, so the archive still extracts.
+func TestServiceDownloadDirectoryTarGzipEncoded(t *testing.T) {
+	const sandboxID = "sbx-abc123"
+
+	archive, content := tarArchive(t)
+	compressed := gzipped(t, archive)
+
+	svc := NewService(serveDownloadHandler(t, sandboxID, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", FileContentTypeTar)
+		w.Header().Set("Content-Encoding", "gzip")
+		_, _ = w.Write(compressed)
+	}))
+
+	dst := t.TempDir()
+	written, err := svc.Download(context.Background(), sandboxID, "/app/src", dst)
+	require.NoError(t, err)
+	assert.Equal(t, dst, written)
+
+	got, err := os.ReadFile(filepath.Join(dst, "d", "x.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, content, string(got))
+}
+
+// A gzip-encoded x-tar cut off before its trailer extracts every entry cleanly,
+// so the transfer must not report success on the strength of that.
+func TestServiceDownloadDetectsTruncatedTarGzipEncoded(t *testing.T) {
+	const sandboxID = "sbx-abc123"
+
+	archive, _ := tarArchive(t)
+	compressed := gzipped(t, archive)
+
+	truncated := dropGzipTrailer(t, compressed)
+	svc := NewService(serveDownloadHandler(t, sandboxID, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", FileContentTypeTar)
+		w.Header().Set("Content-Encoding", "gzip")
+		_, _ = w.Write(truncated)
+	}))
 
 	dst := t.TempDir()
 	_, err := svc.Download(context.Background(), sandboxID, "/app/src", dst)

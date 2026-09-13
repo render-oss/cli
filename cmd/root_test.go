@@ -4,6 +4,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -14,8 +15,6 @@ import (
 	"testing"
 	"time"
 
-	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
-	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/analytics"
 	"github.com/render-oss/cli/pkg/client"
 	telemetryclient "github.com/render-oss/cli/pkg/client/clitelemetry"
@@ -221,7 +220,7 @@ func outputPointer(output command.Output) *command.Output {
 }
 
 func TestRootPersistentPreRunSuppressesUsageForRuntimeErrors(t *testing.T) {
-	root, out := newRootCommandForUsageTests()
+	root, out := newRootCommandForUsageTests(t)
 	runtimeErr := errors.New("network request failed")
 	root.AddCommand(&cobra.Command{
 		Use:  "login",
@@ -242,7 +241,7 @@ func TestRootPersistentPreRunSuppressesUsageForRuntimeErrors(t *testing.T) {
 }
 
 func TestRootArgumentErrorsStillPrintUsage(t *testing.T) {
-	root, out := newRootCommandForUsageTests()
+	root, out := newRootCommandForUsageTests(t)
 	root.AddCommand(&cobra.Command{
 		Use:  "login <token>",
 		Args: cobra.ExactArgs(1),
@@ -262,7 +261,7 @@ func TestRootArgumentErrorsStillPrintUsage(t *testing.T) {
 }
 
 func TestRootDeprecatedFlagErrorsStillPrintUsage(t *testing.T) {
-	root, out := newRootCommandForUsageTests()
+	root, out := newRootCommandForUsageTests(t)
 	root.PersistentFlags().Bool("pretty-json", false, "")
 	root.AddCommand(&cobra.Command{
 		Use:  "login",
@@ -609,7 +608,7 @@ func TestExecutionResultClassifiesCobraOutcomes(t *testing.T) {
 func executeAndClassify(t *testing.T, args []string, configure func(t *testing.T, root, child *cobra.Command)) command.ExecutionResult {
 	t.Helper()
 
-	root, _ := newRootCommandForUsageTests()
+	root, _ := newRootCommandForUsageTests(t)
 	child := &cobra.Command{
 		Use:  "test <value>",
 		Args: cobra.ExactArgs(1),
@@ -630,7 +629,7 @@ func executeAndClassify(t *testing.T, args []string, configure func(t *testing.T
 }
 
 func TestPrepareExecutionObservationClearsRetainedState(t *testing.T) {
-	root, _ := newRootCommandForUsageTests()
+	root, _ := newRootCommandForUsageTests(t)
 	root.AddCommand(&cobra.Command{
 		Use:  "test <value>",
 		Args: cobra.ExactArgs(1),
@@ -653,7 +652,6 @@ func TestPrepareExecutionObservationClearsRetainedState(t *testing.T) {
 	require.Equal(t, command.CompletionKindSuccess, secondResult.CompletionKind)
 	require.Equal(t, setupSucceeded, secondObservation.setup)
 	secondObservation.launchedFullScreenTUI = true
-	secondObservation.skipAnalyticsSend = true
 
 	// Preparing again returns setup to its zero value; the classifier relies on
 	// a fresh observation reading as not started.
@@ -661,47 +659,19 @@ func TestPrepareExecutionObservationClearsRetainedState(t *testing.T) {
 	require.Same(t, secondObservation, thirdObservation)
 	require.Equal(t, setupNotStarted, thirdObservation.setup)
 	require.False(t, thirdObservation.launchedFullScreenTUI)
-	require.False(t, thirdObservation.skipAnalyticsSend)
 }
 
-func TestRunExecutionOwnsObservationLifecycle(t *testing.T) {
-	root := &cobra.Command{
-		Use:  "render",
-		RunE: func(*cobra.Command, []string) error { return nil },
-	}
-
-	observation := prepareExecutionObservation(root)
-	observation.skipAnalyticsSend = true
-
-	result := runExecution(root, time.Now())
-	require.False(t, result.SkipAnalyticsSend,
-		"runExecution must clear observation state written before Cobra execution")
-
-	root.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
-		observationForCommand(cmd).skipAnalyticsSend = true
-		return nil
-	}
-
-	result = runExecution(root, time.Now())
-	require.True(t, result.SkipAnalyticsSend,
-		"runExecution must retain observation state written during Cobra execution")
-}
-
-func TestClassifiedExecutionResultIncludesExecutionObservation(t *testing.T) {
+func TestClassifiedExecutionResultIncludesFullScreenTUILaunch(t *testing.T) {
 	command := &cobra.Command{Use: "test"}
-	observation := &executionObservation{
-		launchedFullScreenTUI: true,
-		skipAnalyticsSend:     true,
-	}
+	observation := &executionObservation{launchedFullScreenTUI: true}
 
 	result := newClassifiedExecutionResult(command, nil, observation, time.Now())
 
 	require.True(t, result.LaunchedFullScreenTUI)
-	require.True(t, result.SkipAnalyticsSend)
 }
 
 func TestPrepareExecutionObservationClearsRetainedHelpRequest(t *testing.T) {
-	root, _ := newRootCommandForUsageTests()
+	root, _ := newRootCommandForUsageTests(t)
 
 	// Cobra retains parsed flag values when a command tree is reused. The E2E
 	// harness and package tests reuse the root tree, so an explicit help request
@@ -721,7 +691,7 @@ func TestPrepareExecutionObservationClearsRetainedHelpRequest(t *testing.T) {
 }
 
 func TestPrepareExecutionObservationClearsRetainedUnknownSubcommand(t *testing.T) {
-	root, _ := newRootCommandForUsageTests()
+	root, _ := newRootCommandForUsageTests(t)
 	root.AddCommand(&cobra.Command{Use: "group"})
 
 	root.SetArgs([]string{"group", "bogus"})
@@ -737,8 +707,6 @@ func TestPrepareExecutionObservationClearsRetainedUnknownSubcommand(t *testing.T
 	require.Equal(t, command.CompletionKindSuccess, secondResult.CompletionKind)
 }
 
-var analyticsWorkspaceID = testids.WorkspaceID("analytics")
-
 // TestCompletedCommandsEmitAnalytics drives real commands through the full
 // classify-and-emit path against the renderapi fake and asserts on the events
 // the server collected. Exhaustive per-outcome classification lives in
@@ -746,19 +714,17 @@ var analyticsWorkspaceID = testids.WorkspaceID("analytics")
 // and that the emitted command path is the verbatim, argument-free Cobra path.
 func TestCompletedCommandsEmitAnalytics(t *testing.T) {
 	testCases := []struct {
-		name          string
-		args          []string
-		seedWorkspace bool
-		wantCommand   string
-		wantKind      telemetryclient.CliTelemetryEventPOSTInputCompletionKind
-		wantExitCode  int
+		name         string
+		args         []string
+		wantCommand  string
+		wantKind     telemetryclient.CliTelemetryEventPOSTInputCompletionKind
+		wantExitCode int
 	}{
 		{
-			name:          "success",
-			args:          []string{"postgres", "list", "--output", "json"},
-			seedWorkspace: true,
-			wantCommand:   "render postgres list",
-			wantKind:      telemetryclient.Success,
+			name:        "success",
+			args:        []string{"postgres", "list", "--output", "json"},
+			wantCommand: "render postgres list",
+			wantKind:    telemetryclient.Success,
 		},
 		{
 			name:        "help",
@@ -777,20 +743,19 @@ func TestCompletedCommandsEmitAnalytics(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			server := renderapi.NewServer(t)
-			if tc.seedWorkspace {
-				server.Owners.Add(renderapi.NewOwner(client.Owner{Id: analyticsWorkspaceID, Name: "Analytics Workspace"}))
-				t.Setenv("RENDER_WORKSPACE", analyticsWorkspaceID)
-			}
+			harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+				noticeMarkerPresent: true,
+				allowSubprocess:     true,
+			})
 
-			result := executeWithAnalytics(t, server, t.TempDir(), true, tc.args...)
+			execution := harness.execute(tc.args...)
 
-			events := server.CliTelemetry.Instances
+			events := harness.server.CliTelemetry.Instances
 			require.Len(t, events, 1)
 			require.Equal(t, tc.wantCommand, events[0].Command)
 			require.Equal(t, tc.wantKind, events[0].CompletionKind)
 			require.Equal(t, tc.wantExitCode, events[0].ExitCode)
-			require.Equal(t, tc.wantExitCode, result.ExitCode)
+			require.Equal(t, tc.wantExitCode, execution.ExitCode)
 			require.Empty(t, events[0].AgentSignals,
 				"the harness must neutralize agent env so payloads match on any machine")
 			require.Empty(t, events[0].CiSignals,
@@ -799,176 +764,131 @@ func TestCompletedCommandsEmitAnalytics(t *testing.T) {
 	}
 }
 
-func TestOnExecutionCompleteHonorsSkipAnalyticsSend(t *testing.T) {
+func TestOnExecutionCompleteAnalyticsSendRequiresDisclosure(t *testing.T) {
 	testCases := []struct {
-		name       string
-		skip       bool
-		wantEvents int
+		name                string
+		noticeMarkerPresent bool
+		ci                  bool
+		runtimeSignalErr    error
+		wantEvents          int
 	}{
-		{name: "skip requested", skip: true, wantEvents: 0},
-		{name: "normal execution", skip: false, wantEvents: 1},
+		{name: "notice marker exists", noticeMarkerPresent: true, wantEvents: 1},
+		{name: "notice marker does not exist", noticeMarkerPresent: false, wantEvents: 0},
+		{
+			name:                "CI bypasses notice marker",
+			noticeMarkerPresent: false,
+			ci:                  true,
+			wantEvents:          1,
+		},
+		{
+			name:                "CI bypass survives runtime signal error",
+			noticeMarkerPresent: false,
+			ci:                  true,
+			runtimeSignalErr:    errors.New("invalid RENDER_OUTPUT value"),
+			wantEvents:          1,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			server := renderapi.NewServer(t)
-			configDir := t.TempDir()
-			configureAnalyticsTestEnv(t, server, configDir, true, true)
-			t.Setenv("RENDER_LOG_ANALYTICS", "1")
+			harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+				loggingEnabled:      true,
+				noticeMarkerPresent: tc.noticeMarkerPresent,
+				ci:                  tc.ci,
+				runtimeSignalErr:    tc.runtimeSignalErr,
+				allowSubprocess:     true,
+			})
 
-			c, err := client.NewClientWithResponses(server.URL())
-			require.NoError(t, err)
-			deps := dependencies.New(c)
-			root := newRootCmd()
-			var stderr bytes.Buffer
-			root.SetErr(&stderr)
 			result := command.ExecutionResult{
-				AnalyticsEligible: true,
-				CommandPath:       "render postgres list",
-				CompletionKind:    command.CompletionKindSuccess,
-				SkipAnalyticsSend: tc.skip,
-				StartedAt:         time.Now(),
+				AnalyticsEligible:       true,
+				AnalyticsNoticeEligible: false,
+				CommandPath:             "render future-command",
+				CompletionKind:          command.CompletionKindSuccess,
+				StartedAt:               time.Now(),
 			}
 
-			onExecutionComplete(result, deps, root)
+			execution := harness.complete(result)
 
-			require.Len(t, server.CliTelemetry.Instances, tc.wantEvents)
-			if tc.skip {
-				require.Empty(t, stderr.String(),
-					"a skipped execution must not log an analytics payload or diagnostic")
-				_, err := os.Stat(filepath.Join(configDir, "state"))
-				require.ErrorIs(t, err, os.ErrNotExist,
-					"a skipped execution must not create analytics state")
-			}
+			require.Equal(t, tc.wantEvents, execution.countLoggedAnalyticsEvents(),
+				"the disclosure gate should control whether the execution reaches analytics logging")
+			require.Len(t, harness.server.CliTelemetry.Instances, tc.wantEvents,
+				"the disclosure gate should control whether the event reaches the analytics endpoint")
 		})
 	}
 }
 
+// TestOnExecutionCompleteLogsWhenUserOptsOut verifies that opting out prevents
+// network sends without suppressing local analytics logging.
+func TestOnExecutionCompleteLogsWhenUserOptsOut(t *testing.T) {
+	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+		userOptedOut:        true,
+		loggingEnabled:      true,
+		noticeMarkerPresent: true,
+	})
+	result := command.ExecutionResult{
+		AnalyticsEligible:       true,
+		AnalyticsNoticeEligible: true,
+		CommandPath:             "render future-command",
+		CompletionKind:          command.CompletionKindSetupError,
+		StartedAt:               time.Now(),
+	}
+
+	execution := harness.complete(result)
+
+	require.Equal(t, 1, harness.runtimeSignalDetectionCallCount)
+	var payload client.CreateCliTelemetryEventJSONRequestBody
+	require.NoError(t, json.Unmarshal(bytes.TrimSpace([]byte(execution.Stderr)), &payload))
+	require.Equal(t, "render future-command", payload.Command,
+		"analytics event is logged because RENDER_LOG_ANALYTICS=1")
+	require.Equal(t, "setup_error", string(payload.CompletionKind))
+	require.Empty(t, harness.server.CliTelemetry.Instances,
+		"no analytics event is sent because the user opted out")
+}
+
 func TestInstallationIDCreatedOnlyWhenAnalyticsEnabled(t *testing.T) {
-	server := renderapi.NewServer(t)
-	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: analyticsWorkspaceID, Name: "Analytics Workspace"}))
-	t.Setenv("RENDER_WORKSPACE", analyticsWorkspaceID)
-	configDir := t.TempDir()
-	installationIDPath := filepath.Join(configDir, "state", "installation-id.txt")
+	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+		userOptedOut:        true,
+		noticeMarkerPresent: true,
+		allowSubprocess:     true,
+	})
+	installationIDPath := filepath.Join(harness.configDir, "state", "installation-id.txt")
 
-	result := executeWithAnalytics(t, server, configDir, false, "postgres", "list", "--output", "json")
-	require.Equal(t, 0, result.ExitCode)
-	require.Empty(t, server.CliTelemetry.Instances, "disabled analytics should not emit an event")
-	_, err := os.Stat(installationIDPath)
-	require.ErrorIs(t, err, os.ErrNotExist, "disabled analytics should not create installation ID state")
+	execution := harness.execute("postgres", "list", "--output", "json")
 
-	result = executeWithAnalytics(t, server, configDir, true, "postgres", "list", "--output", "json")
-	require.Equal(t, 0, result.ExitCode)
-	require.Len(t, server.CliTelemetry.Instances, 1)
+	require.Equal(t, 0, execution.ExitCode)
+	require.Empty(t, harness.server.CliTelemetry.Instances, "disabled analytics should not emit an event")
+	harness.requireNoAnalyticsSendState()
+
+	harness.setUserOptOut(false)
+	execution = harness.execute("postgres", "list", "--output", "json")
+
+	require.Equal(t, 0, execution.ExitCode)
+	require.Len(t, harness.server.CliTelemetry.Instances, 1)
 	contents, err := os.ReadFile(installationIDPath)
 	require.NoError(t, err)
 	installationID := strings.TrimSpace(string(contents))
 	require.NotEmpty(t, installationID)
-	require.Equal(t, installationID, server.CliTelemetry.Instances[0].InstallationId,
+	require.Equal(t, installationID, harness.server.CliTelemetry.Only(t).InstallationId,
 		"the emitted event should carry the persisted installation ID")
 }
 
 func TestAnalyticsEnabledWithoutSubprocessOptInDoesNotEmit(t *testing.T) {
-	server := renderapi.NewServer(t)
-	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: analyticsWorkspaceID, Name: "Analytics Workspace"}))
-	t.Setenv("RENDER_WORKSPACE", analyticsWorkspaceID)
-	configDir := t.TempDir()
+	harness := newAnalyticsHarness(t, analyticsHarnessInitialState{
+		noticeMarkerPresent: true,
+		allowSubprocess:     false,
+	})
 
-	result := executeWithAnalyticsSubprocessPermission(
-		t,
-		server,
-		configDir,
-		true,
-		false,
-		"postgres", "list", "--output", "json",
-	)
+	execution := harness.execute("postgres", "list", "--output", "json")
 
-	require.Equal(t, 0, result.ExitCode)
-	require.Empty(t, server.CliTelemetry.Instances)
-	_, err := os.Stat(filepath.Join(configDir, "state"))
-	require.ErrorIs(t, err, os.ErrNotExist, "a refused analytics subprocess must not create analytics state")
+	require.Equal(t, 0, execution.ExitCode)
+	require.Empty(t, harness.server.CliTelemetry.Instances)
+	harness.requireNoAnalyticsSendState()
 }
 
-// executeWithAnalytics builds a fresh CLI app whose client and analytics sender
-// both target the fake, runs args through the same runExecution/onExecutionComplete
-// path Execute uses, and returns the classified result. The emitted event lands
-// on server.CliTelemetry.
-func executeWithAnalytics(
-	t *testing.T,
-	server *renderapi.Server,
-	configDir string,
-	shouldSend bool,
-	args ...string,
-) command.ExecutionResult {
-	return executeWithAnalyticsSubprocessPermission(t, server, configDir, shouldSend, true, args...)
-}
-
-func executeWithAnalyticsSubprocessPermission(
-	t *testing.T,
-	server *renderapi.Server,
-	configDir string,
-	shouldSend bool,
-	allowSubprocess bool,
-	args ...string,
-) command.ExecutionResult {
+func newRootCommandForUsageTests(t *testing.T) (*cobra.Command, *bytes.Buffer) {
 	t.Helper()
-	configureAnalyticsTestEnv(t, server, configDir, shouldSend, allowSubprocess)
+	t.Setenv("RENDER_CLI_CONFIG_DIR", t.TempDir())
 
-	c, err := client.NewClientWithResponses(server.URL())
-	require.NoError(t, err)
-	deps := dependencies.New(c)
-	deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
-		return command.RuntimeSignals{}, nil
-	}
-
-	root := newRootCmd()
-	setupPGCommands(root, deps)
-	setupRootCmdPersistentRun(root, deps)
-
-	var stdout, stderr bytes.Buffer
-	root.SetOut(&stdout)
-	root.SetErr(&stderr)
-	root.SetArgs(args)
-
-	result := runExecution(root, time.Now())
-	onExecutionComplete(result, deps, root)
-	return result
-}
-
-func configureAnalyticsTestEnv(
-	t *testing.T,
-	server *renderapi.Server,
-	configDir string,
-	shouldSend bool,
-	allowSubprocess bool,
-) {
-	t.Helper()
-	// Emitted events report signals detected from the real environment, so
-	// without this the payload depends on where the tests run.
-	analytics.ClearSignalEnvVars(t)
-	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
-	t.Setenv("RENDER_CLI_CONFIG_PATH", "")
-	t.Setenv("RENDER_API_KEY", "test-api-key")
-	t.Setenv("RENDER_HOST", server.URL()+"/")
-	t.Setenv("RENDER_CLI_ANALYTICS_STRATEGY", "sync")
-	if allowSubprocess {
-		t.Setenv(analytics.AllowSubprocessInTestsEnv, "1")
-	} else {
-		t.Setenv(analytics.AllowSubprocessInTestsEnv, "")
-	}
-	// The dev gate is held open and sending toggles through a user opt-out
-	// instead, exercising the consent path the released CLI will use.
-	// Both opt-out vars are cleared first so an ambient value on the machine
-	// running the tests cannot leak in.
-	t.Setenv("RENDER_TEST_ENABLE_ANALYTICS", "1")
-	t.Setenv("DO_NOT_TRACK", "")
-	t.Setenv("RENDER_CLI_DISABLE_ANALYTICS", "")
-	if !shouldSend {
-		t.Setenv("DO_NOT_TRACK", "1")
-	}
-}
-
-func newRootCommandForUsageTests() (*cobra.Command, *bytes.Buffer) {
 	deps := dependencies.New(nil)
 	deps.DetectRuntimeSignals = func() (command.RuntimeSignals, error) {
 		return command.RuntimeSignals{

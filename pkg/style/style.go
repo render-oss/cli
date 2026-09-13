@@ -38,6 +38,13 @@ var (
 		Dark:  purple700,
 	}
 
+	// ColorSubtleBackground tints a block just enough to separate it from the
+	// surrounding output, without competing with it for attention.
+	ColorSubtleBackground = lipgloss.AdaptiveColor{
+		Light: gray50,
+		Dark:  gray650,
+	}
+
 	ColorFocus = lipgloss.AdaptiveColor{
 		Light: gray900,
 		Dark:  white,

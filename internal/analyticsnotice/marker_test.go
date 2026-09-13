@@ -1,4 +1,4 @@
-package welcome
+package analyticsnotice
 
 import (
 	"os"
@@ -22,7 +22,7 @@ func TestMarker(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, exists)
 
-	path := filepath.Join(dir, "state", markerFileName)
+	path := filepath.Join(dir, "state", "analytics", "notice-shown")
 	info, err := os.Stat(path)
 	require.NoError(t, err)
 	require.Zero(t, info.Size())

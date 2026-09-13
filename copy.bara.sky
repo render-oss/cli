@@ -5,6 +5,7 @@ DESTINATION_BRANCH = "main"
 
 DESTINATION_FILES = [
   ".github/**",
+  "bashunit_tests/**",
   "bin/**",
   "cmd/**",
   "e2e/**",

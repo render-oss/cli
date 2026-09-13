@@ -76,6 +76,7 @@ func TestBuildCreateRequest_AllFieldsSpecified(t *testing.T) {
 		HighAvailability: pointers.From(true),
 		DiskSizeGB:       pointers.From(100),
 		DiskAutoscaling:  pointers.From(true),
+		ConnectionPool:   pointers.From("pgbouncer"),
 		DatadogAPIKey:    pointers.From("dd-key"),
 		DatadogSite:      pointers.From("US3"),
 		IPAllowList: []string{
@@ -96,6 +97,7 @@ func TestBuildCreateRequest_AllFieldsSpecified(t *testing.T) {
 	assert.Equal(t, pointers.From(true), body.EnableHighAvailability)
 	assert.Equal(t, pointers.From(100), body.DiskSizeGB)
 	assert.Equal(t, pointers.From(true), body.EnableDiskAutoscaling)
+	assert.Equal(t, pointers.From("pgbouncer"), body.ConnectionPool)
 	assert.Equal(t, pointers.From("dd-key"), body.DatadogAPIKey)
 	assert.Equal(t, pointers.From("US3"), body.DatadogSite)
 	assert.Equal(t, &envID, body.EnvironmentId)
@@ -129,6 +131,7 @@ func TestBuildCreateRequest_OmitsOptionalsWhenUnset(t *testing.T) {
 	assert.Nil(t, body.EnableHighAvailability)
 	assert.Nil(t, body.DiskSizeGB)
 	assert.Nil(t, body.EnableDiskAutoscaling)
+	assert.Nil(t, body.ConnectionPool)
 	assert.Nil(t, body.DatadogAPIKey)
 	assert.Nil(t, body.DatadogSite)
 	assert.Nil(t, body.EnvironmentId)

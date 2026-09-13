@@ -24,6 +24,7 @@ type CreatePostgresInput struct {
 	HighAvailability    *bool    `cli:"high-availability"`
 	DiskSizeGB          *int     `cli:"disk-size-gb"`
 	DiskAutoscaling     *bool    `cli:"disk-autoscaling"`
+	ConnectionPool      *string  `cli:"connection-pool"`
 	DatadogAPIKey       *string  `cli:"datadog-api-key"`
 	DatadogSite         *string  `cli:"datadog-site"`
 	IPAllowList         []string `cli:"ip-allow-list"`
@@ -32,6 +33,9 @@ type CreatePostgresInput struct {
 
 func (c CreatePostgresInput) Validate(interactive bool) error {
 	if err := ValidateDiskSizeGB(c.DiskSizeGB); err != nil {
+		return err
+	}
+	if err := ValidateConnectionPool(c.ConnectionPool); err != nil {
 		return err
 	}
 	for _, entry := range c.IPAllowList {
@@ -56,4 +60,17 @@ func ValidateDiskSizeGB(size *int) error {
 		return nil
 	}
 	return fmt.Errorf("invalid --disk-size-gb %d: must be 1 or a multiple of 5", v)
+}
+
+// ValidateConnectionPool enforces the enum
+func ValidateConnectionPool(connectionPool *string) error {
+	if connectionPool == nil {
+		return nil
+	}
+	v := *connectionPool
+	switch v {
+	case "none", "pgbouncer":
+		return nil
+	}
+	return fmt.Errorf("invalid --connection-pool %s: must be 'none' or 'pgbouncer'", v)
 }
