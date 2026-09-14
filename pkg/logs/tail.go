@@ -114,7 +114,45 @@ func (s *tailSession) readLogs(ctx context.Context, conn *websocket.Conn) error 
 	// already delivered A and B at time T, then receive C at T+1 followed by
 	// B again, C clears s.boundaryIDs. This copy still lets us skip B.
 	initialBoundaryIDs := maps.Clone(s.boundaryIDs)
-	defer func() { _ = conn.Close() }()
+	const pingInterval = 20 * time.Second
+	const pongWait = 60 * time.Second
+	// Pongs demonstrate that a quiet connection is responsive. Sending a ping
+	// does not extend the deadline; the server must reply.
+	readDeadline := time.Now().Add(pongWait)
+	if err := conn.SetReadDeadline(readDeadline); err != nil {
+		_ = conn.Close()
+		return err
+	}
+	conn.SetPongHandler(func(string) error {
+		// A reply demonstrates a responsive connection, even without logs.
+		s.delay = time.Second
+		readDeadline = time.Now().Add(pongWait)
+		return conn.SetReadDeadline(readDeadline)
+	})
+	stopPings := make(chan struct{})
+	pingsDone := make(chan struct{})
+	go func() {
+		defer close(pingsDone)
+		ticker := time.NewTicker(pingInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-stopPings:
+				return
+			case <-ticker.C:
+				if err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(pingInterval)); err != nil {
+					// Unblock the reader so the reconnect loop can handle the failure.
+					_ = conn.Close()
+					return
+				}
+			}
+		}
+	}()
+	defer func() {
+		close(stopPings)
+		_ = conn.Close()
+		<-pingsDone
+	}()
 	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
 	defer stop()
 	for ctx.Err() == nil {
@@ -132,9 +170,13 @@ func (s *tailSession) readLogs(ctx context.Context, conn *websocket.Conn) error 
 		if _, seen := s.boundaryIDs[entry.Id]; seen {
 			continue
 		}
+		// A blocked consumer prevents us from reading pongs. Exclude that
+		// wait from the heartbeat deadline before returning to socket reads.
+		deliveryStarted := time.Now()
 		if !s.send(ctx, Event{Log: &entry}) {
 			return ctx.Err()
 		}
+		readDeadline = readDeadline.Add(time.Since(deliveryStarted))
 		// Keep only IDs at the resume boundary, not the whole tail.
 		// Logs arriving with timestamps earlier than latest are still delivered,
 		// but do not move the resume timestamp backward.
@@ -148,6 +190,9 @@ func (s *tailSession) readLogs(ctx context.Context, conn *websocket.Conn) error 
 		}
 		// Delivering a log also demonstrates a healthy connection.
 		s.delay = time.Second
+		if err := conn.SetReadDeadline(readDeadline); err != nil {
+			return err
+		}
 	}
 	return ctx.Err()
 }

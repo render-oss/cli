@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -225,6 +226,167 @@ func TestReadLogsRetryDelay(t *testing.T) {
 		require.Len(t, readResult, 1)
 		require.Error(t, <-readResult)
 		require.Equal(t, time.Second, session.delay, "a delivered log should reset accumulated backoff")
+	})
+}
+
+// TestReadLogsHeartbeat checks that pongs keep a quiet connection alive, missing
+// pongs cause a retryable timeout, and cancellation stops the connection.
+func TestReadLogsHeartbeat(t *testing.T) {
+	type heartbeatTest struct {
+		session        *tailSession
+		cancel         context.CancelFunc
+		readResult     chan error
+		serverResult   chan error
+		pingCount      atomic.Int32
+		respondToPings atomic.Bool
+	}
+
+	// Start a quiet connection that answers pings until the test disables replies.
+	setup := func(t *testing.T) *heartbeatTest {
+		t.Helper()
+		client, server := pipeWebSocketPair(t)
+		ctx, cancel := context.WithCancel(t.Context())
+		t.Cleanup(cancel)
+		h := &heartbeatTest{
+			session:      &tailSession{delay: 8 * time.Second},
+			cancel:       cancel,
+			readResult:   make(chan error, 1),
+			serverResult: make(chan error, 1),
+		}
+		h.respondToPings.Store(true)
+
+		defaultPingHandler := server.PingHandler()
+		server.SetPingHandler(func(data string) error {
+			h.pingCount.Add(1)
+			if h.respondToPings.Load() {
+				return defaultPingHandler(data)
+			}
+			return nil
+		})
+
+		// Read both sides so WebSocket control frames are processed.
+		go func() {
+			_, _, err := server.ReadMessage()
+			h.serverResult <- err
+		}()
+		go func() { h.readResult <- h.session.readLogs(ctx, client) }()
+		synctest.Wait()
+		return h
+	}
+
+	// Require both readers to finish and return the client's terminal error.
+	requireStopped := func(t *testing.T, h *heartbeatTest) error {
+		t.Helper()
+		synctest.Wait()
+		require.Len(t, h.readResult, 1, "the log reader should have stopped")
+		err := <-h.readResult
+		require.Error(t, err)
+		require.Len(t, h.serverResult, 1, "ending the reader should close the socket")
+		require.Error(t, <-h.serverResult)
+		return err
+	}
+
+	t.Run("no pongs", func(t *testing.T) {
+		t.Parallel()
+		synctest.Test(t, func(t *testing.T) {
+			h := setup(t)
+			h.respondToPings.Store(false)
+
+			// Sending pings without receiving replies must not extend the deadline.
+			time.Sleep(59 * time.Second)
+			synctest.Wait()
+			require.EqualValues(t, 2, h.pingCount.Load(), "send a ping every twenty seconds")
+			require.Empty(t, h.readResult, "allow sixty seconds for the first pong")
+
+			time.Sleep(time.Second)
+			err := requireStopped(t, h)
+			var networkErr net.Error
+			require.ErrorAs(t, err, &networkErr)
+			require.True(t, networkErr.Timeout())
+			require.True(t, isRetryable(err), "a missing pong should trigger reconnection")
+			require.Equal(t, 8*time.Second, h.session.delay, "time connected without a pong or log should preserve backoff")
+		})
+	})
+
+	t.Run("pongs stop", func(t *testing.T) {
+		t.Parallel()
+		synctest.Test(t, func(t *testing.T) {
+			h := setup(t)
+
+			// Three pongs keep the quiet connection alive past its original deadline.
+			time.Sleep(60 * time.Second)
+			synctest.Wait()
+			require.EqualValues(t, 3, h.pingCount.Load())
+			require.Empty(t, h.readResult, "pongs should extend the original deadline")
+
+			// Stop replying. The final pong gives the connection sixty more seconds.
+			h.respondToPings.Store(false)
+			time.Sleep(59 * time.Second)
+			synctest.Wait()
+			require.Empty(t, h.readResult, "allow sixty seconds from the last pong")
+
+			time.Sleep(time.Second)
+			err := requireStopped(t, h)
+			var networkErr net.Error
+			require.ErrorAs(t, err, &networkErr)
+			require.True(t, networkErr.Timeout())
+			require.True(t, isRetryable(err), "losing pong replies should trigger reconnection")
+			require.Equal(t, time.Second, h.session.delay, "received pongs should reset accumulated backoff")
+		})
+	})
+
+	t.Run("cancellation", func(t *testing.T) {
+		t.Parallel()
+		synctest.Test(t, func(t *testing.T) {
+			h := setup(t)
+			time.Sleep(40 * time.Second)
+			synctest.Wait()
+			require.EqualValues(t, 2, h.pingCount.Load())
+			require.Empty(t, h.readResult)
+
+			// Cancellation should stop a responsive connection without advancing time.
+			canceledAt := time.Now()
+			h.cancel()
+			_ = requireStopped(t, h)
+			require.Equal(t, canceledAt, time.Now(), "cancellation should not wait for the heartbeat deadline")
+		})
+	})
+}
+
+func TestReadLogsHeartbeatWithBlockedConsumer(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		client, server := pipeWebSocketPair(t)
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		session := &tailSession{
+			events:      make(chan Event),
+			boundaryIDs: make(map[string]struct{}),
+		}
+		// Keep processing pings without replying, so the read deadline is the
+		// only timeout and we can check when it resumes after event delivery.
+		server.SetPingHandler(func(string) error { return nil })
+		go func() { _, _, _ = server.ReadMessage() }()
+		result := make(chan error, 1)
+		go func() { result <- session.readLogs(ctx, client) }()
+		time.Sleep(10 * time.Second)
+		require.NoError(t, server.WriteJSON(lclient.Log{Id: "blocked", Timestamp: time.Now()}))
+		synctest.Wait()
+
+		time.Sleep(70 * time.Second)
+		require.Equal(t, "blocked", (<-session.events).Log.Id)
+		synctest.Wait()
+		require.Empty(t, result, "consumer delay should not exhaust the heartbeat deadline")
+
+		time.Sleep(49 * time.Second)
+		synctest.Wait()
+		require.Empty(t, result)
+		time.Sleep(time.Second)
+		synctest.Wait()
+		require.Len(t, result, 1, "missing pongs should still time out once reading resumes")
+		var networkErr net.Error
+		require.ErrorAs(t, <-result, &networkErr)
+		require.True(t, networkErr.Timeout())
 	})
 }
 
