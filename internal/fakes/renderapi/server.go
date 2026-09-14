@@ -309,7 +309,8 @@ type Server struct {
 	SandboxSnapshots *SandboxSnapshotResource
 	CliTelemetry     *CliTelemetryResource
 	OAuth            *OAuthResource
-	userErrorQueue []int
+	Logs             *LogResource
+	userErrorQueue   []int
 }
 
 // ownerByID returns the Owner with the given ID from the seeded owners. The
@@ -424,6 +425,7 @@ func NewServer(t *testing.T) *Server {
 		SandboxSnapshots: &SandboxSnapshotResource{},
 		CliTelemetry:     &CliTelemetryResource{},
 		OAuth:            &OAuthResource{},
+		Logs:             &LogResource{t: t},
 	}
 
 	mux := http.NewServeMux()
@@ -1084,8 +1086,10 @@ func NewServer(t *testing.T) *Server {
 	registerSandboxSnapshotRoutes(mux, s, record)
 	registerCliTelemetryRoutes(mux, s, record)
 	registerOAuthRoutes(mux, s, record)
+	registerLogRoutes(mux, s, record)
 
 	s.server = httptest.NewServer(mux)
 	t.Cleanup(s.server.Close)
+	t.Cleanup(s.Logs.close)
 	return s
 }
