@@ -480,6 +480,11 @@ type SandboxPOST struct {
 	// match the snapshot's plan.
 	SnapshotId *SandboxSnapshotId `json:"snapshotId,omitempty"`
 
+	// SnapshotName Start from the snapshot this name currently resolves to in the sandbox
+	// group. Mutually exclusive with `snapshotId`. Same restore rules as
+	// `snapshotId`.
+	SnapshotName *SandboxSnapshotName `json:"snapshotName,omitempty"`
+
 	// TimeoutSeconds Maximum sandbox lifetime in seconds. Sandbox is terminated when reached.
 	TimeoutSeconds *int `json:"timeoutSeconds,omitempty"`
 }
@@ -507,6 +512,9 @@ type SandboxSnapshot struct {
 	// plan of the source sandbox.
 	Kind SandboxSnapshotKind `json:"kind"`
 
+	// Name Set at create. Never changes. Null when created without a name.
+	Name *SandboxSnapshotName `json:"name,omitempty"`
+
 	// Plan Plan of the source sandbox at capture time.
 	Plan        SandboxPlan `json:"plan"`
 	RequestedAt time.Time   `json:"requestedAt"`
@@ -530,12 +538,29 @@ type SandboxSnapshotId = string
 // plan of the source sandbox.
 type SandboxSnapshotKind string
 
+// SandboxSnapshotName Case sensitive. Scoped to the sandbox group. Must not start with `snp-`
+// so clients can tell a name from a snapshot ID. Several snapshots may
+// share a name; the most recently available one is the one the name
+// resolves to.
+//
+// Example: gold
+type SandboxSnapshotName = string
+
 // SandboxSnapshotPOST defines model for sandboxSnapshotPOST.
 type SandboxSnapshotPOST struct {
 	// ExpiresAt The time after which the snapshot can no longer be retrieved or restored.
 	// Must be in the future. Omit to use Render's default snapshot lifetime.
 	ExpiresAt *time.Time           `json:"expiresAt,omitempty"`
 	Kind      *SandboxSnapshotKind `json:"kind,omitempty"`
+
+	// Name Case sensitive. Scoped to the sandbox group. Must not start with `snp-`
+	// so clients can tell a name from a snapshot ID. Several snapshots may
+	// share a name; the most recently available one is the one the name
+	// resolves to.
+	//
+	//
+	// Example: gold
+	Name *SandboxSnapshotName `json:"name,omitempty"`
 }
 
 // SandboxSnapshotStatus defines model for sandboxSnapshotStatus.

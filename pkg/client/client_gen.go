@@ -1972,6 +1972,11 @@ type ClientInterface interface {
 	// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
 	// different `plan`.
 	//
+	// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
+	// malformed, 400 without a code if `snapshotId` is also set, and 404 with
+	// `code: snapshot_not_found` if no `available` snapshot in the group has the
+	// name. The 409 cases above apply to the resolved snapshot.
+	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with POST /sandboxes (the `CreateSandbox` operationId).
@@ -1985,6 +1990,11 @@ type ClientInterface interface {
 	// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
 	// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
 	// different `plan`.
+	//
+	// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
+	// malformed, 400 without a code if `snapshotId` is also set, and 404 with
+	// `code: snapshot_not_found` if no `available` snapshot in the group has the
+	// name. The 409 cases above apply to the resolved snapshot.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2097,7 +2107,8 @@ type ClientInterface interface {
 	// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
 	// running; a runtime capture pauses it briefly.
 	//
-	// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+	// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
+	// `code: sandbox_not_running` if the sandbox is not `running`.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -2110,7 +2121,8 @@ type ClientInterface interface {
 	// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
 	// running; a runtime capture pauses it briefly.
 	//
-	// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+	// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
+	// `code: sandbox_not_running` if the sandbox is not `running`.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -6975,6 +6987,11 @@ func (c *Client) ListSandboxes(ctx context.Context, params *ListSandboxesParams,
 // `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
 // different `plan`.
 //
+// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
+// malformed, 400 without a code if `snapshotId` is also set, and 404 with
+// `code: snapshot_not_found` if no `available` snapshot in the group has the
+// name. The 409 cases above apply to the resolved snapshot.
+//
 // Takes any type of body and a specified content type.
 //
 // Corresponds with POST /sandboxes (the `CreateSandbox` operationId).
@@ -6998,6 +7015,11 @@ func (c *Client) CreateSandboxWithBody(ctx context.Context, contentType string, 
 // exist; 409 with `code: snapshot_not_available` if it is not `available`, or
 // `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
 // different `plan`.
+//
+// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
+// malformed, 400 without a code if `snapshotId` is also set, and 404 with
+// `code: snapshot_not_found` if no `available` snapshot in the group has the
+// name. The 409 cases above apply to the resolved snapshot.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -7220,7 +7242,8 @@ func (c *Client) ConnectSandboxRun(ctx context.Context, sandboxId externalRef16.
 // `creating`. Poll until it is `available` or `failed`. The sandbox keeps
 // running; a runtime capture pauses it briefly.
 //
-// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
+// `code: sandbox_not_running` if the sandbox is not `running`.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7243,7 +7266,8 @@ func (c *Client) CreateSandboxSnapshotWithBody(ctx context.Context, sandboxId ex
 // `creating`. Poll until it is `available` or `failed`. The sandbox keeps
 // running; a runtime capture pauses it briefly.
 //
-// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
+// `code: sandbox_not_running` if the sandbox is not `running`.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -26827,6 +26851,11 @@ type ClientWithResponsesInterface interface {
 	// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
 	// different `plan`.
 	//
+	// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
+	// malformed, 400 without a code if `snapshotId` is also set, and 404 with
+	// `code: snapshot_not_found` if no `available` snapshot in the group has the
+	// name. The 409 cases above apply to the resolved snapshot.
+	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /sandboxes (the `CreateSandbox` operationId).
@@ -26840,6 +26869,11 @@ type ClientWithResponsesInterface interface {
 	// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
 	// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
 	// different `plan`.
+	//
+	// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
+	// malformed, 400 without a code if `snapshotId` is also set, and 404 with
+	// `code: snapshot_not_found` if no `available` snapshot in the group has the
+	// name. The 409 cases above apply to the resolved snapshot.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -26964,7 +26998,8 @@ type ClientWithResponsesInterface interface {
 	// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
 	// running; a runtime capture pauses it briefly.
 	//
-	// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+	// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
+	// `code: sandbox_not_running` if the sandbox is not `running`.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -26977,7 +27012,8 @@ type ClientWithResponsesInterface interface {
 	// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
 	// running; a runtime capture pauses it briefly.
 	//
-	// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+	// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
+	// `code: sandbox_not_running` if the sandbox is not `running`.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -55635,6 +55671,11 @@ func (c *ClientWithResponses) ListSandboxesWithResponse(ctx context.Context, par
 // `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
 // different `plan`.
 //
+// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
+// malformed, 400 without a code if `snapshotId` is also set, and 404 with
+// `code: snapshot_not_found` if no `available` snapshot in the group has the
+// name. The 409 cases above apply to the resolved snapshot.
+//
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /sandboxes (the `CreateSandbox` operationId).
@@ -55654,6 +55695,11 @@ func (c *ClientWithResponses) CreateSandboxWithBodyWithResponse(ctx context.Cont
 // exist; 409 with `code: snapshot_not_available` if it is not `available`, or
 // `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
 // different `plan`.
+//
+// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
+// malformed, 400 without a code if `snapshotId` is also set, and 404 with
+// `code: snapshot_not_found` if no `available` snapshot in the group has the
+// name. The 409 cases above apply to the resolved snapshot.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -55844,7 +55890,8 @@ func (c *ClientWithResponses) ConnectSandboxRunWithResponse(ctx context.Context,
 // `creating`. Poll until it is `available` or `failed`. The sandbox keeps
 // running; a runtime capture pauses it briefly.
 //
-// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
+// `code: sandbox_not_running` if the sandbox is not `running`.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -55863,7 +55910,8 @@ func (c *ClientWithResponses) CreateSandboxSnapshotWithBodyWithResponse(ctx cont
 // `creating`. Poll until it is `available` or `failed`. The sandbox keeps
 // running; a runtime capture pauses it briefly.
 //
-// 409 with `code: sandbox_not_running` if the sandbox is not `running`.
+// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
+// `code: sandbox_not_running` if the sandbox is not `running`.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
