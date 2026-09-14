@@ -40,7 +40,7 @@ func (l *LogLoader) LoadLogData(ctx context.Context, in LogInput) (*tui.LogResul
 	}
 
 	if in.Tail {
-		logChan, err := l.logRepo.TailLogs(ctx, params)
+		logChan, err := l.logRepo.TailLogsOnce(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("error tailing logs: %v", err)
 		}
@@ -52,6 +52,28 @@ func (l *LogLoader) LoadLogData(ctx context.Context, in LogInput) (*tui.LogResul
 		return nil, fmt.Errorf("error listing logs: %v", err)
 	}
 	return &tui.LogResult{Logs: logs, LogChannel: nil}, nil
+}
+
+// ListLogs returns a log page without constructing a TUI result.
+func (l *LogLoader) ListLogs(ctx context.Context, in LogInput) (*client.Logs200Response, error) {
+	params, err := l.ToParam(ctx, in)
+	if err != nil {
+		return nil, fmt.Errorf("error processing arguments: %v", err)
+	}
+	result, err := l.logRepo.ListLogs(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("error listing logs: %v", err)
+	}
+	return result, nil
+}
+
+// TailLogs returns stream events; the caller owns cancellation and presentation.
+func (l *LogLoader) TailLogs(ctx context.Context, in LogInput) (<-chan logs.Event, error) {
+	params, err := l.ToParam(ctx, in)
+	if err != nil {
+		return nil, fmt.Errorf("error processing arguments: %v", err)
+	}
+	return l.logRepo.TailLogs(ctx, params), nil
 }
 
 func (l *LogLoader) getResourceIDsFromIDOrNames(ctx context.Context, idOrNames []string) ([]string, error) {

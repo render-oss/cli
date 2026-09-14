@@ -36,7 +36,8 @@ func (l *LogRepo) ListLogs(ctx context.Context, params *client.ListLogsParams) (
 	return logs.JSON200, nil
 }
 
-func (l *LogRepo) TailLogs(ctx context.Context, params *client.ListLogsParams) (<-chan *lclient.Log, error) {
+// TailLogsOnce preserves the TUI's single-connection stream until it adopts TailLogs.
+func (l *LogRepo) TailLogsOnce(ctx context.Context, params *client.ListLogsParams) (<-chan *lclient.Log, error) {
 	subscribeParams := client.SubscribeLogsParams(*params)
 	req, err := client.NewSubscribeLogsRequest(l.apiConfig.Host, &subscribeParams)
 	if err != nil {

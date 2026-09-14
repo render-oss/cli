@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -87,6 +88,7 @@ In interactive mode you can update the filters and view logs in real time, or se
 	logCmd.Flags().Bool("tail", false, "Stream new logs")
 	logCmd.Flags().StringSlice("task-id", []string{}, "Filter logs by comma-separated task IDs")
 	logCmd.Flags().StringSlice("task-run-id", []string{}, "Filter logs by comma-separated task run IDs")
+	logCmd.MarkFlagsMutuallyExclusive("tail", "end")
 	setFlagPlaceholder(logCmd.Flags(), "resources", "RESOURCE_IDS")
 	setFlagPlaceholder(logCmd.Flags(), "start", "TIME")
 	setFlagPlaceholder(logCmd.Flags(), "end", "TIME")
@@ -126,30 +128,42 @@ func writeLog(format command.Output, out io.Writer, log *lclient.Log) error {
 }
 
 func nonInteractiveLogs(logLoader *views.LogLoader, format *command.Output, cmd *cobra.Command, input views.LogInput) error {
-	result, err := logLoader.LoadLogData(cmd.Context(), input)
-	if err != nil {
-		return err
-	}
+	ctx, cancel := context.WithCancel(cmd.Context())
+	defer cancel()
 
-	if result.Logs != nil {
-		for _, log := range result.Logs.Logs {
+	if !input.Tail {
+		result, err := logLoader.ListLogs(ctx, input)
+		if err != nil {
+			return err
+		}
+		if result == nil {
+			return nil
+		}
+		for _, log := range result.Logs {
 			if err := writeLog(*format, cmd.OutOrStdout(), &log); err != nil {
 				return err
 			}
 		}
+		return nil
 	}
 
-	if result.LogChannel != nil {
-		for {
-			log, ok := <-result.LogChannel
-			if !ok {
-				break
+	events, err := logLoader.TailLogs(ctx, input)
+	if err != nil {
+		return err
+	}
+	for event := range events {
+		if event.Err != nil {
+			return event.Err
+		}
+		if event.Log != nil {
+			if err := writeLog(*format, cmd.OutOrStdout(), event.Log); err != nil {
+				return err
 			}
-			if err := writeLog(*format, cmd.OutOrStdout(), log); err != nil {
+		} else if event.Status != "" {
+			if _, err := fmt.Fprintln(cmd.ErrOrStderr(), event.Status); err != nil {
 				return err
 			}
 		}
 	}
-
-	return nil
+	return ctx.Err()
 }
