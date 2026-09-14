@@ -25,3 +25,22 @@ jobs:
 
       - name: Test with the Go CLI
         run: go test ./cmd/... ./pkg/... ./internal/...
+
+  # Stable status check for branch rules. The matrix above expands into one
+  # context per OS, so requiring it directly means naming every leg and quietly
+  # losing the requirement whenever a runner is renamed. Require this instead.
+  required:
+    name: Go Tests Required Checks
+    needs: [test]
+    runs-on: ubuntu-latest
+    if: ${{ !cancelled() }}  # Run even if the matrix fails. We don't use `always` because that can hang.
+    steps:
+      - name: Check matrix result
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+        run: |
+          if [[ "$TEST_RESULT" != "success" && "$TEST_RESULT" != "skipped" ]]; then
+            echo "Run Go Tests result: $TEST_RESULT"
+            exit 1
+          fi
+          echo "Run Go Tests result: $TEST_RESULT"
