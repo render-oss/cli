@@ -1,0 +1,110 @@
+name: Generated client guard
+
+# Fails a pull request that hand-edits the generated REST client in pkg/client.
+#
+# Why this shape, rather than regenerating and diffing (which is what
+# renderinc/sdk .github/workflows/generated-client-drift.yml does):
+#
+#   Regenerating requires reading the private renderinc/api. This repo's
+#   vars.APP_ID is app 2491349 (render-oss-copybara-sync), which has no
+#   installation on renderinc/api, so a regen-and-diff check here could not
+#   authenticate and would fail before it did any work. This check therefore
+#   needs no access to api at all: no schema, no generator, no Go toolchain.
+#   It is a checkout and a git diff, so it runs in seconds.
+#
+#   That is sufficient because the regen automation in api keeps the committed
+#   client current: the client cannot fall behind the schema without a PR being
+#   opened here. So the question left for this repo to answer is not "is the
+#   client current" but "did a human hand-edit generated code", and answering
+#   that needs no schema.
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# contents:read is all this needs. It deliberately does not use
+# dorny/paths-filter, which reads the PR's changed files through the API and so
+# also needs pull-requests:read.
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Check generated client files were not hand-edited
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # Full history so the PR's merge base resolves.
+          fetch-depth: 0
+
+      - name: Check for hand-edited generated files
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HAS_OVERRIDE: ${{ contains(github.event.pull_request.labels.*.name, 'manual-regen') }}
+        run: |
+          set -o errexit -o nounset -o pipefail
+
+          # The regen automation's PRs are expected to change generated files.
+          #
+          # Identified by author rather than by head branch (auto/regen-cli):
+          # the head branch name is chosen by whoever opens the PR, so a human
+          # could silently bypass this guard by naming their branch
+          # auto/regen-cli. The author is set by GitHub from the identity that
+          # opened the PR and cannot be spoofed by a contributor. The failure
+          # modes also favour the author: if the automation's branch name
+          # changes, an author check still passes its PRs, whereas a branch
+          # check would start failing them.
+          if [[ "$PR_AUTHOR" == "render-github-action-bot[bot]" ]]; then
+            echo "PR authored by the regen automation ($PR_AUTHOR); generated client changes are expected."
+            exit 0
+          fi
+
+          # Generated files are exactly *_gen.go: that is the suffix the
+          # generator writes and the only thing clean_generated_go_files
+          # deletes. pkg/client also holds handwritten code (client.go,
+          # cursorparams.go, oauth/, version/), so scoping this to the whole
+          # directory would block legitimate edits to those files.
+          #
+          # Three-dot diff, so generated changes that landed on main after this
+          # PR branched are not attributed to this PR.
+          all_changed="$(git diff --name-only "$BASE_SHA...$HEAD_SHA")"
+          changed="$(printf '%s\n' "$all_changed" | grep -E '^pkg/client/.*_gen\.go$' || true)"
+
+          if [[ -z "$changed" ]]; then
+            echo "No generated client files changed."
+            exit 0
+          fi
+
+          if [[ "$HAS_OVERRIDE" == "true" ]]; then
+            echo "Generated client files changed, allowed by the 'manual-regen' label:"
+            printf '%s\n' "$changed"
+            exit 0
+          fi
+
+          echo "::error::This PR changes generated client files. Regenerate them instead of editing them by hand."
+          echo
+          echo "Generated client files changed by this PR:"
+          printf '%s\n' "$changed" | sed 's/^/  /'
+          echo
+          cat <<'MSG'
+          These files are written by public-api-schema/generate-cli.sh in
+          renderinc/api and are overwritten on its next run, so hand edits to
+          them are lost.
+
+          To change them, change the OpenAPI schema in renderinc/api and
+          regenerate:
+
+            export RENDER_API_PATH=/path/to/api
+            cd "$RENDER_API_PATH/public-api-schema" && ./generate-cli.sh
+
+          If you ran the generator yourself and this PR is that catch-up regen,
+          add the 'manual-regen' label to this PR.
+          MSG
+          exit 1
