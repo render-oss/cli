@@ -54,12 +54,14 @@ func (i ListItem) Height() int {
 }
 
 func Header() []string {
-	return []string{"ID", "Created"}
+	return []string{"ID", "Name", "Status", "Created"}
 }
 
 func Row(version *wfclient.WorkflowVersion) []string {
 	return []string{
 		version.Id,
+		version.Name,
+		string(version.Status),
 		pointers.TimeValue(&version.CreatedAt),
 	}
 }
