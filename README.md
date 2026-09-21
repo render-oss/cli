@@ -24,3 +24,16 @@ Run the shell test suite with `bashunit_tests/run.sh`. The runner downloads the
 pinned BashUnit release on first use.
 
 Read [AGENTS.md](AGENTS.md) for common dev commands. It's written for humans too!
+
+### Regenerate workflow callback bindings
+
+Set `RENDER_API_PATH` to your local Render API checkout. From the CLI repository root, run:
+
+```sh
+export RENDER_API_PATH=/path/to/api
+cd pkg/workflows/taskserver
+go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1 \
+  -config=oapi-generate.yaml "$RENDER_API_PATH/pkg/durableworkflow/callbackapi/openapi.yaml"
+```
+
+This updates `pkg/workflows/taskserver/api_gen.go` from the callback API schema.

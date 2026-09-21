@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/workflows/store"
 	"github.com/render-oss/cli/pkg/workflows/taskserver"
 )
@@ -186,8 +187,11 @@ func (c *Coordinator) launchTask(taskRun *store.TaskRun) (*store.TaskRun, error)
 	c.statusReporter.TaskEnqueued(taskRun)
 
 	server := c.serverFactory.NewHandler(socket, taskserver.GetInput200JSONResponse{
-		TaskName: taskRun.TaskName,
-		Input:    taskRun.Input,
+		TaskName:        taskRun.TaskName,
+		Input:           taskRun.Input,
+		TaskRunId:       pointers.From(taskRun.ID),
+		RootTaskRunId:   pointers.From(taskRun.RootTaskRunID),
+		ParentTaskRunId: taskRun.ParentTaskRunID,
 	}, c.GetSubtaskResult, c.StartSubtaskFunc(taskRun))
 
 	server.Start()

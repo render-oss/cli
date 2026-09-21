@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
@@ -25,8 +26,15 @@ type CallbackRequest struct {
 
 // InputResponse defines model for InputResponse.
 type InputResponse struct {
-	Input    []byte `json:"input"`
-	TaskName string `json:"task_name"`
+	Input []byte `json:"input"`
+
+	// ParentTaskRunId Run ID of the task run that started this one. Omitted for a root run.
+	ParentTaskRunId *string `json:"parent_task_run_id,omitempty"`
+
+	// RootTaskRunId Run ID of the root of this run's task tree. Equal to task_run_id when the run has no parent.
+	RootTaskRunId *string `json:"root_task_run_id,omitempty"`
+	TaskName      string  `json:"task_name"`
+	TaskRunId     *string `json:"task_run_id,omitempty"`
 }
 
 // RetryConfig defines model for RetryConfig.
@@ -41,10 +49,21 @@ type RetryConfig struct {
 	WaitDurationMs *int64 `json:"wait_duration_ms,omitempty"`
 }
 
+// RunSubtaskError defines model for RunSubtaskError.
+type RunSubtaskError struct {
+	// Message Human-readable reason the subtask was rejected.
+	Message string `json:"message"`
+}
+
 // RunSubtaskRequest defines model for RunSubtaskRequest.
 type RunSubtaskRequest struct {
-	Input    *[]byte `json:"input,omitempty"`
-	TaskName string  `json:"task_name"`
+	// CreatedAt Caller-pinned creation time, as an RFC 3339 timestamp. Must be stable across retries: the scheduler deduplicates on (idempotency_key, created_at).
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// IdempotencyKey Deduplicates subtask creation across retries. The SDK generates this once per logical subtask call and resends the same value on every retry, so a retried submission resolves to the original subtask instead of creating a duplicate.
+	IdempotencyKey *string `json:"idempotency_key,omitempty"`
+	Input          *[]byte `json:"input,omitempty"`
+	TaskName       string  `json:"task_name"`
 }
 
 // RunSubtaskResponse defines model for RunSubtaskResponse.
@@ -68,6 +87,9 @@ type SubtaskResultResponse struct {
 type Task struct {
 	Name    string       `json:"name"`
 	Options *TaskOptions `json:"options,omitempty"`
+
+	// Parameters Parameter schema extracted from the task function signature
+	Parameters *[]TaskParameter `json:"parameters,omitempty"`
 }
 
 // TaskComplete defines model for TaskComplete.
@@ -83,7 +105,27 @@ type TaskError struct {
 
 // TaskOptions defines model for TaskOptions.
 type TaskOptions struct {
+	// Plan Resource plan for task execution
+	Plan  *string      `json:"plan,omitempty"`
 	Retry *RetryConfig `json:"retry,omitempty"`
+
+	// TimeoutSeconds Task execution timeout in seconds (30-86400)
+	TimeoutSeconds *int64 `json:"timeout_seconds,omitempty"`
+}
+
+// TaskParameter Information about a task parameter extracted from function signature
+type TaskParameter struct {
+	// DefaultValue JSON-encoded default value (if has_default is true)
+	DefaultValue *string `json:"default_value,omitempty"`
+
+	// HasDefault Whether the parameter has a default value
+	HasDefault bool `json:"has_default"`
+
+	// Name Parameter name
+	Name string `json:"name"`
+
+	// Type String representation of the parameter type hint
+	Type *string `json:"type,omitempty"`
 }
 
 // Tasks defines model for Tasks.
@@ -652,6 +694,9 @@ type PostRunSubtaskResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *RunSubtaskResponse
+	JSON400      *RunSubtaskError
+	JSON404      *RunSubtaskError
+	JSON409      *RunSubtaskError
 }
 
 // Status returns HTTPResponse.Status
@@ -851,6 +896,27 @@ func ParsePostRunSubtaskResponse(rsp *http.Response) (*PostRunSubtaskResponse, e
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RunSubtaskError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest RunSubtaskError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest RunSubtaskError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
 
 	}
 
@@ -1263,6 +1329,33 @@ type PostRunSubtask200JSONResponse RunSubtaskResponse
 func (response PostRunSubtask200JSONResponse) VisitPostRunSubtaskResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostRunSubtask400JSONResponse RunSubtaskError
+
+func (response PostRunSubtask400JSONResponse) VisitPostRunSubtaskResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostRunSubtask404JSONResponse RunSubtaskError
+
+func (response PostRunSubtask404JSONResponse) VisitPostRunSubtaskResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostRunSubtask409JSONResponse RunSubtaskError
+
+func (response PostRunSubtask409JSONResponse) VisitPostRunSubtaskResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }

@@ -14,6 +14,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -118,6 +120,59 @@ func TestStartTaskNotFound(t *testing.T) {
 	require.ErrorAs(t, err, &taskNotFoundErr)
 	require.Equal(t, "nonexistent-task", taskNotFoundErr.TaskSlug)
 	require.Equal(t, "nonexistent-task", reporter.notFoundIdentifier)
+}
+
+func TestTaskInputRunIDs(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	s := store.NewTaskStore()
+	sockets, err := orchestrator.NewSocketTracker(ctx)
+	require.NoError(t, err)
+	handlers := make(map[string]*taskserver.ServerHandler)
+	factory := taskserver.NewTaskServerFactory()
+	exec, _ := controllableSdkExec()
+	coordinator := orchestrator.NewCoordinator(ctx, s, exec, sockets, &fakeServerFactory{
+		newHandler: func(socket net.Listener, input taskserver.GetInput200JSONResponse, getResult taskserver.GetSubtaskResultFunc, startSubtask taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
+			h := factory.NewHandler(socket, input, getResult, startSubtask)
+			if input.TaskName == "" {
+				h.Channels.PostTasks = make(chan taskserver.PostRegisterTasksRequestObject, 1)
+				h.Channels.PostTasks <- taskserver.PostRegisterTasksRequestObject{
+					Body: &taskserver.Tasks{Tasks: []taskserver.Task{{Name: "test-task"}}},
+				}
+			} else {
+				handlers[*input.TaskRunId] = h
+			}
+			return h
+		},
+	}, &noopStatusReporter{})
+
+	root, err := coordinator.StartTask(ctx, "test-task", []byte("[]"), nil)
+	require.NoError(t, err)
+	child, err := coordinator.StartTask(ctx, "test-task", []byte("[]"), root)
+	require.NoError(t, err)
+	grandchild, err := coordinator.StartTask(ctx, "test-task", []byte("[]"), child)
+	require.NoError(t, err)
+	otherRoot, err := coordinator.StartTask(ctx, "test-task", []byte("[]"), nil)
+	require.NoError(t, err)
+
+	for _, run := range []*store.TaskRun{root, child, grandchild, otherRoot} {
+		t.Run(run.ID, func(t *testing.T) {
+			h := taskserver.Handler(taskserver.NewStrictHandler(handlers[run.ID], nil))
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/input", nil))
+			require.Equal(t, http.StatusOK, rec.Code)
+			var response map[string]any
+			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &response))
+			require.Equal(t, run.ID, response["task_run_id"])
+			if run.ParentTaskRunID == nil {
+				require.Equal(t, run.ID, response["root_task_run_id"])
+				require.NotContains(t, response, "parent_task_run_id")
+			} else {
+				require.Equal(t, root.ID, response["root_task_run_id"])
+				require.Equal(t, *run.ParentTaskRunID, response["parent_task_run_id"])
+			}
+		})
+	}
 }
 
 func TestStartTask(t *testing.T) {
