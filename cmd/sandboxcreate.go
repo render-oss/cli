@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -23,9 +24,13 @@ type SandboxCreateInput struct {
 	EnvVars       []string `cli:"env-var"`
 	EnvFiles      []string `cli:"env-file"`
 	SnapshotID    string   `cli:"snapshot-id"`
+	From          string   `cli:"from"`
 }
 
 func (i *SandboxCreateInput) Validate(_ bool) error {
+	if i.From != "" && i.SnapshotID != "" {
+		return fmt.Errorf("--from and --snapshot-id cannot be used together")
+	}
 	if i.Plan != "" && !sandboxclient.SandboxPlan(i.Plan).Valid() {
 		return fmt.Errorf("invalid plan %q: use %s", i.Plan, strings.Join(sandboxPlanNames(), ", "))
 	}
@@ -41,6 +46,18 @@ func (i *SandboxCreateInput) Validate(_ bool) error {
 		return err
 	}
 	return nil
+}
+
+var sandboxSnapshotIDPattern = regexp.MustCompile(`^snp-[0-9a-v]{20}$`)
+
+func resolveSandboxSource(from string, fromSet bool, snapshotID string) (string, *string) {
+	if !fromSet {
+		return snapshotID, nil
+	}
+	if sandboxSnapshotIDPattern.MatchString(from) {
+		return from, nil
+	}
+	return "", &from
 }
 
 func resolveSandboxEnv(files, pairs []string) (map[string]string, error) {
@@ -95,7 +112,8 @@ Examples:
   render ea sandboxes create --network-policy=deny-all
   render ea sandboxes create --env-var FOO=bar --env-var BAZ=qux
   render ea sandboxes create --env-file .env.production --env-var LOG_LEVEL=debug
-  render ea sandboxes create --snapshot-id snp-abc123
+  render ea sandboxes create --from gold
+  render ea sandboxes create --from snp-cph1rs3idesc73a2b2mg
 `,
 	}
 
@@ -110,6 +128,9 @@ Examples:
 	setFlagPlaceholder(cmd.Flags(), "env-file", "PATH")
 	cmd.Flags().String("snapshot-id", "", "Start from this snapshot instead of the base image. The snapshot must be available and in the same sandbox group. A runtime snapshot requires --plan to match its plan.")
 	setFlagPlaceholder(cmd.Flags(), "snapshot-id", "SNAPSHOT_ID")
+	cmd.Flags().String("from", "", "Start from a snapshot ID or name")
+	setFlagPlaceholder(cmd.Flags(), "from", "SNAPSHOT_ID_OR_NAME")
+	cmd.MarkFlagsMutuallyExclusive("from", "snapshot-id")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)
@@ -132,6 +153,7 @@ Examples:
 		if err != nil {
 			return err
 		}
+		snapshotID, snapshotName := resolveSandboxSource(input.From, cmd.Flags().Changed("from"), input.SnapshotID)
 
 		_, err = command.NonInteractive(cmd, func() (*sandboxclient.Sandbox, error) {
 			return deps.SandboxService().Create(cmd.Context(), sandbox.CreateInput{
@@ -140,7 +162,8 @@ Examples:
 				Timeout:       input.Timeout,
 				NetworkPolicy: input.NetworkPolicy,
 				Env:           env,
-				SnapshotID:    input.SnapshotID,
+				SnapshotID:    snapshotID,
+				SnapshotName:  snapshotName,
 			}, onEvent)
 		}, text.SandboxDetail)
 		return err

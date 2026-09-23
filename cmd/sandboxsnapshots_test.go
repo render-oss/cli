@@ -82,13 +82,14 @@ func TestSandboxSnapshots_HelpListsSubcommands(t *testing.T) {
 func TestSandboxSnapshotsCreate_TextOutput(t *testing.T) {
 	h := newSandboxSnapshotsHarness(t)
 
-	result, err := h.execute("create", h.sandbox.Id, "--output", "text")
+	result, err := h.execute("create", h.sandbox.Id, "--name", "gold", "--output", "text")
 	require.NoError(t, err)
 
 	created := h.server.SandboxSnapshots.Only(t)
 	assert.Contains(t, result.Stdout, created.Id)
 	assert.Contains(t, result.Stdout, "creating")
 	assert.Contains(t, result.Stdout, "filesystem")
+	assert.Contains(t, result.Stdout, "Name:           gold")
 	assert.Contains(t, result.Stdout, h.sandbox.Id)
 	assert.False(t, h.server.HasRequest("GET", "/snapshots"), "create must return without polling")
 }
@@ -96,7 +97,7 @@ func TestSandboxSnapshotsCreate_TextOutput(t *testing.T) {
 func TestSandboxSnapshotsCreate_JSONOutput(t *testing.T) {
 	h := newSandboxSnapshotsHarness(t)
 
-	result, err := h.execute("create", h.sandbox.Id, "--output", "json")
+	result, err := h.execute("create", h.sandbox.Id, "--name", "gold", "--output", "json")
 	require.NoError(t, err)
 
 	created := h.server.SandboxSnapshots.Only(t)
@@ -104,8 +105,26 @@ func TestSandboxSnapshotsCreate_JSONOutput(t *testing.T) {
 	assert.Equal(t, created.Id, body["id"])
 	assert.Equal(t, "creating", body["status"])
 	assert.Equal(t, "filesystem", body["kind"])
+	assert.Equal(t, "gold", body["name"])
 	assert.Equal(t, h.sandbox.Id, body["sourceSandboxId"])
 	assert.Equal(t, h.group.Id, body["sandboxGroupId"])
+
+	req, ok := h.server.LastRequest("POST", "/sandboxes/"+h.sandbox.Id+"/snapshots")
+	require.True(t, ok, "expected a create request")
+	assert.Equal(t, "gold", testrequire.ParseJSONMap(t, string(req.Body))["name"])
+}
+
+func TestSandboxSnapshotsCreate_EmptyNameIsSentForServerValidation(t *testing.T) {
+	h := newSandboxSnapshotsHarness(t)
+
+	_, err := h.execute("create", h.sandbox.Id, "--name", "", "--output", "json")
+	require.ErrorContains(t, err, "400 (invalid_snapshot_name)")
+
+	req, ok := h.server.LastRequest("POST", "/sandboxes/"+h.sandbox.Id+"/snapshots")
+	require.True(t, ok, "expected a create request")
+	body := testrequire.ParseJSONMap(t, string(req.Body))
+	assert.Contains(t, body, "name")
+	assert.Equal(t, "", body["name"])
 }
 
 func TestSandboxSnapshotsCreate_Kind(t *testing.T) {
@@ -181,11 +200,12 @@ func TestSandboxSnapshotsCreate_SandboxNotRunning_SurfacesCode(t *testing.T) {
 func TestSandboxSnapshotsGet_TextOutput(t *testing.T) {
 	h := newSandboxSnapshotsHarness(t)
 	size := int64(2048)
-	snap := h.seedSnapshot(sandboxesclient.SandboxSnapshot{Kind: sandboxesclient.Runtime, SizeBytes: &size})
+	name := "gold"
+	snap := h.seedSnapshot(sandboxesclient.SandboxSnapshot{Kind: sandboxesclient.Runtime, Name: &name, SizeBytes: &size})
 
 	result, err := h.execute("get", snap.Id, "--group", h.group.Id, "--output", "text")
 	require.NoError(t, err)
-	for _, want := range []string{snap.Id, h.group.Id, h.sandbox.Id, "runtime", "available", "2.0 KB"} {
+	for _, want := range []string{snap.Id, h.group.Id, h.sandbox.Id, "Name:", "gold", "runtime", "available", "2.0 KB"} {
 		assert.Contains(t, result.Stdout, want)
 	}
 }
@@ -290,7 +310,8 @@ func TestSandboxSnapshotsList_TextOutput(t *testing.T) {
 	h := newSandboxSnapshotsHarness(t)
 	size := int64(5 * 1024 * 1024)
 	captured := time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC)
-	available := h.seedSnapshot(sandboxesclient.SandboxSnapshot{SizeBytes: &size, CapturedAt: &captured, RequestedAt: captured.Add(-time.Minute)})
+	name := "gold"
+	available := h.seedSnapshot(sandboxesclient.SandboxSnapshot{Name: &name, SizeBytes: &size, CapturedAt: &captured, RequestedAt: captured.Add(-time.Minute)})
 	creating := h.seedSnapshot(sandboxesclient.SandboxSnapshot{Status: sandboxesclient.SandboxSnapshotStatusCreating, RequestedAt: captured.Add(time.Minute)})
 
 	result, err := h.execute("list", "--group", h.group.Id, "--output", "text")
@@ -298,9 +319,9 @@ func TestSandboxSnapshotsList_TextOutput(t *testing.T) {
 
 	lines := strings.Split(strings.TrimSpace(result.Stdout), "\n")
 	require.Len(t, lines, 3)
-	assert.Equal(t, []string{"ID", "KIND", "STATUS", "PLAN", "SIZE", "EXPIRES", "CAPTURED"}, strings.Fields(lines[0]))
-	assert.Equal(t, []string{creating.Id, "filesystem", "creating", "starter", "-", "2026-09-08T10:01:00Z", "-"}, strings.Fields(lines[1]))
-	assert.Equal(t, []string{available.Id, "filesystem", "available", "starter", "5.0", "MB", "2026-09-08T09:59:00Z", "2026-09-01T10:00:00Z"}, strings.Fields(lines[2]))
+	assert.Equal(t, []string{"ID", "NAME", "KIND", "STATUS", "PLAN", "SIZE", "EXPIRES", "CAPTURED"}, strings.Fields(lines[0]))
+	assert.Equal(t, []string{creating.Id, "-", "filesystem", "creating", "starter", "-", "2026-09-08T10:01:00Z", "-"}, strings.Fields(lines[1]))
+	assert.Equal(t, []string{available.Id, "gold", "filesystem", "available", "starter", "5.0", "MB", "2026-09-08T09:59:00Z", "2026-09-01T10:00:00Z"}, strings.Fields(lines[2]))
 }
 
 func TestSandboxSnapshotsList_StatusFilter(t *testing.T) {

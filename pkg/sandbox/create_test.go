@@ -110,15 +110,16 @@ func TestServiceCreate_EnvBody(t *testing.T) {
 	}
 }
 
-func TestServiceCreate_SnapshotIDBody(t *testing.T) {
+func TestServiceCreate_SnapshotSourceBody(t *testing.T) {
 	tests := []struct {
-		name           string
-		input          CreateInput
-		wantSnapshotID string
-		wantAbsent     bool
+		name             string
+		input            CreateInput
+		wantSnapshotID   string
+		wantSnapshotName string
 	}{
-		{name: "unset omits snapshotId so the sandbox starts from the base image", input: CreateInput{}, wantAbsent: true},
+		{name: "unset omits snapshot source", input: CreateInput{}},
 		{name: "snapshot id is sent", input: CreateInput{SnapshotID: "snp-abc123"}, wantSnapshotID: "snp-abc123"},
+		{name: "snapshot name is sent", input: CreateInput{SnapshotName: stringPointer("gold")}, wantSnapshotName: "gold"},
 	}
 
 	for _, tc := range tests {
@@ -134,12 +135,20 @@ func TestServiceCreate_SnapshotIDBody(t *testing.T) {
 			_, err := svc.Create(context.Background(), tc.input, nil)
 			require.NoError(t, err)
 
-			snapshotID, present := gotBody["snapshotId"]
-			if tc.wantAbsent {
-				assert.False(t, present, "snapshotId should be omitted, got %v", snapshotID)
-				return
+			if tc.wantSnapshotID == "" {
+				assert.NotContains(t, gotBody, "snapshotId")
+			} else {
+				assert.Equal(t, tc.wantSnapshotID, gotBody["snapshotId"])
 			}
-			assert.Equal(t, tc.wantSnapshotID, snapshotID)
+			if tc.wantSnapshotName == "" {
+				assert.NotContains(t, gotBody, "snapshotName")
+			} else {
+				assert.Equal(t, tc.wantSnapshotName, gotBody["snapshotName"])
+			}
 		})
 	}
+}
+
+func stringPointer(value string) *string {
+	return &value
 }

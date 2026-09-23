@@ -13,10 +13,11 @@ import (
 
 func SandboxSnapshotTable(snapshots []*sandboxesclient.SandboxSnapshot) string {
 	t := newTable()
-	t.AppendHeader(table.Row{"ID", "Kind", "Status", "Plan", "Size", "Expires", "Captured"})
+	t.AppendHeader(table.Row{"ID", "Name", "Kind", "Status", "Plan", "Size", "Expires", "Captured"})
 	for _, s := range snapshots {
 		t.AppendRow(table.Row{
 			s.Id,
+			snapshotName(s.Name),
 			s.Kind,
 			s.Status,
 			s.Plan,
@@ -29,8 +30,11 @@ func SandboxSnapshotTable(snapshots []*sandboxesclient.SandboxSnapshot) string {
 }
 
 func SandboxSnapshotDetail(s *sandboxesclient.SandboxSnapshot) string {
-	lines := []string{
-		fmt.Sprintf("ID:             %s", s.Id),
+	lines := []string{fmt.Sprintf("ID:             %s", s.Id)}
+	if s.Name != nil {
+		lines = append(lines, fmt.Sprintf("Name:           %s", *s.Name))
+	}
+	lines = append(lines,
 		fmt.Sprintf("Kind:           %s", s.Kind),
 		fmt.Sprintf("Status:         %s", s.Status),
 		fmt.Sprintf("Plan:           %s", s.Plan),
@@ -40,11 +44,18 @@ func SandboxSnapshotDetail(s *sandboxesclient.SandboxSnapshot) string {
 		fmt.Sprintf("Requested:      %s", s.RequestedAt.UTC().Format(time.RFC3339)),
 		fmt.Sprintf("Captured:       %s", snapshotTime(s.CapturedAt)),
 		fmt.Sprintf("Expires:        %s", s.ExpiresAt.UTC().Format(time.RFC3339)),
-	}
+	)
 	if s.Error != nil && *s.Error != "" {
 		lines = append(lines, fmt.Sprintf("Error:          %s", *s.Error))
 	}
 	return FormatString(strings.Join(lines, "\n"))
+}
+
+func snapshotName(name *string) string {
+	if name == nil {
+		return "-"
+	}
+	return *name
 }
 
 func snapshotSize(bytes *int64) string {

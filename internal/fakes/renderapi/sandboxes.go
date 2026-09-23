@@ -71,12 +71,34 @@ func (s *Server) snapshotByID(id string) (*sandboxesclient.SandboxSnapshot, bool
 	return nil, false
 }
 
+func (s *Server) snapshotByName(groupID, name string) (*sandboxesclient.SandboxSnapshot, bool) {
+	var latest *sandboxesclient.SandboxSnapshot
+	for _, snap := range s.SandboxSnapshots.Instances {
+		if snap.SandboxGroupId != groupID || snap.Status != sandboxesclient.SandboxSnapshotStatusAvailable ||
+			snap.Name == nil || *snap.Name != name {
+			continue
+		}
+		if latest == nil || snap.RequestedAt.After(latest.RequestedAt) {
+			latest = snap
+		}
+	}
+	return latest, latest != nil
+}
+
 func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Request)) {
 	mux.HandleFunc("POST /sandboxes", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
 		var body sandboxesclient.SandboxPOST
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			writeAPIError(w, http.StatusBadRequest, "invalid body", "")
+			return
+		}
+		if body.SnapshotId != nil && body.SnapshotName != nil {
+			writeAPIError(w, http.StatusBadRequest, "snapshotId and snapshotName are mutually exclusive", "")
+			return
+		}
+		if body.SnapshotName != nil && invalidSnapshotName(*body.SnapshotName) {
+			writeAPIError(w, http.StatusBadRequest, "invalid snapshot name", ErrorCodeInvalidSnapshotName)
 			return
 		}
 		if body.SnapshotId != nil {
@@ -91,6 +113,17 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 			}
 			if snap.Status != sandboxesclient.SandboxSnapshotStatusAvailable {
 				writeAPIError(w, http.StatusConflict, "snapshot is not available", ErrorCodeSnapshotNotAvailable)
+				return
+			}
+			if snap.Kind == sandboxesclient.Runtime && body.Plan != nil && *body.Plan != snap.Plan {
+				writeAPIError(w, http.StatusConflict, "plan does not match the runtime snapshot", ErrorCodeSnapshotPlanMismatch)
+				return
+			}
+		}
+		if body.SnapshotName != nil {
+			snap, found := s.snapshotByName(s.defaultSandboxGroupID(body.OwnerId), *body.SnapshotName)
+			if !found {
+				writeAPIError(w, http.StatusNotFound, "snapshot not found", ErrorCodeSnapshotNotFound)
 				return
 			}
 			if snap.Kind == sandboxesclient.Runtime && body.Plan != nil && *body.Plan != snap.Plan {

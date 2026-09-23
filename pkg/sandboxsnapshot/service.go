@@ -22,6 +22,7 @@ func NewService(repo *Repo, groupRepo *sandboxgroup.Repo) *Service {
 type CreateInput struct {
 	SandboxID string
 	Kind      string
+	Name      *string
 }
 
 type ListInput struct {
@@ -34,6 +35,9 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*sandboxesclie
 	if input.Kind != "" {
 		kind := sandboxesclient.SandboxSnapshotKind(input.Kind)
 		body.Kind = &kind
+	}
+	if input.Name != nil {
+		body.Name = input.Name
 	}
 	return s.repo.Create(ctx, input.SandboxID, body)
 }

@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
@@ -16,8 +18,9 @@ import (
 )
 
 const (
-	ErrorCodeSandboxNotRunning = "sandbox_not_running"
-	ErrorCodeSnapshotCreating  = "snapshot_creating"
+	ErrorCodeSandboxNotRunning   = "sandbox_not_running"
+	ErrorCodeSnapshotCreating    = "snapshot_creating"
+	ErrorCodeInvalidSnapshotName = "invalid_snapshot_name"
 )
 
 type SandboxSnapshotResource struct {
@@ -64,6 +67,10 @@ func NewSandboxSnapshot(s sandboxesclient.SandboxSnapshot) *sandboxesclient.Sand
 		s.ExpiresAt = s.RequestedAt.Add(7 * 24 * time.Hour)
 	}
 	return &s
+}
+
+func invalidSnapshotName(name string) bool {
+	return name == "" || utf8.RuneCountInString(name) > 64 || strings.HasPrefix(name, "snp-")
 }
 
 func writeAPIError(w http.ResponseWriter, status int, message, code string) {
@@ -169,6 +176,10 @@ func registerSandboxSnapshotRoutes(mux *http.ServeMux, s *Server, record func(*h
 			writeAPIError(w, http.StatusBadRequest, "invalid body", "")
 			return
 		}
+		if body.Name != nil && invalidSnapshotName(*body.Name) {
+			writeAPIError(w, http.StatusBadRequest, "invalid snapshot name", ErrorCodeInvalidSnapshotName)
+			return
+		}
 		kind := sandboxesclient.Filesystem
 		if body.Kind != nil {
 			kind = *body.Kind
@@ -176,6 +187,7 @@ func registerSandboxSnapshotRoutes(mux *http.ServeMux, s *Server, record func(*h
 		snapshot := s.SandboxSnapshots.Add(NewSandboxSnapshot(sandboxesclient.SandboxSnapshot{
 			SandboxGroupId:  s.defaultSandboxGroupID(ownerID),
 			SourceSandboxId: sandboxID,
+			Name:            body.Name,
 			Kind:            kind,
 			Status:          sandboxesclient.SandboxSnapshotStatusCreating,
 			Plan:            sb.Plan,

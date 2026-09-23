@@ -153,6 +153,37 @@ func TestSandboxCreateInputValidateEnv(t *testing.T) {
 	}
 }
 
+func TestResolveSandboxSource(t *testing.T) {
+	tests := []struct {
+		name             string
+		from             string
+		fromSet          bool
+		explicitID       string
+		wantSnapshotID   string
+		wantSnapshotName *string
+	}{
+		{name: "explicit snapshot id", explicitID: "snp-explicit", wantSnapshotID: "snp-explicit"},
+		{name: "exact snapshot id", from: "snp-0123456789abcdefghij", fromSet: true, wantSnapshotID: "snp-0123456789abcdefghij"},
+		{name: "name", from: "gold", fromSet: true, wantSnapshotName: commandStringPointer("gold")},
+		{name: "empty value is a name", fromSet: true, wantSnapshotName: commandStringPointer("")},
+		{name: "short snp prefix is a name", from: "snp-abc123", fromSet: true, wantSnapshotName: commandStringPointer("snp-abc123")},
+		{name: "uppercase character is a name", from: "snp-0123456789abcdefghiJ", fromSet: true, wantSnapshotName: commandStringPointer("snp-0123456789abcdefghiJ")},
+		{name: "w is outside id alphabet", from: "snp-0123456789abcdefghiw", fromSet: true, wantSnapshotName: commandStringPointer("snp-0123456789abcdefghiw")},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			snapshotID, snapshotName := resolveSandboxSource(tc.from, tc.fromSet, tc.explicitID)
+			assert.Equal(t, tc.wantSnapshotID, snapshotID)
+			assert.Equal(t, tc.wantSnapshotName, snapshotName)
+		})
+	}
+}
+
+func commandStringPointer(value string) *string {
+	return &value
+}
+
 func TestResolveSandboxEnv(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "base.env")
@@ -230,6 +261,82 @@ func TestSandboxCreate_SnapshotIDSent(t *testing.T) {
 	assert.Equal(t, snap.Id, body["snapshotId"])
 }
 
+func TestSandboxCreate_FromDispatchesSnapshotSource(t *testing.T) {
+	tests := []struct {
+		name      string
+		from      string
+		snapshot  func(group *sandboxclient.SandboxGroup) sandboxclient.SandboxSnapshot
+		wantField string
+		wantValue string
+		wantError string
+	}{
+		{
+			name: "snapshot id",
+			from: "snp-0123456789abcdefghij",
+			snapshot: func(group *sandboxclient.SandboxGroup) sandboxclient.SandboxSnapshot {
+				return sandboxclient.SandboxSnapshot{Id: "snp-0123456789abcdefghij", SandboxGroupId: group.Id}
+			},
+			wantField: "snapshotId",
+			wantValue: "snp-0123456789abcdefghij",
+		},
+		{
+			name: "snapshot name",
+			from: "gold",
+			snapshot: func(group *sandboxclient.SandboxGroup) sandboxclient.SandboxSnapshot {
+				name := "gold"
+				return sandboxclient.SandboxSnapshot{SandboxGroupId: group.Id, Name: &name}
+			},
+			wantField: "snapshotName",
+			wantValue: "gold",
+		},
+		{
+			name: "empty snapshot name is sent for server validation",
+			from: "",
+			snapshot: func(group *sandboxclient.SandboxGroup) sandboxclient.SandboxSnapshot {
+				name := ""
+				return sandboxclient.SandboxSnapshot{SandboxGroupId: group.Id, Name: &name}
+			},
+			wantField: "snapshotName",
+			wantValue: "",
+			wantError: "400 (invalid_snapshot_name)",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			server := newSandboxCreateServer(t)
+			group := sandboxCreateDefaultGroup(t, server)
+			server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(tc.snapshot(group)))
+
+			_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--from", tc.from, "--output", "json")
+			if tc.wantError == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, tc.wantError)
+			}
+
+			req, ok := server.LastRequest("POST", "/sandboxes")
+			require.True(t, ok, "expected a create request")
+			body := testrequire.ParseJSONMap(t, string(req.Body))
+			assert.Equal(t, tc.wantValue, body[tc.wantField])
+			if tc.wantField == "snapshotId" {
+				assert.NotContains(t, body, "snapshotName")
+			} else {
+				assert.NotContains(t, body, "snapshotId")
+			}
+		})
+	}
+}
+
+func TestSandboxCreate_FromAndSnapshotIDAreMutuallyExclusive(t *testing.T) {
+	server := newSandboxCreateServer(t)
+
+	_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--from", "gold", "--snapshot-id", "snp-explicit")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "if any flags in the group")
+	assert.False(t, server.HasRequest("POST", "/sandboxes"))
+}
+
 func TestSandboxCreate_WithoutSnapshotIDOmitsIt(t *testing.T) {
 	server := newSandboxCreateServer(t)
 
@@ -239,8 +346,8 @@ func TestSandboxCreate_WithoutSnapshotIDOmitsIt(t *testing.T) {
 	req, ok := server.LastRequest("POST", "/sandboxes")
 	require.True(t, ok, "expected a create request")
 	body := testrequire.ParseJSONMap(t, string(req.Body))
-	_, present := body["snapshotId"]
-	assert.False(t, present, "snapshotId should be omitted, got %v", body["snapshotId"])
+	assert.NotContains(t, body, "snapshotId")
+	assert.NotContains(t, body, "snapshotName")
 }
 
 func TestSandboxCreate_SnapshotIDErrors(t *testing.T) {

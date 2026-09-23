@@ -16,6 +16,7 @@ import (
 type SandboxSnapshotsCreateInput struct {
 	SandboxID string `cli:"arg:0"`
 	Kind      string `cli:"kind"`
+	Name      string `cli:"name"`
 }
 
 func (i *SandboxSnapshotsCreateInput) Validate(_ bool) error {
@@ -54,12 +55,17 @@ The sandbox keeps running after the capture.`,
   # Also capture memory and CPU state
   render ea sandboxes snapshots create sbx-abc123 --kind runtime
 
+  # Name the snapshot
+  render ea sandboxes snapshots create sbx-abc123 --name gold
+
   # JSON output
   render ea sandboxes snapshots create sbx-abc123 --output json`,
 	}
 
 	cmd.Flags().String("kind", "", "Snapshot kind: filesystem (default), runtime")
 	setFlagPlaceholder(cmd.Flags(), "kind", "KIND")
+	cmd.Flags().String("name", "", "Name the snapshot")
+	setFlagPlaceholder(cmd.Flags(), "name", "NAME")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)
@@ -68,11 +74,16 @@ The sandbox keeps running after the capture.`,
 		if err := command.ParseCommand(cmd, args, &input); err != nil {
 			return err
 		}
+		var name *string
+		if cmd.Flags().Changed("name") {
+			name = &input.Name
+		}
 
 		_, err := command.NonInteractive(cmd, func() (*sandboxesclient.SandboxSnapshot, error) {
 			return deps.SandboxSnapshotService().Create(cmd.Context(), sandboxsnapshot.CreateInput{
 				SandboxID: input.SandboxID,
 				Kind:      input.Kind,
+				Name:      name,
 			})
 		}, text.SandboxSnapshotDetail)
 		return err

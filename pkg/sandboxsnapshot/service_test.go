@@ -54,16 +54,19 @@ func respondJSON(status int, v any) func(w http.ResponseWriter) {
 	}
 }
 
-func TestServiceCreate_KindBody(t *testing.T) {
+func TestServiceCreate_Body(t *testing.T) {
 	tests := []struct {
-		name       string
-		kind       string
-		wantKind   string
-		wantAbsent bool
+		name            string
+		input           sandboxsnapshot.CreateInput
+		wantKind        string
+		wantName        string
+		wantNamePresent bool
 	}{
-		{name: "unset omits kind so the server default applies", wantAbsent: true},
-		{name: "filesystem is sent explicitly", kind: "filesystem", wantKind: "filesystem"},
-		{name: "runtime is sent explicitly", kind: "runtime", wantKind: "runtime"},
+		{name: "unset omits optional fields", input: sandboxsnapshot.CreateInput{SandboxID: "sbx-1"}},
+		{name: "filesystem is sent explicitly", input: sandboxsnapshot.CreateInput{SandboxID: "sbx-1", Kind: "filesystem"}, wantKind: "filesystem"},
+		{name: "runtime is sent explicitly", input: sandboxsnapshot.CreateInput{SandboxID: "sbx-1", Kind: "runtime"}, wantKind: "runtime"},
+		{name: "name is sent", input: sandboxsnapshot.CreateInput{SandboxID: "sbx-1", Name: stringPointer("gold")}, wantName: "gold"},
+		{name: "empty name is sent for server validation", input: sandboxsnapshot.CreateInput{SandboxID: "sbx-1", Name: stringPointer("")}, wantName: "", wantNamePresent: true},
 	}
 
 	for _, tc := range tests {
@@ -72,7 +75,7 @@ func TestServiceCreate_KindBody(t *testing.T) {
 				Id: "snp-1", Status: sandboxesclient.SandboxSnapshotStatusCreating,
 			}))
 
-			snap, err := svc.Create(context.Background(), sandboxsnapshot.CreateInput{SandboxID: "sbx-1", Kind: tc.kind})
+			snap, err := svc.Create(context.Background(), tc.input)
 			require.NoError(t, err)
 			assert.Equal(t, "snp-1", snap.Id)
 			assert.Equal(t, sandboxesclient.SandboxSnapshotStatusCreating, snap.Status)
@@ -80,14 +83,22 @@ func TestServiceCreate_KindBody(t *testing.T) {
 			assert.Equal(t, http.MethodPost, rec.Method)
 			assert.Equal(t, "/sandboxes/sbx-1/snapshots", rec.Path)
 			assert.Equal(t, []string{testWorkspace}, rec.Query["ownerId"])
-			kind, present := rec.Body["kind"]
-			if tc.wantAbsent {
-				assert.False(t, present, "kind should be omitted, got %v", kind)
-				return
+			if tc.wantKind == "" {
+				assert.NotContains(t, rec.Body, "kind")
+			} else {
+				assert.Equal(t, tc.wantKind, rec.Body["kind"])
 			}
-			assert.Equal(t, tc.wantKind, kind)
+			if tc.wantName == "" && !tc.wantNamePresent {
+				assert.NotContains(t, rec.Body, "name")
+			} else {
+				assert.Equal(t, tc.wantName, rec.Body["name"])
+			}
 		})
 	}
+}
+
+func stringPointer(value string) *string {
+	return &value
 }
 
 func TestServiceList_Routes(t *testing.T) {

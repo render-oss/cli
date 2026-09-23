@@ -16,9 +16,11 @@ func TestSandboxSnapshotTable_ContainsHeadersAndRow(t *testing.T) {
 	captured := time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC)
 	expires := time.Date(2026, 9, 8, 10, 0, 0, 0, time.UTC)
 	size := int64(1536)
+	name := "gold"
 	snapshots := []*sandboxesclient.SandboxSnapshot{
 		{
 			Id:              "snp-abc",
+			Name:            &name,
 			SandboxGroupId:  "sbg-abc",
 			SourceSandboxId: "sbx-abc",
 			Kind:            sandboxesclient.Runtime,
@@ -34,8 +36,8 @@ func TestSandboxSnapshotTable_ContainsHeadersAndRow(t *testing.T) {
 	out := text.SandboxSnapshotTable(snapshots)
 
 	for _, want := range []string{
-		"ID", "KIND", "STATUS", "PLAN", "SIZE", "EXPIRES", "CAPTURED",
-		"snp-abc", "runtime", "available", "standard", "1.5 KB",
+		"ID", "NAME", "KIND", "STATUS", "PLAN", "SIZE", "EXPIRES", "CAPTURED",
+		"snp-abc", "gold", "runtime", "available", "standard", "1.5 KB",
 		"2026-09-08T10:00:00Z", "2026-09-01T10:00:00Z",
 	} {
 		assert.Contains(t, out, want)
@@ -59,14 +61,16 @@ func TestSandboxSnapshotTable_NullFieldsShowDash(t *testing.T) {
 	lines := strings.Split(strings.TrimSpace(out), "\n")
 	require.Len(t, lines, 2)
 	fields := strings.Fields(lines[1])
-	assert.Equal(t, []string{"snp-new", "filesystem", "creating", "starter", "-", "2026-09-08T10:00:00Z", "-"}, fields)
+	assert.Equal(t, []string{"snp-new", "-", "filesystem", "creating", "starter", "-", "2026-09-08T10:00:00Z", "-"}, fields)
 }
 
 func TestSandboxSnapshotDetail(t *testing.T) {
 	size := int64(3 * 1024 * 1024)
 	captured := time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC)
+	name := "gold"
 	snapshot := &sandboxesclient.SandboxSnapshot{
 		Id:              "snp-abc",
+		Name:            &name,
 		SandboxGroupId:  "sbg-abc",
 		SourceSandboxId: "sbx-abc",
 		Kind:            sandboxesclient.Filesystem,
@@ -79,10 +83,22 @@ func TestSandboxSnapshotDetail(t *testing.T) {
 
 	out := text.SandboxSnapshotDetail(snapshot)
 
-	for _, want := range []string{"snp-abc", "sbg-abc", "sbx-abc", "filesystem", "available", "starter", "3.0 MB", "2026-09-01T10:00:00Z"} {
+	for _, want := range []string{"snp-abc", "Name:           gold", "sbg-abc", "sbx-abc", "filesystem", "available", "starter", "3.0 MB", "2026-09-01T10:00:00Z"} {
 		assert.Contains(t, out, want)
 	}
 	assert.NotContains(t, out, "Error:")
+}
+
+func TestSandboxSnapshotDetail_UnsetNameIsOmitted(t *testing.T) {
+	snapshot := &sandboxesclient.SandboxSnapshot{
+		Id:          "snp-abc",
+		Kind:        sandboxesclient.Filesystem,
+		Status:      sandboxesclient.SandboxSnapshotStatusCreating,
+		Plan:        sandboxesclient.Starter,
+		RequestedAt: time.Now(),
+	}
+
+	assert.NotContains(t, text.SandboxSnapshotDetail(snapshot), "Name:")
 }
 
 func TestSandboxSnapshotDetail_FailedShowsError(t *testing.T) {
