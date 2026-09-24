@@ -115,6 +115,44 @@ type ClientInterface interface {
 	// Corresponds with GET /blueprints (the `ListBlueprints` operationId).
 	ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CreateBlueprintWithBody Create a new Blueprint
+	//
+	// Create a new Blueprint to configure infrastructure as code.
+	// See [Render Blueprints](https://render.com/docs/infrastructure-as-code) for more information.
+	//
+	// This endpoint finds an existing matching Blueprint or creates one, then creates
+	// a new Sync. A Blueprint matches when it has the same workspace, repository,
+	// branch, Blueprint file path, and existing-resource mode. The Blueprint name and
+	// auto-sync setting do not affect matching.
+	//
+	// A successful response means Render connected to the repository and read the
+	// Blueprint file. Review the returned Sync to see the resource changes the Blueprint
+	// would make.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /blueprints (the `CreateBlueprint` operationId).
+	CreateBlueprintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateBlueprint Create a new Blueprint
+	//
+	// Create a new Blueprint to configure infrastructure as code.
+	// See [Render Blueprints](https://render.com/docs/infrastructure-as-code) for more information.
+	//
+	// This endpoint finds an existing matching Blueprint or creates one, then creates
+	// a new Sync. A Blueprint matches when it has the same workspace, repository,
+	// branch, Blueprint file path, and existing-resource mode. The Blueprint name and
+	// auto-sync setting do not affect matching.
+	//
+	// A successful response means Render connected to the repository and read the
+	// Blueprint file. Review the returned Sync to see the resource changes the Blueprint
+	// would make.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /blueprints (the `CreateBlueprint` operationId).
+	CreateBlueprint(ctx context.Context, body CreateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ValidateBlueprintWithBody Validate Blueprint
 	//
 	// Validate a `render.yaml` Blueprint file without creating or modifying any resources. This endpoint checks the syntax and structure of the Blueprint, validates that all required fields are present, and returns a plan indicating the resources that would be created.
@@ -3010,6 +3048,64 @@ type ClientInterface interface {
 // Corresponds with GET /blueprints (the `ListBlueprints` operationId).
 func (c *Client) ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBlueprintsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateBlueprintWithBody Create a new Blueprint
+//
+// Create a new Blueprint to configure infrastructure as code.
+// See [Render Blueprints](https://render.com/docs/infrastructure-as-code) for more information.
+//
+// This endpoint finds an existing matching Blueprint or creates one, then creates
+// a new Sync. A Blueprint matches when it has the same workspace, repository,
+// branch, Blueprint file path, and existing-resource mode. The Blueprint name and
+// auto-sync setting do not affect matching.
+//
+// A successful response means Render connected to the repository and read the
+// Blueprint file. Review the returned Sync to see the resource changes the Blueprint
+// would make.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /blueprints (the `CreateBlueprint` operationId).
+func (c *Client) CreateBlueprintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBlueprintRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateBlueprint Create a new Blueprint
+//
+// Create a new Blueprint to configure infrastructure as code.
+// See [Render Blueprints](https://render.com/docs/infrastructure-as-code) for more information.
+//
+// This endpoint finds an existing matching Blueprint or creates one, then creates
+// a new Sync. A Blueprint matches when it has the same workspace, repository,
+// branch, Blueprint file path, and existing-resource mode. The Blueprint name and
+// auto-sync setting do not affect matching.
+//
+// A successful response means Render connected to the repository and read the
+// Blueprint file. Review the returned Sync to see the resource changes the Blueprint
+// would make.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /blueprints (the `CreateBlueprint` operationId).
+func (c *Client) CreateBlueprint(ctx context.Context, body CreateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBlueprintRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -9215,6 +9311,46 @@ func NewListBlueprintsRequest(server string, params *ListBlueprintsParams) (*htt
 	return req, nil
 }
 
+// NewCreateBlueprintRequest calls the generic CreateBlueprint builder with application/json body
+func NewCreateBlueprintRequest(server string, body CreateBlueprintJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateBlueprintRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateBlueprintRequestWithBody constructs an http.Request for the CreateBlueprint method, with any body, and a specified content type
+func NewCreateBlueprintRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewValidateBlueprintRequestWithBody constructs an http.Request for the ValidateBlueprint method, with any body, and a specified content type
 func NewValidateBlueprintRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
@@ -9487,6 +9623,18 @@ func NewListBuildSourcesRequest(server string, params *ListBuildSourcesParams) (
 		if params.ProjectId != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "projectId", *params.ProjectId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.IncludePreviews != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "includePreviews", *params.IncludePreviews, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -24740,6 +24888,44 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /blueprints (the `ListBlueprints` operationId).
 	ListBlueprintsWithResponse(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*ListBlueprintsResponse, error)
 
+	// CreateBlueprintWithBodyWithResponse Create a new Blueprint
+	//
+	// Create a new Blueprint to configure infrastructure as code.
+	// See [Render Blueprints](https://render.com/docs/infrastructure-as-code) for more information.
+	//
+	// This endpoint finds an existing matching Blueprint or creates one, then creates
+	// a new Sync. A Blueprint matches when it has the same workspace, repository,
+	// branch, Blueprint file path, and existing-resource mode. The Blueprint name and
+	// auto-sync setting do not affect matching.
+	//
+	// A successful response means Render connected to the repository and read the
+	// Blueprint file. Review the returned Sync to see the resource changes the Blueprint
+	// would make.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /blueprints (the `CreateBlueprint` operationId).
+	CreateBlueprintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBlueprintResponse, error)
+
+	// CreateBlueprintWithResponse Create a new Blueprint
+	//
+	// Create a new Blueprint to configure infrastructure as code.
+	// See [Render Blueprints](https://render.com/docs/infrastructure-as-code) for more information.
+	//
+	// This endpoint finds an existing matching Blueprint or creates one, then creates
+	// a new Sync. A Blueprint matches when it has the same workspace, repository,
+	// branch, Blueprint file path, and existing-resource mode. The Blueprint name and
+	// auto-sync setting do not affect matching.
+	//
+	// A successful response means Render connected to the repository and read the
+	// Blueprint file. Review the returned Sync to see the resource changes the Blueprint
+	// would make.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /blueprints (the `CreateBlueprint` operationId).
+	CreateBlueprintWithResponse(ctx context.Context, body CreateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBlueprintResponse, error)
+
 	// ValidateBlueprintWithBodyWithResponse Validate Blueprint
 	//
 	// Validate a `render.yaml` Blueprint file without creating or modifying any resources. This endpoint checks the syntax and structure of the Blueprint, validates that all required fields are present, and returns a plan indicating the resources that would be created.
@@ -28095,6 +28281,106 @@ func (r ListBlueprintsResponse) ContentType() string {
 	return ""
 }
 
+// CreateBlueprintResponse429Headers the declared response headers of an HTTP 429 response for CreateBlueprint
+type CreateBlueprintResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type CreateBlueprintResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *externalRef2.CreateBlueprintResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *CreateBlueprintResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CreateBlueprintResponse) GetJSON200() *externalRef2.CreateBlueprintResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r CreateBlueprintResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r CreateBlueprintResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r CreateBlueprintResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r CreateBlueprintResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r CreateBlueprintResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r CreateBlueprintResponse) GetJSON500() *Error {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r CreateBlueprintResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateBlueprintResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateBlueprintResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateBlueprintResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateBlueprintResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // ValidateBlueprintResponse429Headers the declared response headers of an HTTP 429 response for ValidateBlueprint
 type ValidateBlueprintResponse429Headers struct {
 	RateLimitLimit     *int
@@ -30523,8 +30809,6 @@ type CreateCliTelemetryEventResponse struct {
 	JSON400 *N400BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
 	// JSON413 the response for an HTTP 413 `application/json` response
 	JSON413 *N413RequestEntityTooLarge
 	// JSON500 the response for an HTTP 500 `application/json` response
@@ -30541,11 +30825,6 @@ func (r CreateCliTelemetryEventResponse) GetJSON400() *N400BadRequest {
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
 func (r CreateCliTelemetryEventResponse) GetJSON401() *N401Unauthorized {
 	return r.JSON401
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r CreateCliTelemetryEventResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
 }
 
 // GetJSON413 returns the response for an HTTP 413 `application/json` response
@@ -52290,6 +52569,56 @@ func (c *ClientWithResponses) ListBlueprintsWithResponse(ctx context.Context, pa
 	return ParseListBlueprintsResponse(rsp)
 }
 
+// CreateBlueprintWithBodyWithResponse Create a new Blueprint
+//
+// Create a new Blueprint to configure infrastructure as code.
+// See [Render Blueprints](https://render.com/docs/infrastructure-as-code) for more information.
+//
+// This endpoint finds an existing matching Blueprint or creates one, then creates
+// a new Sync. A Blueprint matches when it has the same workspace, repository,
+// branch, Blueprint file path, and existing-resource mode. The Blueprint name and
+// auto-sync setting do not affect matching.
+//
+// A successful response means Render connected to the repository and read the
+// Blueprint file. Review the returned Sync to see the resource changes the Blueprint
+// would make.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /blueprints (the `CreateBlueprint` operationId).
+func (c *ClientWithResponses) CreateBlueprintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBlueprintResponse, error) {
+	rsp, err := c.CreateBlueprintWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBlueprintResponse(rsp)
+}
+
+// CreateBlueprintWithResponse Create a new Blueprint
+//
+// Create a new Blueprint to configure infrastructure as code.
+// See [Render Blueprints](https://render.com/docs/infrastructure-as-code) for more information.
+//
+// This endpoint finds an existing matching Blueprint or creates one, then creates
+// a new Sync. A Blueprint matches when it has the same workspace, repository,
+// branch, Blueprint file path, and existing-resource mode. The Blueprint name and
+// auto-sync setting do not affect matching.
+//
+// A successful response means Render connected to the repository and read the
+// Blueprint file. Review the returned Sync to see the resource changes the Blueprint
+// would make.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /blueprints (the `CreateBlueprint` operationId).
+func (c *ClientWithResponses) CreateBlueprintWithResponse(ctx context.Context, body CreateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBlueprintResponse, error) {
+	rsp, err := c.CreateBlueprint(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBlueprintResponse(rsp)
+}
+
 // ValidateBlueprintWithBodyWithResponse Validate Blueprint
 //
 // Validate a `render.yaml` Blueprint file without creating or modifying any resources. This endpoint checks the syntax and structure of the Blueprint, validates that all required fields are present, and returns a plan indicating the resources that would be created.
@@ -57595,6 +57924,115 @@ func ParseListBlueprintsResponse(rsp *http.Response) (*ListBlueprintsResponse, e
 	return response, nil
 }
 
+// ParseCreateBlueprintResponse parses an HTTP response from a CreateBlueprintWithResponse call
+func ParseCreateBlueprintResponse(rsp *http.Response) (*CreateBlueprintResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateBlueprintResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef2.CreateBlueprintResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers CreateBlueprintResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
 // ParseValidateBlueprintResponse parses an HTTP response from a ValidateBlueprintWithResponse call
 func ParseValidateBlueprintResponse(rsp *http.Response) (*ValidateBlueprintResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -60277,13 +60715,6 @@ func ParseCreateCliTelemetryEventResponse(rsp *http.Response) (*CreateCliTelemet
 			return nil, err
 		}
 		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
 		var dest N413RequestEntityTooLarge

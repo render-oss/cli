@@ -123,14 +123,17 @@ func (e SandboxLogEventStream) Valid() bool {
 
 // Defines values for SandboxNetworkPolicyDefault.
 const (
-	AllowAll SandboxNetworkPolicyDefault = "allow-all"
-	DenyAll  SandboxNetworkPolicyDefault = "deny-all"
+	AllowAll  SandboxNetworkPolicyDefault = "allow-all"
+	AllowList SandboxNetworkPolicyDefault = "allow-list"
+	DenyAll   SandboxNetworkPolicyDefault = "deny-all"
 )
 
 // Valid indicates whether the value is a known member of the SandboxNetworkPolicyDefault enum.
 func (e SandboxNetworkPolicyDefault) Valid() bool {
 	switch e {
 	case AllowAll:
+		return true
+	case AllowList:
 		return true
 	case DenyAll:
 		return true
@@ -455,6 +458,18 @@ type SandboxLogEventStream string
 
 // SandboxNetworkPolicy defines model for sandboxNetworkPolicy.
 type SandboxNetworkPolicy struct {
+	// AllowedDomains Domains the sandbox may reach, required when `default` is
+	// `allow-list` and rejected otherwise.
+	//
+	// Matching is exact: `foo.local` does not cover `api.foo.local`,
+	// leftmost-only wildcarding e.g. `*.foo.local` is allowed. Only HTTP
+	// and HTTPS traffic is matched against this list; under
+	// `allow-list` all other outbound TCP is dropped.
+	//
+	//
+	// Example: ["foo.local","*.bar.local"]
+	AllowedDomains *[]string `json:"allowedDomains,omitempty"`
+
 	// Default Default action for outbound traffic.
 	Default SandboxNetworkPolicyDefault `json:"default"`
 }
