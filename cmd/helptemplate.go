@@ -180,6 +180,13 @@ func hasVisibleGroupCommands(cmd *cobra.Command, groupID string) bool {
 	return false
 }
 
+func agentSkillsHelp(cmd *cobra.Command) string {
+	description := wrapText("Install Render's agent skills for deployment, debugging, and monitoring workflows. Use these skills to guide your work with the CLI.", max(1, helpTextWidth(cmd)-2))
+	return style.GroupHeader.Render("Start here (for AI agents):") + "\n  " +
+		style.CommandKey.Render("render skills install --output json") + "\n\n  " +
+		strings.ReplaceAll(description, "\n", "\n  ")
+}
+
 // CustomHelpTemplate defines a custom help output format
 // Format order:
 // 0. Version (dimmed)
@@ -189,6 +196,7 @@ func hasVisibleGroupCommands(cmd *cobra.Command, groupID string) bool {
 // 4. FLAGS (local and inherited rendered in one merged section)
 // 5. EXAMPLES
 // 6. DETAILS (full long description)
+// 7. Agent skills callout (root command only)
 var CustomHelpTemplate = `{{cliVersion}}
 
 {{with .Short}}{{.}}
@@ -216,5 +224,7 @@ var CustomHelpTemplate = `{{cliVersion}}
 {{end}}{{if .Long}}{{if ne .Long .Short}}` + style.Title.Render("DETAILS") + `
 {{wrapText .Long (helpTextWidth .)}}
 
-{{end}}{{end}}{{if .HasAvailableSubCommands}}Use "{{.CommandPath}}{{if .Runnable}} [subcommand]{{else}} <subcommand>{{end}} --help" for more information about a command.
+{{end}}{{end}}{{if not .HasParent}}{{agentSkillsHelp .}}
+
+{{end}}{{if .HasAvailableSubCommands}}Use "{{.CommandPath}}{{if .Runnable}} [subcommand]{{else}} <subcommand>{{end}} --help" for more information about a command.
 {{end}}`

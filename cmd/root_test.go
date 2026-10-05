@@ -1017,7 +1017,7 @@ func TestCombinedFlagUsagesIncludesZeroNumericAndDurationDefaults(t *testing.T) 
 	require.Contains(t, got, "(default: 0s)")
 }
 
-func TestRootServicesHelpOmitsBoolNoArgSuffix(t *testing.T) {
+func TestServicesHelpContent(t *testing.T) {
 	root := &cobra.Command{
 		Use:   "render",
 		Short: "Render root",
@@ -1042,6 +1042,8 @@ func TestRootServicesHelpOmitsBoolNoArgSuffix(t *testing.T) {
 	require.NoError(t, root.Execute())
 
 	helpOutput := stripANSI(out.String())
+	require.NotContains(t, helpOutput, "Start here (for AI agents):")
+	require.NotContains(t, helpOutput, "render skills install --output json")
 	require.Contains(t, helpOutput, "--help")
 	require.NotContains(t, helpOutput, "--help[=true|false]")
 	require.NotContains(t, helpOutput, "--confirm[=true|false]")
@@ -1068,10 +1070,11 @@ func TestRootHelpOmitsBoolNoArgSuffix(t *testing.T) {
 	require.NotContains(t, helpOutput, "--confirm[=true|false]")
 }
 
-func TestRootHelpOmitsEmptyGroupHeaders(t *testing.T) {
+func TestRootHelpContent(t *testing.T) {
 	root := &cobra.Command{
 		Use:   "render",
 		Short: "Render root",
+		Long:  "Getting started with Render.",
 	}
 	root.SetHelpTemplate(CustomHelpTemplate)
 	root.AddGroup(&cobra.Group{ID: "core", Title: "Core"})
@@ -1086,6 +1089,12 @@ func TestRootHelpOmitsEmptyGroupHeaders(t *testing.T) {
 	require.NoError(t, root.Execute())
 
 	helpOutput := stripANSI(out.String())
+	require.Contains(t, helpOutput, "Start here (for AI agents):")
+	require.Contains(t, helpOutput, "render skills install --output json")
+	require.Contains(t, helpOutput, root.Long)
+	require.Less(t, strings.Index(helpOutput, root.Long), strings.Index(helpOutput, "Start here"))
+	require.Contains(t, helpOutput, "for more information about a command.")
+	require.Less(t, strings.Index(helpOutput, "render skills install --output json"), strings.Index(helpOutput, "for more information about a command."))
 	require.Contains(t, helpOutput, "Core")
 	require.NotContains(t, helpOutput, "Unused Group")
 }

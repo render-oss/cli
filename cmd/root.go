@@ -421,6 +421,7 @@ func init() {
 	cobra.AddTemplateFunc("formatExamples", formatExamples)
 	cobra.AddTemplateFunc("getUsageArgs", getUsageArgs)
 	cobra.AddTemplateFunc("hasVisibleGroupCommands", hasVisibleGroupCommands)
+	cobra.AddTemplateFunc("agentSkillsHelp", agentSkillsHelp)
 	cobra.AddTemplateFunc("trimPeriod", trimTrailingPeriod)
 	cobra.AddTemplateFunc("groupHeader", groupHeaderText)
 }

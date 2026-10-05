@@ -77,11 +77,13 @@ type SkillsInstallView struct {
 
 	// Tool selection
 	allTools          []skills.Tool
+	installToAllTools bool
 	selectedToolNames []string
 	selectedTools     []skills.Tool
 
 	// Skill selection
 	available          []skills.SkillInfo
+	installAllSkills   bool
 	selectedSkillNames []string
 
 	// Clone
@@ -249,6 +251,9 @@ func (v *SkillsInstallView) updateSelectTools(msg tea.Msg) (tea.Model, tea.Cmd) 
 	}
 
 	if v.toolForm.State == huh.StateCompleted {
+		if v.installToAllTools {
+			v.selectAllTools()
+		}
 		v.buildSelectedTools()
 		if len(v.selectedTools) == 0 {
 			return v, func() tea.Msg {
@@ -306,6 +311,9 @@ func (v *SkillsInstallView) updateSelectSkills(msg tea.Msg) (tea.Model, tea.Cmd)
 	}
 
 	if v.skillForm.State == huh.StateCompleted {
+		if v.installAllSkills {
+			v.selectAllSkills()
+		}
 		if len(v.selectedSkillNames) == 0 {
 			v.cleanupTmpDir()
 			return v, func() tea.Msg {
@@ -461,38 +469,44 @@ func (v *SkillsInstallView) addStatus(format string, a ...any) {
 }
 
 func (v *SkillsInstallView) buildToolForm() {
-	toolNames := make([]string, len(v.allTools))
-	for i, t := range v.allTools {
-		toolNames[i] = t.Name
-	}
-
-	// Pre-select all tools.
-	v.selectedToolNames = make([]string, len(toolNames))
-	copy(v.selectedToolNames, toolNames)
+	v.installToAllTools = true
+	v.selectAllTools()
 
 	var options []huh.Option[string]
-	for _, name := range toolNames {
-		options = append(options, huh.NewOption(name, name))
+	for _, tool := range v.allTools {
+		options = append(options, huh.NewOption(tool.Name, tool.Name))
 	}
 
 	v.toolForm = huh.NewForm(
 		huh.NewGroup(
+			huh.NewSelect[bool]().
+				Title("Which agents should receive the skills?").
+				Description("Choose from the agents detected on this computer.").
+				Value(&v.installToAllTools).
+				Options(
+					huh.NewOption(fmt.Sprintf("All agents (%d)", len(v.allTools)), true),
+					huh.NewOption("Choose specific agents", false),
+				),
+		),
+		huh.NewGroup(
 			huh.NewMultiSelect[string]().
-				Title("Select tools to install skills to").
+				Title("Select agents to install skills to").
 				Options(options...).
 				Value(&v.selectedToolNames),
-		),
+		).WithHideFunc(func() bool { return v.installToAllTools }),
 	)
 }
 
-func (v *SkillsInstallView) buildSkillForm() {
-	// Pre-select all skills. Use DirName as the value because
-	// InstallSelectedSkills matches against directory names, not
-	// frontmatter names.
-	v.selectedSkillNames = make([]string, len(v.available))
-	for i, s := range v.available {
-		v.selectedSkillNames[i] = s.DirName
+func (v *SkillsInstallView) selectAllTools() {
+	v.selectedToolNames = make([]string, len(v.allTools))
+	for i, tool := range v.allTools {
+		v.selectedToolNames[i] = tool.Name
 	}
+}
+
+func (v *SkillsInstallView) buildSkillForm() {
+	v.installAllSkills = true
+	v.selectAllSkills()
 
 	var options []huh.Option[string]
 	for _, s := range v.available {
@@ -505,12 +519,29 @@ func (v *SkillsInstallView) buildSkillForm() {
 
 	v.skillForm = huh.NewForm(
 		huh.NewGroup(
+			huh.NewSelect[bool]().
+				Title("Which skills do you want to install?").
+				Value(&v.installAllSkills).
+				Options(
+					huh.NewOption(fmt.Sprintf("Install all skills (%d)", len(v.available)), true),
+					huh.NewOption("Choose individual skills", false),
+				),
+		),
+		huh.NewGroup(
 			huh.NewMultiSelect[string]().
 				Title("Select skills to install").
 				Options(options...).
 				Value(&v.selectedSkillNames),
-		),
+		).WithHideFunc(func() bool { return v.installAllSkills }),
 	)
+}
+
+func (v *SkillsInstallView) selectAllSkills() {
+	// Installation matches directory names, which can differ from frontmatter names.
+	v.selectedSkillNames = make([]string, len(v.available))
+	for i, skill := range v.available {
+		v.selectedSkillNames[i] = skill.DirName
+	}
 }
 
 func (v *SkillsInstallView) buildSelectedTools() {
