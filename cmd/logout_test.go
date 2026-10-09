@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -108,11 +109,38 @@ func TestLogoutWarnsWithoutSuccessWhenTokenRevocationFails(t *testing.T) {
 	out, err := runLogout(t)
 	require.NoError(t, err)
 	require.Contains(t, out, "Warning: something went wrong revoking your CLI token")
+	require.Contains(t, out, "revoke token failed with status 500")
+	require.Contains(t, out, "https://dashboard.render.com/settings#cli-tokens")
 	require.NotContains(t, out, "Successfully logged out")
 
 	_, statErr := os.Stat(configPath)
 	require.True(t, os.IsNotExist(statErr), "config file should be deleted after logout")
 	require.Len(t, server.OAuth.Revokes.Instances, 1, "logout should still call the revoke endpoint")
+}
+
+func TestLogoutDoesNotPrintTokenWhenRevocationResponseEchoesIt(t *testing.T) {
+	setupLogoutTest(t)
+	const token = "rnd_secret_revoke_token"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "Bearer "+token, r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err := w.Write([]byte(r.Header.Get("Authorization")))
+		require.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	require.NoError(t, config.SetAPIConfig(config.APIConfig{
+		Key:  token,
+		Host: server.URL,
+	}))
+
+	output := command.TEXT
+	ctx := command.SetFormatInContext(context.Background(), &output)
+	stdout, stderr, err := runLogoutWithContext(t, ctx)
+	require.NoError(t, err)
+	require.Contains(t, stdout, "revoke token failed with status 500")
+	require.NotContains(t, stdout, token)
+	require.NotContains(t, stderr, token)
 }
 
 func TestLogoutInteractiveShowsSpinner(t *testing.T) {
@@ -186,10 +214,12 @@ func TestLogoutWarnsWithEnvKeyNoteWhenTokenRevocationFails(t *testing.T) {
 		Key:  "rnd_oauth",
 		Host: server.URL(),
 	}))
+	require.NoError(t, config.SetDashboardURL("https://dashboard.staging.render.com/verify"))
 
 	out, err := runLogout(t)
 	require.NoError(t, err)
 	require.Contains(t, out, "Warning: something went wrong revoking your CLI token")
+	require.Contains(t, out, "https://dashboard.staging.render.com/settings#cli-tokens")
 	require.Contains(t, out, "Note: RENDER_API_KEY is still set in your environment.")
 	require.NotContains(t, out, "OAuth credentials cleared")
 	require.NotContains(t, out, "Successfully logged out")

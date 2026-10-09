@@ -69,7 +69,7 @@ func DefaultAPIConfig() (APIConfig, error) {
 
 func DashboardURL() string {
 	cfg, err := Load()
-	if err != nil {
+	if err != nil || cfg.DashboardURL == "" {
 		return defaultDashboardURL
 	}
 	return cfg.DashboardURL

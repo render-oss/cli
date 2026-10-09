@@ -52,6 +52,15 @@ func TestLoad_ReturnsFreshConfigWhenMissing(t *testing.T) {
 	require.True(t, os.IsNotExist(statErr), "Load should not create the config file")
 }
 
+func TestDashboardURLDefaultsWhenUnset(t *testing.T) {
+	tmpConfigPath(t)
+	require.Equal(t, defaultDashboardURL, DashboardURL())
+
+	cfg := &Config{Version: currentVersion}
+	require.NoError(t, cfg.Persist())
+	require.Equal(t, defaultDashboardURL, DashboardURL())
+}
+
 func TestHasOAuthConfig_TrueWhenKeySet(t *testing.T) {
 	tmpConfigPath(t)
 

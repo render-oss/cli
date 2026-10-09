@@ -37,6 +37,7 @@ func newLogoutCmd() *cobra.Command {
 				return nil
 			}
 
+			dashboardURL := config.DashboardURL()
 			ctx := cmd.Context()
 			if ctx == nil {
 				ctx = context.Background()
@@ -67,7 +68,7 @@ func newLogoutCmd() *cobra.Command {
 			}
 
 			if revokeErr != nil {
-				command.Println(cmd, "Warning: something went wrong revoking your CLI token. Your local credentials have been cleared, but you'll need to revoke your token in the Render dashboard: %s/settings#cli-tokens", config.DashboardURL())
+				command.Println(cmd, "Warning: something went wrong revoking your CLI token: %v. Your local credentials have been cleared, but you'll need to revoke your token in the Render dashboard: %s/settings#cli-tokens", revokeErr, dashboardURL)
 				if hasEnvKey {
 					command.Println(cmd, "Note: RENDER_API_KEY is still set in your environment.")
 				}
