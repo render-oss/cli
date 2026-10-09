@@ -35,7 +35,7 @@ hooks = [
 # Linters (priority 20 = run last, after formatting)
 [[repos]]
 repo = "https://github.com/golangci/golangci-lint"
-rev = "v2.13.1"
+rev = "v2.14.0"
 hooks = [
   { id = "golangci-lint", priority = 20 },
 ]
