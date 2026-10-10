@@ -108,14 +108,33 @@ In interactive mode you can update the filters and view logs in real time, or se
 	return logCmd
 }
 
-func writeLog(format command.Output, out io.Writer, log *lclient.Log) error {
+// logWriter writes log entries in a non-interactive output format. A single
+// logWriter must be used for every entry of one command invocation so that YAML
+// output forms a valid multi-document stream (entries separated by "---")
+// instead of concatenated mappings with duplicate keys.
+type logWriter struct {
+	format      command.Output
+	out         io.Writer
+	yamlEncoder *yaml.Encoder
+}
+
+func newLogWriter(format command.Output, out io.Writer) *logWriter {
+	return &logWriter{format: format, out: out}
+}
+
+func (w *logWriter) write(log *lclient.Log) error {
 	var str []byte
 	var err error
-	if format == command.JSON {
+	if w.format == command.JSON {
 		str, err = json.MarshalIndent(log, "", "  ")
-	} else if format == command.YAML {
-		str, err = yaml.Marshal(log)
-	} else if format == command.TEXT {
+	} else if w.format == command.YAML {
+		// The encoder is created lazily so that zero entries produce an empty
+		// stream. Each Encode call flushes its document, preserving streaming.
+		if w.yamlEncoder == nil {
+			w.yamlEncoder = yaml.NewEncoder(w.out)
+		}
+		return w.yamlEncoder.Encode(log)
+	} else if w.format == command.TEXT {
 		str = []byte(fmt.Sprintf("%s  %s\n", log.Timestamp.Format(time.DateTime), log.Message))
 	}
 
@@ -123,13 +142,22 @@ func writeLog(format command.Output, out io.Writer, log *lclient.Log) error {
 		return err
 	}
 
-	_, err = out.Write(str)
+	_, err = w.out.Write(str)
 	return err
+}
+
+func (w *logWriter) close() error {
+	if w.yamlEncoder == nil {
+		return nil
+	}
+	return w.yamlEncoder.Close()
 }
 
 func nonInteractiveLogs(logLoader *views.LogLoader, format *command.Output, cmd *cobra.Command, input views.LogInput) error {
 	ctx, cancel := context.WithCancel(cmd.Context())
 	defer cancel()
+
+	w := newLogWriter(*format, cmd.OutOrStdout())
 
 	if !input.Tail {
 		result, err := logLoader.ListLogs(ctx, input)
@@ -140,11 +168,11 @@ func nonInteractiveLogs(logLoader *views.LogLoader, format *command.Output, cmd 
 			return nil
 		}
 		for _, log := range result.Logs {
-			if err := writeLog(*format, cmd.OutOrStdout(), &log); err != nil {
+			if err := w.write(&log); err != nil {
 				return err
 			}
 		}
-		return nil
+		return w.close()
 	}
 
 	events, err := logLoader.TailLogs(ctx, input)
@@ -156,7 +184,7 @@ func nonInteractiveLogs(logLoader *views.LogLoader, format *command.Output, cmd 
 			return event.Err
 		}
 		if event.Log != nil {
-			if err := writeLog(*format, cmd.OutOrStdout(), event.Log); err != nil {
+			if err := w.write(event.Log); err != nil {
 				return err
 			}
 		} else if event.Status != "" {
@@ -164,6 +192,9 @@ func nonInteractiveLogs(logLoader *views.LogLoader, format *command.Output, cmd 
 				return err
 			}
 		}
+	}
+	if err := w.close(); err != nil {
+		return err
 	}
 	return ctx.Err()
 }
