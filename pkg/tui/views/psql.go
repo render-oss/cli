@@ -67,12 +67,12 @@ func ExecutePSQLNonInteractive(ctx context.Context, input *PSQLInput) (*PSQLResu
 		}
 	}
 
-	connectionInfo, err := pgc.GetPostgresConnectionInfo(ctx, pg.Id)
+	connectionString, err := getExternalConnectionString(ctx, pgc, pg)
 	if err != nil {
 		return nil, err
 	}
 
-	args := []string{connectionInfo.ExternalConnectionString, "-c", input.Command}
+	args := []string{connectionString, "-c", input.Command}
 	for _, arg := range input.Args {
 		args = append(args, arg)
 	}
@@ -205,17 +205,34 @@ func loadDataPSQL(ctx context.Context, in *PSQLInput) (*exec.Cmd, error) {
 		}
 	}
 
-	connectionInfo, err := pgc.GetPostgresConnectionInfo(ctx, pg.Id)
+	connectionString, err := getExternalConnectionString(ctx, pgc, pg)
 	if err != nil {
 		return nil, err
 	}
 
-	args := []string{connectionInfo.ExternalConnectionString}
+	args := []string{connectionString}
 	for _, arg := range in.Args {
 		args = append(args, arg)
 	}
 
 	return exec.Command(string(in.Tool), args...), nil
+}
+
+// getExternalConnectionString returns the external connection string for pg, or an error
+// if the database has no usable external endpoint. An empty connection string must never
+// be passed to psql or pgcli: libpq would fall back to environment variables and local
+// defaults and connect to a different database than the one the user selected.
+func getExternalConnectionString(ctx context.Context, pgc *postgres.Repo, pg *client.PostgresDetail) (string, error) {
+	connectionInfo, err := pgc.GetPostgresConnectionInfo(ctx, pg.Id)
+	if err != nil {
+		return "", err
+	}
+
+	if connectionInfo == nil || strings.TrimSpace(connectionInfo.ExternalConnectionString) == "" {
+		return "", fmt.Errorf("no external connection string available for %s; enable external access for this database or connect from within its private network", pg.Name)
+	}
+
+	return connectionInfo.ExternalConnectionString, nil
 }
 
 func hasAccessToPostgres(pg *client.PostgresDetail, userIP net.IP) (bool, error) {
@@ -232,7 +249,8 @@ func hasAccessToPostgres(pg *client.PostgresDetail, userIP net.IP) (bool, error)
 	return false, nil
 }
 
-func getUserIP() (net.IP, bool) {
+// getUserIP is a variable so tests can stub public IP discovery.
+var getUserIP = func() (net.IP, bool) {
 	userIPRes, err := http.Get("https://api.ipify.org")
 	if err != nil {
 		return nil, false
