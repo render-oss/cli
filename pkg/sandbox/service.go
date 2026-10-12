@@ -37,6 +37,7 @@ type CreateInput struct {
 var allSandboxStatuses = []sandboxclient.SandboxStatus{
 	sandboxclient.SandboxStatusCreating,
 	sandboxclient.SandboxStatusRunning,
+	sandboxclient.SandboxStatusSuspending,
 	sandboxclient.SandboxStatusSuspended,
 	sandboxclient.SandboxStatusResuming,
 	sandboxclient.SandboxStatusErrored,

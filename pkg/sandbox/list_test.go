@@ -46,7 +46,7 @@ func TestServiceList_StatusQuery(t *testing.T) {
 		{
 			name:       "--all requests every status",
 			all:        true,
-			wantStatus: "creating,running,suspended,resuming,errored,terminated",
+			wantStatus: "creating,running,suspending,suspended,resuming,errored,terminated",
 		},
 		{
 			name:       "single status passes through",
