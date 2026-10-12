@@ -85,8 +85,9 @@ func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*s
 		body.TimeoutSeconds = &input.Timeout
 	}
 	if input.NetworkPolicy != "" {
-		body.NetworkPolicy = &sandboxclient.SandboxNetworkPolicy{
-			Default: sandboxclient.SandboxNetworkPolicyDefault(input.NetworkPolicy),
+		policyType := sandboxclient.SandboxNetworkPolicyType(input.NetworkPolicy)
+		body.NetworkPolicy = &sandboxclient.SandboxNetworkPolicyPOST{
+			Type: &policyType,
 		}
 	}
 	if len(input.Env) > 0 {

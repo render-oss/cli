@@ -31,7 +31,7 @@ func SandboxDetail(sandbox *sandboxclient.Sandbox) string {
 	lines = append(lines, fmt.Sprintf("Status:  %s", sandbox.Status))
 	lines = append(lines, fmt.Sprintf("Plan:    %s", sandbox.Plan))
 	lines = append(lines, fmt.Sprintf("Region:  %s", sandbox.Region))
-	lines = append(lines, fmt.Sprintf("Network: default=%s", sandbox.NetworkPolicy.Default))
+	lines = append(lines, fmt.Sprintf("Network: default=%s", sandbox.NetworkPolicy.Type))
 
 	lines = append(lines, fmt.Sprintf("Timeout: %ds", sandbox.TimeoutSeconds))
 

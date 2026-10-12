@@ -34,7 +34,7 @@ func (i *SandboxCreateInput) Validate(_ bool) error {
 	if i.Plan != "" && !sandboxclient.SandboxPlan(i.Plan).Valid() {
 		return fmt.Errorf("invalid plan %q: use %s", i.Plan, strings.Join(sandboxPlanNames(), ", "))
 	}
-	if i.NetworkPolicy != "" && !sandboxclient.SandboxNetworkPolicyDefault(i.NetworkPolicy).Valid() {
+	if i.NetworkPolicy != "" && !sandboxclient.SandboxNetworkPolicyType(i.NetworkPolicy).Valid() {
 		return fmt.Errorf("invalid network policy %q: use %s", i.NetworkPolicy, strings.Join(sandboxNetworkPolicyNames(), ", "))
 	}
 	// Only positive timeouts reach the request body, so without this a negative

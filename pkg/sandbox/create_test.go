@@ -14,10 +14,10 @@ import (
 
 func TestServiceCreate_NetworkPolicyBody(t *testing.T) {
 	tests := []struct {
-		name        string
-		input       CreateInput
-		wantDefault string // expected networkPolicy.default in the request body
-		wantAbsent  bool   // expect no networkPolicy key at all
+		name       string
+		input      CreateInput
+		wantType   string // expected networkPolicy.type in the request body
+		wantAbsent bool   // expect no networkPolicy key at all
 	}{
 		{
 			name:       "unset omits networkPolicy so the server default applies",
@@ -25,14 +25,14 @@ func TestServiceCreate_NetworkPolicyBody(t *testing.T) {
 			wantAbsent: true,
 		},
 		{
-			name:        "deny-all is sent as networkPolicy.default",
-			input:       CreateInput{NetworkPolicy: "deny-all"},
-			wantDefault: "deny-all",
+			name:     "deny-all is sent as networkPolicy.type",
+			input:    CreateInput{NetworkPolicy: "deny-all"},
+			wantType: "deny-all",
 		},
 		{
-			name:        "allow-all is sent as networkPolicy.default",
-			input:       CreateInput{NetworkPolicy: "allow-all"},
-			wantDefault: "allow-all",
+			name:     "allow-all is sent as networkPolicy.type",
+			input:    CreateInput{NetworkPolicy: "allow-all"},
+			wantType: "allow-all",
 		},
 	}
 
@@ -62,7 +62,7 @@ func TestServiceCreate_NetworkPolicyBody(t *testing.T) {
 			require.True(t, present, "networkPolicy should be present in request body")
 			policyObj, ok := policy.(map[string]any)
 			require.True(t, ok, "networkPolicy should be an object, got %T", policy)
-			assert.Equal(t, tc.wantDefault, policyObj["default"])
+			assert.Equal(t, tc.wantType, policyObj["type"])
 		})
 	}
 }

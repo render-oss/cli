@@ -32,9 +32,15 @@ func NewSandbox(sb sandboxesclient.Sandbox) *sandboxesclient.Sandbox {
 	if sb.Status == "" {
 		sb.Status = sandboxesclient.SandboxStatusRunning
 	}
-	if sb.NetworkPolicy.Default == "" {
-		sb.NetworkPolicy.Default = sandboxesclient.AllowAll
+	if sb.NetworkPolicy.Type == "" {
+		if sb.NetworkPolicy.Default != nil && *sb.NetworkPolicy.Default != "" {
+			sb.NetworkPolicy.Type = *sb.NetworkPolicy.Default
+		} else {
+			sb.NetworkPolicy.Type = sandboxesclient.AllowAll
+		}
 	}
+	defaultPolicyType := sb.NetworkPolicy.Type
+	sb.NetworkPolicy.Default = &defaultPolicyType
 	if sb.TimeoutSeconds == 0 {
 		sb.TimeoutSeconds = 3600
 	}
@@ -142,7 +148,16 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 			sb.TimeoutSeconds = *body.TimeoutSeconds
 		}
 		if body.NetworkPolicy != nil {
-			sb.NetworkPolicy = *body.NetworkPolicy
+			policyType := body.NetworkPolicy.Type
+			if policyType == nil {
+				policyType = body.NetworkPolicy.Default
+			}
+			if policyType != nil {
+				typeValue := *policyType
+				sb.NetworkPolicy.Type = typeValue
+				sb.NetworkPolicy.Default = &typeValue
+			}
+			sb.NetworkPolicy.Rules = body.NetworkPolicy.Rules
 		}
 		writeJSON(w, http.StatusCreated, s.Sandboxes.Add(NewSandbox(sb)))
 	})

@@ -116,7 +116,7 @@ func TestSandboxCreateNetworkPolicyNamesMatchSchema(t *testing.T) {
 	names := sandboxNetworkPolicyNames()
 	require.NotEmpty(t, names)
 	for _, name := range names {
-		assert.True(t, sandboxclient.SandboxNetworkPolicyDefault(name).Valid(), "policy %q should be valid per schema", name)
+		assert.True(t, sandboxclient.SandboxNetworkPolicyType(name).Valid(), "policy %q should be valid per schema", name)
 		input := SandboxCreateInput{NetworkPolicy: name}
 		assert.NoError(t, input.Validate(false), "policy %q should be accepted", name)
 	}

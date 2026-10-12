@@ -125,10 +125,12 @@ const (
 	SuspendServiceEvent                AuditLogEvent = "SuspendServiceEvent"
 	UpdateEnvVarsEvent                 AuditLogEvent = "UpdateEnvVarsEvent"
 	UpdateIPAllowListEvent             AuditLogEvent = "UpdateIPAllowListEvent"
+	UpdateOrgPaymentMethodEvent        AuditLogEvent = "UpdateOrgPaymentMethodEvent"
 	UpdateOtelIntegrationEvent         AuditLogEvent = "UpdateOtelIntegrationEvent"
 	UpdateSSOConnectionEvent           AuditLogEvent = "UpdateSSOConnectionEvent"
 	UpdateServiceNameEvent             AuditLogEvent = "UpdateServiceNameEvent"
 	UpdateWebhookEvent                 AuditLogEvent = "UpdateWebhookEvent"
+	UpdateWorkspacePaymentMethodEvent  AuditLogEvent = "UpdateWorkspacePaymentMethodEvent"
 	VerifyOrgDomainEvent               AuditLogEvent = "VerifyOrgDomainEvent"
 	ViewConnectionInfoEvent            AuditLogEvent = "ViewConnectionInfoEvent"
 	ViewEnvVarValuesEvent              AuditLogEvent = "ViewEnvVarValuesEvent"
@@ -283,6 +285,8 @@ func (e AuditLogEvent) Valid() bool {
 		return true
 	case UpdateIPAllowListEvent:
 		return true
+	case UpdateOrgPaymentMethodEvent:
+		return true
 	case UpdateOtelIntegrationEvent:
 		return true
 	case UpdateSSOConnectionEvent:
@@ -290,6 +294,8 @@ func (e AuditLogEvent) Valid() bool {
 	case UpdateServiceNameEvent:
 		return true
 	case UpdateWebhookEvent:
+		return true
+	case UpdateWorkspacePaymentMethodEvent:
 		return true
 	case VerifyOrgDomainEvent:
 		return true
@@ -1774,7 +1780,12 @@ type AuditLogWithCursor struct {
 	Cursor   Cursor   `json:"cursor"`
 }
 
-// AutoDeploy defines model for autoDeploy.
+// AutoDeploy Deprecated: use `autoDeployTrigger` instead. You can't set both `autoDeploy` and `autoDeployTrigger` in the same request.
+//
+// - `yes` is equivalent to `autoDeployTrigger: commit`.
+// - `no` is equivalent to `autoDeployTrigger: off`.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type AutoDeploy string
 
 // BackgroundWorkerDetails defines model for backgroundWorkerDetails.
@@ -1865,7 +1876,7 @@ type BackgroundWorkerDetailsPOST struct {
 	Region *Region `json:"region,omitempty"`
 
 	// Runtime Runtime
-	Runtime ServiceRuntime `json:"runtime"`
+	Runtime ServiceRuntime `json:"runtime,omitempty"`
 }
 
 // BlueprintWithCursor A Blueprint with a cursor
@@ -1950,7 +1961,7 @@ type CronJobDetailsPOST struct {
 	Region *Region `json:"region,omitempty"`
 
 	// Runtime Runtime
-	Runtime  ServiceRuntime `json:"runtime"`
+	Runtime  ServiceRuntime `json:"runtime,omitempty"`
 	Schedule string         `json:"schedule"`
 }
 
@@ -2906,7 +2917,7 @@ type PrivateServiceDetailsPOST struct {
 	Region *Region `json:"region,omitempty"`
 
 	// Runtime Runtime
-	Runtime ServiceRuntime `json:"runtime"`
+	Runtime ServiceRuntime `json:"runtime,omitempty"`
 }
 
 // Project A project is a collection of environments
@@ -3261,9 +3272,18 @@ type ServerPortProtocol string
 
 // Service defines model for service.
 type Service struct {
+	// AutoDeploy Deprecated: use `autoDeployTrigger` instead. You can't set both `autoDeploy` and `autoDeployTrigger` in the same request.
+	//
+	// - `yes` is equivalent to `autoDeployTrigger: commit`.
+	// - `no` is equivalent to `autoDeployTrigger: off`.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	AutoDeploy AutoDeploy `json:"autoDeploy"`
 
-	// AutoDeployTrigger Controls autodeploy behavior. commit deploys when a commit is pushed to a branch. checksPass waits for the branch to be green.
+	// AutoDeployTrigger Controls autodeploy behavior.
+	//
+	// - `commit`: Deploy each time a commit is pushed to the service's linked branch.
+	// - `checksPass`: Deploy each time a commit is pushed to the linked branch, but only after the commit's CI checks pass.
+	// - `off`: Disable autodeploys.
 	AutoDeployTrigger *externalRef0.AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
 	Branch            *string                         `json:"branch,omitempty"`
 	BuildFilter       *BuildFilter                    `json:"buildFilter,omitempty"`
@@ -3336,9 +3356,18 @@ type ServiceList = []ServiceWithCursor
 
 // ServicePATCH defines model for servicePATCH.
 type ServicePATCH struct {
+	// AutoDeploy Deprecated: use `autoDeployTrigger` instead. You can't set both `autoDeploy` and `autoDeployTrigger` in the same request.
+	//
+	// - `yes` is equivalent to `autoDeployTrigger: commit`.
+	// - `no` is equivalent to `autoDeployTrigger: off`.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	AutoDeploy *AutoDeploy `json:"autoDeploy,omitempty"`
 
-	// AutoDeployTrigger Controls autodeploy behavior. commit deploys when a commit is pushed to a branch. checksPass waits for the branch to be green.
+	// AutoDeployTrigger Controls autodeploy behavior.
+	//
+	// - `commit`: Deploy each time a commit is pushed to the service's linked branch.
+	// - `checksPass`: Deploy each time a commit is pushed to the linked branch, but only after the commit's CI checks pass.
+	// - `off`: Disable autodeploys.
 	AutoDeployTrigger *externalRef0.AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
 	Branch            *string                         `json:"branch,omitempty"`
 	BuildFilter       *BuildFilter                    `json:"buildFilter,omitempty"`
@@ -3358,9 +3387,18 @@ type ServicePATCH_ServiceDetails struct {
 
 // ServicePOST defines model for servicePOST.
 type ServicePOST struct {
+	// AutoDeploy Deprecated: use `autoDeployTrigger` instead. You can't set both `autoDeploy` and `autoDeployTrigger` in the same request.
+	//
+	// - `yes` is equivalent to `autoDeployTrigger: commit`.
+	// - `no` is equivalent to `autoDeployTrigger: off`.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	AutoDeploy *AutoDeploy `json:"autoDeploy,omitempty"`
 
-	// AutoDeployTrigger Controls autodeploy behavior. commit deploys when a commit is pushed to a branch. checksPass waits for the branch to be green.
+	// AutoDeployTrigger Controls autodeploy behavior.
+	//
+	// - `commit`: Deploy each time a commit is pushed to the service's linked branch.
+	// - `checksPass`: Deploy each time a commit is pushed to the linked branch, but only after the commit's CI checks pass.
+	// - `off`: Disable autodeploys.
 	AutoDeployTrigger *externalRef0.AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
 
 	// Branch The repo branch to pull, build, and deploy. If omitted, uses the repository's default branch.
@@ -3645,7 +3683,7 @@ type WebServiceDetailsPOST struct {
 	RenderSubdomainPolicy *RenderSubdomainPolicy `json:"renderSubdomainPolicy,omitempty"`
 
 	// Runtime Runtime
-	Runtime ServiceRuntime `json:"runtime"`
+	Runtime ServiceRuntime `json:"runtime,omitempty"`
 }
 
 // WebhookEventWithCursor defines model for webhookEventWithCursor.
