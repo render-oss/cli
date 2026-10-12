@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.29.0] - 2026-10-12
+
+### Added
+
+- `render ea sandboxes snapshots create --name` to name a snapshot, so you can refer to it by name instead of its `snp-` ID; snapshot list and detail output now show the name
+- `render ea sandboxes create --from` to start a sandbox from a snapshot by name or ID
+- `render workflows dev` now gives each local task its run ID, root run ID, and parent run ID, matching what tasks receive when running on Render (requires Python or TypeScript SDK v1.2.0+)
+
+### Changed
+
+- `render workflows versions list` text output now includes each version's name and status
+- `render workflows tasks list` text output now includes each task's workflow ID and version ID
+- `render skills install` has a simpler interface when using our recommended defaults (install all skills for all agents)
+- `render --help` now points AI agents to `render skills install`
+
+### Fixed
+
+- `render logs --tail` in text and JSON output now reconnects when the connection drops or stops responding, instead of exiting
+- `render logout` now shows the error and a corrected dashboard link when it can't revoke your CLI token
+- Updated Go to 1.27.2
+
 ## [2.28.0] - 2026-09-10
 
 ### Added
