@@ -58,20 +58,27 @@ func TestSandboxCreateValidateAcceptsEverySchemaPlan(t *testing.T) {
 
 func TestSandboxCreateInputValidateNetworkPolicy(t *testing.T) {
 	cases := []struct {
-		name          string
-		networkPolicy string
-		errContains   string
+		name             string
+		networkPolicy    string
+		allowEgressHTTPS []string
+		errContains      string
+		listsPolicies    bool
 	}{
 		{name: "empty network policy is allowed (server picks default)", networkPolicy: ""},
 		{name: "allow-all", networkPolicy: "allow-all"},
 		{name: "deny-all", networkPolicy: "deny-all"},
-		{name: "unknown policy", networkPolicy: "somewhat-open", errContains: `invalid network policy "somewhat-open"`},
-		{name: "constant-style name rejected", networkPolicy: "AllowAll", errContains: `invalid network policy "AllowAll"`},
+		{name: "allow-list with domains", networkPolicy: "allow-list", allowEgressHTTPS: []string{"api.example.com"}},
+		{name: "domains alone imply allow-list", allowEgressHTTPS: []string{"api.example.com", "*.example.com"}},
+		{name: "unknown policy", networkPolicy: "somewhat-open", errContains: `invalid network policy "somewhat-open"`, listsPolicies: true},
+		{name: "constant-style name rejected", networkPolicy: "AllowAll", errContains: `invalid network policy "AllowAll"`, listsPolicies: true},
+		{name: "allow-list without domains", networkPolicy: "allow-list", errContains: "--network-policy=allow-list requires at least one --allow-egress-https"},
+		{name: "domains with allow-all", networkPolicy: "allow-all", allowEgressHTTPS: []string{"api.example.com"}, errContains: "--allow-egress-https requires --network-policy=allow-list, got allow-all"},
+		{name: "domains with deny-all", networkPolicy: "deny-all", allowEgressHTTPS: []string{"api.example.com"}, errContains: "--allow-egress-https requires --network-policy=allow-list, got deny-all"},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			input := SandboxCreateInput{NetworkPolicy: tc.networkPolicy}
+			input := SandboxCreateInput{NetworkPolicy: tc.networkPolicy, AllowEgressHTTPS: tc.allowEgressHTTPS}
 			err := input.Validate(false)
 			if tc.errContains == "" {
 				require.NoError(t, err)
@@ -79,8 +86,10 @@ func TestSandboxCreateInputValidateNetworkPolicy(t *testing.T) {
 			}
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tc.errContains)
-			for _, name := range sandboxNetworkPolicyNames() {
-				assert.Contains(t, err.Error(), name)
+			if tc.listsPolicies {
+				for _, name := range sandboxNetworkPolicyNames() {
+					assert.Contains(t, err.Error(), name)
+				}
 			}
 		})
 	}
@@ -118,6 +127,9 @@ func TestSandboxCreateNetworkPolicyNamesMatchSchema(t *testing.T) {
 	for _, name := range names {
 		assert.True(t, sandboxclient.SandboxNetworkPolicyType(name).Valid(), "policy %q should be valid per schema", name)
 		input := SandboxCreateInput{NetworkPolicy: name}
+		if name == string(sandboxclient.AllowList) {
+			input.AllowEgressHTTPS = []string{"api.example.com"}
+		}
 		assert.NoError(t, input.Validate(false), "policy %q should be accepted", name)
 	}
 }
@@ -410,4 +422,67 @@ func TestSandboxCreate_SnapshotIDErrors(t *testing.T) {
 			assert.Empty(t, server.Sandboxes.Instances)
 		})
 	}
+}
+
+func TestSandboxCreate_NetworkPolicyRequest(t *testing.T) {
+	tests := []struct {
+		name       string
+		args       []string
+		wantPolicy map[string]any
+	}{
+		{
+			name:       "deny-all is sent as type",
+			args:       []string{"--network-policy", "deny-all"},
+			wantPolicy: map[string]any{"type": "deny-all"},
+		},
+		{
+			name: "allow-egress-https implies allow-list and sends https rules",
+			args: []string{"--allow-egress-https", "api.example.com", "--allow-egress-https", "*.example.com"},
+			wantPolicy: map[string]any{
+				"type": "allow-list",
+				"rules": []any{
+					map[string]any{"domain": "api.example.com", "protocol": "https"},
+					map[string]any{"domain": "*.example.com", "protocol": "https"},
+				},
+			},
+		},
+		{
+			name: "explicit allow-list with a domain",
+			args: []string{"--network-policy", "allow-list", "--allow-egress-https", "api.example.com"},
+			wantPolicy: map[string]any{
+				"type":  "allow-list",
+				"rules": []any{map[string]any{"domain": "api.example.com", "protocol": "https"}},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			server := newSandboxCreateServer(t)
+
+			args := append([]string{"ea", "sandboxes", "create", "--output", "json"}, tc.args...)
+			out, err := executeSandboxCommand(t, server, args...)
+			require.NoError(t, err)
+
+			req, ok := server.LastRequest("POST", "/sandboxes")
+			require.True(t, ok, "expected a create request")
+			body := testrequire.ParseJSONMap(t, string(req.Body))
+			assert.Equal(t, tc.wantPolicy, body["networkPolicy"])
+
+			created := testrequire.ParseJSONMap(t, out.Stdout)
+			policy, ok := created["networkPolicy"].(map[string]any)
+			require.True(t, ok, "expected networkPolicy in output, got %v", created["networkPolicy"])
+			assert.Equal(t, tc.wantPolicy["type"], policy["type"])
+			assert.Equal(t, tc.wantPolicy["rules"], policy["rules"])
+		})
+	}
+}
+
+func TestSandboxCreate_AllowEgressHTTPSRejectedWithOtherPolicy(t *testing.T) {
+	server := newSandboxCreateServer(t)
+
+	_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--network-policy", "deny-all", "--allow-egress-https", "api.example.com")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--allow-egress-https requires --network-policy=allow-list")
+	assert.False(t, server.HasRequest("POST", "/sandboxes"))
 }

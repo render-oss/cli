@@ -31,11 +31,29 @@ func SandboxDetail(sandbox *sandboxclient.Sandbox) string {
 	lines = append(lines, fmt.Sprintf("Status:  %s", sandbox.Status))
 	lines = append(lines, fmt.Sprintf("Plan:    %s", sandbox.Plan))
 	lines = append(lines, fmt.Sprintf("Region:  %s", sandbox.Region))
-	lines = append(lines, fmt.Sprintf("Network: default=%s", sandbox.NetworkPolicy.Type))
+	lines = append(lines, fmt.Sprintf("Network: %s", sandbox.NetworkPolicy.Type))
+	if sandbox.NetworkPolicy.Rules != nil {
+		for i, rule := range *sandbox.NetworkPolicy.Rules {
+			label := "Allowed:"
+			if i > 0 {
+				label = "        "
+			}
+			lines = append(lines, fmt.Sprintf("%s %s", label, egressRuleString(rule)))
+		}
+	}
 
 	lines = append(lines, fmt.Sprintf("Timeout: %ds", sandbox.TimeoutSeconds))
 
 	return FormatString(strings.Join(lines, "\n"))
+}
+
+// egressRuleString renders a rule as protocol://domain, matching how users
+// think of an allowed destination.
+func egressRuleString(rule sandboxclient.SandboxEgressRule) string {
+	if rule.Protocol == nil {
+		return rule.Domain
+	}
+	return fmt.Sprintf("%s://%s", *rule.Protocol, rule.Domain)
 }
 
 func SandboxTerminated(id string) string {

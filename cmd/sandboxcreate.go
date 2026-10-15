@@ -17,14 +17,15 @@ import (
 )
 
 type SandboxCreateInput struct {
-	Plan          string   `cli:"plan"`
-	Region        string   `cli:"region"`
-	Timeout       int      `cli:"timeout"`
-	NetworkPolicy string   `cli:"network-policy"`
-	EnvVars       []string `cli:"env-var"`
-	EnvFiles      []string `cli:"env-file"`
-	SnapshotID    string   `cli:"snapshot-id"`
-	From          string   `cli:"from"`
+	Plan             string   `cli:"plan"`
+	Region           string   `cli:"region"`
+	Timeout          int      `cli:"timeout"`
+	NetworkPolicy    string   `cli:"network-policy"`
+	AllowEgressHTTPS []string `cli:"allow-egress-https"`
+	EnvVars          []string `cli:"env-var"`
+	EnvFiles         []string `cli:"env-file"`
+	SnapshotID       string   `cli:"snapshot-id"`
+	From             string   `cli:"from"`
 }
 
 func (i *SandboxCreateInput) Validate(_ bool) error {
@@ -37,6 +38,12 @@ func (i *SandboxCreateInput) Validate(_ bool) error {
 	if i.NetworkPolicy != "" && !sandboxclient.SandboxNetworkPolicyType(i.NetworkPolicy).Valid() {
 		return fmt.Errorf("invalid network policy %q: use %s", i.NetworkPolicy, strings.Join(sandboxNetworkPolicyNames(), ", "))
 	}
+	switch policy := sandboxclient.SandboxNetworkPolicyType(i.resolvedNetworkPolicy()); {
+	case policy == sandboxclient.AllowList && len(i.egressRules()) == 0:
+		return fmt.Errorf("--network-policy=%s requires at least one --allow-egress-https", sandboxclient.AllowList)
+	case policy != sandboxclient.AllowList && len(i.egressRules()) > 0:
+		return fmt.Errorf("--allow-egress-https requires --network-policy=%s, got %s", sandboxclient.AllowList, policy)
+	}
 	// Only positive timeouts reach the request body, so without this a negative
 	// value would silently get the default rather than the lifetime asked for.
 	if i.Timeout < 0 {
@@ -46,6 +53,25 @@ func (i *SandboxCreateInput) Validate(_ bool) error {
 		return err
 	}
 	return nil
+}
+
+// resolvedNetworkPolicy implies allow-list when --allow-egress-* rules are
+// given without --network-policy, since rules only apply under an allow list.
+func (i *SandboxCreateInput) resolvedNetworkPolicy() string {
+	if i.NetworkPolicy == "" && len(i.egressRules()) > 0 {
+		return string(sandboxclient.AllowList)
+	}
+	return i.NetworkPolicy
+}
+
+// egressRules collects the --allow-egress-<protocol> flags into allow-list
+// rules. Each supported protocol gets its own flag.
+func (i *SandboxCreateInput) egressRules() []sandboxclient.SandboxEgressRule {
+	var rules []sandboxclient.SandboxEgressRule
+	for _, domain := range i.AllowEgressHTTPS {
+		rules = append(rules, sandboxclient.SandboxEgressRule{Domain: domain, Protocol: new(sandboxclient.Https)})
+	}
+	return rules
 }
 
 var sandboxSnapshotIDPattern = regexp.MustCompile(`^snp-[0-9a-v]{20}$`)
@@ -93,10 +119,12 @@ func sandboxPlanNames() []string {
 }
 
 func sandboxNetworkPolicyNames() []string {
-	return []string{
-		string(sandboxclient.AllowAll),
-		string(sandboxclient.DenyAll),
+	policies := sandboxclient.SandboxNetworkPolicyTypeValues()
+	out := make([]string, len(policies))
+	for i, p := range policies {
+		out[i] = string(p)
 	}
+	return out
 }
 
 func newSandboxCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
@@ -110,6 +138,7 @@ Examples:
   render ea sandboxes create --plan=standard --region=oregon
   render ea sandboxes create --timeout=3600
   render ea sandboxes create --network-policy=deny-all
+  render ea sandboxes create --allow-egress-https api.github.com --allow-egress-https '*.pypi.org'
   render ea sandboxes create --env-var FOO=bar --env-var BAZ=qux
   render ea sandboxes create --env-file .env.production --env-var LOG_LEVEL=debug
   render ea sandboxes create --from gold
@@ -122,6 +151,8 @@ Examples:
 	cmd.Flags().Int("timeout", 0, "Maximum sandbox lifetime in seconds. 0 uses the default and maximum of 86400 (24 hours)")
 	cmd.Flags().String("network-policy", "", "Outbound network policy: "+strings.Join(sandboxNetworkPolicyNames(), ", "))
 	setFlagPlaceholder(cmd.Flags(), "network-policy", "NETWORK_POLICY")
+	cmd.Flags().StringArray("allow-egress-https", nil, "Allow outbound HTTPS to a domain, e.g. api.example.com or *.example.com. Repeat for multiple domains. Implies --network-policy=allow-list")
+	setFlagPlaceholder(cmd.Flags(), "allow-egress-https", "DOMAIN")
 	cmd.Flags().StringArray("env-var", nil, "Set environment variables in KEY=VALUE format (can be specified multiple times). Inline values override values loaded from --env-file.")
 	cmd.Flags().StringSlice("env-file", nil, "Path to an env file to load. Repeat to load multiple files (later files override earlier ones). Every listed file must exist.")
 	setFlagPlaceholder(cmd.Flags(), "env-var", "KEY_VALUE")
@@ -160,7 +191,8 @@ Examples:
 				Plan:          input.Plan,
 				Region:        input.Region,
 				Timeout:       input.Timeout,
-				NetworkPolicy: input.NetworkPolicy,
+				NetworkPolicy: input.resolvedNetworkPolicy(),
+				EgressRules:   input.egressRules(),
 				Env:           env,
 				SnapshotID:    snapshotID,
 				SnapshotName:  snapshotName,

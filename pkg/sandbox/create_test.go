@@ -16,8 +16,8 @@ func TestServiceCreate_NetworkPolicyBody(t *testing.T) {
 	tests := []struct {
 		name       string
 		input      CreateInput
-		wantType   string // expected networkPolicy.type in the request body
-		wantAbsent bool   // expect no networkPolicy key at all
+		wantPolicy map[string]any // expected networkPolicy in the request body
+		wantAbsent bool           // expect no networkPolicy key at all
 	}{
 		{
 			name:       "unset omits networkPolicy so the server default applies",
@@ -25,14 +25,28 @@ func TestServiceCreate_NetworkPolicyBody(t *testing.T) {
 			wantAbsent: true,
 		},
 		{
-			name:     "deny-all is sent as networkPolicy.type",
-			input:    CreateInput{NetworkPolicy: "deny-all"},
-			wantType: "deny-all",
+			name:       "deny-all is sent as networkPolicy.type",
+			input:      CreateInput{NetworkPolicy: "deny-all"},
+			wantPolicy: map[string]any{"type": "deny-all"},
 		},
 		{
-			name:     "allow-all is sent as networkPolicy.type",
-			input:    CreateInput{NetworkPolicy: "allow-all"},
-			wantType: "allow-all",
+			name:       "allow-all is sent as networkPolicy.type",
+			input:      CreateInput{NetworkPolicy: "allow-all"},
+			wantPolicy: map[string]any{"type": "allow-all"},
+		},
+		{
+			name: "allow-list sends its rules",
+			input: CreateInput{NetworkPolicy: "allow-list", EgressRules: []sandboxclient.SandboxEgressRule{
+				{Domain: "api.example.com", Protocol: new(sandboxclient.Https)},
+				{Domain: "*.example.com", Protocol: new(sandboxclient.Https)},
+			}},
+			wantPolicy: map[string]any{
+				"type": "allow-list",
+				"rules": []any{
+					map[string]any{"domain": "api.example.com", "protocol": "https"},
+					map[string]any{"domain": "*.example.com", "protocol": "https"},
+				},
+			},
 		},
 	}
 
@@ -60,9 +74,7 @@ func TestServiceCreate_NetworkPolicyBody(t *testing.T) {
 				return
 			}
 			require.True(t, present, "networkPolicy should be present in request body")
-			policyObj, ok := policy.(map[string]any)
-			require.True(t, ok, "networkPolicy should be an object, got %T", policy)
-			assert.Equal(t, tc.wantType, policyObj["type"])
+			assert.Equal(t, tc.wantPolicy, policy)
 		})
 	}
 }

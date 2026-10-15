@@ -26,9 +26,12 @@ type CreateInput struct {
 	Region        string
 	Timeout       int
 	NetworkPolicy string
-	Env           map[string]string
-	SnapshotID    string
-	SnapshotName  *string
+	// EgressRules are the destinations reachable under an allow-list
+	// NetworkPolicy.
+	EgressRules  []sandboxclient.SandboxEgressRule
+	Env          map[string]string
+	SnapshotID   string
+	SnapshotName *string
 }
 
 // allSandboxStatuses is every sandbox status. --all sends the full set so the
@@ -87,8 +90,9 @@ func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*s
 	}
 	if input.NetworkPolicy != "" {
 		policyType := sandboxclient.SandboxNetworkPolicyType(input.NetworkPolicy)
-		body.NetworkPolicy = &sandboxclient.SandboxNetworkPolicyPOST{
-			Type: &policyType,
+		body.NetworkPolicy = &sandboxclient.SandboxNetworkPolicyPOST{Type: &policyType}
+		if len(input.EgressRules) > 0 {
+			body.NetworkPolicy.Rules = &input.EgressRules
 		}
 	}
 	if len(input.Env) > 0 {
