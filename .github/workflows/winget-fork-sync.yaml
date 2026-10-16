@@ -1,0 +1,27 @@
+name: Sync WinGet fork
+
+# wingetcreate submit fails when render-winget-bot/winget-pkgs is thousands of
+# commits behind microsoft/winget-pkgs. Syncing daily keeps the fork close
+# enough that wingetcreate can open a PR.
+on:
+  schedule:
+    # Daily at 16:00 UTC (09:00 PDT).
+    - cron: "0 16 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync-fork:
+    name: Sync render-winget-bot/winget-pkgs
+    if: github.repository == 'render-oss/cli'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Sync fork master to upstream
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh repo sync render-winget-bot/winget-pkgs -b master --force

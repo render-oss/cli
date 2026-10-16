@@ -139,20 +139,6 @@ jobs:
             Write-Host "Closed superseded PR #$($pr.number)"
           }
 
-      - name: Sync the bot's winget-pkgs fork
-        if: steps.precheck.outputs.published != 'true'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
-        run: |
-          # wingetcreate submit fails when the fork is thousands of commits
-          # behind upstream and its own sync cannot catch up.
-          gh repo sync render-winget-bot/winget-pkgs -b master
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Failed to sync render-winget-bot/winget-pkgs with upstream master."
-            exit $LASTEXITCODE
-          }
-
       - name: Submit manifests to winget-pkgs
         if: steps.precheck.outputs.published != 'true'
         shell: pwsh
