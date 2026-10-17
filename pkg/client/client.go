@@ -62,14 +62,16 @@ func maybeRefreshAPIToken(apiCfg config.APIConfig) config.APIConfig {
 
 		updatedConfig, err := refreshAPIKey(ctx, apiCfg)
 		if err != nil {
-			if errors.Is(err, context.DeadlineExceeded) {
-				// Keep using the current access token. It may remain valid for up to
-				// 24 hours, and preserving the refresh token lets the next command retry.
+			if !oauth.IsInvalidGrant(err) {
+				// Timeouts, network errors, rate limiting, server errors, and malformed
+				// responses do not prove the refresh token is unusable. Keep using the
+				// current access token, which may remain valid for up to 24 hours, and
+				// preserve the refresh token so the next command can retry.
 				return apiCfg
 			}
 
-			// failed to refresh the token, clear the refresh token so we fall back
-			// to the standard login flow
+			// The server definitively refused the refresh token, so clear it and
+			// fall back to the standard login flow.
 			apiCfg.RefreshToken = ""
 			_ = config.SetAPIConfig(apiCfg)
 			return apiCfg
