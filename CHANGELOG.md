@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.30.0] - 2026-10-18
+
+### Added
+
+- `render ea sandboxes create --allow-egress-https DOMAIN` to allow outbound HTTPS to specific domains. Repeat the flag for multiple domains. This sets the `allow-list` network policy if no policy is specified.
+- `render ssh` now supports non-interactive use. It sends SSH output without formatting and returns the SSH process exit code.
+
+### Changed
+
+- Sandbox detail output now shows the network policy and allowed destinations
+
+### Fixed
+
+- `render ssh` now connects to the instance selected in the interactive menu
+- `render ea sandboxes list --all` now includes sandboxes with the `suspending` status
+- Updated Go dependencies, including `golang.org/x/crypto` and `golang.org/x/net`
+
 ## [2.29.0] - 2026-10-12
 
 ### Added
