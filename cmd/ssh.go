@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/render-oss/cli/pkg/client"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/tui"
 	"github.com/render-oss/cli/pkg/tui/flows"
@@ -17,16 +19,20 @@ import (
 	"github.com/render-oss/cli/pkg/validate"
 )
 
-// sshCmd represents the ssh command
-var sshCmd = &cobra.Command{
-	Use:   "ssh [serviceID|serviceName|instanceID]",
-	Short: "SSH into a service instance",
-	Long: `SSH into a service instance. This command only supports interactive mode.
+func newSSHCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "ssh [serviceID|serviceName|instanceID]",
+		Short: "SSH into a service instance",
+		Long: `SSH into a service instance.
 
-You can specify the service ID, service name, or specific instance ID as an argument. To pass arguments to ssh, use:
-  render ssh [serviceID|serviceName|instanceID] -- [ssh args]`,
-	GroupID: GroupSession.ID,
-	Example: `  # Open an SSH session for a service
+Specify a service ID, service name, or instance ID. Put SSH arguments after --:
+  render ssh [serviceID|serviceName|instanceID] -- [ssh args]
+
+For non-interactive use, specify a service or instance and set --output text. With a service, SSH connects to any available instance. The command streams SSH output without formatting. The json and yaml output formats stream the same raw output as text.
+
+SSH uses your local SSH keys. Add the public key to your Render account before you connect. See https://render.com/docs/ssh#ssh-setup.`,
+		GroupID: GroupSession.ID,
+		Example: `  # Open an SSH session for a service
   render ssh srv-abc123
 
   # Connect to an ephemeral instance
@@ -36,25 +42,37 @@ You can specify the service ID, service name, or specific instance ID as an argu
   render ssh srv-abc123 --ephemeral --plan 1c-2g
 
   # Pass through ssh arguments
-  render ssh srv-abc123 -- -L 5432:localhost:5432`,
+  render ssh srv-abc123 -- -L 5432:localhost:5432
+
+  # Run a command without an instance menu
+  render ssh srv-abc123 --output text -- -o BatchMode=yes 'echo hello'`,
+		RunE: runSSH,
+	}
+	cmd.Flags().BoolP("ephemeral", "e", false, "Connect to an ephemeral instance")
+	cmd.Flags().String("plan", "", "Plan name to use for the ephemeral instance (e.g. 0.5c-512mb, 1c-2g, 2c-4g). Only valid with --ephemeral.")
+	return cmd
 }
 
+func setupSSHCommands(root *cobra.Command, deps *dependencies.Dependencies) {
+	deps.SSH.SSHCmd = newSSHCmd()
+	root.AddCommand(deps.SSH.SSHCmd)
+}
+
+// InteractiveSSHView opens the SSH view for input. Other commands open it from
+// their palettes, so it reads the ssh command from the dependencies in ctx.
 var InteractiveSSHView = func(ctx context.Context, input *views.SSHInput, breadcrumb string) tea.Cmd {
-	return command.AddToStackFunc(ctx, sshCmd, breadcrumb, input, views.NewSSHView(ctx, input))
+	return command.AddToStackFunc(ctx, dependencies.GetFromContext(ctx).SSHCmd(), breadcrumb, input, views.NewSSHView(ctx, input))
 }
 
-func interactiveSSHView(ctx context.Context, input *views.SSHInput, breadcrumb string) tea.Cmd {
-	if validate.IsServiceInstanceID(input.ServiceIDOrName) {
-		// Instance ID provided, extract service ID and go directly to SSH
-		input.InstanceID = input.ServiceIDOrName
-		input.ServiceIDOrName = validate.ExtractServiceIDFromInstanceID(input.ServiceIDOrName)
+func interactiveSSHView(ctx context.Context, cmd *cobra.Command, input *views.SSHInput, breadcrumb string) tea.Cmd {
+	if input.InstanceID != "" {
 		return InteractiveSSHView(ctx, input, breadcrumb)
 	}
 	if input.ServiceIDOrName == "" {
 		// No service specified, show service selection
 		return command.AddToStackFunc(
 			ctx,
-			sshCmd,
+			cmd,
 			breadcrumb,
 			input,
 			views.NewServiceList(ctx, getServiceListInput(ctx, input), func(ctx context.Context, r resource.Resource) tea.Cmd {
@@ -65,11 +83,11 @@ func interactiveSSHView(ctx context.Context, input *views.SSHInput, breadcrumb s
 				// Show instance selection for the selected service
 				return command.AddToStackFunc(
 					ctx,
-					sshCmd,
+					cmd,
 					"Select Instance",
 					input,
 					views.NewSSHInstanceSelectionView(ctx, r.ID(), func(instanceID string) tea.Cmd {
-						input.InstanceID = input.ServiceIDOrName
+						input.InstanceID = instanceID
 						return InteractiveSSHView(ctx, input, "SSH")
 					}),
 				)
@@ -82,11 +100,11 @@ func interactiveSSHView(ctx context.Context, input *views.SSHInput, breadcrumb s
 		// Service ID provided, show instance selection
 		return command.AddToStackFunc(
 			ctx,
-			sshCmd,
+			cmd,
 			"Select Instance",
 			input,
 			views.NewSSHInstanceSelectionView(ctx, input.ServiceIDOrName, func(instanceID string) tea.Cmd {
-				input.InstanceID = input.ServiceIDOrName
+				input.InstanceID = instanceID
 				return InteractiveSSHView(ctx, input, breadcrumb)
 			}),
 		)
@@ -127,30 +145,44 @@ func getSSHTableOptions(ctx context.Context, breadcrumb string) []tui.CustomOpti
 	}
 }
 
-func init() {
-	rootCmd.AddCommand(sshCmd)
+func runSSH(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
+	input := views.SSHInput{}
+	if dash := cmd.ArgsLenAtDash(); dash >= 0 {
+		input.Args = args[dash:]
+		args = args[:dash]
+	}
+	if len(args) > 1 {
+		return fmt.Errorf("unexpected argument %q: put SSH arguments after --", args[1])
+	}
+	if err := command.ParseCommand(cmd, args, &input); err != nil {
+		return err
+	}
 
-	sshCmd.Flags().BoolP("ephemeral", "e", false, "Connect to an ephemeral instance")
-	sshCmd.Flags().String("plan", "", "Plan name to use for the ephemeral instance (e.g. 0.5c-512mb, 1c-2g, 2c-4g). Only valid with --ephemeral.")
-
-	sshCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		ctx := cmd.Context()
-
-		input := views.SSHInput{}
-		err := command.ParseCommandInteractiveOnly(cmd, args, &input)
-		if err != nil {
-			return err
-		}
-
-		if cmd.ArgsLenAtDash() == 0 {
-			input.ServiceIDOrName = ""
-		}
-
-		if cmd.ArgsLenAtDash() >= 0 {
-			input.Args = args[cmd.ArgsLenAtDash():]
-		}
-
-		interactiveSSHView(ctx, &input, "SSH")
+	if validate.IsServiceInstanceID(input.ServiceIDOrName) {
+		input.InstanceID = input.ServiceIDOrName
+		input.ServiceIDOrName = validate.ExtractServiceIDFromInstanceID(input.ServiceIDOrName)
+	}
+	if command.IsInteractive(ctx) {
+		interactiveSSHView(ctx, cmd, &input, "SSH")
 		return nil
 	}
+	if input.ServiceIDOrName == "" {
+		return fmt.Errorf("service ID, service name, or instance ID is required in non-interactive mode")
+	}
+
+	process, err := views.SSHCommand(ctx, &input)
+	if err != nil {
+		return err
+	}
+	process.Stdin = cmd.InOrStdin()
+	process.Stdout = cmd.OutOrStdout()
+	process.Stderr = cmd.ErrOrStderr()
+	if err := process.Run(); err != nil {
+		if exitCode, ok := processExitCode(err); ok {
+			return exitWithProcessCode(cmd, exitCode)
+		}
+		return err
+	}
+	return nil
 }

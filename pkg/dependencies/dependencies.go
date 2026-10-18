@@ -92,6 +92,7 @@ func New(c *client.ClientWithResponses) *Dependencies {
 			Workflow:  &WorkflowCommands{},
 			Logs:      &LogsCommands{},
 			Workspace: &WorkspaceCommands{},
+			SSH:       &SSHCommands{},
 		},
 		cache:                &cachedDependencies{},
 		DetectRuntimeSignals: command.DetectRuntimeSignals,

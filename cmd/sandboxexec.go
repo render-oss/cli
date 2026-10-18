@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/sandbox"
 )
@@ -73,7 +72,7 @@ Examples:
 			return err
 		}
 
-		return exitSandboxExec(cmd, exitCode)
+		return exitWithProcessCode(cmd, exitCode)
 	}
 
 	return cmd
@@ -101,14 +100,4 @@ func shellQuote(arg string) string {
 	// Wrap in single quotes, terminating the quote around any embedded
 	// single quote: ' -> '\''
 	return "'" + strings.ReplaceAll(arg, "'", `'\''`) + "'"
-}
-
-func exitSandboxExec(cmd *cobra.Command, exitCode int) error {
-	if exitCode == 0 {
-		return nil
-	}
-	// The remote process output was already streamed to the terminal. Preserve its exit
-	// code without adding a CLI-generated error message that the process did not produce.
-	cmd.Root().SilenceErrors = true
-	return command.NewExitError(exitCode, nil)
 }

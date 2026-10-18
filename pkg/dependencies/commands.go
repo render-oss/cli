@@ -23,10 +23,15 @@ type WorkspaceCommands struct {
 	WorkspaceSetCmd *cobra.Command
 }
 
+type SSHCommands struct {
+	SSHCmd *cobra.Command
+}
+
 type Commands struct {
 	Workflow  *WorkflowCommands
 	Logs      *LogsCommands
 	Workspace *WorkspaceCommands
+	SSH       *SSHCommands
 }
 
 func NewCommands(workflow *WorkflowCommands) *Commands {
@@ -67,6 +72,10 @@ func (c *Commands) LogsCmd() *cobra.Command {
 
 func (c *Commands) WorkspaceSetCmd() *cobra.Command {
 	return c.Workspace.WorkspaceSetCmd
+}
+
+func (c *Commands) SSHCmd() *cobra.Command {
+	return c.SSH.SSHCmd
 }
 
 func (c *Commands) RunDetailsCmd() *cobra.Command {

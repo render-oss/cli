@@ -35,7 +35,7 @@ func NewSSHView(ctx context.Context, input *SSHInput) *tui.ExecModel {
 	if input.Ephemeral {
 		loadingMsg = "%s Creating ephemeral shell (this may take a moment)..."
 	}
-	return tui.NewExecModel("ssh", handleSSHError, command.LoadCmdWithLoadingMsg(ctx, loadDataSSH, input, loadingMsg))
+	return tui.NewExecModel("ssh", handleSSHError, command.LoadCmdWithLoadingMsg(ctx, SSHCommand, input, loadingMsg))
 }
 
 func handleSSHError(err error) error {
@@ -137,7 +137,8 @@ func getServiceFromIDOrName(ctx context.Context, c *client.ClientWithResponses, 
 	return services[0], nil
 }
 
-func loadDataSSH(ctx context.Context, in *SSHInput) (*exec.Cmd, error) {
+// SSHCommand prepares the SSH process for a service instance.
+func SSHCommand(ctx context.Context, in *SSHInput) (*exec.Cmd, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
 		return nil, err
@@ -231,5 +232,5 @@ func loadDataSSH(ctx context.Context, in *SSHInput) (*exec.Cmd, error) {
 	args := []string{finalSSHAddress}
 	args = append(args, in.Args...)
 
-	return exec.Command("ssh", args...), nil
+	return exec.CommandContext(ctx, "ssh", args...), nil
 }

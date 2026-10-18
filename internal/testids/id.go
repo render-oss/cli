@@ -79,6 +79,16 @@ func RandomServiceID() string {
 	return ServiceID(xid.New().String())
 }
 
+// DeployID returns a syntactically valid dep- deploy ID for tests.
+func DeployID(label string) string {
+	return objectID("dep", label)
+}
+
+// RandomDeployID returns a syntactically valid dep- deploy ID for tests.
+func RandomDeployID() string {
+	return DeployID(xid.New().String())
+}
+
 // CronJobID returns a syntactically valid crn- cron job ID for tests.
 func CronJobID(label string) string {
 	return objectID("crn", label)

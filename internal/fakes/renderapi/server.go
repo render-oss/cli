@@ -303,6 +303,7 @@ type Server struct {
 	KV               *KVResource
 	Postgres         *PostgresResource
 	Services         *ServiceResource
+	Deploys          *DeployResource
 	Blueprints       *BlueprintResource
 	SandboxGroups    *SandboxGroupResource
 	Sandboxes        *SandboxResource
@@ -419,6 +420,7 @@ func NewServer(t *testing.T) *Server {
 		KV:               &KVResource{},
 		Postgres:         &PostgresResource{},
 		Services:         &ServiceResource{},
+		Deploys:          &DeployResource{},
 		Blueprints:       &BlueprintResource{},
 		SandboxGroups:    &SandboxGroupResource{},
 		Sandboxes:        &SandboxResource{},
@@ -1080,6 +1082,7 @@ func NewServer(t *testing.T) *Server {
 	})
 
 	registerServiceRoutes(mux, s, record)
+	registerDeployRoutes(mux, s, record)
 	registerBlueprintRoutes(mux, s, record)
 	registerSandboxGroupRoutes(mux, s, record)
 	registerSandboxRoutes(mux, s, record)

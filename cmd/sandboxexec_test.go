@@ -13,17 +13,17 @@ func TestSandboxExecKeepsFileCompletion(t *testing.T) {
 	requireCompletionDirective(t, []string{"ea", "sandboxes", "exec", ""}, cobra.ShellCompDirectiveDefault)
 }
 
-func TestExitSandboxExecUsesRemoteExitCode(t *testing.T) {
+func TestExitWithProcessCodeUsesRemoteExitCode(t *testing.T) {
 	cmd := &cobra.Command{Use: "exec"}
-	err := exitSandboxExec(cmd, 7)
+	err := exitWithProcessCode(cmd, 7)
 	var exitErr command.ExitCoder
 	require.ErrorAs(t, err, &exitErr)
 	require.Equal(t, 7, exitErr.ExitCode())
 	require.True(t, cmd.SilenceErrors)
 }
 
-func TestExitSandboxExecSkipsZeroExitCode(t *testing.T) {
-	err := exitSandboxExec(&cobra.Command{Use: "exec"}, 0)
+func TestExitWithProcessCodeSkipsZeroExitCode(t *testing.T) {
+	err := exitWithProcessCode(&cobra.Command{Use: "exec"}, 0)
 	require.NoError(t, err)
 }
 

@@ -206,6 +206,7 @@ func setupCommands() (*dependencies.Dependencies, error) {
 	setupLogCommands(deps)
 	setupWorkspaceCommands(deps)
 	setupServiceCommands(deps)
+	setupSSHCommands(rootCmd, deps)
 	setupKVCommands(rootCmd, deps)
 	setupPGCommands(rootCmd, deps)
 	setupSandboxCommands(EarlyAccessCmd, deps)
