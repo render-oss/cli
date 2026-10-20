@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"context"
+	"slices"
 
 	"github.com/render-oss/cli/pkg/client"
 	sandboxclient "github.com/render-oss/cli/pkg/client/sandboxes"
@@ -45,6 +46,11 @@ var allSandboxStatuses = []sandboxclient.SandboxStatus{
 	sandboxclient.SandboxStatusResuming,
 	sandboxclient.SandboxStatusErrored,
 	sandboxclient.SandboxStatusTerminated,
+}
+
+// AllStatuses returns every sandbox status, in lifecycle order.
+func AllStatuses() []sandboxclient.SandboxStatus {
+	return slices.Clone(allSandboxStatuses)
 }
 
 // List returns sandboxes in the active workspace. When statuses is non-empty it

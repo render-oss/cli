@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
 
 	sandboxclient "github.com/render-oss/cli/pkg/client/sandboxes"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
+	"github.com/render-oss/cli/pkg/sandbox"
 	"github.com/render-oss/cli/pkg/text"
 )
 
@@ -31,7 +34,7 @@ Examples:
 `,
 	}
 
-	cmd.Flags().StringArray("status", nil, "Filter by status (repeatable: creating, running, errored, terminated)")
+	cmd.Flags().StringArray("status", nil, "Filter by status (repeatable: "+strings.Join(sandboxStatusNames(), ", ")+")")
 	cmd.Flags().Bool("all", false, "Include terminated sandboxes")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -49,4 +52,13 @@ Examples:
 	}
 
 	return cmd
+}
+
+func sandboxStatusNames() []string {
+	statuses := sandbox.AllStatuses()
+	out := make([]string, len(statuses))
+	for i, s := range statuses {
+		out[i] = string(s)
+	}
+	return out
 }
