@@ -26,6 +26,7 @@ type CreateInput struct {
 	Plan          string
 	Region        string
 	Timeout       int
+	IdleTimeout   *int
 	NetworkPolicy string
 	// EgressRules are the destinations reachable under an allow-list
 	// NetworkPolicy.
@@ -93,6 +94,9 @@ func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*s
 	}
 	if input.Timeout > 0 {
 		body.TimeoutSeconds = &input.Timeout
+	}
+	if input.IdleTimeout != nil {
+		body.IdleTimeoutSeconds = input.IdleTimeout
 	}
 	if input.NetworkPolicy != "" {
 		policyType := sandboxclient.SandboxNetworkPolicyType(input.NetworkPolicy)

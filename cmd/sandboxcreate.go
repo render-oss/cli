@@ -20,6 +20,7 @@ type SandboxCreateInput struct {
 	Plan             string   `cli:"plan"`
 	Region           string   `cli:"region"`
 	Timeout          int      `cli:"timeout"`
+	IdleTimeout      int      `cli:"idle-timeout"`
 	NetworkPolicy    string   `cli:"network-policy"`
 	AllowEgressHTTPS []string `cli:"allow-egress-https"`
 	EnvVars          []string `cli:"env-var"`
@@ -48,6 +49,9 @@ func (i *SandboxCreateInput) Validate(_ bool) error {
 	// value would silently get the default rather than the lifetime asked for.
 	if i.Timeout < 0 {
 		return fmt.Errorf("invalid timeout %d: use a positive number of seconds, or 0 for the default", i.Timeout)
+	}
+	if i.IdleTimeout != 0 && (i.IdleTimeout < 300 || i.IdleTimeout > 86400) {
+		return fmt.Errorf("invalid idle timeout %d: use 0 to disable, or 300 to 86400 seconds", i.IdleTimeout)
 	}
 	if _, err := resolveSandboxEnv(nil, i.EnvVars); err != nil {
 		return err
@@ -137,6 +141,8 @@ Examples:
   render ea sandboxes create
   render ea sandboxes create --plan=standard --region=oregon
   render ea sandboxes create --timeout=3600
+  render ea sandboxes create --idle-timeout=1800
+  render ea sandboxes create --idle-timeout=0
   render ea sandboxes create --network-policy=deny-all
   render ea sandboxes create --allow-egress-https api.github.com --allow-egress-https '*.pypi.org'
   render ea sandboxes create --env-var FOO=bar --env-var BAZ=qux
@@ -149,6 +155,7 @@ Examples:
 	cmd.Flags().String("plan", "", "Compute plan: "+strings.Join(sandboxPlanNames(), ", "))
 	cmd.Flags().String("region", "", "Region to run the sandbox in")
 	cmd.Flags().Int("timeout", 0, "Maximum sandbox lifetime in seconds. 0 uses the default and maximum of 86400 (24 hours)")
+	cmd.Flags().Int("idle-timeout", 900, "Seconds of inactivity before suspension. 0 disables automatic idle suspension")
 	cmd.Flags().String("network-policy", "", "Outbound network policy: "+strings.Join(sandboxNetworkPolicyNames(), ", "))
 	setFlagPlaceholder(cmd.Flags(), "network-policy", "NETWORK_POLICY")
 	cmd.Flags().StringArray("allow-egress-https", nil, "Allow outbound HTTPS to a domain, e.g. api.example.com or *.example.com. Repeat for multiple domains. Implies --network-policy=allow-list")
@@ -185,12 +192,17 @@ Examples:
 			return err
 		}
 		snapshotID, snapshotName := resolveSandboxSource(input.From, cmd.Flags().Changed("from"), input.SnapshotID)
+		var idleTimeout *int
+		if cmd.Flags().Changed("idle-timeout") {
+			idleTimeout = &input.IdleTimeout
+		}
 
 		_, err = command.NonInteractive(cmd, func() (*sandboxclient.Sandbox, error) {
 			return deps.SandboxService().Create(cmd.Context(), sandbox.CreateInput{
 				Plan:          input.Plan,
 				Region:        input.Region,
 				Timeout:       input.Timeout,
+				IdleTimeout:   idleTimeout,
 				NetworkPolicy: input.resolvedNetworkPolicy(),
 				EgressRules:   input.egressRules(),
 				Env:           env,

@@ -44,6 +44,9 @@ func NewSandbox(sb sandboxesclient.Sandbox) *sandboxesclient.Sandbox {
 	if sb.TimeoutSeconds == 0 {
 		sb.TimeoutSeconds = 3600
 	}
+	if sb.IdleTimeoutSeconds == 0 {
+		sb.IdleTimeoutSeconds = 900
+	}
 	if sb.CreatedAt.IsZero() {
 		sb.CreatedAt = time.Now()
 	}
@@ -159,6 +162,10 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 			}
 			sb.NetworkPolicy.Rules = body.NetworkPolicy.Rules
 		}
-		writeJSON(w, http.StatusCreated, s.Sandboxes.Add(NewSandbox(sb)))
+		created := NewSandbox(sb)
+		if body.IdleTimeoutSeconds != nil {
+			created.IdleTimeoutSeconds = *body.IdleTimeoutSeconds
+		}
+		writeJSON(w, http.StatusCreated, s.Sandboxes.Add(created))
 	})
 }

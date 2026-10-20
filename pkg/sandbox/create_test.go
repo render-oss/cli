@@ -79,6 +79,40 @@ func TestServiceCreate_NetworkPolicyBody(t *testing.T) {
 	}
 }
 
+func TestServiceCreate_IdleTimeoutBody(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       CreateInput
+		wantPresent bool
+		want        float64
+	}{
+		{name: "unset omits idle timeout", input: CreateInput{}},
+		{name: "custom timeout", input: CreateInput{IdleTimeout: new(1800)}, wantPresent: true, want: 1800},
+		{name: "zero disables", input: CreateInput{IdleTimeout: new(0)}, wantPresent: true, want: 0},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var gotBody map[string]any
+			svc := newTestService(t, func(w http.ResponseWriter, r *http.Request) {
+				require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusCreated)
+				_ = json.NewEncoder(w).Encode(sandboxclient.Sandbox{Id: "sbx-1", Status: sandboxclient.SandboxStatusCreating})
+			})
+
+			_, err := svc.Create(context.Background(), tc.input, nil)
+			require.NoError(t, err)
+
+			got, present := gotBody["idleTimeoutSeconds"]
+			assert.Equal(t, tc.wantPresent, present)
+			if tc.wantPresent {
+				assert.Equal(t, tc.want, got)
+			}
+		})
+	}
+}
+
 func TestServiceCreate_EnvBody(t *testing.T) {
 	tests := []struct {
 		name       string

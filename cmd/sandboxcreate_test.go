@@ -121,6 +121,32 @@ func TestSandboxCreateInputValidateTimeout(t *testing.T) {
 	}
 }
 
+func TestSandboxCreateInputValidateIdleTimeout(t *testing.T) {
+	cases := []struct {
+		name        string
+		timeout     int
+		errContains string
+	}{
+		{name: "zero disables idle suspension", timeout: 0},
+		{name: "the enabled minimum", timeout: 300},
+		{name: "the maximum", timeout: 86400},
+		{name: "below the enabled minimum", timeout: 299, errContains: "invalid idle timeout 299"},
+		{name: "above the maximum", timeout: 86401, errContains: "invalid idle timeout 86401"},
+		{name: "negative", timeout: -1, errContains: "invalid idle timeout -1"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := (&SandboxCreateInput{IdleTimeout: tc.timeout}).Validate(false)
+			if tc.errContains == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorContains(t, err, tc.errContains)
+		})
+	}
+}
+
 func TestSandboxCreateNetworkPolicyNamesMatchSchema(t *testing.T) {
 	names := sandboxNetworkPolicyNames()
 	require.NotEmpty(t, names)
@@ -360,6 +386,37 @@ func TestSandboxCreate_WithoutSnapshotIDOmitsIt(t *testing.T) {
 	body := testrequire.ParseJSONMap(t, string(req.Body))
 	assert.NotContains(t, body, "snapshotId")
 	assert.NotContains(t, body, "snapshotName")
+}
+
+func TestSandboxCreate_IdleTimeout(t *testing.T) {
+	tests := []struct {
+		name        string
+		args        []string
+		wantPresent bool
+		want        float64
+	}{
+		{name: "omitted uses the server default"},
+		{name: "custom timeout", args: []string{"--idle-timeout", "1800"}, wantPresent: true, want: 1800},
+		{name: "zero disables", args: []string{"--idle-timeout", "0"}, wantPresent: true, want: 0},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			server := newSandboxCreateServer(t)
+			args := append([]string{"ea", "sandboxes", "create", "--output", "json"}, tc.args...)
+			_, err := executeSandboxCommand(t, server, args...)
+			require.NoError(t, err)
+
+			req, ok := server.LastRequest("POST", "/sandboxes")
+			require.True(t, ok)
+			body := testrequire.ParseJSONMap(t, string(req.Body))
+			got, present := body["idleTimeoutSeconds"]
+			assert.Equal(t, tc.wantPresent, present)
+			if tc.wantPresent {
+				assert.Equal(t, tc.want, got)
+			}
+		})
+	}
 }
 
 func TestSandboxCreate_SnapshotIDErrors(t *testing.T) {

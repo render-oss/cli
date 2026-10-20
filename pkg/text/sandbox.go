@@ -58,6 +58,11 @@ func SandboxDetail(sandbox *sandboxclient.Sandbox) string {
 	}
 
 	lines = append(lines, fmt.Sprintf("Timeout: %ds", sandbox.TimeoutSeconds))
+	if sandbox.IdleTimeoutSeconds == 0 {
+		lines = append(lines, "Idle timeout: disabled")
+	} else {
+		lines = append(lines, fmt.Sprintf("Idle timeout: %ds", sandbox.IdleTimeoutSeconds))
+	}
 
 	return FormatString(strings.Join(lines, "\n"))
 }

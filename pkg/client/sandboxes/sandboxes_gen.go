@@ -299,8 +299,13 @@ type Sandbox struct {
 	CreatedAt time.Time `json:"createdAt"`
 
 	// Id Example: sbx-1cd4gcph1rs3idesc73a2b2mg
-	Id            SandboxId            `json:"id"`
-	NetworkPolicy SandboxNetworkPolicy `json:"networkPolicy"`
+	Id SandboxId `json:"id"`
+
+	// IdleTimeoutSeconds Seconds of inactivity before the sandbox is suspended. 0 disables automatic idle suspension.
+	//
+	// Example: 900
+	IdleTimeoutSeconds int                  `json:"idleTimeoutSeconds"`
+	NetworkPolicy      SandboxNetworkPolicy `json:"networkPolicy"`
 
 	// Plan Compute plan. Sizing matches Workflow plans of the same name.
 	Plan SandboxPlan `json:"plan"`
@@ -539,6 +544,9 @@ type SandboxNetworkPolicyType string
 type SandboxPOST struct {
 	// Env Inline environment variables injected into the sandbox at creation.
 	Env *map[string]string `json:"env,omitempty"`
+
+	// IdleTimeoutSeconds Seconds of inactivity before the sandbox is suspended. Use 0 to disable automatic idle suspension. Positive values must be at least 300.
+	IdleTimeoutSeconds *int `json:"idleTimeoutSeconds,omitempty"`
 
 	// NetworkPolicy Set either `type` or its deprecated alias `default`. Sending both is
 	// only accepted when they name the same policy.
