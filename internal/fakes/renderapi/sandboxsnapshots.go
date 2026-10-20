@@ -180,7 +180,7 @@ func registerSandboxSnapshotRoutes(mux *http.ServeMux, s *Server, record func(*h
 			writeAPIError(w, http.StatusBadRequest, "invalid snapshot name", ErrorCodeInvalidSnapshotName)
 			return
 		}
-		kind := sandboxesclient.Filesystem
+		kind := sandboxesclient.Runtime
 		if body.Kind != nil {
 			kind = *body.Kind
 		}

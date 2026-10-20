@@ -88,7 +88,7 @@ func TestSandboxSnapshotsCreate_TextOutput(t *testing.T) {
 	created := h.server.SandboxSnapshots.Only(t)
 	assert.Contains(t, result.Stdout, created.Id)
 	assert.Contains(t, result.Stdout, "creating")
-	assert.Contains(t, result.Stdout, "filesystem")
+	assert.Contains(t, result.Stdout, "runtime")
 	assert.Contains(t, result.Stdout, "Name:           gold")
 	assert.Contains(t, result.Stdout, h.sandbox.Id)
 	assert.False(t, h.server.HasRequest("GET", "/snapshots"), "create must return without polling")
@@ -104,7 +104,7 @@ func TestSandboxSnapshotsCreate_JSONOutput(t *testing.T) {
 	body := testrequire.ParseJSONMap(t, result.Stdout)
 	assert.Equal(t, created.Id, body["id"])
 	assert.Equal(t, "creating", body["status"])
-	assert.Equal(t, "filesystem", body["kind"])
+	assert.Equal(t, "runtime", body["kind"])
 	assert.Equal(t, "gold", body["name"])
 	assert.Equal(t, h.sandbox.Id, body["sourceSandboxId"])
 	assert.Equal(t, h.group.Id, body["sandboxGroupId"])
@@ -135,7 +135,7 @@ func TestSandboxSnapshotsCreate_Kind(t *testing.T) {
 		wantAbsent  bool
 		errContains string
 	}{
-		{name: "default omits kind so the API picks filesystem", wantAbsent: true},
+		{name: "default omits kind so the API picks runtime", wantAbsent: true},
 		{name: "filesystem", args: []string{"--kind", "filesystem"}, wantBody: "filesystem"},
 		{name: "runtime", args: []string{"--kind", "runtime"}, wantBody: "runtime"},
 		{name: "unknown kind is rejected before any request", args: []string{"--kind", "memory"}, errContains: `invalid kind "memory"`},

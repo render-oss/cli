@@ -49,11 +49,11 @@ status is still "creating". Poll with "render ea sandboxes snapshots get" until
 the status is "available" before starting a sandbox from it.
 
 The sandbox keeps running after the capture.`,
-		Example: `  # Snapshot the filesystem (default)
+		Example: `  # Snapshot the filesystem, memory, and CPU state (default)
   render ea sandboxes snapshots create sbx-abc123
 
-  # Also capture memory and CPU state
-  render ea sandboxes snapshots create sbx-abc123 --kind runtime
+  # Snapshot only the filesystem
+  render ea sandboxes snapshots create sbx-abc123 --kind filesystem
 
   # Name the snapshot
   render ea sandboxes snapshots create sbx-abc123 --name gold
@@ -62,7 +62,7 @@ The sandbox keeps running after the capture.`,
   render ea sandboxes snapshots create sbx-abc123 --output json`,
 	}
 
-	cmd.Flags().String("kind", "", "Snapshot kind: filesystem (default), runtime")
+	cmd.Flags().String("kind", "", "Snapshot kind: runtime (default), filesystem")
 	setFlagPlaceholder(cmd.Flags(), "kind", "KIND")
 	cmd.Flags().String("name", "", "Name the snapshot")
 	setFlagPlaceholder(cmd.Flags(), "name", "NAME")
