@@ -12,17 +12,32 @@ import (
 
 func SandboxTable(sandboxes []*sandboxclient.Sandbox) string {
 	t := newTable()
-	t.AppendHeader(table.Row{"ID", "Status", "Plan", "Region", "Age"})
+	t.AppendHeader(table.Row{"ID", "Status", "Plan", "Region", "Network", "Allowed", "Age"})
 	for _, s := range sandboxes {
 		t.AppendRow(table.Row{
 			s.Id,
 			s.Status,
 			s.Plan,
 			s.Region,
+			s.NetworkPolicy.Type,
+			allowedDestinations(s.NetworkPolicy),
 			utils.FormatDuration(s.CreatedAt),
 		})
 	}
 	return FormatString(t.Render())
+}
+
+// allowedDestinations summarizes an allow-list policy's rules in a single
+// line for easy readability.
+func allowedDestinations(policy sandboxclient.SandboxNetworkPolicy) string {
+	if policy.Rules == nil || len(*policy.Rules) == 0 {
+		return "-"
+	}
+	rules := *policy.Rules
+	if len(rules) == 1 {
+		return rules[0].Domain
+	}
+	return fmt.Sprintf("%d domains", len(rules))
 }
 
 func SandboxDetail(sandbox *sandboxclient.Sandbox) string {
