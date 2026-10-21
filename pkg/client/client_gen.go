@@ -2302,28 +2302,6 @@ type ClientInterface interface {
 	// Corresponds with GET /sandboxes/{sandboxId}/execs/{execId} (the `RetrieveSandboxExecution` operationId).
 	RetrieveSandboxExecution(ctx context.Context, sandboxId externalRef16.SandboxId, execId externalRef16.ExecId, params *RetrieveSandboxExecutionParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// UpdateSandboxExecWithBody Update sandbox execution
-	//
-	// Record the client-observed exit code for a previously minted sandbox
-	// execution. Call after the proxy run completes (sync response or closing
-	// SSE frame). Command text is recorded at token mint time, not here.
-	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
-	UpdateSandboxExecWithBody(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateSandboxExec Update sandbox execution
-	//
-	// Record the client-observed exit code for a previously minted sandbox
-	// execution. Call after the proxy run completes (sync response or closing
-	// SSE frame). Command text is recorded at token mint time, not here.
-	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
-	UpdateSandboxExec(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, body UpdateSandboxExecJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// ListSandboxFiles List directory contents in sandbox
 	//
 	// List the contents of a directory in a running sandbox. Returns file and
@@ -7895,48 +7873,6 @@ func (c *Client) ListSandboxExecutions(ctx context.Context, sandboxId externalRe
 // Corresponds with GET /sandboxes/{sandboxId}/execs/{execId} (the `RetrieveSandboxExecution` operationId).
 func (c *Client) RetrieveSandboxExecution(ctx context.Context, sandboxId externalRef16.SandboxId, execId externalRef16.ExecId, params *RetrieveSandboxExecutionParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRetrieveSandboxExecutionRequest(c.Server, sandboxId, execId, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UpdateSandboxExecWithBody Update sandbox execution
-//
-// Record the client-observed exit code for a previously minted sandbox
-// execution. Call after the proxy run completes (sync response or closing
-// SSE frame). Command text is recorded at token mint time, not here.
-//
-// Takes any type of body and a specified content type.
-//
-// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
-func (c *Client) UpdateSandboxExecWithBody(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateSandboxExecRequestWithBody(c.Server, sandboxId, execId, params, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UpdateSandboxExec Update sandbox execution
-//
-// Record the client-observed exit code for a previously minted sandbox
-// execution. Call after the proxy run completes (sync response or closing
-// SSE frame). Command text is recorded at token mint time, not here.
-//
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
-func (c *Client) UpdateSandboxExec(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, body UpdateSandboxExecJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateSandboxExecRequest(c.Server, sandboxId, execId, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -21834,87 +21770,6 @@ func NewRetrieveSandboxExecutionRequest(server string, sandboxId externalRef16.S
 	return req, nil
 }
 
-// NewUpdateSandboxExecRequest calls the generic UpdateSandboxExec builder with application/json body
-func NewUpdateSandboxExecRequest(server string, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, body UpdateSandboxExecJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewUpdateSandboxExecRequestWithBody(server, sandboxId, execId, params, "application/json", bodyReader)
-}
-
-// NewUpdateSandboxExecRequestWithBody constructs an http.Request for the UpdateSandboxExec method, with any body, and a specified content type
-func NewUpdateSandboxExecRequestWithBody(server string, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "execId", execId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/sandboxes/%s/execs/%s/status", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		// queryValues collects non-styled parameters (passthrough, JSON)
-		// that are safe to round-trip through url.Values.Encode().
-		queryValues := queryURL.Query()
-		// rawQueryFragments collects pre-encoded query fragments from
-		// styled parameters, preserving literal commas as delimiters
-		// per the OpenAPI spec (e.g. "color=blue,black,brown").
-		var rawQueryFragments []string
-
-		if params.OwnerId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if encoded := queryValues.Encode(); encoded != "" {
-			rawQueryFragments = append(rawQueryFragments, encoded)
-		}
-		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
-	}
-
-	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
 // NewListSandboxFilesRequest constructs an http.Request for the ListSandboxFiles method
 func NewListSandboxFilesRequest(server string, sandboxId externalRef16.SandboxId, params *ListSandboxFilesParams) (*http.Request, error) {
 	var err error
@@ -29033,28 +28888,6 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /sandboxes/{sandboxId}/execs/{execId} (the `RetrieveSandboxExecution` operationId).
 	RetrieveSandboxExecutionWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, execId externalRef16.ExecId, params *RetrieveSandboxExecutionParams, reqEditors ...RequestEditorFn) (*RetrieveSandboxExecutionResponse, error)
 
-	// UpdateSandboxExecWithBodyWithResponse Update sandbox execution
-	//
-	// Record the client-observed exit code for a previously minted sandbox
-	// execution. Call after the proxy run completes (sync response or closing
-	// SSE frame). Command text is recorded at token mint time, not here.
-	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
-	UpdateSandboxExecWithBodyWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSandboxExecResponse, error)
-
-	// UpdateSandboxExecWithResponse Update sandbox execution
-	//
-	// Record the client-observed exit code for a previously minted sandbox
-	// execution. Call after the proxy run completes (sync response or closing
-	// SSE frame). Command text is recorded at token mint time, not here.
-	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
-	UpdateSandboxExecWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, body UpdateSandboxExecJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSandboxExecResponse, error)
-
 	// ListSandboxFilesWithResponse List directory contents in sandbox
 	//
 	// List the contents of a directory in a running sandbox. Returns file and
@@ -30649,12 +30482,14 @@ type UpdateBlueprintResponse struct {
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef2.Blueprint
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
 	JSON403 *N403Forbidden
 	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
+	JSON404 *Error
 	// JSON406 the response for an HTTP 406 `application/json` response
 	JSON406 *N406NotAcceptable
 	// JSON410 the response for an HTTP 410 `application/json` response
@@ -30674,6 +30509,11 @@ func (r UpdateBlueprintResponse) GetJSON200() *externalRef2.Blueprint {
 	return r.JSON200
 }
 
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r UpdateBlueprintResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
 func (r UpdateBlueprintResponse) GetJSON401() *N401Unauthorized {
 	return r.JSON401
@@ -30685,7 +30525,7 @@ func (r UpdateBlueprintResponse) GetJSON403() *N403Forbidden {
 }
 
 // GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r UpdateBlueprintResponse) GetJSON404() *N404NotFound {
+func (r UpdateBlueprintResponse) GetJSON404() *Error {
 	return r.JSON404
 }
 
@@ -48339,106 +48179,6 @@ func (r RetrieveSandboxExecutionResponse) ContentType() string {
 	return ""
 }
 
-// UpdateSandboxExecResponse429Headers the declared response headers of an HTTP 429 response for UpdateSandboxExec
-type UpdateSandboxExecResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type UpdateSandboxExecResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *externalRef16.SandboxExecUpdateResponse
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *UpdateSandboxExecResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r UpdateSandboxExecResponse) GetJSON200() *externalRef16.SandboxExecUpdateResponse {
-	return r.JSON200
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r UpdateSandboxExecResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r UpdateSandboxExecResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r UpdateSandboxExecResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r UpdateSandboxExecResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r UpdateSandboxExecResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r UpdateSandboxExecResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r UpdateSandboxExecResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r UpdateSandboxExecResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r UpdateSandboxExecResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UpdateSandboxExecResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r UpdateSandboxExecResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
 // ListSandboxFilesResponse429Headers the declared response headers of an HTTP 429 response for ListSandboxFiles
 type ListSandboxFilesResponse429Headers struct {
 	RateLimitLimit     *int
@@ -60310,40 +60050,6 @@ func (c *ClientWithResponses) RetrieveSandboxExecutionWithResponse(ctx context.C
 	return ParseRetrieveSandboxExecutionResponse(rsp)
 }
 
-// UpdateSandboxExecWithBodyWithResponse Update sandbox execution
-//
-// Record the client-observed exit code for a previously minted sandbox
-// execution. Call after the proxy run completes (sync response or closing
-// SSE frame). Command text is recorded at token mint time, not here.
-//
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
-func (c *ClientWithResponses) UpdateSandboxExecWithBodyWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSandboxExecResponse, error) {
-	rsp, err := c.UpdateSandboxExecWithBody(ctx, sandboxId, execId, params, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateSandboxExecResponse(rsp)
-}
-
-// UpdateSandboxExecWithResponse Update sandbox execution
-//
-// Record the client-observed exit code for a previously minted sandbox
-// execution. Call after the proxy run completes (sync response or closing
-// SSE frame). Command text is recorded at token mint time, not here.
-//
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with POST /sandboxes/{sandboxId}/execs/{execId}/status (the `UpdateSandboxExec` operationId).
-func (c *ClientWithResponses) UpdateSandboxExecWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, execId string, params *UpdateSandboxExecParams, body UpdateSandboxExecJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSandboxExecResponse, error) {
-	rsp, err := c.UpdateSandboxExec(ctx, sandboxId, execId, params, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateSandboxExecResponse(rsp)
-}
-
 // ListSandboxFilesWithResponse List directory contents in sandbox
 //
 // List the contents of a directory in a running sandbox. Returns file and
@@ -62623,6 +62329,13 @@ func ParseUpdateBlueprintResponse(rsp *http.Response) (*UpdateBlueprintResponse,
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest N401Unauthorized
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -62638,7 +62351,7 @@ func ParseUpdateBlueprintResponse(rsp *http.Response) (*UpdateBlueprintResponse,
 		response.JSON403 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -81503,115 +81216,6 @@ func ParseRetrieveSandboxExecutionResponse(rsp *http.Response) (*RetrieveSandbox
 	switch {
 	case rsp.StatusCode == 429:
 		var headers RetrieveSandboxExecutionResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseUpdateSandboxExecResponse parses an HTTP response from a UpdateSandboxExecWithResponse call
-func ParseUpdateSandboxExecResponse(rsp *http.Response) (*UpdateSandboxExecResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UpdateSandboxExecResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef16.SandboxExecUpdateResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers UpdateSandboxExecResponse429Headers
 		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
 			var value int
 			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {

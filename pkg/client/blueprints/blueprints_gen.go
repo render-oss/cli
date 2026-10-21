@@ -271,7 +271,12 @@ type BlueprintPATCH struct {
 	// Even when true, autoSync will not apply when the blueprint has the Created status, which indicates its first sync has not yet been approved.
 	// Other conditions, such as a locked workspace, can also prevent automatic syncing even when this is true.
 	AutoSync *AutoSync `json:"autoSync,omitempty"`
-	Name     *string   `json:"name,omitempty"`
+
+	// Branch The Git branch to read the Blueprint file from. Requires Blueprint onboarding early access.
+	// The branch must contain a Blueprint file at the configured path.
+	// Updating this field does not plan a sync.
+	Branch *string `json:"branch,omitempty"`
+	Name   *string `json:"name,omitempty"`
 
 	// Path Path to the Blueprint file in the repository
 	//

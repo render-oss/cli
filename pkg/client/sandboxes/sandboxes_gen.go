@@ -556,24 +556,6 @@ type SandboxEgressRule struct {
 // under `allow-list` every other outbound protocol is dropped.
 type SandboxEgressRuleProtocol string
 
-// SandboxExecUpdateRequest Client-reported completion of a sandbox execution.
-type SandboxExecUpdateRequest struct {
-	// ExitCode Process exit code observed by the client.
-	ExitCode *int `json:"exitCode,omitempty"`
-}
-
-// SandboxExecUpdateResponse Updated sandbox execution after a client update.
-type SandboxExecUpdateResponse struct {
-	Command   *string    `json:"command,omitempty"`
-	ExecId    string     `json:"execId"`
-	ExitCode  *int       `json:"exitCode,omitempty"`
-	Operation string     `json:"operation"`
-	SandboxId string     `json:"sandboxId"`
-	StartedAt time.Time  `json:"startedAt"`
-	StoppedAt *time.Time `json:"stoppedAt,omitempty"`
-	Type      string     `json:"type"`
-}
-
 // SandboxFileEntry A file or directory entry in a sandbox filesystem listing.
 type SandboxFileEntry struct {
 	// ModifiedAt Last-modified timestamp.

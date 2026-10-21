@@ -5124,13 +5124,6 @@ type RetrieveSandboxExecutionParams struct {
 	OwnerId *externalRef16.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 }
 
-// UpdateSandboxExecParams defines parameters for UpdateSandboxExec.
-type UpdateSandboxExecParams struct {
-	// OwnerId The ID of the workspace the sandbox belongs to. Optional: the workspace is
-	// determined from the sandbox ID, and this parameter is ignored when supplied.
-	OwnerId *externalRef16.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
-}
-
 // ListSandboxFilesParams defines parameters for ListSandboxFiles.
 type ListSandboxFilesParams struct {
 	// Path Absolute path to a directory in the sandbox.
@@ -5762,9 +5755,6 @@ type RestoreSandboxGroupCredentialJSONRequestBody = externalRef16.SandboxCredent
 
 // CreateSandboxJSONRequestBody defines body for CreateSandbox for application/json ContentType.
 type CreateSandboxJSONRequestBody = externalRef16.SandboxPOST
-
-// UpdateSandboxExecJSONRequestBody defines body for UpdateSandboxExec for application/json ContentType.
-type UpdateSandboxExecJSONRequestBody = externalRef16.SandboxExecUpdateRequest
 
 // ConnectSandboxRunJSONRequestBody defines body for ConnectSandboxRun for application/json ContentType.
 type ConnectSandboxRunJSONRequestBody = externalRef16.SandboxConnectRequest
