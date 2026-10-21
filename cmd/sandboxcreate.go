@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -32,9 +33,6 @@ type SandboxCreateInput struct {
 func (i *SandboxCreateInput) Validate(_ bool) error {
 	if i.From != "" && i.SnapshotID != "" {
 		return fmt.Errorf("--from and --snapshot-id cannot be used together")
-	}
-	if i.Plan != "" && !sandboxclient.SandboxPlan(i.Plan).Valid() {
-		return fmt.Errorf("invalid plan %q: use %s", i.Plan, strings.Join(sandboxPlanNames(), ", "))
 	}
 	if i.NetworkPolicy != "" && !sandboxclient.SandboxNetworkPolicyType(i.NetworkPolicy).Valid() {
 		return fmt.Errorf("invalid network policy %q: use %s", i.NetworkPolicy, strings.Join(sandboxNetworkPolicyNames(), ", "))
@@ -110,14 +108,19 @@ func resolveSandboxEnv(files, pairs []string) (map[string]string, error) {
 	return env, nil
 }
 
-// sandboxPlanNames returns the valid sandbox plan names, sourced from the
-// generated SandboxPlanValues() so help and error text stay in sync with the
-// schema. SandboxPlan has no "custom" sentinel, so no filtering is needed.
+var deprecatedSandboxPlans = []sandboxclient.SandboxPlan{
+	sandboxclient.Starter,
+	sandboxclient.Standard,
+	sandboxclient.Pro,
+}
+
+// Help text only; the API validates --plan.
 func sandboxPlanNames() []string {
-	plans := sandboxclient.SandboxPlanValues()
-	out := make([]string, len(plans))
-	for i, p := range plans {
-		out[i] = string(p)
+	var out []string
+	for _, p := range sandboxclient.SandboxPlanValues() {
+		if !slices.Contains(deprecatedSandboxPlans, p) {
+			out = append(out, string(p))
+		}
 	}
 	return out
 }
@@ -139,7 +142,7 @@ func newSandboxCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 
 Examples:
   render ea sandboxes create
-  render ea sandboxes create --plan=standard --region=oregon
+  render ea sandboxes create --plan=2c-4g --region=oregon
   render ea sandboxes create --timeout=3600
   render ea sandboxes create --idle-timeout=1800
   render ea sandboxes create --idle-timeout=0

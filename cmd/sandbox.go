@@ -20,7 +20,7 @@ sandboxes from it with "render ea sandboxes create --snapshot-id".
 
 Examples:
   render ea sandboxes create
-  render ea sandboxes create --plan=standard --region=oregon
+  render ea sandboxes create --plan=2c-4g --region=oregon
   render ea sandboxes create --snapshot-id snp-abc123
   render ea sandboxes copy ./main.py sbx-abc123:/app/main.py
   render ea sandboxes exec sbx-abc123 -- echo hello

@@ -15,45 +15,34 @@ import (
 	sandboxclient "github.com/render-oss/cli/pkg/client/sandboxes"
 )
 
-func TestSandboxCreateInputValidate(t *testing.T) {
-	cases := []struct {
-		name        string
-		plan        string
-		errContains string
+func TestSandboxCreate_PlanPassesThroughToAPI(t *testing.T) {
+	tests := []struct {
+		name string
+		plan string
 	}{
-		{name: "empty plan is allowed (server picks default)", plan: ""},
-		{name: "starter", plan: "starter"},
-		{name: "standard", plan: "standard"},
-		{name: "pro", plan: "pro"},
-		{name: "unknown plan", plan: "mega", errContains: `invalid plan "mega"`},
-		{name: "legacy-style name rejected", plan: "pro_plus", errContains: `invalid plan "pro_plus"`},
+		{name: "current plan", plan: "1c-2g"},
+		{name: "deprecated plan", plan: "starter"},
+		{name: "plan unknown to this CLI", plan: "32c-64g"},
 	}
 
-	for _, tc := range cases {
+	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			input := SandboxCreateInput{Plan: tc.plan}
-			err := input.Validate(false)
-			if tc.errContains == "" {
-				require.NoError(t, err)
-				return
-			}
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), tc.errContains)
-			// The error must enumerate the valid plans so the user knows what to use.
-			for _, name := range sandboxPlanNames() {
-				assert.Contains(t, err.Error(), name)
-			}
+			server := newSandboxCreateServer(t)
+
+			args := []string{"ea", "sandboxes", "create", "--plan", tc.plan, "--output", "json"}
+			_, err := executeSandboxCommand(t, server, args...)
+			require.NoError(t, err)
+
+			req, ok := server.LastRequest("POST", "/sandboxes")
+			require.True(t, ok)
+			body := testrequire.ParseJSONMap(t, string(req.Body))
+			assert.Equal(t, tc.plan, body["plan"])
 		})
 	}
 }
 
-// TestSandboxCreateValidateAcceptsEverySchemaPlan guards that every plan the
-// schema considers valid is also accepted by Validate, so the two never drift.
-func TestSandboxCreateValidateAcceptsEverySchemaPlan(t *testing.T) {
-	for _, p := range sandboxclient.SandboxPlanValues() {
-		input := SandboxCreateInput{Plan: string(p)}
-		assert.NoError(t, input.Validate(false), "plan %q should be accepted", p)
-	}
+func TestSandboxPlanNamesOmitDeprecatedPlans(t *testing.T) {
+	assert.Equal(t, []string{"1c-2g", "2c-4g", "4c-8g", "8c-16g"}, sandboxPlanNames())
 }
 
 func TestSandboxCreateInputValidateNetworkPolicy(t *testing.T) {
