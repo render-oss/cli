@@ -162,15 +162,27 @@ func (e SandboxNetworkPolicyType) Valid() bool {
 
 // Defines values for SandboxPlan.
 const (
-	Pro      SandboxPlan = "pro"
-	Standard SandboxPlan = "standard"
-	Starter  SandboxPlan = "starter"
+	Pro              SandboxPlan = "pro"
+	SandboxPlan1c2g  SandboxPlan = "1c-2g"
+	SandboxPlan2c4g  SandboxPlan = "2c-4g"
+	SandboxPlan4c8g  SandboxPlan = "4c-8g"
+	SandboxPlan8c16g SandboxPlan = "8c-16g"
+	Standard         SandboxPlan = "standard"
+	Starter          SandboxPlan = "starter"
 )
 
 // Valid indicates whether the value is a known member of the SandboxPlan enum.
 func (e SandboxPlan) Valid() bool {
 	switch e {
 	case Pro:
+		return true
+	case SandboxPlan1c2g:
+		return true
+	case SandboxPlan2c4g:
+		return true
+	case SandboxPlan4c8g:
+		return true
+	case SandboxPlan8c16g:
 		return true
 	case Standard:
 		return true
@@ -307,7 +319,7 @@ type Sandbox struct {
 	IdleTimeoutSeconds int                  `json:"idleTimeoutSeconds"`
 	NetworkPolicy      SandboxNetworkPolicy `json:"networkPolicy"`
 
-	// Plan Compute plan. Sizing matches Workflow plans of the same name.
+	// Plan Compute plan. See `sandboxPlan` for known values.
 	Plan SandboxPlan `json:"plan"`
 
 	// Region Region the sandbox is running in.
@@ -553,8 +565,10 @@ type SandboxPOST struct {
 	NetworkPolicy *SandboxNetworkPolicyPOST `json:"networkPolicy,omitempty"`
 
 	// OwnerId The ID of the workspace the sandbox belongs to.
-	OwnerId string       `json:"ownerId"`
-	Plan    *SandboxPlan `json:"plan,omitempty"`
+	OwnerId string `json:"ownerId"`
+
+	// Plan Compute plan. See `sandboxPlan` for known values.
+	Plan *SandboxPlan `json:"plan,omitempty"`
 
 	// Region Render region. Defaults to the workspace default.
 	Region *string `json:"region,omitempty"`
@@ -573,7 +587,7 @@ type SandboxPOST struct {
 	TimeoutSeconds *int `json:"timeoutSeconds,omitempty"`
 }
 
-// SandboxPlan Compute plan. Sizing matches Workflow plans of the same name.
+// SandboxPlan The compute plan to use. `starter`, `standard` and `pro` are deprecated.
 type SandboxPlan string
 
 // SandboxSnapshot defines model for sandboxSnapshot.
@@ -599,7 +613,7 @@ type SandboxSnapshot struct {
 	// Name Set at create. Never changes. Null when created without a name.
 	Name *SandboxSnapshotName `json:"name,omitempty"`
 
-	// Plan Plan of the source sandbox at capture time.
+	// Plan Plan of the source sandbox at capture time. See `sandboxPlan` for known values.
 	Plan        SandboxPlan `json:"plan"`
 	RequestedAt time.Time   `json:"requestedAt"`
 
