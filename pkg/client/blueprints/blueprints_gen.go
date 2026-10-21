@@ -429,6 +429,12 @@ type SyncWithPlan struct {
 	// Id Example: exe-cph1rs3idesc73a2b2mg
 	Id SyncId `json:"id"`
 
+	// RawPlan Internal plan output with environment variable values replaced by `[REDACTED]`.
+	// This is not a stable contract and will be removed when the structured `plan` field ships.
+	// Null when no plan is available.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	RawPlan *map[string]interface{} `json:"rawPlan"`
+
 	// RequiredManualEnvVars Environment variables whose values must be supplied separately when approving this Sync, for resources it creates.
 	// Declared with `sync: false` in the Blueprint file.
 	RequiredManualEnvVars []RequiredManualEnvVar `json:"requiredManualEnvVars"`

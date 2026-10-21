@@ -52,6 +52,30 @@ func (e ExecutionType) Valid() bool {
 	}
 }
 
+// Defines values for SandboxCredentialInjectionType.
+const (
+	Basic  SandboxCredentialInjectionType = "basic"
+	Cookie SandboxCredentialInjectionType = "cookie"
+	Header SandboxCredentialInjectionType = "header"
+	Query  SandboxCredentialInjectionType = "query"
+)
+
+// Valid indicates whether the value is a known member of the SandboxCredentialInjectionType enum.
+func (e SandboxCredentialInjectionType) Valid() bool {
+	switch e {
+	case Basic:
+		return true
+	case Cookie:
+		return true
+	case Header:
+		return true
+	case Query:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SandboxEgressRuleProtocol.
 const (
 	Https SandboxEgressRuleProtocol = "https"
@@ -373,6 +397,136 @@ type SandboxConnectResponse struct {
 	Uri string `json:"uri"`
 }
 
+// SandboxCredential Desired credential configuration scoped to one sandbox group. Secret values
+// are independent for each credential ID and are never returned, including to admins.
+type SandboxCredential struct {
+	// Domain Exact public DNS hostname, normalized to lowercase. IP addresses, ports,
+	// wildcards, and local/internal hostnames are not supported.
+	//
+	//
+	// Example: api.render.com
+	Domain  string `json:"domain"`
+	Enabled bool   `json:"enabled"`
+
+	// Id Caller-supplied URL-safe name, unique within the sandbox group. The names
+	// `.` and `..` and the prefix `rnd-` are reserved. IDs are case-sensitive.
+	//
+	//
+	// Example: my-inference-key
+	Id        SandboxCredentialId        `json:"id"`
+	Injection SandboxCredentialInjection `json:"injection"`
+
+	// Methods GET, HEAD, POST, PUT, PATCH, DELETE, or OPTIONS, normalized to uppercase.
+	// An empty list matches any method.
+	Methods []string `json:"methods"`
+
+	// Paths Exact absolute request paths, without query strings, fragments,
+	// escaping, or patterns. An empty list matches any path.
+	Paths   []string                  `json:"paths"`
+	Version *SandboxCredentialVersion `json:"version,omitempty"`
+}
+
+// SandboxCredentialCreate defines model for sandboxCredentialCreate.
+type SandboxCredentialCreate struct {
+	// Domain Exact public DNS hostname, normalized to lowercase. IP addresses, ports,
+	// wildcards, and local/internal hostnames are not supported.
+	Domain  string `json:"domain"`
+	Enabled *bool  `json:"enabled,omitempty"`
+
+	// Id Caller-supplied URL-safe name, unique within the sandbox group. The names
+	// `.` and `..` and the prefix `rnd-` are reserved. IDs are case-sensitive.
+	//
+	//
+	// Example: my-inference-key
+	Id        SandboxCredentialId        `json:"id"`
+	Injection SandboxCredentialInjection `json:"injection"`
+
+	// Methods GET, HEAD, POST, PUT, PATCH, DELETE, or OPTIONS, normalized to uppercase.
+	// Omitted or empty matches any method.
+	Methods *[]string `json:"methods,omitempty"`
+
+	// Paths Exact absolute request paths, without query strings, fragments,
+	// escaping, or patterns. Omitted or empty matches any path.
+	Paths *[]string `json:"paths,omitempty"`
+
+	// Value Secret value to store for this credential ID. The largest supported secret
+	// value is 5 KiB (5120 UTF-8 bytes).
+	Value string `json:"value"`
+}
+
+// SandboxCredentialId Caller-supplied URL-safe name, unique within the sandbox group. The names
+// `.` and `..` and the prefix `rnd-` are reserved. IDs are case-sensitive.
+//
+// Example: my-inference-key
+type SandboxCredentialId = string
+
+// SandboxCredentialInjection defines model for sandboxCredentialInjection.
+type SandboxCredentialInjection struct {
+	// Name Required for header, cookie, and query injection. Routing and connection
+	// headers cannot be targeted.
+	Name *string `json:"name,omitempty"`
+
+	// Template Literal template containing 1-5 occurrences of ${SECRET}, such as
+	// "Bearer ${SECRET}". Each ${SECRET} is replaced directly with the
+	// assigned secret value. Omit to use the raw secret value.
+	//
+	//
+	// Example: Bearer ${SECRET}
+	Template *string `json:"template,omitempty"`
+
+	// Type How to inject the credential into a matching request. Basic authentication
+	// uses the rendered value in username:password form and does not accept name.
+	Type SandboxCredentialInjectionType `json:"type"`
+}
+
+// SandboxCredentialInjectionType How to inject the credential into a matching request. Basic authentication
+// uses the rendered value in username:password form and does not accept name.
+type SandboxCredentialInjectionType string
+
+// SandboxCredentialRestore defines model for sandboxCredentialRestore.
+type SandboxCredentialRestore struct {
+	// VersionId Retained version whose configuration will be used to create a new current revision.
+	VersionId int64 `json:"versionId"`
+}
+
+// SandboxCredentialUpdate Omitted fields retain their existing values. Empty methods or paths arrays
+// clear those filters. Developers may update injection, methods, paths, and
+// enabled state. Changing the destination requires an admin and otherwise
+// returns 403. Overwriting a value requires an admin; omitting it has no effect.
+// Changes to routing, injection, or enabled state create a new configuration version.
+// Overwriting the value also creates a version, even when the value is unchanged.
+// The credential ID is immutable.
+type SandboxCredentialUpdate struct {
+	Domain    *string                     `json:"domain,omitempty"`
+	Enabled   *bool                       `json:"enabled,omitempty"`
+	Injection *SandboxCredentialInjection `json:"injection,omitempty"`
+	Methods   *[]string                   `json:"methods,omitempty"`
+	Paths     *[]string                   `json:"paths,omitempty"`
+
+	// Value Admin-only. At most 5 KiB (5120 UTF-8 bytes). Omit to preserve the
+	// current value.
+	Value *string `json:"value,omitempty"`
+}
+
+// SandboxCredentialVersion defines model for sandboxCredentialVersion.
+type SandboxCredentialVersion struct {
+	// Fingerprint Fingerprint of the complete routing configuration, injection configuration,
+	// and secret value. Matching fingerprints identify equivalent versions of
+	// credentials in the same sandbox group. Fingerprints cannot be compared
+	// across sandbox groups.
+	Fingerprint string `json:"fingerprint"`
+
+	// Id Monotonically increasing configuration version ID. Updates and restores assign new IDs.
+	Id int64 `json:"id"`
+
+	// RestoredFromVersionId Version restored to create this revision. Omitted for creates and updates.
+	RestoredFromVersionId *int64    `json:"restoredFromVersionId,omitempty"`
+	UpdatedAt             time.Time `json:"updatedAt"`
+
+	// UpdatedBy Object ID of the authenticated identity that created this configuration version.
+	UpdatedBy string `json:"updatedBy"`
+}
+
 // SandboxDirectoryListing Directory listing response.
 type SandboxDirectoryListing struct {
 	Entries []SandboxFileEntry `json:"entries"`
@@ -666,6 +820,12 @@ type SandboxSnapshotStatus string
 
 // SandboxStatus defines model for sandboxStatus.
 type SandboxStatus string
+
+// CredentialId Caller-supplied URL-safe name, unique within the sandbox group. The names
+// `.` and `..` and the prefix `rnd-` are reserved. IDs are case-sensitive.
+//
+// Example: my-inference-key
+type CredentialId = SandboxCredentialId
 
 // ExecId Example: exe-cph1rs3idesc73a2b2mg
 type ExecId = ExecutionId

@@ -2067,6 +2067,125 @@ type ClientInterface interface {
 	// Corresponds with GET /sandbox-groups (the `ListSandboxGroups` operationId).
 	ListSandboxGroups(ctx context.Context, params *ListSandboxGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListSandboxGroupCredentials List sandbox group credentials
+	//
+	// Returns all credentials in the group, sorted by caller-supplied ID.
+	// Secret values are never returned, including to admins.
+	//
+	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials (the `ListSandboxGroupCredentials` operationId).
+	ListSandboxGroupCredentials(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateSandboxGroupCredentialWithBody Create sandbox group credential
+	//
+	// Admin-only. Creates an independent credential with a caller-supplied ID.
+	// Each sandbox group supports at most 25 credentials and 200 KiB (204800 bytes)
+	// of serialized current credentials, including configuration and values. Three
+	// distinct prior configurations per credential are retained by fingerprint, with
+	// a 1 MiB total storage limit including version metadata and configurations. Limits are checked before saving.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials (the `CreateSandboxGroupCredential` operationId).
+	CreateSandboxGroupCredentialWithBody(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateSandboxGroupCredential Create sandbox group credential
+	//
+	// Admin-only. Creates an independent credential with a caller-supplied ID.
+	// Each sandbox group supports at most 25 credentials and 200 KiB (204800 bytes)
+	// of serialized current credentials, including configuration and values. Three
+	// distinct prior configurations per credential are retained by fingerprint, with
+	// a 1 MiB total storage limit including version metadata and configurations. Limits are checked before saving.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials (the `CreateSandboxGroupCredential` operationId).
+	CreateSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, body CreateSandboxGroupCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteSandboxGroupCredential Delete sandbox group credential
+	//
+	// Admin-only. Removes the credential from the group's desired configuration.
+	//
+	// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `DeleteSandboxGroupCredential` operationId).
+	DeleteSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RetrieveSandboxGroupCredential Retrieve sandbox group credential
+	//
+	// Secret values are never returned, including to admins.
+	// Credentials are scoped to the addressed sandbox group.
+	//
+	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `RetrieveSandboxGroupCredential` operationId).
+	RetrieveSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateSandboxGroupCredentialWithBody Update sandbox group credential
+	//
+	// Admins may update configuration. Developers may update injection, method/path
+	// filters, and enabled state; destination or value changes require an admin.
+	// Assigning a value creates a new version; omitting it preserves the value.
+	// Other omitted fields are preserved; empty methods or paths arrays clear their
+	// filters. The group's serialized current credentials must
+	// remain within 200 KiB (204800 bytes). A successful response means desired
+	// state was saved; runtime reconciliation may still be pending.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PATCH /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `UpdateSandboxGroupCredential` operationId).
+	UpdateSandboxGroupCredentialWithBody(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateSandboxGroupCredential Update sandbox group credential
+	//
+	// Admins may update configuration. Developers may update injection, method/path
+	// filters, and enabled state; destination or value changes require an admin.
+	// Assigning a value creates a new version; omitting it preserves the value.
+	// Other omitted fields are preserved; empty methods or paths arrays clear their
+	// filters. The group's serialized current credentials must
+	// remain within 200 KiB (204800 bytes). A successful response means desired
+	// state was saved; runtime reconciliation may still be pending.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PATCH /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `UpdateSandboxGroupCredential` operationId).
+	UpdateSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, body UpdateSandboxGroupCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RestoreSandboxGroupCredentialWithBody Restore sandbox credential configuration
+	//
+	// Admin-only. Creates a new current revision from the routing configuration,
+	// injection configuration, and secret value of a retained version. The new revision
+	// has an increasing version ID, the restoring identity and timestamp, the same
+	// fingerprint as the source, and restoredFromVersionId identifying the source.
+	// Each distinct configuration is stored once by fingerprint. The current and three
+	// most recently active prior configurations are retained. Evicting a configuration
+	// removes all version metadata referring to it. Values are never returned.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/restore (the `RestoreSandboxGroupCredential` operationId).
+	RestoreSandboxGroupCredentialWithBody(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RestoreSandboxGroupCredential Restore sandbox credential configuration
+	//
+	// Admin-only. Creates a new current revision from the routing configuration,
+	// injection configuration, and secret value of a retained version. The new revision
+	// has an increasing version ID, the restoring identity and timestamp, the same
+	// fingerprint as the source, and restoredFromVersionId identifying the source.
+	// Each distinct configuration is stored once by fingerprint. The current and three
+	// most recently active prior configurations are retained. Evicting a configuration
+	// removes all version metadata referring to it. Values are never returned.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/restore (the `RestoreSandboxGroupCredential` operationId).
+	RestoreSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, body RestoreSandboxGroupCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListSandboxGroupCredentialVersions List sandbox credential versions
+	//
+	// Returns version metadata in descending version ID order. Multiple versions may
+	// share one configuration fingerprint. Metadata is retained while its configuration
+	// is retained; configurations are evicted by their most recent activation version ID.
+	// Secret values and the group fingerprint nonce are never returned.
+	//
+	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/versions (the `ListSandboxGroupCredentialVersions` operationId).
+	ListSandboxGroupCredentialVersions(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListSandboxSnapshots List sandbox snapshots
 	//
 	// Snapshots in a sandbox group, newest first. Expired and deleted snapshots
@@ -7351,6 +7470,225 @@ func (c *Client) UpdateRegistryCredential(ctx context.Context, registryCredentia
 // Corresponds with GET /sandbox-groups (the `ListSandboxGroups` operationId).
 func (c *Client) ListSandboxGroups(ctx context.Context, params *ListSandboxGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListSandboxGroupsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListSandboxGroupCredentials List sandbox group credentials
+//
+// Returns all credentials in the group, sorted by caller-supplied ID.
+// Secret values are never returned, including to admins.
+//
+// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials (the `ListSandboxGroupCredentials` operationId).
+func (c *Client) ListSandboxGroupCredentials(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSandboxGroupCredentialsRequest(c.Server, sandboxGroupId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateSandboxGroupCredentialWithBody Create sandbox group credential
+//
+// Admin-only. Creates an independent credential with a caller-supplied ID.
+// Each sandbox group supports at most 25 credentials and 200 KiB (204800 bytes)
+// of serialized current credentials, including configuration and values. Three
+// distinct prior configurations per credential are retained by fingerprint, with
+// a 1 MiB total storage limit including version metadata and configurations. Limits are checked before saving.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials (the `CreateSandboxGroupCredential` operationId).
+func (c *Client) CreateSandboxGroupCredentialWithBody(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateSandboxGroupCredentialRequestWithBody(c.Server, sandboxGroupId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateSandboxGroupCredential Create sandbox group credential
+//
+// Admin-only. Creates an independent credential with a caller-supplied ID.
+// Each sandbox group supports at most 25 credentials and 200 KiB (204800 bytes)
+// of serialized current credentials, including configuration and values. Three
+// distinct prior configurations per credential are retained by fingerprint, with
+// a 1 MiB total storage limit including version metadata and configurations. Limits are checked before saving.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials (the `CreateSandboxGroupCredential` operationId).
+func (c *Client) CreateSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, body CreateSandboxGroupCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateSandboxGroupCredentialRequest(c.Server, sandboxGroupId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteSandboxGroupCredential Delete sandbox group credential
+//
+// Admin-only. Removes the credential from the group's desired configuration.
+//
+// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `DeleteSandboxGroupCredential` operationId).
+func (c *Client) DeleteSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteSandboxGroupCredentialRequest(c.Server, sandboxGroupId, credentialId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RetrieveSandboxGroupCredential Retrieve sandbox group credential
+//
+// Secret values are never returned, including to admins.
+// Credentials are scoped to the addressed sandbox group.
+//
+// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `RetrieveSandboxGroupCredential` operationId).
+func (c *Client) RetrieveSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveSandboxGroupCredentialRequest(c.Server, sandboxGroupId, credentialId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateSandboxGroupCredentialWithBody Update sandbox group credential
+//
+// Admins may update configuration. Developers may update injection, method/path
+// filters, and enabled state; destination or value changes require an admin.
+// Assigning a value creates a new version; omitting it preserves the value.
+// Other omitted fields are preserved; empty methods or paths arrays clear their
+// filters. The group's serialized current credentials must
+// remain within 200 KiB (204800 bytes). A successful response means desired
+// state was saved; runtime reconciliation may still be pending.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PATCH /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `UpdateSandboxGroupCredential` operationId).
+func (c *Client) UpdateSandboxGroupCredentialWithBody(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateSandboxGroupCredentialRequestWithBody(c.Server, sandboxGroupId, credentialId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateSandboxGroupCredential Update sandbox group credential
+//
+// Admins may update configuration. Developers may update injection, method/path
+// filters, and enabled state; destination or value changes require an admin.
+// Assigning a value creates a new version; omitting it preserves the value.
+// Other omitted fields are preserved; empty methods or paths arrays clear their
+// filters. The group's serialized current credentials must
+// remain within 200 KiB (204800 bytes). A successful response means desired
+// state was saved; runtime reconciliation may still be pending.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PATCH /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `UpdateSandboxGroupCredential` operationId).
+func (c *Client) UpdateSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, body UpdateSandboxGroupCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateSandboxGroupCredentialRequest(c.Server, sandboxGroupId, credentialId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RestoreSandboxGroupCredentialWithBody Restore sandbox credential configuration
+//
+// Admin-only. Creates a new current revision from the routing configuration,
+// injection configuration, and secret value of a retained version. The new revision
+// has an increasing version ID, the restoring identity and timestamp, the same
+// fingerprint as the source, and restoredFromVersionId identifying the source.
+// Each distinct configuration is stored once by fingerprint. The current and three
+// most recently active prior configurations are retained. Evicting a configuration
+// removes all version metadata referring to it. Values are never returned.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/restore (the `RestoreSandboxGroupCredential` operationId).
+func (c *Client) RestoreSandboxGroupCredentialWithBody(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRestoreSandboxGroupCredentialRequestWithBody(c.Server, sandboxGroupId, credentialId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RestoreSandboxGroupCredential Restore sandbox credential configuration
+//
+// Admin-only. Creates a new current revision from the routing configuration,
+// injection configuration, and secret value of a retained version. The new revision
+// has an increasing version ID, the restoring identity and timestamp, the same
+// fingerprint as the source, and restoredFromVersionId identifying the source.
+// Each distinct configuration is stored once by fingerprint. The current and three
+// most recently active prior configurations are retained. Evicting a configuration
+// removes all version metadata referring to it. Values are never returned.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/restore (the `RestoreSandboxGroupCredential` operationId).
+func (c *Client) RestoreSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, body RestoreSandboxGroupCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRestoreSandboxGroupCredentialRequest(c.Server, sandboxGroupId, credentialId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListSandboxGroupCredentialVersions List sandbox credential versions
+//
+// Returns version metadata in descending version ID order. Multiple versions may
+// share one configuration fingerprint. Metadata is retained while its configuration
+// is retained; configurations are evicted by their most recent activation version ID.
+// Secret values and the group fingerprint nonce are never returned.
+//
+// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/versions (the `ListSandboxGroupCredentialVersions` operationId).
+func (c *Client) ListSandboxGroupCredentialVersions(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSandboxGroupCredentialVersionsRequest(c.Server, sandboxGroupId, credentialId)
 	if err != nil {
 		return nil, err
 	}
@@ -20615,6 +20953,318 @@ func NewListSandboxGroupsRequest(server string, params *ListSandboxGroupsParams)
 	return req, nil
 }
 
+// NewListSandboxGroupCredentialsRequest constructs an http.Request for the ListSandboxGroupCredentials method
+func NewListSandboxGroupCredentialsRequest(server string, sandboxGroupId externalRef16.SandboxGroupId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxGroupId", sandboxGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandbox-groups/%s/credentials", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateSandboxGroupCredentialRequest calls the generic CreateSandboxGroupCredential builder with application/json body
+func NewCreateSandboxGroupCredentialRequest(server string, sandboxGroupId externalRef16.SandboxGroupId, body CreateSandboxGroupCredentialJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateSandboxGroupCredentialRequestWithBody(server, sandboxGroupId, "application/json", bodyReader)
+}
+
+// NewCreateSandboxGroupCredentialRequestWithBody constructs an http.Request for the CreateSandboxGroupCredential method, with any body, and a specified content type
+func NewCreateSandboxGroupCredentialRequestWithBody(server string, sandboxGroupId externalRef16.SandboxGroupId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxGroupId", sandboxGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandbox-groups/%s/credentials", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteSandboxGroupCredentialRequest constructs an http.Request for the DeleteSandboxGroupCredential method
+func NewDeleteSandboxGroupCredentialRequest(server string, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxGroupId", sandboxGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "credentialId", credentialId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandbox-groups/%s/credentials/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRetrieveSandboxGroupCredentialRequest constructs an http.Request for the RetrieveSandboxGroupCredential method
+func NewRetrieveSandboxGroupCredentialRequest(server string, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxGroupId", sandboxGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "credentialId", credentialId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandbox-groups/%s/credentials/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateSandboxGroupCredentialRequest calls the generic UpdateSandboxGroupCredential builder with application/json body
+func NewUpdateSandboxGroupCredentialRequest(server string, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, body UpdateSandboxGroupCredentialJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateSandboxGroupCredentialRequestWithBody(server, sandboxGroupId, credentialId, "application/json", bodyReader)
+}
+
+// NewUpdateSandboxGroupCredentialRequestWithBody constructs an http.Request for the UpdateSandboxGroupCredential method, with any body, and a specified content type
+func NewUpdateSandboxGroupCredentialRequestWithBody(server string, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxGroupId", sandboxGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "credentialId", credentialId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandbox-groups/%s/credentials/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewRestoreSandboxGroupCredentialRequest calls the generic RestoreSandboxGroupCredential builder with application/json body
+func NewRestoreSandboxGroupCredentialRequest(server string, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, body RestoreSandboxGroupCredentialJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRestoreSandboxGroupCredentialRequestWithBody(server, sandboxGroupId, credentialId, "application/json", bodyReader)
+}
+
+// NewRestoreSandboxGroupCredentialRequestWithBody constructs an http.Request for the RestoreSandboxGroupCredential method, with any body, and a specified content type
+func NewRestoreSandboxGroupCredentialRequestWithBody(server string, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxGroupId", sandboxGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "credentialId", credentialId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandbox-groups/%s/credentials/%s/restore", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListSandboxGroupCredentialVersionsRequest constructs an http.Request for the ListSandboxGroupCredentialVersions method
+func NewListSandboxGroupCredentialVersionsRequest(server string, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxGroupId", sandboxGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "credentialId", credentialId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandbox-groups/%s/credentials/%s/versions", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListSandboxSnapshotsRequest constructs an http.Request for the ListSandboxSnapshots method
 func NewListSandboxSnapshotsRequest(server string, sandboxGroupId externalRef16.SandboxGroupId, params *ListSandboxSnapshotsParams) (*http.Request, error) {
 	var err error
@@ -28125,6 +28775,133 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /sandbox-groups (the `ListSandboxGroups` operationId).
 	ListSandboxGroupsWithResponse(ctx context.Context, params *ListSandboxGroupsParams, reqEditors ...RequestEditorFn) (*ListSandboxGroupsResponse, error)
+
+	// ListSandboxGroupCredentialsWithResponse List sandbox group credentials
+	//
+	// Returns all credentials in the group, sorted by caller-supplied ID.
+	// Secret values are never returned, including to admins.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials (the `ListSandboxGroupCredentials` operationId).
+	ListSandboxGroupCredentialsWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, reqEditors ...RequestEditorFn) (*ListSandboxGroupCredentialsResponse, error)
+
+	// CreateSandboxGroupCredentialWithBodyWithResponse Create sandbox group credential
+	//
+	// Admin-only. Creates an independent credential with a caller-supplied ID.
+	// Each sandbox group supports at most 25 credentials and 200 KiB (204800 bytes)
+	// of serialized current credentials, including configuration and values. Three
+	// distinct prior configurations per credential are retained by fingerprint, with
+	// a 1 MiB total storage limit including version metadata and configurations. Limits are checked before saving.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials (the `CreateSandboxGroupCredential` operationId).
+	CreateSandboxGroupCredentialWithBodyWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateSandboxGroupCredentialResponse, error)
+
+	// CreateSandboxGroupCredentialWithResponse Create sandbox group credential
+	//
+	// Admin-only. Creates an independent credential with a caller-supplied ID.
+	// Each sandbox group supports at most 25 credentials and 200 KiB (204800 bytes)
+	// of serialized current credentials, including configuration and values. Three
+	// distinct prior configurations per credential are retained by fingerprint, with
+	// a 1 MiB total storage limit including version metadata and configurations. Limits are checked before saving.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials (the `CreateSandboxGroupCredential` operationId).
+	CreateSandboxGroupCredentialWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, body CreateSandboxGroupCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateSandboxGroupCredentialResponse, error)
+
+	// DeleteSandboxGroupCredentialWithResponse Delete sandbox group credential
+	//
+	// Admin-only. Removes the credential from the group's desired configuration.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `DeleteSandboxGroupCredential` operationId).
+	DeleteSandboxGroupCredentialWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*DeleteSandboxGroupCredentialResponse, error)
+
+	// RetrieveSandboxGroupCredentialWithResponse Retrieve sandbox group credential
+	//
+	// Secret values are never returned, including to admins.
+	// Credentials are scoped to the addressed sandbox group.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `RetrieveSandboxGroupCredential` operationId).
+	RetrieveSandboxGroupCredentialWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*RetrieveSandboxGroupCredentialResponse, error)
+
+	// UpdateSandboxGroupCredentialWithBodyWithResponse Update sandbox group credential
+	//
+	// Admins may update configuration. Developers may update injection, method/path
+	// filters, and enabled state; destination or value changes require an admin.
+	// Assigning a value creates a new version; omitting it preserves the value.
+	// Other omitted fields are preserved; empty methods or paths arrays clear their
+	// filters. The group's serialized current credentials must
+	// remain within 200 KiB (204800 bytes). A successful response means desired
+	// state was saved; runtime reconciliation may still be pending.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `UpdateSandboxGroupCredential` operationId).
+	UpdateSandboxGroupCredentialWithBodyWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSandboxGroupCredentialResponse, error)
+
+	// UpdateSandboxGroupCredentialWithResponse Update sandbox group credential
+	//
+	// Admins may update configuration. Developers may update injection, method/path
+	// filters, and enabled state; destination or value changes require an admin.
+	// Assigning a value creates a new version; omitting it preserves the value.
+	// Other omitted fields are preserved; empty methods or paths arrays clear their
+	// filters. The group's serialized current credentials must
+	// remain within 200 KiB (204800 bytes). A successful response means desired
+	// state was saved; runtime reconciliation may still be pending.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `UpdateSandboxGroupCredential` operationId).
+	UpdateSandboxGroupCredentialWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, body UpdateSandboxGroupCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSandboxGroupCredentialResponse, error)
+
+	// RestoreSandboxGroupCredentialWithBodyWithResponse Restore sandbox credential configuration
+	//
+	// Admin-only. Creates a new current revision from the routing configuration,
+	// injection configuration, and secret value of a retained version. The new revision
+	// has an increasing version ID, the restoring identity and timestamp, the same
+	// fingerprint as the source, and restoredFromVersionId identifying the source.
+	// Each distinct configuration is stored once by fingerprint. The current and three
+	// most recently active prior configurations are retained. Evicting a configuration
+	// removes all version metadata referring to it. Values are never returned.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/restore (the `RestoreSandboxGroupCredential` operationId).
+	RestoreSandboxGroupCredentialWithBodyWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RestoreSandboxGroupCredentialResponse, error)
+
+	// RestoreSandboxGroupCredentialWithResponse Restore sandbox credential configuration
+	//
+	// Admin-only. Creates a new current revision from the routing configuration,
+	// injection configuration, and secret value of a retained version. The new revision
+	// has an increasing version ID, the restoring identity and timestamp, the same
+	// fingerprint as the source, and restoredFromVersionId identifying the source.
+	// Each distinct configuration is stored once by fingerprint. The current and three
+	// most recently active prior configurations are retained. Evicting a configuration
+	// removes all version metadata referring to it. Values are never returned.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/restore (the `RestoreSandboxGroupCredential` operationId).
+	RestoreSandboxGroupCredentialWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, body RestoreSandboxGroupCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*RestoreSandboxGroupCredentialResponse, error)
+
+	// ListSandboxGroupCredentialVersionsWithResponse List sandbox credential versions
+	//
+	// Returns version metadata in descending version ID order. Multiple versions may
+	// share one configuration fingerprint. Metadata is retained while its configuration
+	// is retained; configurations are evicted by their most recent activation version ID.
+	// Secret values and the group fingerprint nonce are never returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/versions (the `ListSandboxGroupCredentialVersions` operationId).
+	ListSandboxGroupCredentialVersionsWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*ListSandboxGroupCredentialVersionsResponse, error)
 
 	// ListSandboxSnapshotsWithResponse List sandbox snapshots
 	//
@@ -46041,6 +46818,734 @@ func (r ListSandboxGroupsResponse) ContentType() string {
 	return ""
 }
 
+// ListSandboxGroupCredentialsResponse429Headers the declared response headers of an HTTP 429 response for ListSandboxGroupCredentials
+type ListSandboxGroupCredentialsResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type ListSandboxGroupCredentialsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]externalRef16.SandboxCredential
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *ListSandboxGroupCredentialsResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListSandboxGroupCredentialsResponse) GetJSON200() *[]externalRef16.SandboxCredential {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListSandboxGroupCredentialsResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListSandboxGroupCredentialsResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ListSandboxGroupCredentialsResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListSandboxGroupCredentialsResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r ListSandboxGroupCredentialsResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r ListSandboxGroupCredentialsResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ListSandboxGroupCredentialsResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ListSandboxGroupCredentialsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSandboxGroupCredentialsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSandboxGroupCredentialsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListSandboxGroupCredentialsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// CreateSandboxGroupCredentialResponse429Headers the declared response headers of an HTTP 429 response for CreateSandboxGroupCredential
+type CreateSandboxGroupCredentialResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type CreateSandboxGroupCredentialResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *externalRef16.SandboxCredential
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *N409Conflict
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *CreateSandboxGroupCredentialResponse429Headers
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateSandboxGroupCredentialResponse) GetJSON201() *externalRef16.SandboxCredential {
+	return r.JSON201
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r CreateSandboxGroupCredentialResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r CreateSandboxGroupCredentialResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r CreateSandboxGroupCredentialResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r CreateSandboxGroupCredentialResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r CreateSandboxGroupCredentialResponse) GetJSON409() *N409Conflict {
+	return r.JSON409
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r CreateSandboxGroupCredentialResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r CreateSandboxGroupCredentialResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r CreateSandboxGroupCredentialResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateSandboxGroupCredentialResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateSandboxGroupCredentialResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateSandboxGroupCredentialResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateSandboxGroupCredentialResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// DeleteSandboxGroupCredentialResponse429Headers the declared response headers of an HTTP 429 response for DeleteSandboxGroupCredential
+type DeleteSandboxGroupCredentialResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type DeleteSandboxGroupCredentialResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *N409Conflict
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *DeleteSandboxGroupCredentialResponse429Headers
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r DeleteSandboxGroupCredentialResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r DeleteSandboxGroupCredentialResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r DeleteSandboxGroupCredentialResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r DeleteSandboxGroupCredentialResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r DeleteSandboxGroupCredentialResponse) GetJSON409() *N409Conflict {
+	return r.JSON409
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r DeleteSandboxGroupCredentialResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r DeleteSandboxGroupCredentialResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r DeleteSandboxGroupCredentialResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteSandboxGroupCredentialResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteSandboxGroupCredentialResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteSandboxGroupCredentialResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteSandboxGroupCredentialResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// RetrieveSandboxGroupCredentialResponse429Headers the declared response headers of an HTTP 429 response for RetrieveSandboxGroupCredential
+type RetrieveSandboxGroupCredentialResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type RetrieveSandboxGroupCredentialResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *externalRef16.SandboxCredential
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *RetrieveSandboxGroupCredentialResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RetrieveSandboxGroupCredentialResponse) GetJSON200() *externalRef16.SandboxCredential {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r RetrieveSandboxGroupCredentialResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RetrieveSandboxGroupCredentialResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r RetrieveSandboxGroupCredentialResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r RetrieveSandboxGroupCredentialResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r RetrieveSandboxGroupCredentialResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r RetrieveSandboxGroupCredentialResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r RetrieveSandboxGroupCredentialResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r RetrieveSandboxGroupCredentialResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RetrieveSandboxGroupCredentialResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RetrieveSandboxGroupCredentialResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RetrieveSandboxGroupCredentialResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// UpdateSandboxGroupCredentialResponse429Headers the declared response headers of an HTTP 429 response for UpdateSandboxGroupCredential
+type UpdateSandboxGroupCredentialResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type UpdateSandboxGroupCredentialResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *externalRef16.SandboxCredential
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *N409Conflict
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *UpdateSandboxGroupCredentialResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateSandboxGroupCredentialResponse) GetJSON200() *externalRef16.SandboxCredential {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r UpdateSandboxGroupCredentialResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r UpdateSandboxGroupCredentialResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r UpdateSandboxGroupCredentialResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r UpdateSandboxGroupCredentialResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r UpdateSandboxGroupCredentialResponse) GetJSON409() *N409Conflict {
+	return r.JSON409
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r UpdateSandboxGroupCredentialResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r UpdateSandboxGroupCredentialResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r UpdateSandboxGroupCredentialResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateSandboxGroupCredentialResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateSandboxGroupCredentialResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateSandboxGroupCredentialResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateSandboxGroupCredentialResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// RestoreSandboxGroupCredentialResponse429Headers the declared response headers of an HTTP 429 response for RestoreSandboxGroupCredential
+type RestoreSandboxGroupCredentialResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type RestoreSandboxGroupCredentialResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *externalRef16.SandboxCredential
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *N409Conflict
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *RestoreSandboxGroupCredentialResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RestoreSandboxGroupCredentialResponse) GetJSON200() *externalRef16.SandboxCredential {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r RestoreSandboxGroupCredentialResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RestoreSandboxGroupCredentialResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r RestoreSandboxGroupCredentialResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r RestoreSandboxGroupCredentialResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r RestoreSandboxGroupCredentialResponse) GetJSON409() *N409Conflict {
+	return r.JSON409
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r RestoreSandboxGroupCredentialResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r RestoreSandboxGroupCredentialResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r RestoreSandboxGroupCredentialResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r RestoreSandboxGroupCredentialResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RestoreSandboxGroupCredentialResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RestoreSandboxGroupCredentialResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RestoreSandboxGroupCredentialResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ListSandboxGroupCredentialVersionsResponse429Headers the declared response headers of an HTTP 429 response for ListSandboxGroupCredentialVersions
+type ListSandboxGroupCredentialVersionsResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type ListSandboxGroupCredentialVersionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]externalRef16.SandboxCredentialVersion
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *N409Conflict
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *ListSandboxGroupCredentialVersionsResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListSandboxGroupCredentialVersionsResponse) GetJSON200() *[]externalRef16.SandboxCredentialVersion {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListSandboxGroupCredentialVersionsResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListSandboxGroupCredentialVersionsResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ListSandboxGroupCredentialVersionsResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListSandboxGroupCredentialVersionsResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r ListSandboxGroupCredentialVersionsResponse) GetJSON409() *N409Conflict {
+	return r.JSON409
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r ListSandboxGroupCredentialVersionsResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r ListSandboxGroupCredentialVersionsResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ListSandboxGroupCredentialVersionsResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ListSandboxGroupCredentialVersionsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSandboxGroupCredentialVersionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSandboxGroupCredentialVersionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListSandboxGroupCredentialVersionsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // ListSandboxSnapshotsResponse429Headers the declared response headers of an HTTP 429 response for ListSandboxSnapshots
 type ListSandboxSnapshotsResponse429Headers struct {
 	RateLimitLimit     *int
@@ -58432,6 +59937,193 @@ func (c *ClientWithResponses) ListSandboxGroupsWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseListSandboxGroupsResponse(rsp)
+}
+
+// ListSandboxGroupCredentialsWithResponse List sandbox group credentials
+//
+// Returns all credentials in the group, sorted by caller-supplied ID.
+// Secret values are never returned, including to admins.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials (the `ListSandboxGroupCredentials` operationId).
+func (c *ClientWithResponses) ListSandboxGroupCredentialsWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, reqEditors ...RequestEditorFn) (*ListSandboxGroupCredentialsResponse, error) {
+	rsp, err := c.ListSandboxGroupCredentials(ctx, sandboxGroupId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSandboxGroupCredentialsResponse(rsp)
+}
+
+// CreateSandboxGroupCredentialWithBodyWithResponse Create sandbox group credential
+//
+// Admin-only. Creates an independent credential with a caller-supplied ID.
+// Each sandbox group supports at most 25 credentials and 200 KiB (204800 bytes)
+// of serialized current credentials, including configuration and values. Three
+// distinct prior configurations per credential are retained by fingerprint, with
+// a 1 MiB total storage limit including version metadata and configurations. Limits are checked before saving.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials (the `CreateSandboxGroupCredential` operationId).
+func (c *ClientWithResponses) CreateSandboxGroupCredentialWithBodyWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateSandboxGroupCredentialResponse, error) {
+	rsp, err := c.CreateSandboxGroupCredentialWithBody(ctx, sandboxGroupId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateSandboxGroupCredentialResponse(rsp)
+}
+
+// CreateSandboxGroupCredentialWithResponse Create sandbox group credential
+//
+// Admin-only. Creates an independent credential with a caller-supplied ID.
+// Each sandbox group supports at most 25 credentials and 200 KiB (204800 bytes)
+// of serialized current credentials, including configuration and values. Three
+// distinct prior configurations per credential are retained by fingerprint, with
+// a 1 MiB total storage limit including version metadata and configurations. Limits are checked before saving.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials (the `CreateSandboxGroupCredential` operationId).
+func (c *ClientWithResponses) CreateSandboxGroupCredentialWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, body CreateSandboxGroupCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateSandboxGroupCredentialResponse, error) {
+	rsp, err := c.CreateSandboxGroupCredential(ctx, sandboxGroupId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateSandboxGroupCredentialResponse(rsp)
+}
+
+// DeleteSandboxGroupCredentialWithResponse Delete sandbox group credential
+//
+// Admin-only. Removes the credential from the group's desired configuration.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `DeleteSandboxGroupCredential` operationId).
+func (c *ClientWithResponses) DeleteSandboxGroupCredentialWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*DeleteSandboxGroupCredentialResponse, error) {
+	rsp, err := c.DeleteSandboxGroupCredential(ctx, sandboxGroupId, credentialId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteSandboxGroupCredentialResponse(rsp)
+}
+
+// RetrieveSandboxGroupCredentialWithResponse Retrieve sandbox group credential
+//
+// Secret values are never returned, including to admins.
+// Credentials are scoped to the addressed sandbox group.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `RetrieveSandboxGroupCredential` operationId).
+func (c *ClientWithResponses) RetrieveSandboxGroupCredentialWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*RetrieveSandboxGroupCredentialResponse, error) {
+	rsp, err := c.RetrieveSandboxGroupCredential(ctx, sandboxGroupId, credentialId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRetrieveSandboxGroupCredentialResponse(rsp)
+}
+
+// UpdateSandboxGroupCredentialWithBodyWithResponse Update sandbox group credential
+//
+// Admins may update configuration. Developers may update injection, method/path
+// filters, and enabled state; destination or value changes require an admin.
+// Assigning a value creates a new version; omitting it preserves the value.
+// Other omitted fields are preserved; empty methods or paths arrays clear their
+// filters. The group's serialized current credentials must
+// remain within 200 KiB (204800 bytes). A successful response means desired
+// state was saved; runtime reconciliation may still be pending.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `UpdateSandboxGroupCredential` operationId).
+func (c *ClientWithResponses) UpdateSandboxGroupCredentialWithBodyWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSandboxGroupCredentialResponse, error) {
+	rsp, err := c.UpdateSandboxGroupCredentialWithBody(ctx, sandboxGroupId, credentialId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateSandboxGroupCredentialResponse(rsp)
+}
+
+// UpdateSandboxGroupCredentialWithResponse Update sandbox group credential
+//
+// Admins may update configuration. Developers may update injection, method/path
+// filters, and enabled state; destination or value changes require an admin.
+// Assigning a value creates a new version; omitting it preserves the value.
+// Other omitted fields are preserved; empty methods or paths arrays clear their
+// filters. The group's serialized current credentials must
+// remain within 200 KiB (204800 bytes). A successful response means desired
+// state was saved; runtime reconciliation may still be pending.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `UpdateSandboxGroupCredential` operationId).
+func (c *ClientWithResponses) UpdateSandboxGroupCredentialWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, body UpdateSandboxGroupCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSandboxGroupCredentialResponse, error) {
+	rsp, err := c.UpdateSandboxGroupCredential(ctx, sandboxGroupId, credentialId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateSandboxGroupCredentialResponse(rsp)
+}
+
+// RestoreSandboxGroupCredentialWithBodyWithResponse Restore sandbox credential configuration
+//
+// Admin-only. Creates a new current revision from the routing configuration,
+// injection configuration, and secret value of a retained version. The new revision
+// has an increasing version ID, the restoring identity and timestamp, the same
+// fingerprint as the source, and restoredFromVersionId identifying the source.
+// Each distinct configuration is stored once by fingerprint. The current and three
+// most recently active prior configurations are retained. Evicting a configuration
+// removes all version metadata referring to it. Values are never returned.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/restore (the `RestoreSandboxGroupCredential` operationId).
+func (c *ClientWithResponses) RestoreSandboxGroupCredentialWithBodyWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RestoreSandboxGroupCredentialResponse, error) {
+	rsp, err := c.RestoreSandboxGroupCredentialWithBody(ctx, sandboxGroupId, credentialId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRestoreSandboxGroupCredentialResponse(rsp)
+}
+
+// RestoreSandboxGroupCredentialWithResponse Restore sandbox credential configuration
+//
+// Admin-only. Creates a new current revision from the routing configuration,
+// injection configuration, and secret value of a retained version. The new revision
+// has an increasing version ID, the restoring identity and timestamp, the same
+// fingerprint as the source, and restoredFromVersionId identifying the source.
+// Each distinct configuration is stored once by fingerprint. The current and three
+// most recently active prior configurations are retained. Evicting a configuration
+// removes all version metadata referring to it. Values are never returned.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/restore (the `RestoreSandboxGroupCredential` operationId).
+func (c *ClientWithResponses) RestoreSandboxGroupCredentialWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, body RestoreSandboxGroupCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*RestoreSandboxGroupCredentialResponse, error) {
+	rsp, err := c.RestoreSandboxGroupCredential(ctx, sandboxGroupId, credentialId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRestoreSandboxGroupCredentialResponse(rsp)
+}
+
+// ListSandboxGroupCredentialVersionsWithResponse List sandbox credential versions
+//
+// Returns version metadata in descending version ID order. Multiple versions may
+// share one configuration fingerprint. Metadata is retained while its configuration
+// is retained; configurations are evicted by their most recent activation version ID.
+// Secret values and the group fingerprint nonce are never returned.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/versions (the `ListSandboxGroupCredentialVersions` operationId).
+func (c *ClientWithResponses) ListSandboxGroupCredentialVersionsWithResponse(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*ListSandboxGroupCredentialVersionsResponse, error) {
+	rsp, err := c.ListSandboxGroupCredentialVersions(ctx, sandboxGroupId, credentialId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSandboxGroupCredentialVersionsResponse(rsp)
 }
 
 // ListSandboxSnapshotsWithResponse List sandbox snapshots
@@ -78149,6 +79841,800 @@ func ParseListSandboxGroupsResponse(rsp *http.Response) (*ListSandboxGroupsRespo
 	switch {
 	case rsp.StatusCode == 429:
 		var headers ListSandboxGroupsResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseListSandboxGroupCredentialsResponse parses an HTTP response from a ListSandboxGroupCredentialsWithResponse call
+func ParseListSandboxGroupCredentialsResponse(rsp *http.Response) (*ListSandboxGroupCredentialsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSandboxGroupCredentialsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []externalRef16.SandboxCredential
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers ListSandboxGroupCredentialsResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseCreateSandboxGroupCredentialResponse parses an HTTP response from a CreateSandboxGroupCredentialWithResponse call
+func ParseCreateSandboxGroupCredentialResponse(rsp *http.Response) (*CreateSandboxGroupCredentialResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateSandboxGroupCredentialResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest externalRef16.SandboxCredential
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest N409Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers CreateSandboxGroupCredentialResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseDeleteSandboxGroupCredentialResponse parses an HTTP response from a DeleteSandboxGroupCredentialWithResponse call
+func ParseDeleteSandboxGroupCredentialResponse(rsp *http.Response) (*DeleteSandboxGroupCredentialResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteSandboxGroupCredentialResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest N409Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers DeleteSandboxGroupCredentialResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseRetrieveSandboxGroupCredentialResponse parses an HTTP response from a RetrieveSandboxGroupCredentialWithResponse call
+func ParseRetrieveSandboxGroupCredentialResponse(rsp *http.Response) (*RetrieveSandboxGroupCredentialResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RetrieveSandboxGroupCredentialResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef16.SandboxCredential
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers RetrieveSandboxGroupCredentialResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseUpdateSandboxGroupCredentialResponse parses an HTTP response from a UpdateSandboxGroupCredentialWithResponse call
+func ParseUpdateSandboxGroupCredentialResponse(rsp *http.Response) (*UpdateSandboxGroupCredentialResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateSandboxGroupCredentialResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef16.SandboxCredential
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest N409Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers UpdateSandboxGroupCredentialResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseRestoreSandboxGroupCredentialResponse parses an HTTP response from a RestoreSandboxGroupCredentialWithResponse call
+func ParseRestoreSandboxGroupCredentialResponse(rsp *http.Response) (*RestoreSandboxGroupCredentialResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RestoreSandboxGroupCredentialResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef16.SandboxCredential
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest N409Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers RestoreSandboxGroupCredentialResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseListSandboxGroupCredentialVersionsResponse parses an HTTP response from a ListSandboxGroupCredentialVersionsWithResponse call
+func ParseListSandboxGroupCredentialVersionsResponse(rsp *http.Response) (*ListSandboxGroupCredentialVersionsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSandboxGroupCredentialVersionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []externalRef16.SandboxCredentialVersion
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest N409Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers ListSandboxGroupCredentialVersionsResponse429Headers
 		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
 			var value int
 			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {

@@ -5751,6 +5751,15 @@ type CreateRegistryCredentialJSONRequestBody CreateRegistryCredentialJSONBody
 // UpdateRegistryCredentialJSONRequestBody defines body for UpdateRegistryCredential for application/json ContentType.
 type UpdateRegistryCredentialJSONRequestBody UpdateRegistryCredentialJSONBody
 
+// CreateSandboxGroupCredentialJSONRequestBody defines body for CreateSandboxGroupCredential for application/json ContentType.
+type CreateSandboxGroupCredentialJSONRequestBody = externalRef16.SandboxCredentialCreate
+
+// UpdateSandboxGroupCredentialJSONRequestBody defines body for UpdateSandboxGroupCredential for application/json ContentType.
+type UpdateSandboxGroupCredentialJSONRequestBody = externalRef16.SandboxCredentialUpdate
+
+// RestoreSandboxGroupCredentialJSONRequestBody defines body for RestoreSandboxGroupCredential for application/json ContentType.
+type RestoreSandboxGroupCredentialJSONRequestBody = externalRef16.SandboxCredentialRestore
+
 // CreateSandboxJSONRequestBody defines body for CreateSandbox for application/json ContentType.
 type CreateSandboxJSONRequestBody = externalRef16.SandboxPOST
 
