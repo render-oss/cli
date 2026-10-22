@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.31.0] - 2026-10-21
+
+### Added
+
+- `render ea sandboxes create --idle-timeout` to set how many seconds of inactivity suspend a sandbox (300 through 86400); pass `--idle-timeout=0` to disable automatic idle suspension. Sandbox detail output now shows the idle timeout
+
+### Changed
+
+- `render ea sandboxes list` text output now shows each sandbox's network policy and allowed domains
+- `render ea sandboxes create --plan` accepts any plan name and leaves validation to the API
+
+### Fixed
+
+- `render ea sandboxes list --status` help text now lists every status, including `suspending`, `suspended`, and `resuming`
+
 ## [2.30.0] - 2026-10-18
 
 ### Added
