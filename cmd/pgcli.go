@@ -27,7 +27,7 @@ You can optionally pass a database ID or name as an argument. To pass arguments 
   render pgcli pg-abc123
 
   # Pass through pgcli arguments
-  render pgcli pg-abc123 -- --csv -q`,
+  render pgcli pg-abc123 -- --single-connection --less-chatty`,
 }
 
 func InteractivePGCLIView(ctx context.Context, input *views.PSQLInput) tea.Cmd {
