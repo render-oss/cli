@@ -773,6 +773,17 @@ type SandboxNetworkPolicyType string
 
 // SandboxPOST defines model for sandboxPOST.
 type SandboxPOST struct {
+	// BuildId Start from this build's image instead of the base image. The build
+	// must have succeeded and be in the sandbox's group. Mutually
+	// exclusive with `buildName`, `snapshotId` and `snapshotName`.
+	BuildId *SandboxBuildId `json:"buildId,omitempty"`
+
+	// BuildName Start from the newest succeeded build with this name in the
+	// sandbox's group. 404 if the group has no build with the name, and
+	// 409 if none of them has succeeded. Mutually exclusive with
+	// `buildId`, `snapshotId` and `snapshotName`.
+	BuildName *string `json:"buildName,omitempty"`
+
 	// Env Inline environment variables injected into the sandbox at creation.
 	Env *map[string]string `json:"env,omitempty"`
 
