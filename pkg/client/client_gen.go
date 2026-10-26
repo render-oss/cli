@@ -2113,8 +2113,8 @@ type ClientInterface interface {
 
 	// RetrieveSandboxBuild Retrieve sandbox build
 	//
-	// One build by ID. A build that belongs to another sandbox group returns
-	// 404.
+	// One build by ID. 404 with `code: build_not_found` if the build doesn't
+	// exist or belongs to another sandbox group.
 	//
 	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
 	// well-formed `sbg-` ID, or `invalid build ID` if `buildId` is not a
@@ -2364,15 +2364,6 @@ type ClientInterface interface {
 	// Corresponds with GET /sandboxes/{sandboxId}/execs/{execId} (the `RetrieveSandboxExecution` operationId).
 	RetrieveSandboxExecution(ctx context.Context, sandboxId externalRef16.SandboxId, execId externalRef16.ExecId, params *RetrieveSandboxExecutionParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ListSandboxFiles List directory contents in sandbox
-	//
-	// List the contents of a directory in a running sandbox. Returns file and
-	// directory metadata without transferring file contents. The sandbox must
-	// be `running`.
-	//
-	// Corresponds with GET /sandboxes/{sandboxId}/files/list (the `ListSandboxFiles` operationId).
-	ListSandboxFiles(ctx context.Context, sandboxId externalRef16.SandboxId, params *ListSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// ConnectSandboxFiles Mint a connect token for a sandbox file transfer
 	//
 	// Mint a short-lived, capability-scoped connect token that authorizes a
@@ -2390,16 +2381,6 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /sandboxes/{sandboxId}/files/{operation}/token (the `ConnectSandboxFiles` operationId).
 	ConnectSandboxFiles(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// StreamSandboxLogs Stream sandbox logs and lifecycle events
-	//
-	// Stream sandbox output and lifecycle events as a server-sent event stream.
-	// Replays historical events from sandbox creation (or from `since`), then
-	// continues live. The stream closes after the `terminated` or `errored`
-	// lifecycle event.
-	//
-	// Corresponds with GET /sandboxes/{sandboxId}/logs (the `StreamSandboxLogs` operationId).
-	StreamSandboxLogs(ctx context.Context, sandboxId externalRef16.SandboxId, params *StreamSandboxLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ConnectSandboxRunWithBody Create a connect token for a sandbox run
 	//
@@ -7586,8 +7567,8 @@ func (c *Client) CreateSandboxBuild(ctx context.Context, sandboxGroupId external
 
 // RetrieveSandboxBuild Retrieve sandbox build
 //
-// One build by ID. A build that belongs to another sandbox group returns
-// 404.
+// One build by ID. 404 with `code: build_not_found` if the build doesn't
+// exist or belongs to another sandbox group.
 //
 // 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
 // well-formed `sbg-` ID, or `invalid build ID` if `buildId` is not a
@@ -8037,25 +8018,6 @@ func (c *Client) RetrieveSandboxExecution(ctx context.Context, sandboxId externa
 	return c.Client.Do(req)
 }
 
-// ListSandboxFiles List directory contents in sandbox
-//
-// List the contents of a directory in a running sandbox. Returns file and
-// directory metadata without transferring file contents. The sandbox must
-// be `running`.
-//
-// Corresponds with GET /sandboxes/{sandboxId}/files/list (the `ListSandboxFiles` operationId).
-func (c *Client) ListSandboxFiles(ctx context.Context, sandboxId externalRef16.SandboxId, params *ListSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListSandboxFilesRequest(c.Server, sandboxId, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 // ConnectSandboxFiles Mint a connect token for a sandbox file transfer
 //
 // Mint a short-lived, capability-scoped connect token that authorizes a
@@ -8074,26 +8036,6 @@ func (c *Client) ListSandboxFiles(ctx context.Context, sandboxId externalRef16.S
 // Corresponds with POST /sandboxes/{sandboxId}/files/{operation}/token (the `ConnectSandboxFiles` operationId).
 func (c *Client) ConnectSandboxFiles(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewConnectSandboxFilesRequest(c.Server, sandboxId, operation, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// StreamSandboxLogs Stream sandbox logs and lifecycle events
-//
-// Stream sandbox output and lifecycle events as a server-sent event stream.
-// Replays historical events from sandbox creation (or from `since`), then
-// continues live. The stream closes after the `terminated` or `errored`
-// lifecycle event.
-//
-// Corresponds with GET /sandboxes/{sandboxId}/logs (the `StreamSandboxLogs` operationId).
-func (c *Client) StreamSandboxLogs(ctx context.Context, sandboxId externalRef16.SandboxId, params *StreamSandboxLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewStreamSandboxLogsRequest(c.Server, sandboxId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -22012,75 +21954,6 @@ func NewRetrieveSandboxExecutionRequest(server string, sandboxId externalRef16.S
 	return req, nil
 }
 
-// NewListSandboxFilesRequest constructs an http.Request for the ListSandboxFiles method
-func NewListSandboxFilesRequest(server string, sandboxId externalRef16.SandboxId, params *ListSandboxFilesParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/sandboxes/%s/files/list", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		// queryValues collects non-styled parameters (passthrough, JSON)
-		// that are safe to round-trip through url.Values.Encode().
-		queryValues := queryURL.Query()
-		// rawQueryFragments collects pre-encoded query fragments from
-		// styled parameters, preserving literal commas as delimiters
-		// per the OpenAPI spec (e.g. "color=blue,black,brown").
-		var rawQueryFragments []string
-
-		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "path", params.Path, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-			return nil, err
-		} else {
-			for _, qp := range strings.Split(queryFrag, "&") {
-				rawQueryFragments = append(rawQueryFragments, qp)
-			}
-		}
-
-		if params.Depth != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "depth", *params.Depth, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if encoded := queryValues.Encode(); encoded != "" {
-			rawQueryFragments = append(rawQueryFragments, encoded)
-		}
-		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
-	}
-
-	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 // NewConnectSandboxFilesRequest constructs an http.Request for the ConnectSandboxFiles method
 func NewConnectSandboxFilesRequest(server string, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxFilesParams) (*http.Request, error) {
 	var err error
@@ -22152,106 +22025,6 @@ func NewConnectSandboxFilesRequest(server string, sandboxId externalRef16.Sandbo
 	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewStreamSandboxLogsRequest constructs an http.Request for the StreamSandboxLogs method
-func NewStreamSandboxLogsRequest(server string, sandboxId externalRef16.SandboxId, params *StreamSandboxLogsParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/sandboxes/%s/logs", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		// queryValues collects non-styled parameters (passthrough, JSON)
-		// that are safe to round-trip through url.Values.Encode().
-		queryValues := queryURL.Query()
-		// rawQueryFragments collects pre-encoded query fragments from
-		// styled parameters, preserving literal commas as delimiters
-		// per the OpenAPI spec (e.g. "color=blue,black,brown").
-		var rawQueryFragments []string
-
-		if params.Since != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "since", *params.Since, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if params.Follow != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "follow", *params.Follow, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if params.ExecId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "execId", *params.ExecId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if encoded := queryValues.Encode(); encoded != "" {
-			rawQueryFragments = append(rawQueryFragments, encoded)
-		}
-		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
-	}
-
-	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-
-		if params.Accept != nil {
-			var headerParam0 string
-
-			headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Accept", *params.Accept, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
-			if err != nil {
-				return nil, err
-			}
-
-			req.Header.Set("Accept", headerParam0)
-		}
-
 	}
 
 	return req, nil
@@ -28919,8 +28692,8 @@ type ClientWithResponsesInterface interface {
 
 	// RetrieveSandboxBuildWithResponse Retrieve sandbox build
 	//
-	// One build by ID. A build that belongs to another sandbox group returns
-	// 404.
+	// One build by ID. 404 with `code: build_not_found` if the build doesn't
+	// exist or belongs to another sandbox group.
 	//
 	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
 	// well-formed `sbg-` ID, or `invalid build ID` if `buildId` is not a
@@ -29194,17 +28967,6 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /sandboxes/{sandboxId}/execs/{execId} (the `RetrieveSandboxExecution` operationId).
 	RetrieveSandboxExecutionWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, execId externalRef16.ExecId, params *RetrieveSandboxExecutionParams, reqEditors ...RequestEditorFn) (*RetrieveSandboxExecutionResponse, error)
 
-	// ListSandboxFilesWithResponse List directory contents in sandbox
-	//
-	// List the contents of a directory in a running sandbox. Returns file and
-	// directory metadata without transferring file contents. The sandbox must
-	// be `running`.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with GET /sandboxes/{sandboxId}/files/list (the `ListSandboxFiles` operationId).
-	ListSandboxFilesWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *ListSandboxFilesParams, reqEditors ...RequestEditorFn) (*ListSandboxFilesResponse, error)
-
 	// ConnectSandboxFilesWithResponse Mint a connect token for a sandbox file transfer
 	//
 	// Mint a short-lived, capability-scoped connect token that authorizes a
@@ -29224,18 +28986,6 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /sandboxes/{sandboxId}/files/{operation}/token (the `ConnectSandboxFiles` operationId).
 	ConnectSandboxFilesWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, operation string, params *ConnectSandboxFilesParams, reqEditors ...RequestEditorFn) (*ConnectSandboxFilesResponse, error)
-
-	// StreamSandboxLogsWithResponse Stream sandbox logs and lifecycle events
-	//
-	// Stream sandbox output and lifecycle events as a server-sent event stream.
-	// Replays historical events from sandbox creation (or from `since`), then
-	// continues live. The stream closes after the `terminated` or `errored`
-	// lifecycle event.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with GET /sandboxes/{sandboxId}/logs (the `StreamSandboxLogs` operationId).
-	StreamSandboxLogsWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *StreamSandboxLogsParams, reqEditors ...RequestEditorFn) (*StreamSandboxLogsResponse, error)
 
 	// ConnectSandboxRunWithBodyWithResponse Create a connect token for a sandbox run
 	//
@@ -48692,113 +48442,6 @@ func (r RetrieveSandboxExecutionResponse) ContentType() string {
 	return ""
 }
 
-// ListSandboxFilesResponse429Headers the declared response headers of an HTTP 429 response for ListSandboxFiles
-type ListSandboxFilesResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type ListSandboxFilesResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *externalRef16.SandboxDirectoryListing
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON409 the response for an HTTP 409 `application/json` response
-	JSON409 *N409Conflict
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *ListSandboxFilesResponse429Headers
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ListSandboxFilesResponse) GetJSON200() *externalRef16.SandboxDirectoryListing {
-	return r.JSON200
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r ListSandboxFilesResponse) GetJSON400() *N400BadRequest {
-	return r.JSON400
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r ListSandboxFilesResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r ListSandboxFilesResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r ListSandboxFilesResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON409 returns the response for an HTTP 409 `application/json` response
-func (r ListSandboxFilesResponse) GetJSON409() *N409Conflict {
-	return r.JSON409
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r ListSandboxFilesResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r ListSandboxFilesResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r ListSandboxFilesResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r ListSandboxFilesResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r ListSandboxFilesResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListSandboxFilesResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r ListSandboxFilesResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
 // ConnectSandboxFilesResponse429Headers the declared response headers of an HTTP 429 response for ConnectSandboxFiles
 type ConnectSandboxFilesResponse429Headers struct {
 	RateLimitLimit     *int
@@ -48893,100 +48536,6 @@ func (r ConnectSandboxFilesResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ConnectSandboxFilesResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-// StreamSandboxLogsResponse200Headers the declared response headers of an HTTP 200 response for StreamSandboxLogs
-type StreamSandboxLogsResponse200Headers struct {
-	CacheControl *string
-	ContentType  *string
-}
-
-// StreamSandboxLogsResponse429Headers the declared response headers of an HTTP 429 response for StreamSandboxLogs
-type StreamSandboxLogsResponse429Headers struct {
-	RateLimitLimit     *int
-	RateLimitRemaining *int
-	RateLimitReset     *int
-	RetryAfter         *int
-}
-
-type StreamSandboxLogsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON401 the response for an HTTP 401 `application/json` response
-	JSON401 *N401Unauthorized
-	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
-	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
-	// JSON500 the response for an HTTP 500 `application/json` response
-	JSON500 *N500InternalServerError
-	// JSON503 the response for an HTTP 503 `application/json` response
-	JSON503 *N503ServiceUnavailable
-	// Headers200 the parsed response headers for an HTTP 200 response
-	Headers200 *StreamSandboxLogsResponse200Headers
-	// Headers429 the parsed response headers for an HTTP 429 response
-	Headers429 *StreamSandboxLogsResponse429Headers
-}
-
-// GetJSON401 returns the response for an HTTP 401 `application/json` response
-func (r StreamSandboxLogsResponse) GetJSON401() *N401Unauthorized {
-	return r.JSON401
-}
-
-// GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r StreamSandboxLogsResponse) GetJSON403() *N403Forbidden {
-	return r.JSON403
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r StreamSandboxLogsResponse) GetJSON404() *N404NotFound {
-	return r.JSON404
-}
-
-// GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r StreamSandboxLogsResponse) GetJSON429() *N429RateLimit {
-	return r.JSON429
-}
-
-// GetJSON500 returns the response for an HTTP 500 `application/json` response
-func (r StreamSandboxLogsResponse) GetJSON500() *N500InternalServerError {
-	return r.JSON500
-}
-
-// GetJSON503 returns the response for an HTTP 503 `application/json` response
-func (r StreamSandboxLogsResponse) GetJSON503() *N503ServiceUnavailable {
-	return r.JSON503
-}
-
-// GetBody returns the raw response body bytes
-func (r StreamSandboxLogsResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r StreamSandboxLogsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r StreamSandboxLogsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r StreamSandboxLogsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -60250,8 +59799,8 @@ func (c *ClientWithResponses) CreateSandboxBuildWithResponse(ctx context.Context
 
 // RetrieveSandboxBuildWithResponse Retrieve sandbox build
 //
-// One build by ID. A build that belongs to another sandbox group returns
-// 404.
+// One build by ID. 404 with `code: build_not_found` if the build doesn't
+// exist or belongs to another sandbox group.
 //
 // 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
 // well-formed `sbg-` ID, or `invalid build ID` if `buildId` is not a
@@ -60645,23 +60194,6 @@ func (c *ClientWithResponses) RetrieveSandboxExecutionWithResponse(ctx context.C
 	return ParseRetrieveSandboxExecutionResponse(rsp)
 }
 
-// ListSandboxFilesWithResponse List directory contents in sandbox
-//
-// List the contents of a directory in a running sandbox. Returns file and
-// directory metadata without transferring file contents. The sandbox must
-// be `running`.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with GET /sandboxes/{sandboxId}/files/list (the `ListSandboxFiles` operationId).
-func (c *ClientWithResponses) ListSandboxFilesWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *ListSandboxFilesParams, reqEditors ...RequestEditorFn) (*ListSandboxFilesResponse, error) {
-	rsp, err := c.ListSandboxFiles(ctx, sandboxId, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListSandboxFilesResponse(rsp)
-}
-
 // ConnectSandboxFilesWithResponse Mint a connect token for a sandbox file transfer
 //
 // Mint a short-lived, capability-scoped connect token that authorizes a
@@ -60686,24 +60218,6 @@ func (c *ClientWithResponses) ConnectSandboxFilesWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseConnectSandboxFilesResponse(rsp)
-}
-
-// StreamSandboxLogsWithResponse Stream sandbox logs and lifecycle events
-//
-// Stream sandbox output and lifecycle events as a server-sent event stream.
-// Replays historical events from sandbox creation (or from `since`), then
-// continues live. The stream closes after the `terminated` or `errored`
-// lifecycle event.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with GET /sandboxes/{sandboxId}/logs (the `StreamSandboxLogs` operationId).
-func (c *ClientWithResponses) StreamSandboxLogsWithResponse(ctx context.Context, sandboxId externalRef16.SandboxId, params *StreamSandboxLogsParams, reqEditors ...RequestEditorFn) (*StreamSandboxLogsResponse, error) {
-	rsp, err := c.StreamSandboxLogs(ctx, sandboxId, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseStreamSandboxLogsResponse(rsp)
 }
 
 // ConnectSandboxRunWithBodyWithResponse Create a connect token for a sandbox run
@@ -82070,122 +81584,6 @@ func ParseRetrieveSandboxExecutionResponse(rsp *http.Response) (*RetrieveSandbox
 	return response, nil
 }
 
-// ParseListSandboxFilesResponse parses an HTTP response from a ListSandboxFilesWithResponse call
-func ParseListSandboxFilesResponse(rsp *http.Response) (*ListSandboxFilesResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListSandboxFilesResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef16.SandboxDirectoryListing
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest N409Conflict
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON409 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 429:
-		var headers ListSandboxFilesResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
 // ParseConnectSandboxFilesResponse parses an HTTP response from a ConnectSandboxFilesWithResponse call
 func ParseConnectSandboxFilesResponse(rsp *http.Response) (*ConnectSandboxFilesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -82261,118 +81659,6 @@ func ParseConnectSandboxFilesResponse(rsp *http.Response) (*ConnectSandboxFilesR
 	switch {
 	case rsp.StatusCode == 429:
 		var headers ConnectSandboxFilesResponse429Headers
-		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitLimit = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitRemaining = &value
-		}
-		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RateLimitReset = &value
-		}
-		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
-			var value int
-			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.RetryAfter = &value
-		}
-		response.Headers429 = &headers
-	}
-
-	return response, nil
-}
-
-// ParseStreamSandboxLogsResponse parses an HTTP response from a StreamSandboxLogsWithResponse call
-func ParseStreamSandboxLogsResponse(rsp *http.Response) (*StreamSandboxLogsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &StreamSandboxLogsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest N401Unauthorized
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON403 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON429 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest N500InternalServerError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest N503ServiceUnavailable
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	switch {
-	case rsp.StatusCode == 200:
-		var headers StreamSandboxLogsResponse200Headers
-		if values := rsp.Header.Values("Cache-Control"); len(values) > 0 {
-			var value string
-			if err := runtime.BindStyledParameterWithOptions("simple", "Cache-Control", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.CacheControl = &value
-		}
-		if values := rsp.Header.Values("Content-Type"); len(values) > 0 {
-			var value string
-			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Type", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			}
-			headers.ContentType = &value
-		}
-		response.Headers200 = &headers
-	case rsp.StatusCode == 429:
-		var headers StreamSandboxLogsResponse429Headers
 		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
 			var value int
 			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {

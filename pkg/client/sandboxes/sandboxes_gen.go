@@ -115,78 +115,6 @@ func (e SandboxEgressRuleProtocol) Valid() bool {
 	}
 }
 
-// Defines values for SandboxFileEntryType.
-const (
-	Directory SandboxFileEntryType = "directory"
-	File      SandboxFileEntryType = "file"
-	Symlink   SandboxFileEntryType = "symlink"
-)
-
-// Valid indicates whether the value is a known member of the SandboxFileEntryType enum.
-func (e SandboxFileEntryType) Valid() bool {
-	switch e {
-	case Directory:
-		return true
-	case File:
-		return true
-	case Symlink:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for SandboxLifecycleEventType.
-const (
-	SandboxLifecycleEventTypeCreating   SandboxLifecycleEventType = "creating"
-	SandboxLifecycleEventTypeErrored    SandboxLifecycleEventType = "errored"
-	SandboxLifecycleEventTypeResuming   SandboxLifecycleEventType = "resuming"
-	SandboxLifecycleEventTypeRunning    SandboxLifecycleEventType = "running"
-	SandboxLifecycleEventTypeSuspended  SandboxLifecycleEventType = "suspended"
-	SandboxLifecycleEventTypeSuspending SandboxLifecycleEventType = "suspending"
-	SandboxLifecycleEventTypeTerminated SandboxLifecycleEventType = "terminated"
-)
-
-// Valid indicates whether the value is a known member of the SandboxLifecycleEventType enum.
-func (e SandboxLifecycleEventType) Valid() bool {
-	switch e {
-	case SandboxLifecycleEventTypeCreating:
-		return true
-	case SandboxLifecycleEventTypeErrored:
-		return true
-	case SandboxLifecycleEventTypeResuming:
-		return true
-	case SandboxLifecycleEventTypeRunning:
-		return true
-	case SandboxLifecycleEventTypeSuspended:
-		return true
-	case SandboxLifecycleEventTypeSuspending:
-		return true
-	case SandboxLifecycleEventTypeTerminated:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for SandboxLogEventStream.
-const (
-	Stderr SandboxLogEventStream = "stderr"
-	Stdout SandboxLogEventStream = "stdout"
-)
-
-// Valid indicates whether the value is a known member of the SandboxLogEventStream enum.
-func (e SandboxLogEventStream) Valid() bool {
-	switch e {
-	case Stderr:
-		return true
-	case Stdout:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for SandboxNetworkPolicyType.
 const (
 	AllowAll  SandboxNetworkPolicyType = "allow-all"
@@ -610,16 +538,6 @@ type SandboxCredentialVersion struct {
 	UpdatedBy string `json:"updatedBy"`
 }
 
-// SandboxDirectoryListing Directory listing response.
-type SandboxDirectoryListing struct {
-	Entries []SandboxFileEntry `json:"entries"`
-
-	// Path The absolute path that was listed.
-	//
-	// Example: /app
-	Path string `json:"path"`
-}
-
 // SandboxEgressRule defines model for sandboxEgressRule.
 type SandboxEgressRule struct {
 	// Domain Hostname to apply the rule to. Matching is exact: `foo.local` does not
@@ -638,31 +556,6 @@ type SandboxEgressRule struct {
 // SandboxEgressRuleProtocol Protocol this rule admits. Only `https` is accepted:
 // under `allow-list` every other outbound protocol is dropped.
 type SandboxEgressRuleProtocol string
-
-// SandboxFileEntry A file or directory entry in a sandbox filesystem listing.
-type SandboxFileEntry struct {
-	// ModifiedAt Last-modified timestamp.
-	ModifiedAt time.Time `json:"modifiedAt"`
-
-	// Name File or directory name (basename, not full path).
-	//
-	// Example: main.py
-	Name string `json:"name"`
-
-	// Size Size in bytes. 0 for directories and symlinks.
-	//
-	// Example: 2048
-	Size int `json:"size"`
-
-	// Target Symlink target path. Present only when type is `symlink`.
-	Target *string `json:"target,omitempty"`
-
-	// Type Entry type.
-	Type SandboxFileEntryType `json:"type"`
-}
-
-// SandboxFileEntryType Entry type.
-type SandboxFileEntryType string
 
 // SandboxGroup defines model for sandboxGroup.
 type SandboxGroup struct {
@@ -706,32 +599,6 @@ type SandboxGroupId = string
 // SandboxId Example: sbx-1cd4gcph1rs3idesc73a2b2mg
 type SandboxId = string
 
-// SandboxLifecycleEvent A lifecycle event from the sandbox logs stream.
-type SandboxLifecycleEvent struct {
-	At   time.Time                 `json:"at"`
-	Type SandboxLifecycleEventType `json:"type"`
-}
-
-// SandboxLifecycleEventType defines model for SandboxLifecycleEvent.Type.
-type SandboxLifecycleEventType string
-
-// SandboxLogEvent A log event from the sandbox logs stream.
-type SandboxLogEvent struct {
-	At time.Time `json:"at"`
-
-	// Data Output chunk.
-	Data string `json:"data"`
-
-	// ExecId Groups output by command for the event timeline. Absent for system-level output (container startup, OOM, etc.).
-	//
-	// Example: exe-cph1rs3idesc73a2b2mg
-	ExecId *string               `json:"execId,omitempty"`
-	Stream SandboxLogEventStream `json:"stream"`
-}
-
-// SandboxLogEventStream defines model for SandboxLogEvent.Stream.
-type SandboxLogEventStream string
-
 // SandboxNetworkPolicy defines model for sandboxNetworkPolicy.
 type SandboxNetworkPolicy struct {
 	// Default Deprecated alias for `type`, always returned with the same value.
@@ -774,14 +641,17 @@ type SandboxNetworkPolicyType string
 // SandboxPOST defines model for sandboxPOST.
 type SandboxPOST struct {
 	// BuildId Start from this build's image instead of the base image. The build
-	// must have succeeded and be in the sandbox's group. Mutually
-	// exclusive with `buildName`, `snapshotId` and `snapshotName`.
+	// must have succeeded and be in the sandbox's group: 404 with `code:
+	// build_not_found` if it isn't in the group, and 409 with `code:
+	// build_not_succeeded` if it hasn't succeeded. Mutually exclusive
+	// with `buildName`, `snapshotId` and `snapshotName`.
 	BuildId *SandboxBuildId `json:"buildId,omitempty"`
 
 	// BuildName Start from the newest succeeded build with this name in the
-	// sandbox's group. 404 if the group has no build with the name, and
-	// 409 if none of them has succeeded. Mutually exclusive with
-	// `buildId`, `snapshotId` and `snapshotName`.
+	// sandbox's group. 404 with `code: build_not_found` if the group has
+	// no build with the name, and 409 with `code: build_not_succeeded` if
+	// none of them has succeeded. Mutually exclusive with `buildId`,
+	// `snapshotId` and `snapshotName`.
 	BuildName *string `json:"buildName,omitempty"`
 
 	// Env Inline environment variables injected into the sandbox at creation.

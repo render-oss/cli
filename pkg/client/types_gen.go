@@ -1577,21 +1577,6 @@ func (e ListPostgresParamsSuspended) Valid() bool {
 	}
 }
 
-// Defines values for StreamSandboxLogsParamsAccept.
-const (
-	StreamSandboxLogsParamsAcceptTexteventStream StreamSandboxLogsParamsAccept = "text/event-stream"
-)
-
-// Valid indicates whether the value is a known member of the StreamSandboxLogsParamsAccept enum.
-func (e StreamSandboxLogsParamsAccept) Valid() bool {
-	switch e {
-	case StreamSandboxLogsParamsAcceptTexteventStream:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for ListServicesParamsSuspended.
 const (
 	ListServicesParamsSuspendedNotSuspended ListServicesParamsSuspended = "not_suspended"
@@ -1684,13 +1669,13 @@ func (e ListRoutesParamsType) Valid() bool {
 
 // Defines values for StreamTaskRunsEventsParamsAccept.
 const (
-	StreamTaskRunsEventsParamsAcceptTexteventStream StreamTaskRunsEventsParamsAccept = "text/event-stream"
+	TexteventStream StreamTaskRunsEventsParamsAccept = "text/event-stream"
 )
 
 // Valid indicates whether the value is a known member of the StreamTaskRunsEventsParamsAccept enum.
 func (e StreamTaskRunsEventsParamsAccept) Valid() bool {
 	switch e {
-	case StreamTaskRunsEventsParamsAcceptTexteventStream:
+	case TexteventStream:
 		return true
 	default:
 		return false
@@ -5126,15 +5111,6 @@ type RetrieveSandboxExecutionParams struct {
 	OwnerId *externalRef16.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 }
 
-// ListSandboxFilesParams defines parameters for ListSandboxFiles.
-type ListSandboxFilesParams struct {
-	// Path Absolute path to a directory in the sandbox.
-	Path string `form:"path" json:"path"`
-
-	// Depth How many levels of subdirectories to include. 1 = immediate children only. 0 = the entry itself.
-	Depth *int `form:"depth,omitempty" json:"depth,omitempty"`
-}
-
 // ConnectSandboxFilesParams defines parameters for ConnectSandboxFiles.
 type ConnectSandboxFilesParams struct {
 	// OwnerId The ID of the workspace the sandbox belongs to. Optional: the workspace is
@@ -5144,24 +5120,6 @@ type ConnectSandboxFilesParams struct {
 	// Path Path in the sandbox this token authorizes. A relative path resolves within the sandbox's home directory ("." is the home directory itself); an absolute path addresses the sandbox filesystem root. For an archive upload, the extraction root; for a download, the file or directory to fetch.
 	Path string `form:"path" json:"path"`
 }
-
-// StreamSandboxLogsParams defines parameters for StreamSandboxLogs.
-type StreamSandboxLogsParams struct {
-	// Since ISO 8601 timestamp. Only emit events at or after this time.
-	Since *time.Time `form:"since,omitempty" json:"since,omitempty"`
-
-	// Follow If `false`, emit historical events and close immediately.
-	Follow *bool `form:"follow,omitempty" json:"follow,omitempty"`
-
-	// ExecId Filter `log` events to a single execution.
-	ExecId *string `form:"execId,omitempty" json:"execId,omitempty"`
-
-	// Accept Must be `text/event-stream`.
-	Accept *StreamSandboxLogsParamsAccept `json:"Accept,omitempty"`
-}
-
-// StreamSandboxLogsParamsAccept defines parameters for StreamSandboxLogs.
-type StreamSandboxLogsParamsAccept string
 
 // ConnectSandboxRunParams defines parameters for ConnectSandboxRun.
 type ConnectSandboxRunParams struct {
