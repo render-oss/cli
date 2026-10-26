@@ -66,7 +66,7 @@ const (
 	ChangeTeamMemberRoleEvent          AuditLogEvent = "ChangeTeamMemberRoleEvent"
 	ChangeWorkspaceDeployHandlingEvent AuditLogEvent = "ChangeWorkspaceDeployHandlingEvent"
 	ChangeWorkspacePrivacyEvent        AuditLogEvent = "ChangeWorkspacePrivacyEvent"
-	CreateArtifactSourceEvent          AuditLogEvent = "CreateArtifactSourceEvent"
+	CreateBuildSourceEvent             AuditLogEvent = "CreateBuildSourceEvent"
 	CreateCronJobEvent                 AuditLogEvent = "CreateCronJobEvent"
 	CreateEnvVarsEvent                 AuditLogEvent = "CreateEnvVarsEvent"
 	CreateEnvironmentEvent             AuditLogEvent = "CreateEnvironmentEvent"
@@ -167,7 +167,7 @@ func (e AuditLogEvent) Valid() bool {
 		return true
 	case ChangeWorkspacePrivacyEvent:
 		return true
-	case CreateArtifactSourceEvent:
+	case CreateBuildSourceEvent:
 		return true
 	case CreateCronJobEvent:
 		return true
@@ -2071,7 +2071,9 @@ type DedicatedIPStatus string
 
 // Deploy defines model for deploy.
 type Deploy struct {
-	Commit *struct {
+	// BuildId The ID of the build this deploy shipped. Only present for deploys of a build from a Build Source.
+	BuildId *string `json:"buildId,omitempty"`
+	Commit  *struct {
 		CreatedAt *time.Time `json:"createdAt,omitempty"`
 		Id        *string    `json:"id,omitempty"`
 		Message   *string    `json:"message,omitempty"`
@@ -3374,7 +3376,6 @@ type ServicePATCH struct {
 	AutoDeployTrigger *externalRef0.AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
 	Branch            *string                         `json:"branch,omitempty"`
 	BuildFilter       *BuildFilter                    `json:"buildFilter,omitempty"`
-	BuildId           *string                         `json:"buildId,omitempty"`
 	BuildSourceId     *externalRef3.BuildSourceId     `json:"buildSourceId,omitempty"`
 	Image             *Image                          `json:"image,omitempty"`
 	Name              *string                         `json:"name,omitempty"`
@@ -5034,6 +5035,12 @@ type UpdateRegistryCredentialJSONBody struct {
 type ListSandboxGroupsParams struct {
 	// OwnerId The ID of the workspace whose sandbox groups to return.
 	OwnerId string `form:"ownerId" json:"ownerId"`
+
+	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Maximum groups to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // ListSandboxSnapshotsParams defines parameters for ListSandboxSnapshots.
@@ -5071,6 +5078,9 @@ type RetrieveSandboxSnapshotParams struct {
 type ListSandboxesParams struct {
 	// OwnerId The ID of the workspace whose sandboxes to return.
 	OwnerId string `form:"ownerId" json:"ownerId"`
+
+	// SandboxGroupId Return only sandboxes in this group. The group must belong to ownerId.
+	SandboxGroupId *externalRef16.SandboxGroupId `form:"sandboxGroupId,omitempty" json:"sandboxGroupId,omitempty"`
 
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
@@ -5703,6 +5713,12 @@ type CreateRegistryCredentialJSONRequestBody CreateRegistryCredentialJSONBody
 
 // UpdateRegistryCredentialJSONRequestBody defines body for UpdateRegistryCredential for application/json ContentType.
 type UpdateRegistryCredentialJSONRequestBody UpdateRegistryCredentialJSONBody
+
+// CreateSandboxGroupJSONRequestBody defines body for CreateSandboxGroup for application/json ContentType.
+type CreateSandboxGroupJSONRequestBody = externalRef16.SandboxGroupPOST
+
+// UpdateSandboxGroupJSONRequestBody defines body for UpdateSandboxGroup for application/json ContentType.
+type UpdateSandboxGroupJSONRequestBody = externalRef16.SandboxGroupPATCH
 
 // CreateSandboxBuildJSONRequestBody defines body for CreateSandboxBuild for application/json ContentType.
 type CreateSandboxBuildJSONRequestBody = externalRef16.SandboxBuildPOST

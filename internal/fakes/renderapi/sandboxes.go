@@ -192,9 +192,6 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 		if body.Plan != nil {
 			sb.Plan = *body.Plan
 		}
-		if body.Region != nil {
-			sb.Region = *body.Region
-		}
 		if body.TimeoutSeconds != nil {
 			sb.TimeoutSeconds = *body.TimeoutSeconds
 		}

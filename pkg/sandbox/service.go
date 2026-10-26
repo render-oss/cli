@@ -91,9 +91,6 @@ func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*s
 		plan := sandboxclient.SandboxPlan(input.Plan)
 		body.Plan = &plan
 	}
-	if input.Region != "" {
-		body.Region = &input.Region
-	}
 	if input.Timeout > 0 {
 		body.TimeoutSeconds = &input.Timeout
 	}

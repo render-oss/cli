@@ -301,8 +301,11 @@ type Sandbox struct {
 	// Region Region the sandbox is running in.
 	//
 	// Example: oregon
-	Region string        `json:"region"`
-	Status SandboxStatus `json:"status"`
+	Region string `json:"region"`
+
+	// SandboxGroupId The sandbox group this sandbox belongs to.
+	SandboxGroupId *SandboxGroupId `json:"sandboxGroupId,omitempty"`
+	Status         SandboxStatus   `json:"status"`
 
 	// TerminatedAt When the sandbox was terminated, or null.
 	TerminatedAt *time.Time `json:"terminatedAt,omitempty"`
@@ -559,7 +562,7 @@ type SandboxEgressRuleProtocol string
 
 // SandboxGroup defines model for sandboxGroup.
 type SandboxGroup struct {
-	// ConcurrencyLimit Effective maximum number of concurrently active (non-terminated) sandboxes allowed in this group.
+	// ConcurrencyLimit The effective limit on active sandboxes in this group, capped by Render's limit for this workspace.
 	ConcurrencyLimit int `json:"concurrencyLimit"`
 
 	// CreatedAt Example: 2026-07-02T18:30:00Z
@@ -571,7 +574,8 @@ type SandboxGroup struct {
 	// Id Example: sbg-cph1rs3idesc73a2b2mg
 	Id SandboxGroupId `json:"id"`
 
-	// IsDefault Whether this is the workspace's default group. Exactly one group per workspace is the default.
+	// IsDefault Whether this is the workspace's default group. Sandboxes are created
+	// here unless a group is given.
 	IsDefault bool `json:"isDefault"`
 
 	// Name Human-friendly name for the group.
@@ -595,6 +599,35 @@ type SandboxGroup struct {
 
 // SandboxGroupId Example: sbg-cph1rs3idesc73a2b2mg
 type SandboxGroupId = string
+
+// SandboxGroupPATCH defines model for sandboxGroupPATCH.
+type SandboxGroupPATCH struct {
+	// ConcurrencyLimit Maximum active sandboxes in the group. The configured value is capped
+	// by Render's limit for this workspace. Responses return the effective limit.
+	// Lowering the limit does not stop existing sandboxes.
+	//
+	//
+	// Example: 10
+	ConcurrencyLimit int `json:"concurrencyLimit"`
+}
+
+// SandboxGroupPOST defines model for sandboxGroupPOST.
+type SandboxGroupPOST struct {
+	// Name Name, unique within the workspace.
+	//
+	// Example: CI agents
+	Name string `json:"name"`
+
+	// OwnerId Workspace ID.
+	//
+	// Example: tea-cph1rs3idesc73a2b2mg
+	OwnerId string `json:"ownerId"`
+
+	// Region Region for the group's sandboxes. Defaults to Render's default sandbox region.
+	//
+	// Example: oregon
+	Region *string `json:"region,omitempty"`
+}
 
 // SandboxId Example: sbx-1cd4gcph1rs3idesc73a2b2mg
 type SandboxId = string
@@ -670,8 +703,8 @@ type SandboxPOST struct {
 	// Plan Compute plan. See `sandboxPlan` for known values.
 	Plan *SandboxPlan `json:"plan,omitempty"`
 
-	// Region Render region. Defaults to the workspace default.
-	Region *string `json:"region,omitempty"`
+	// SandboxGroupId Group to create the sandbox in; defaults to the workspace's default group.
+	SandboxGroupId *SandboxGroupId `json:"sandboxGroupId,omitempty"`
 
 	// SnapshotId Start from this snapshot instead of the base image. Must be `available`
 	// and in the same sandbox group. For a `runtime` snapshot, `plan` must
