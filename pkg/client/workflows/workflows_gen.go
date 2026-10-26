@@ -424,7 +424,7 @@ type FlowRunStep struct {
 	ChildTaskRunId *string    `json:"childTaskRunId,omitempty"`
 	CompletedAt    *time.Time `json:"completedAt,omitempty"`
 
-	// FlowRunAttempt The 0-indexed flow run attempt that recorded the step.
+	// FlowRunAttempt The 0-indexed flow run attempt that completed the step, 0 until then. A hint to how many flow run attempts the step took.
 	FlowRunAttempt int `json:"flowRunAttempt"`
 
 	// Name For inline steps, the function's name. For detached steps, the task's registered name. Omitted for sleep steps.
@@ -475,7 +475,7 @@ type FlowRunStepDetails struct {
 	// Error Error message if the step failed.
 	Error *string `json:"error,omitempty"`
 
-	// FlowRunAttempt The 0-indexed flow run attempt that recorded the step.
+	// FlowRunAttempt The 0-indexed flow run attempt that completed the step, 0 until then. A hint to how many flow run attempts the step took.
 	FlowRunAttempt int `json:"flowRunAttempt"`
 
 	// Input The step's input. For detached steps, the input of the child task run.
