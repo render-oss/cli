@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -54,18 +55,21 @@ func NonInteractiveWithConfirm[T any](cmd *cobra.Command, loadData LoadDataFunc[
 			if err != nil {
 				return false, err
 			}
-			_, err = cmd.OutOrStdout().Write([]byte(fmt.Sprintf("%s (y/n): ", message)))
+			_, err = cmd.ErrOrStderr().Write([]byte(fmt.Sprintf("%s (y/n): ", message)))
 			if err != nil {
 				return false, err
 			}
 
 			reader := bufio.NewReader(cmd.InOrStdin())
 			str, err := reader.ReadString('\n')
+			if errors.Is(err, io.EOF) {
+				return false, fmt.Errorf("confirmation required: rerun with --%s to skip confirmation prompts: %w", ConfirmFlag, err)
+			}
 			if err != nil {
 				return false, err
 			}
 			if str != "y\n" {
-				_, err := cmd.OutOrStdout().Write([]byte("Aborted\n"))
+				_, err := cmd.ErrOrStderr().Write([]byte("Aborted\n"))
 				return false, err
 			}
 		}
