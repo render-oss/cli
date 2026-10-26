@@ -2159,7 +2159,7 @@ type ClientInterface interface {
 
 	// DeleteSandboxGroupCredential Delete sandbox group credential
 	//
-	// Admin-only. Removes the credential from the group's desired configuration.
+	// Admin-only. Removes the credential if present and synchronizes the group's gateway configuration. Repeated deletion requests are accepted.
 	//
 	// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `DeleteSandboxGroupCredential` operationId).
 	DeleteSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7672,7 +7672,7 @@ func (c *Client) CreateSandboxGroupCredential(ctx context.Context, sandboxGroupI
 
 // DeleteSandboxGroupCredential Delete sandbox group credential
 //
-// Admin-only. Removes the credential from the group's desired configuration.
+// Admin-only. Removes the credential if present and synchronizes the group's gateway configuration. Repeated deletion requests are accepted.
 //
 // Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `DeleteSandboxGroupCredential` operationId).
 func (c *Client) DeleteSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef16.SandboxGroupId, credentialId externalRef16.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -28969,7 +28969,7 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteSandboxGroupCredentialWithResponse Delete sandbox group credential
 	//
-	// Admin-only. Removes the credential from the group's desired configuration.
+	// Admin-only. Removes the credential if present and synchronizes the group's gateway configuration. Repeated deletion requests are accepted.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -60324,7 +60324,7 @@ func (c *ClientWithResponses) CreateSandboxGroupCredentialWithResponse(ctx conte
 
 // DeleteSandboxGroupCredentialWithResponse Delete sandbox group credential
 //
-// Admin-only. Removes the credential from the group's desired configuration.
+// Admin-only. Removes the credential if present and synchronizes the group's gateway configuration. Repeated deletion requests are accepted.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -80647,7 +80647,7 @@ func ParseDeleteSandboxGroupCredentialResponse(rsp *http.Response) (*DeleteSandb
 	}
 
 	switch {
-	case rsp.StatusCode == 204:
+	case rsp.StatusCode == 202:
 		break // No content-type
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
