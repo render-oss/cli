@@ -13,8 +13,9 @@ import (
 )
 
 type SandboxListInput struct {
-	Status []string `cli:"status"`
-	All    bool     `cli:"all"`
+	SandboxGroupID string   `cli:"sandbox-group"`
+	Status         []string `cli:"status"`
+	All            bool     `cli:"all"`
 }
 
 func newSandboxListCmd(deps *dependencies.Dependencies) *cobra.Command {
@@ -36,6 +37,8 @@ Examples:
 
 	cmd.Flags().StringArray("status", nil, "Filter by status (repeatable: "+strings.Join(sandboxStatusNames(), ", ")+")")
 	cmd.Flags().Bool("all", false, "Include terminated sandboxes")
+	cmd.Flags().String("sandbox-group", "", "Filter by sandbox group ID")
+	setFlagPlaceholder(cmd.Flags(), "sandbox-group", "SANDBOX_GROUP_ID")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)
@@ -46,7 +49,7 @@ Examples:
 		}
 
 		_, err := command.NonInteractive(cmd, func() ([]*sandboxclient.Sandbox, error) {
-			return deps.SandboxService().List(cmd.Context(), input.Status, input.All)
+			return deps.SandboxService().List(cmd.Context(), input.Status, input.All, input.SandboxGroupID)
 		}, text.SandboxTable)
 		return err
 	}

@@ -23,11 +23,12 @@ func NewService(repo *Repo) *Service {
 // CreateInput describes the parameters for creating a sandbox. Empty/zero
 // fields fall back to the API defaults.
 type CreateInput struct {
-	Plan          string
-	Region        string
-	Timeout       int
-	IdleTimeout   *int
-	NetworkPolicy string
+	SandboxGroupID string
+	Plan           string
+	Region         string
+	Timeout        int
+	IdleTimeout    *int
+	NetworkPolicy  string
 	// EgressRules are the destinations reachable under an allow-list
 	// NetworkPolicy.
 	EgressRules  []sandboxclient.SandboxEgressRule
@@ -60,8 +61,11 @@ func AllStatuses() []sandboxclient.SandboxStatus {
 // filters by those statuses. Otherwise it sends no status filter, so the server
 // applies its default (exclude terminated) — unless all is true, which requests
 // every status to include terminated sandboxes too.
-func (s *Service) List(ctx context.Context, statuses []string, all bool) ([]*sandboxclient.Sandbox, error) {
+func (s *Service) List(ctx context.Context, statuses []string, all bool, groupID string) ([]*sandboxclient.Sandbox, error) {
 	params := &client.ListSandboxesParams{}
+	if groupID != "" {
+		params.SandboxGroupId = &groupID
+	}
 
 	if len(statuses) > 0 {
 		filtered := make([]sandboxclient.SandboxStatus, len(statuses))
@@ -86,6 +90,9 @@ func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*s
 	}
 
 	body := client.CreateSandboxJSONRequestBody{OwnerId: workspace}
+	if input.SandboxGroupID != "" {
+		body.SandboxGroupId = &input.SandboxGroupID
+	}
 
 	if input.Plan != "" {
 		plan := sandboxclient.SandboxPlan(input.Plan)

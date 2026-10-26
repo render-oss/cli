@@ -18,8 +18,8 @@ func NewRepo(c *client.ClientWithResponses) *Repo {
 	return &Repo{client: c}
 }
 
-// List returns the sandbox groups owned by ownerID. The returned slice is
-// always non-nil so callers can range over it unconditionally.
+// List returns all sandbox groups owned by ownerID. Omitting pagination keeps
+// this compatible with servers that do not support group pagination.
 func (r *Repo) List(ctx context.Context, ownerID string) ([]*sandboxesclient.SandboxGroup, error) {
 	params := &client.ListSandboxGroupsParams{
 		OwnerId: ownerID,

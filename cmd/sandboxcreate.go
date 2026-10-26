@@ -18,6 +18,7 @@ import (
 )
 
 type SandboxCreateInput struct {
+	SandboxGroupID   string   `cli:"sandbox-group"`
 	Plan             string   `cli:"plan"`
 	Region           string   `cli:"region"`
 	Timeout          int      `cli:"timeout"`
@@ -159,7 +160,8 @@ func newSandboxCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 
 Examples:
   render ea sandboxes create
-  render ea sandboxes create --plan=2c-4g --region=oregon
+  render ea sandboxes create --plan=2c-4g
+  render ea sandboxes create --sandbox-group=sbg-cph1rs3idesc73a2b2mg
   render ea sandboxes create --timeout=3600
   render ea sandboxes create --idle-timeout=1800
   render ea sandboxes create --idle-timeout=0
@@ -176,7 +178,9 @@ Examples:
 	}
 
 	cmd.Flags().String("plan", "", "Compute plan: "+strings.Join(sandboxPlanNames(), ", "))
-	cmd.Flags().String("region", "", "Region to run the sandbox in")
+	cmd.Flags().String("region", "", "Accepted for compatibility; placement uses the sandbox group region")
+	cmd.Flags().String("sandbox-group", "", "Sandbox group ID. Omit to use the workspace default group")
+	setFlagPlaceholder(cmd.Flags(), "sandbox-group", "SANDBOX_GROUP_ID")
 	cmd.Flags().Int("timeout", 0, "Maximum sandbox lifetime in seconds, up to 2592000 (30 days), or 86400 (24 hours) on Hobby workspaces. 0 uses the default of 86400 (24 hours)")
 	cmd.Flags().Int("idle-timeout", 900, "Seconds of inactivity before suspension. 0 disables automatic idle suspension")
 	cmd.Flags().String("network-policy", "", "Outbound network policy: "+strings.Join(sandboxNetworkPolicyNames(), ", "))
@@ -236,17 +240,18 @@ Examples:
 		var waitErr error
 		_, err = command.NonInteractive(cmd, func() (*sandboxclient.Sandbox, error) {
 			sb, err := deps.SandboxService().Create(cmd.Context(), sandbox.CreateInput{
-				Plan:          input.Plan,
-				Region:        input.Region,
-				Timeout:       input.Timeout,
-				IdleTimeout:   idleTimeout,
-				NetworkPolicy: input.resolvedNetworkPolicy(),
-				EgressRules:   input.egressRules(),
-				Env:           env,
-				SnapshotID:    snapshotID,
-				SnapshotName:  snapshotName,
-				BuildID:       buildID,
-				BuildName:     buildName,
+				SandboxGroupID: input.SandboxGroupID,
+				Plan:           input.Plan,
+				Region:         input.Region,
+				Timeout:        input.Timeout,
+				IdleTimeout:    idleTimeout,
+				NetworkPolicy:  input.resolvedNetworkPolicy(),
+				EgressRules:    input.egressRules(),
+				Env:            env,
+				SnapshotID:     snapshotID,
+				SnapshotName:   snapshotName,
+				BuildID:        buildID,
+				BuildName:      buildName,
 			}, onEvent)
 			if err != nil || !input.Wait {
 				return sb, err

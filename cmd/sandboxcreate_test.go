@@ -709,3 +709,28 @@ func TestSandboxCreate_WaitFailurePrintsSandbox(t *testing.T) {
 		})
 	}
 }
+
+func TestSandboxCreate_GroupSelection(t *testing.T) {
+	for _, groupID := range []string{"", "sbg-cph1rs3idesc73a2b2mg"} {
+		t.Run(groupID, func(t *testing.T) {
+			server := newSandboxCreateServer(t)
+			if groupID != "" {
+				server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxclient.SandboxGroup{Id: groupID, OwnerId: sandboxCreateActiveWorkspaceID}))
+			}
+			args := []string{"ea", "sandboxes", "create", "--output", "json"}
+			if groupID != "" {
+				args = append(args, "--sandbox-group", groupID)
+			}
+			_, err := executeSandboxCommand(t, server, args...)
+			require.NoError(t, err)
+			req, ok := server.LastRequest("POST", "/sandboxes")
+			require.True(t, ok)
+			body := testrequire.ParseJSONMap(t, string(req.Body))
+			if groupID == "" {
+				assert.NotContains(t, body, "sandboxGroupId")
+			} else {
+				assert.Equal(t, groupID, body["sandboxGroupId"])
+			}
+		})
+	}
+}

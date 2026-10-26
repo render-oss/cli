@@ -3,9 +3,13 @@ package renderapi
 import (
 	"encoding/json"
 	"net/http"
+	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/render-oss/cli/internal/testids"
+	"github.com/render-oss/cli/pkg/client"
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
 )
 
@@ -102,6 +106,41 @@ func (s *Server) snapshotByName(groupID, name string) (*sandboxesclient.SandboxS
 }
 
 func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Request)) {
+	mux.HandleFunc("GET /sandboxes", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		q := r.URL.Query()
+		limit, _ := strconv.Atoi(q.Get("limit"))
+		if limit <= 0 {
+			limit = 20
+		}
+		statuses := strings.Split(q.Get("status"), ",")
+		result := make([]client.SandboxWithCursor, 0)
+		pastCursor := q.Get("cursor") == ""
+		for _, sb := range s.Sandboxes.Instances {
+			if sb.SandboxGroupId == nil || s.sandboxGroupOwner(*sb.SandboxGroupId) != q.Get("ownerId") {
+				continue
+			}
+			if groupID := q.Get("sandboxGroupId"); groupID != "" && *sb.SandboxGroupId != groupID {
+				continue
+			}
+			if !pastCursor {
+				pastCursor = sb.Id == q.Get("cursor")
+				continue
+			}
+			if q.Get("status") == "" && sb.Status == sandboxesclient.SandboxStatusTerminated {
+				continue
+			}
+			if q.Get("status") != "" && !slices.Contains(statuses, string(sb.Status)) {
+				continue
+			}
+			result = append(result, client.SandboxWithCursor{Sandbox: *sb, Cursor: sb.Id})
+			if len(result) == limit {
+				break
+			}
+		}
+		writeJSON(w, http.StatusOK, result)
+	})
+
 	mux.HandleFunc("GET /sandboxes/{sandboxId}", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
 		if q := s.Sandboxes.getErrorQueue; len(q) > 0 {
@@ -124,6 +163,14 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 			writeAPIError(w, http.StatusBadRequest, "invalid body", "")
 			return
 		}
+		groupID := s.defaultSandboxGroupID(body.OwnerId)
+		if body.SandboxGroupId != nil {
+			groupID = *body.SandboxGroupId
+			if s.sandboxGroupOwner(groupID) != body.OwnerId {
+				writeAPIError(w, http.StatusNotFound, "sandbox group not found", "")
+				return
+			}
+		}
 		if body.SnapshotId != nil && body.SnapshotName != nil {
 			writeAPIError(w, http.StatusBadRequest, "snapshotId and snapshotName are mutually exclusive", "")
 			return
@@ -138,7 +185,7 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 		}
 		if body.BuildId != nil {
 			build, found := s.buildByID(*body.BuildId)
-			if !found || build.SandboxGroupId != s.defaultSandboxGroupID(body.OwnerId) {
+			if !found || build.SandboxGroupId != groupID {
 				writeAPIError(w, http.StatusNotFound, "not found: build", "")
 				return
 			}
@@ -148,7 +195,7 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 			}
 		}
 		if body.BuildName != nil {
-			build, found := s.latestBuildByName(s.defaultSandboxGroupID(body.OwnerId), *body.BuildName)
+			build, found := s.latestBuildByName(groupID, *body.BuildName)
 			if !found {
 				writeAPIError(w, http.StatusNotFound, "not found: build", "")
 				return
@@ -164,7 +211,7 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 				writeAPIError(w, http.StatusNotFound, "snapshot not found", ErrorCodeSnapshotNotFound)
 				return
 			}
-			if snap.SandboxGroupId != s.defaultSandboxGroupID(body.OwnerId) {
+			if snap.SandboxGroupId != groupID {
 				writeAPIError(w, http.StatusConflict, "snapshot belongs to a different sandbox group", ErrorCodeSnapshotNotAvailable)
 				return
 			}
@@ -178,7 +225,7 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 			}
 		}
 		if body.SnapshotName != nil {
-			snap, found := s.snapshotByName(s.defaultSandboxGroupID(body.OwnerId), *body.SnapshotName)
+			snap, found := s.snapshotByName(groupID, *body.SnapshotName)
 			if !found {
 				writeAPIError(w, http.StatusNotFound, "snapshot not found", ErrorCodeSnapshotNotFound)
 				return
@@ -188,7 +235,7 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 				return
 			}
 		}
-		var sb sandboxesclient.Sandbox
+		sb := sandboxesclient.Sandbox{SandboxGroupId: &groupID}
 		if body.Plan != nil {
 			sb.Plan = *body.Plan
 		}

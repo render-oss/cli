@@ -69,7 +69,7 @@ func TestServiceList_StatusQuery(t *testing.T) {
 				_ = json.NewEncoder(w).Encode([]client.SandboxWithCursor{})
 			})
 
-			_, err := svc.List(context.Background(), tt.statuses, tt.all)
+			_, err := svc.List(context.Background(), tt.statuses, tt.all, "")
 			require.NoError(t, err)
 
 			assert.Equal(t, listTestWorkspace, gotQuery.Get("ownerId"))
@@ -110,7 +110,7 @@ func TestServiceList_FollowsCursorsAcrossPages(t *testing.T) {
 		})
 	})
 
-	got, err := svc.List(context.Background(), nil, false)
+	got, err := svc.List(context.Background(), nil, false, "")
 	require.NoError(t, err)
 
 	assert.Len(t, got, firstPageSize+1)
