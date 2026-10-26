@@ -2,21 +2,19 @@ package sandboxsnapshot
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/render-oss/cli/pkg/client"
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
-	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/sandboxgroup"
 )
 
 type Service struct {
-	repo      *Repo
-	groupRepo *sandboxgroup.Repo
+	repo   *Repo
+	groups *sandboxgroup.Service
 }
 
-func NewService(repo *Repo, groupRepo *sandboxgroup.Repo) *Service {
-	return &Service{repo: repo, groupRepo: groupRepo}
+func NewService(repo *Repo, groups *sandboxgroup.Service) *Service {
+	return &Service{repo: repo, groups: groups}
 }
 
 type CreateInput struct {
@@ -63,23 +61,7 @@ func (s *Service) List(ctx context.Context, input ListInput) ([]*sandboxesclient
 }
 
 func (s *Service) resolveGroupID(ctx context.Context, sandboxGroupID string) (string, error) {
-	if sandboxGroupID != "" {
-		return sandboxGroupID, nil
-	}
-	workspace, err := config.WorkspaceID()
-	if err != nil {
-		return "", err
-	}
-	groups, err := s.groupRepo.List(ctx, workspace)
-	if err != nil {
-		return "", err
-	}
-	for _, group := range groups {
-		if group.IsDefault {
-			return group.Id, nil
-		}
-	}
-	return "", fmt.Errorf("no default sandbox group found in the active workspace; specify --group")
+	return s.groups.IDOrDefault(ctx, sandboxGroupID)
 }
 
 func (s *Service) Delete(ctx context.Context, sandboxGroupID, snapshotID string) error {

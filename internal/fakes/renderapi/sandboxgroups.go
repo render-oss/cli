@@ -33,9 +33,8 @@ func (r *SandboxGroupResource) nextError() (int, bool) {
 }
 
 // NewSandboxGroup returns a SandboxGroup with sensible defaults for any
-// zero-value fields, mimicking the API's Alpha guarantees (one default group
-// per workspace, populated region, non-nil timestamps). IsDefault is always
-// set to true; for a non-default group (Beta), set the field after Add.
+// zero-value fields: a populated region and non-nil timestamps. IsDefault is
+// always set to true; for a non-default group, set the field after Add.
 func NewSandboxGroup(g sandboxesclient.SandboxGroup) *sandboxesclient.SandboxGroup {
 	if g.Id == "" {
 		g.Id = testids.RandomSandboxGroupID()
@@ -47,8 +46,7 @@ func NewSandboxGroup(g sandboxesclient.SandboxGroup) *sandboxesclient.SandboxGro
 		g.Region = "oregon"
 	}
 	// A bool field can't distinguish "unset" from "explicitly false", so the
-	// factory always produces the workspace's default group (the only kind
-	// that exists in Alpha).
+	// factory always produces the workspace's default group.
 	g.IsDefault = true
 	now := time.Now()
 	if g.CreatedAt.IsZero() {

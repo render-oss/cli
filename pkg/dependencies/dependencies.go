@@ -18,6 +18,7 @@ import (
 	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/sandbox"
+	"github.com/render-oss/cli/pkg/sandboxbuild"
 	"github.com/render-oss/cli/pkg/sandboxgroup"
 	"github.com/render-oss/cli/pkg/sandboxsnapshot"
 	"github.com/render-oss/cli/pkg/service"
@@ -57,6 +58,7 @@ type cachedDependencies struct {
 	sandboxRepo            cache[*sandbox.Repo]
 	sandboxGroupRepo       cache[*sandboxgroup.Repo]
 	sandboxSnapshotRepo    cache[*sandboxsnapshot.Repo]
+	sandboxBuildRepo       cache[*sandboxbuild.Repo]
 	keyValueRepo           cache[*keyvalue.Repo]
 	userRepo               cache[*user.Repo]
 	ownerRepo              cache[*owner.Repo]
@@ -67,6 +69,7 @@ type cachedDependencies struct {
 	sandboxService         cache[*sandbox.Service]
 	sandboxGroupService    cache[*sandboxgroup.Service]
 	sandboxSnapshotService cache[*sandboxsnapshot.Service]
+	sandboxBuildService    cache[*sandboxbuild.Service]
 	keyValueService        cache[*keyvalue.Service]
 	resourceService        cache[*resource.Service]
 	logRepo                cache[*logs.LogRepo]
@@ -178,6 +181,12 @@ func (d *Dependencies) SandboxSnapshotRepo() *sandboxsnapshot.Repo {
 	})
 }
 
+func (d *Dependencies) SandboxBuildRepo() *sandboxbuild.Repo {
+	return d.cache.sandboxBuildRepo.Get(func() *sandboxbuild.Repo {
+		return sandboxbuild.NewRepo(d.client)
+	})
+}
+
 func (d *Dependencies) KeyValueRepo() *keyvalue.Repo {
 	return d.cache.keyValueRepo.Get(func() *keyvalue.Repo {
 		return keyvalue.NewRepo(d.client)
@@ -234,7 +243,13 @@ func (d *Dependencies) SandboxGroupService() *sandboxgroup.Service {
 
 func (d *Dependencies) SandboxSnapshotService() *sandboxsnapshot.Service {
 	return d.cache.sandboxSnapshotService.Get(func() *sandboxsnapshot.Service {
-		return sandboxsnapshot.NewService(d.SandboxSnapshotRepo(), d.SandboxGroupRepo())
+		return sandboxsnapshot.NewService(d.SandboxSnapshotRepo(), d.SandboxGroupService())
+	})
+}
+
+func (d *Dependencies) SandboxBuildService() *sandboxbuild.Service {
+	return d.cache.sandboxBuildService.Get(func() *sandboxbuild.Service {
+		return sandboxbuild.NewService(d.SandboxBuildRepo(), d.SandboxGroupService())
 	})
 }
 

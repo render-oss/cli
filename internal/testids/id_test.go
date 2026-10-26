@@ -21,6 +21,7 @@ func TestResourceIDsAreValid(t *testing.T) {
 		{"cron job", CronJobID("daily"), func(s string) bool { return validate.IsObjectID("crn", s) }},
 		{"sandbox", SandboxID("box"), func(s string) bool { return validate.IsObjectID("sbx", s) }},
 		{"sandbox snapshot", SandboxSnapshotID("snap"), func(s string) bool { return validate.IsObjectID("snp", s) }},
+		{"sandbox build", SandboxBuildID("python"), func(s string) bool { return validate.IsObjectID("sbb", s) }},
 	}
 
 	for _, tc := range tests {
@@ -56,6 +57,7 @@ func TestRandomResourceIDsAreValidAndUnique(t *testing.T) {
 		{"cron job", RandomCronJobID(), RandomCronJobID(), func(s string) bool { return validate.IsObjectID("crn", s) }},
 		{"sandbox", RandomSandboxID(), RandomSandboxID(), func(s string) bool { return validate.IsObjectID("sbx", s) }},
 		{"sandbox snapshot", RandomSandboxSnapshotID(), RandomSandboxSnapshotID(), func(s string) bool { return validate.IsObjectID("snp", s) }},
+		{"sandbox build", RandomSandboxBuildID(), RandomSandboxBuildID(), func(s string) bool { return validate.IsObjectID("sbb", s) }},
 	}
 
 	for _, tc := range tests {

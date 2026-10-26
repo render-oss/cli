@@ -43,7 +43,7 @@ func newTestService(t *testing.T, respond func(w http.ResponseWriter)) (*sandbox
 
 	c, err := client.NewClientWithResponses(server.URL)
 	require.NoError(t, err)
-	return sandboxsnapshot.NewService(sandboxsnapshot.NewRepo(c), sandboxgroup.NewRepo(c)), rec
+	return sandboxsnapshot.NewService(sandboxsnapshot.NewRepo(c), sandboxgroup.NewService(sandboxgroup.NewRepo(c))), rec
 }
 
 func respondJSON(status int, v any) func(w http.ResponseWriter) {

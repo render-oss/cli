@@ -125,6 +125,14 @@ func RandomSandboxSnapshotID() string {
 	return SandboxSnapshotID(xid.New().String())
 }
 
+func SandboxBuildID(label string) string {
+	return objectID("sbb", label)
+}
+
+func RandomSandboxBuildID() string {
+	return SandboxBuildID(xid.New().String())
+}
+
 // objectID returns a deterministic test ID in Render object ID form:
 //
 //	objectID("prj", "Project A!") == "prj-projecta000000000000"

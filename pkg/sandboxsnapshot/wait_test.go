@@ -52,7 +52,7 @@ func newSnapshotDoerService(t *testing.T, snapshots ...sandboxesclient.SandboxSn
 	doer := &snapshotDoer{t: t, snapshots: snapshots}
 	c, err := client.NewClientWithResponses("http://snapshot.test", client.WithHTTPClient(doer))
 	require.NoError(t, err)
-	return sandboxsnapshot.NewService(sandboxsnapshot.NewRepo(c), sandboxgroup.NewRepo(c)), doer
+	return sandboxsnapshot.NewService(sandboxsnapshot.NewRepo(c), sandboxgroup.NewService(sandboxgroup.NewRepo(c))), doer
 }
 
 func TestWaitUntilAvailable(t *testing.T) {

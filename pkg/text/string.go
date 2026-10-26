@@ -11,7 +11,7 @@ import (
 )
 
 func FormatString(s string) string {
-	return FormatStringF(s)
+	return FormatStringF("%s", s)
 }
 
 func FormatStringF(s string, a ...any) string {

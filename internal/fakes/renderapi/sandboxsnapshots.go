@@ -107,7 +107,7 @@ func (s *Server) ownerFromQuery(w http.ResponseWriter, r *http.Request) (string,
 
 func (s *Server) defaultSandboxGroupID(ownerID string) string {
 	for _, g := range s.SandboxGroups.Instances {
-		if g.OwnerId == ownerID {
+		if g.OwnerId == ownerID && g.IsDefault {
 			return g.Id
 		}
 	}

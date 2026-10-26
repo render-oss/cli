@@ -308,6 +308,7 @@ type Server struct {
 	SandboxGroups    *SandboxGroupResource
 	Sandboxes        *SandboxResource
 	SandboxSnapshots *SandboxSnapshotResource
+	SandboxBuilds    *SandboxBuildResource
 	CliTelemetry     *CliTelemetryResource
 	OAuth            *OAuthResource
 	Logs             *LogResource
@@ -425,6 +426,7 @@ func NewServer(t *testing.T) *Server {
 		SandboxGroups:    &SandboxGroupResource{},
 		Sandboxes:        &SandboxResource{},
 		SandboxSnapshots: &SandboxSnapshotResource{},
+		SandboxBuilds:    &SandboxBuildResource{},
 		CliTelemetry:     &CliTelemetryResource{},
 		OAuth:            &OAuthResource{},
 		Logs:             &LogResource{t: t},
@@ -1087,6 +1089,7 @@ func NewServer(t *testing.T) *Server {
 	registerSandboxGroupRoutes(mux, s, record)
 	registerSandboxRoutes(mux, s, record)
 	registerSandboxSnapshotRoutes(mux, s, record)
+	registerSandboxBuildRoutes(mux, s, record)
 	registerCliTelemetryRoutes(mux, s, record)
 	registerOAuthRoutes(mux, s, record)
 	registerLogRoutes(mux, s, record)

@@ -132,6 +132,32 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 			writeAPIError(w, http.StatusBadRequest, "invalid snapshot name", ErrorCodeInvalidSnapshotName)
 			return
 		}
+		if body.BuildName != nil && *body.BuildName == "" {
+			writeAPIError(w, http.StatusBadRequest, "invalid buildName: name must be 1 to 255 characters", "")
+			return
+		}
+		if body.BuildId != nil {
+			build, found := s.buildByID(*body.BuildId)
+			if !found || build.SandboxGroupId != s.defaultSandboxGroupID(body.OwnerId) {
+				writeAPIError(w, http.StatusNotFound, "not found: build", "")
+				return
+			}
+			if build.Status != sandboxesclient.SandboxBuildStatusSucceeded {
+				writeAPIError(w, http.StatusConflict, "build has not succeeded", "")
+				return
+			}
+		}
+		if body.BuildName != nil {
+			build, found := s.latestBuildByName(s.defaultSandboxGroupID(body.OwnerId), *body.BuildName)
+			if !found {
+				writeAPIError(w, http.StatusNotFound, "not found: build", "")
+				return
+			}
+			if build.Status != sandboxesclient.SandboxBuildStatusSucceeded {
+				writeAPIError(w, http.StatusConflict, "build has not succeeded", "")
+				return
+			}
+		}
 		if body.SnapshotId != nil {
 			snap, found := s.snapshotByID(*body.SnapshotId)
 			if !found || s.sandboxGroupOwner(snap.SandboxGroupId) != body.OwnerId {

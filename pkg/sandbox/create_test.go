@@ -198,3 +198,43 @@ func TestServiceCreate_SnapshotSourceBody(t *testing.T) {
 func stringPointer(value string) *string {
 	return &value
 }
+
+func TestServiceCreate_BuildSourceBody(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         CreateInput
+		wantBuildID   string
+		wantBuildName *string
+	}{
+		{name: "unset omits build source", input: CreateInput{}},
+		{name: "build id is sent", input: CreateInput{BuildID: "sbb-abc123"}, wantBuildID: "sbb-abc123"},
+		{name: "build name is sent", input: CreateInput{BuildName: stringPointer("python")}, wantBuildName: stringPointer("python")},
+		{name: "empty build name is sent for server validation", input: CreateInput{BuildName: stringPointer("")}, wantBuildName: stringPointer("")},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var gotBody map[string]any
+			svc := newTestService(t, func(w http.ResponseWriter, r *http.Request) {
+				require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusCreated)
+				_ = json.NewEncoder(w).Encode(sandboxclient.Sandbox{Id: "sbx-1", Status: sandboxclient.SandboxStatusCreating})
+			})
+
+			_, err := svc.Create(context.Background(), tc.input, nil)
+			require.NoError(t, err)
+
+			if tc.wantBuildID == "" {
+				assert.NotContains(t, gotBody, "buildId")
+			} else {
+				assert.Equal(t, tc.wantBuildID, gotBody["buildId"])
+			}
+			if tc.wantBuildName == nil {
+				assert.NotContains(t, gotBody, "buildName")
+			} else {
+				assert.Equal(t, *tc.wantBuildName, gotBody["buildName"])
+			}
+		})
+	}
+}

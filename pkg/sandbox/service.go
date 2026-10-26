@@ -34,6 +34,8 @@ type CreateInput struct {
 	Env          map[string]string
 	SnapshotID   string
 	SnapshotName *string
+	BuildID      string
+	BuildName    *string
 }
 
 // allSandboxStatuses is every sandbox status. --all sends the full set so the
@@ -113,6 +115,12 @@ func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*s
 	}
 	if input.SnapshotName != nil {
 		body.SnapshotName = input.SnapshotName
+	}
+	if input.BuildID != "" {
+		body.BuildId = &input.BuildID
+	}
+	if input.BuildName != nil {
+		body.BuildName = input.BuildName
 	}
 
 	return s.repo.CreateSandbox(ctx, body, onEvent)
