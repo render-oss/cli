@@ -172,7 +172,8 @@ func setupSandboxCommands(earlyAccess *cobra.Command, deps *dependencies.Depende
 }
 
 func setupSandboxGroupsCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
-	earlyAccess.AddCommand(newSandboxGroupsCmd(newSandboxGroupsListCmd(deps)))
+	builds := newSandboxBuildsCmd(newSandboxBuildsCreateCmd(deps), newSandboxBuildsGetCmd(deps))
+	earlyAccess.AddCommand(newSandboxGroupsCmd(builds, newSandboxGroupsListCmd(deps)))
 }
 
 func setupServiceCommands(deps *dependencies.Dependencies) {

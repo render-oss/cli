@@ -28,12 +28,16 @@ type SandboxCreateInput struct {
 	EnvFiles         []string `cli:"env-file"`
 	SnapshotID       string   `cli:"snapshot-id"`
 	From             string   `cli:"from"`
+	Build            string   `cli:"build"`
 	Wait             bool     `cli:"wait"`
 }
 
 func (i *SandboxCreateInput) Validate(_ bool) error {
 	if i.From != "" && i.SnapshotID != "" {
 		return fmt.Errorf("--from and --snapshot-id cannot be used together")
+	}
+	if i.Build != "" && (i.From != "" || i.SnapshotID != "") {
+		return fmt.Errorf("--build cannot be used with --from or --snapshot-id")
 	}
 	if i.NetworkPolicy != "" && !sandboxclient.SandboxNetworkPolicyType(i.NetworkPolicy).Valid() {
 		return fmt.Errorf("invalid network policy %q: use %s", i.NetworkPolicy, strings.Join(sandboxNetworkPolicyNames(), ", "))
@@ -87,6 +91,18 @@ func resolveSandboxSource(from string, fromSet bool, snapshotID string) (string,
 		return from, nil
 	}
 	return "", &from
+}
+
+var sandboxBuildIDPattern = regexp.MustCompile(`^sbb-[0-9a-v]{20}$`)
+
+func resolveSandboxBuild(build string, buildSet bool) (string, *string) {
+	if !buildSet {
+		return "", nil
+	}
+	if sandboxBuildIDPattern.MatchString(build) {
+		return build, nil
+	}
+	return "", &build
 }
 
 func resolveSandboxEnv(files, pairs []string) (map[string]string, error) {
@@ -153,6 +169,8 @@ Examples:
   render ea sandboxes create --env-file .env.production --env-var LOG_LEVEL=debug
   render ea sandboxes create --from gold
   render ea sandboxes create --from snp-cph1rs3idesc73a2b2mg
+  render ea sandboxes create --build python
+  render ea sandboxes create --build sbb-cph1rs3idesc73a2b2mg
   render ea sandboxes create --from gold --wait
 `,
 	}
@@ -174,6 +192,10 @@ Examples:
 	cmd.Flags().String("from", "", "Start from a snapshot ID or name")
 	setFlagPlaceholder(cmd.Flags(), "from", "SNAPSHOT_ID_OR_NAME")
 	cmd.MarkFlagsMutuallyExclusive("from", "snapshot-id")
+	cmd.Flags().String("build", "", "Start from a build's image instead of the base image, by build ID or name. A name uses the newest succeeded build with that name in the sandbox group")
+	setFlagPlaceholder(cmd.Flags(), "build", "BUILD_ID_OR_NAME")
+	cmd.MarkFlagsMutuallyExclusive("build", "from")
+	cmd.MarkFlagsMutuallyExclusive("build", "snapshot-id")
 	cmd.Flags().Bool("wait", false, fmt.Sprintf("Wait until the sandbox is running, up to %d seconds, instead of returning while it's still creating", int(sandbox.WaitTimeout.Seconds())))
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -204,6 +226,7 @@ Examples:
 			return err
 		}
 		snapshotID, snapshotName := resolveSandboxSource(input.From, cmd.Flags().Changed("from"), input.SnapshotID)
+		buildID, buildName := resolveSandboxBuild(input.Build, cmd.Flags().Changed("build"))
 		var idleTimeout *int
 		if cmd.Flags().Changed("idle-timeout") {
 			idleTimeout = &input.IdleTimeout
@@ -222,6 +245,8 @@ Examples:
 				Env:           env,
 				SnapshotID:    snapshotID,
 				SnapshotName:  snapshotName,
+				BuildID:       buildID,
+				BuildName:     buildName,
 			}, onEvent)
 			if err != nil || !input.Wait {
 				return sb, err

@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -18,6 +19,11 @@ import (
 var sandboxGroupsActiveWorkspaceID = testids.WorkspaceID("active")
 
 func executeSandboxGroupsCommand(t *testing.T, server *renderapi.Server, args ...string) (CommandResult, error) {
+	t.Helper()
+	return executeSandboxGroupsCommandWithStdin(t, server, "", args...)
+}
+
+func executeSandboxGroupsCommandWithStdin(t *testing.T, server *renderapi.Server, stdin string, args ...string) (CommandResult, error) {
 	t.Helper()
 	t.Setenv("RENDER_CLI_CONFIG_PATH", newTestConfigPath(t))
 	t.Setenv("RENDER_API_KEY", "test-api-key")
@@ -38,6 +44,7 @@ func executeSandboxGroupsCommand(t *testing.T, server *renderapi.Server, args ..
 	var stdout, stderr bytes.Buffer
 	root.SetOut(&stdout)
 	root.SetErr(&stderr)
+	root.SetIn(strings.NewReader(stdin))
 	root.SetArgs(args)
 
 	execErr := root.Execute()

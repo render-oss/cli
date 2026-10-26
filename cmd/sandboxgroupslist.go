@@ -15,10 +15,7 @@ func newSandboxGroupsListCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Short:        "List sandbox groups in the active workspace",
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
-		Long: `List sandbox groups in your workspace.
-
-Early Access guarantees at most one default group per workspace, so this
-command typically prints a single row.`,
+		Long:         `List sandbox groups in your workspace.`,
 		Example: `  # List sandbox groups in the active workspace
   render ea sandbox-groups list
 
