@@ -159,7 +159,7 @@ Examples:
 
 	cmd.Flags().String("plan", "", "Compute plan: "+strings.Join(sandboxPlanNames(), ", "))
 	cmd.Flags().String("region", "", "Region to run the sandbox in")
-	cmd.Flags().Int("timeout", 0, "Maximum sandbox lifetime in seconds. 0 uses the default and maximum of 86400 (24 hours)")
+	cmd.Flags().Int("timeout", 0, "Maximum sandbox lifetime in seconds, up to 2592000 (30 days), or 86400 (24 hours) on Hobby workspaces. 0 uses the default of 86400 (24 hours)")
 	cmd.Flags().Int("idle-timeout", 900, "Seconds of inactivity before suspension. 0 disables automatic idle suspension")
 	cmd.Flags().String("network-policy", "", "Outbound network policy: "+strings.Join(sandboxNetworkPolicyNames(), ", "))
 	setFlagPlaceholder(cmd.Flags(), "network-policy", "NETWORK_POLICY")
