@@ -17,6 +17,7 @@ type SandboxSnapshotsCreateInput struct {
 	SandboxID string `cli:"arg:0"`
 	Kind      string `cli:"kind"`
 	Name      string `cli:"name"`
+	Wait      bool   `cli:"wait"`
 }
 
 func (i *SandboxSnapshotsCreateInput) Validate(_ bool) error {
@@ -45,8 +46,8 @@ func newSandboxSnapshotsCreateCmd(deps *dependencies.Dependencies) *cobra.Comman
 		Long: `Capture a snapshot of a running sandbox.
 
 The command returns as soon as the API accepts the request, while the snapshot
-status is still "creating". Poll with "render ea sandboxes snapshots get" until
-the status is "available" before starting a sandbox from it.
+status is still "creating". Pass --wait to return once it's "available", so a
+sandbox can start from it.
 
 The sandbox keeps running after the capture.`,
 		Example: `  # Snapshot the filesystem, memory, and CPU state (default)
@@ -58,6 +59,9 @@ The sandbox keeps running after the capture.`,
   # Name the snapshot
   render ea sandboxes snapshots create sbx-abc123 --name gold
 
+  # Wait until new sandboxes can start from it
+  render ea sandboxes snapshots create sbx-abc123 --name gold --wait
+
   # JSON output
   render ea sandboxes snapshots create sbx-abc123 --output json`,
 	}
@@ -66,6 +70,7 @@ The sandbox keeps running after the capture.`,
 	setFlagPlaceholder(cmd.Flags(), "kind", "KIND")
 	cmd.Flags().String("name", "", "Name the snapshot")
 	setFlagPlaceholder(cmd.Flags(), "name", "NAME")
+	cmd.Flags().Bool("wait", false, fmt.Sprintf("Wait until the snapshot is available, up to %d minutes", int(sandboxsnapshot.WaitTimeout.Minutes())))
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)
@@ -79,14 +84,30 @@ The sandbox keeps running after the capture.`,
 			name = &input.Name
 		}
 
+		// A failed wait still prints the snapshot, so callers get its ID.
+		var waitErr error
 		_, err := command.NonInteractive(cmd, func() (*sandboxesclient.SandboxSnapshot, error) {
-			return deps.SandboxSnapshotService().Create(cmd.Context(), sandboxsnapshot.CreateInput{
+			snapshot, err := deps.SandboxSnapshotService().Create(cmd.Context(), sandboxsnapshot.CreateInput{
 				SandboxID: input.SandboxID,
 				Kind:      input.Kind,
 				Name:      name,
 			})
+			if err != nil || !input.Wait {
+				return snapshot, err
+			}
+			ctx, stop := waitContext(cmd.Context())
+			defer stop()
+			var waited *sandboxesclient.SandboxSnapshot
+			waited, waitErr = deps.SandboxSnapshotService().WaitUntilAvailable(ctx, snapshot.SandboxGroupId, snapshot.Id)
+			if waited != nil {
+				snapshot = waited
+			}
+			return snapshot, nil
 		}, text.SandboxSnapshotDetail)
-		return err
+		if err != nil {
+			return err
+		}
+		return waitErr
 	}
 
 	return cmd

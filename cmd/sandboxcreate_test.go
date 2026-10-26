@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -531,4 +532,40 @@ func TestSandboxCreate_AllowEgressHTTPSRejectedWithOtherPolicy(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "--allow-egress-https requires --network-policy=allow-list")
 	assert.False(t, server.HasRequest("POST", "/sandboxes"))
+}
+
+func TestSandboxCreate_Wait(t *testing.T) {
+	server := newSandboxCreateServer(t)
+
+	result, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--wait", "--output", "json")
+	require.NoError(t, err)
+
+	created := server.Sandboxes.Only(t)
+	assert.Equal(t, "running", testrequire.ParseJSONMap(t, result.Stdout)["status"])
+	assert.True(t, server.HasRequest("GET", "/sandboxes/"+created.Id), "--wait polls the new sandbox")
+}
+
+func TestSandboxCreate_NoWaitDoesNotPoll(t *testing.T) {
+	server := newSandboxCreateServer(t)
+
+	_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--output", "json")
+	require.NoError(t, err)
+
+	created := server.Sandboxes.Only(t)
+	assert.False(t, server.HasRequest("GET", "/sandboxes/"+created.Id))
+}
+
+func TestSandboxCreate_WaitFailurePrintsSandbox(t *testing.T) {
+	for _, format := range []string{"json", "text"} {
+		t.Run(format, func(t *testing.T) {
+			server := newSandboxCreateServer(t)
+			server.Sandboxes.RespondToGetWith(http.StatusInternalServerError)
+
+			result, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--wait", "--output", format)
+			require.Error(t, err)
+
+			created := server.Sandboxes.Only(t)
+			assert.Contains(t, result.Stdout, created.Id, "a failed wait still prints the sandbox ID")
+		})
+	}
 }

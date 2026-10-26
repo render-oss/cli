@@ -562,3 +562,19 @@ func TestSandboxSnapshotsDelete_SnapshotCreating_SurfacesCode(t *testing.T) {
 	assert.Contains(t, err.Error(), "409 (snapshot_creating)")
 	assert.Len(t, h.server.SandboxSnapshots.Instances, 1)
 }
+
+func TestSandboxSnapshotsCreate_WaitFailurePrintsSnapshot(t *testing.T) {
+	for _, format := range []string{"json", "text"} {
+		t.Run(format, func(t *testing.T) {
+			h := newSandboxSnapshotsHarness(t)
+			h.server.SandboxSnapshots.RespondToGetWith(http.StatusInternalServerError)
+
+			result, err := h.execute("create", h.sandbox.Id, "--wait", "--output", format)
+			require.Error(t, err)
+
+			created := h.server.SandboxSnapshots.Only(t)
+			assert.Contains(t, result.Stdout, created.Id, "a failed wait still prints the snapshot ID")
+			assert.True(t, h.server.HasRequest("GET", "/snapshots/"+created.Id), "--wait polls the new snapshot")
+		})
+	}
+}

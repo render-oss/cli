@@ -25,11 +25,18 @@ const (
 
 type SandboxSnapshotResource struct {
 	Resource[*sandboxesclient.SandboxSnapshot]
-	errorQueue []int
+	errorQueue    []int
+	getErrorQueue []int
 }
 
 func (r *SandboxSnapshotResource) RespondWith(status int) {
 	r.errorQueue = append(r.errorQueue, status)
+}
+
+// RespondToGetWith queues an HTTP error status for the next
+// GET /sandbox-groups/{groupId}/snapshots/{snapshotId}.
+func (r *SandboxSnapshotResource) RespondToGetWith(status int) {
+	r.getErrorQueue = append(r.getErrorQueue, status)
 }
 
 func (r *SandboxSnapshotResource) nextError() (int, bool) {
@@ -214,6 +221,11 @@ func registerSandboxSnapshotRoutes(mux *http.ServeMux, s *Server, record func(*h
 		record(r)
 		if status, hasError := s.SandboxSnapshots.nextError(); hasError {
 			w.WriteHeader(status)
+			return
+		}
+		if q := s.SandboxSnapshots.getErrorQueue; len(q) > 0 {
+			s.SandboxSnapshots.getErrorQueue = q[1:]
+			writeAPIError(w, q[0], http.StatusText(q[0]), "")
 			return
 		}
 		if _, ok := s.ownerFromQuery(w, r); !ok {

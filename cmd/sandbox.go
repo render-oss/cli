@@ -1,6 +1,11 @@
 package cmd
 
 import (
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/spf13/cobra"
 )
 
@@ -31,4 +36,10 @@ Examples:
 	}
 	cmd.AddCommand(children...)
 	return cmd
+}
+
+// waitContext turns Ctrl-C and SIGTERM into a cancelled context, so an
+// interrupted --wait still prints what it created.
+func waitContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 }

@@ -17,6 +17,13 @@ const (
 
 type SandboxResource struct {
 	Resource[*sandboxesclient.Sandbox]
+	getErrorQueue []int
+}
+
+// RespondToGetWith queues an HTTP error status for the next
+// GET /sandboxes/{sandboxId}.
+func (r *SandboxResource) RespondToGetWith(status int) {
+	r.getErrorQueue = append(r.getErrorQueue, status)
 }
 
 func NewSandbox(sb sandboxesclient.Sandbox) *sandboxesclient.Sandbox {
@@ -95,6 +102,21 @@ func (s *Server) snapshotByName(groupID, name string) (*sandboxesclient.SandboxS
 }
 
 func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Request)) {
+	mux.HandleFunc("GET /sandboxes/{sandboxId}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if q := s.Sandboxes.getErrorQueue; len(q) > 0 {
+			s.Sandboxes.getErrorQueue = q[1:]
+			writeAPIError(w, q[0], http.StatusText(q[0]), "")
+			return
+		}
+		sb, found := s.sandboxByID(r.PathValue("sandboxId"))
+		if !found {
+			writeAPIError(w, http.StatusNotFound, "sandbox not found", "")
+			return
+		}
+		writeJSON(w, http.StatusOK, sb)
+	})
+
 	mux.HandleFunc("POST /sandboxes", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
 		var body sandboxesclient.SandboxPOST

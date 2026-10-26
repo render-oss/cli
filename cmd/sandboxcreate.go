@@ -28,6 +28,7 @@ type SandboxCreateInput struct {
 	EnvFiles         []string `cli:"env-file"`
 	SnapshotID       string   `cli:"snapshot-id"`
 	From             string   `cli:"from"`
+	Wait             bool     `cli:"wait"`
 }
 
 func (i *SandboxCreateInput) Validate(_ bool) error {
@@ -152,6 +153,7 @@ Examples:
   render ea sandboxes create --env-file .env.production --env-var LOG_LEVEL=debug
   render ea sandboxes create --from gold
   render ea sandboxes create --from snp-cph1rs3idesc73a2b2mg
+  render ea sandboxes create --from gold --wait
 `,
 	}
 
@@ -172,6 +174,7 @@ Examples:
 	cmd.Flags().String("from", "", "Start from a snapshot ID or name")
 	setFlagPlaceholder(cmd.Flags(), "from", "SNAPSHOT_ID_OR_NAME")
 	cmd.MarkFlagsMutuallyExclusive("from", "snapshot-id")
+	cmd.Flags().Bool("wait", false, fmt.Sprintf("Wait until the sandbox is running, up to %d seconds, instead of returning while it's still creating", int(sandbox.WaitTimeout.Seconds())))
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)
@@ -185,7 +188,13 @@ Examples:
 		// consumers get a single clean payload on stdout.
 		var onEvent func(*sandboxclient.Sandbox)
 		if format := command.GetFormatFromContext(cmd.Context()); format != nil && *format == command.TEXT {
+			// Create and --wait both report "creating"; print it once.
+			var printed sandboxclient.SandboxStatus
 			onEvent = func(sb *sandboxclient.Sandbox) {
+				if sb.Status == printed {
+					return
+				}
+				printed = sb.Status
 				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "  %s %s\n", sb.Id, sb.Status)
 			}
 		}
@@ -200,8 +209,10 @@ Examples:
 			idleTimeout = &input.IdleTimeout
 		}
 
+		// A failed wait still prints the sandbox, so callers get its ID.
+		var waitErr error
 		_, err = command.NonInteractive(cmd, func() (*sandboxclient.Sandbox, error) {
-			return deps.SandboxService().Create(cmd.Context(), sandbox.CreateInput{
+			sb, err := deps.SandboxService().Create(cmd.Context(), sandbox.CreateInput{
 				Plan:          input.Plan,
 				Region:        input.Region,
 				Timeout:       input.Timeout,
@@ -212,8 +223,22 @@ Examples:
 				SnapshotID:    snapshotID,
 				SnapshotName:  snapshotName,
 			}, onEvent)
+			if err != nil || !input.Wait {
+				return sb, err
+			}
+			ctx, stop := waitContext(cmd.Context())
+			defer stop()
+			var waited *sandboxclient.Sandbox
+			waited, waitErr = deps.SandboxService().WaitUntilRunning(ctx, sb.Id, onEvent)
+			if waited != nil {
+				sb = waited
+			}
+			return sb, nil
 		}, text.SandboxDetail)
-		return err
+		if err != nil {
+			return err
+		}
+		return waitErr
 	}
 
 	return cmd
