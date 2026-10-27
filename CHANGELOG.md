@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [2.32.0] - 2026-10-27
+
+### Added
+
+- `render sandbox-groups create` to create a new sandbox group
+- `--sandbox-group` on `render sandboxes create` and `sandboxes list` allows you to specify a sandbox' group at creation time, or filter by group
+- `--wait` on `render sandboxes create` and `sandboxes snapshots create`
+
+### Changed
+
+- **Breaking:** Sandbox commands moved out of early access: `render ea sandboxes` is now `render sandboxes`, and `render ea sandbox-groups` is now `render sandbox-groups`
+
+### Fixed
+
+- Updated Go to 1.27.3
+
 ## [2.31.0] - 2026-10-21
 
 ### Added
