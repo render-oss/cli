@@ -25,13 +25,13 @@ func newSandboxBuildsGetCmd(deps *dependencies.Dependencies) *cobra.Command {
 Uses the active workspace's default sandbox group unless --group is provided.
 A build that belongs to another sandbox group is reported as not found.`,
 		Example: `  # Get a build
-  render ea sandbox-groups builds get sbb-abc123
+  render sandbox-groups builds get sbb-abc123
 
   # Get a build in a specific group
-  render ea sandbox-groups builds get sbb-abc123 --group sbg-abc123
+  render sandbox-groups builds get sbb-abc123 --group sbg-abc123
 
   # JSON output
-  render ea sandbox-groups builds get sbb-abc123 --output json`,
+  render sandbox-groups builds get sbb-abc123 --output json`,
 	}
 
 	cmd.Flags().String("group", "", "Sandbox group the build belongs to (defaults to the active workspace's default group)")

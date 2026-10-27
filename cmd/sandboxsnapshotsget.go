@@ -25,13 +25,13 @@ func newSandboxSnapshotsGetCmd(deps *dependencies.Dependencies) *cobra.Command {
 Uses the active workspace's default sandbox group unless --group is provided.
 An expired snapshot is reported as not found.`,
 		Example: `  # Get a snapshot
-  render ea sandboxes snapshots get snp-abc123
+  render sandboxes snapshots get snp-abc123
 
   # Get a snapshot in a specific group
-  render ea sandboxes snapshots get snp-abc123 --group sbg-abc123
+  render sandboxes snapshots get snp-abc123 --group sbg-abc123
 
   # JSON output
-  render ea sandboxes snapshots get snp-abc123 --output json`,
+  render sandboxes snapshots get snp-abc123 --output json`,
 	}
 
 	cmd.Flags().String("group", "", "Sandbox group the snapshot belongs to (defaults to the active workspace's default group)")

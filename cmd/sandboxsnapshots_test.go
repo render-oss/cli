@@ -40,7 +40,7 @@ func newSandboxSnapshotsHarness(t *testing.T) sandboxSnapshotsHarness {
 
 func (h sandboxSnapshotsHarness) execute(args ...string) (CommandResult, error) {
 	h.t.Helper()
-	return executeSandboxCommand(h.t, h.server, append([]string{"ea", "sandboxes", "snapshots"}, args...)...)
+	return executeSandboxCommand(h.t, h.server, append([]string{"sandboxes", "snapshots"}, args...)...)
 }
 
 func (h sandboxSnapshotsHarness) seedSnapshot(s sandboxesclient.SandboxSnapshot) *sandboxesclient.SandboxSnapshot {

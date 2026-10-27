@@ -27,7 +27,7 @@ func newSandboxGroupsListHarness(t *testing.T) sandboxGroupsListHarness {
 
 func (h sandboxGroupsListHarness) execute(extraArgs ...string) (CommandResult, error) {
 	h.t.Helper()
-	return executeSandboxGroupsCommand(h.t, h.server, append([]string{"ea", "sandbox-groups", "list"}, extraArgs...)...)
+	return executeSandboxGroupsCommand(h.t, h.server, append([]string{"sandbox-groups", "list"}, extraArgs...)...)
 }
 
 func TestSandboxGroupsList_NoGroups(t *testing.T) {

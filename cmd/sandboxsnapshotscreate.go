@@ -51,19 +51,19 @@ sandbox can start from it.
 
 The sandbox keeps running after the capture.`,
 		Example: `  # Snapshot the filesystem, memory, and CPU state (default)
-  render ea sandboxes snapshots create sbx-abc123
+  render sandboxes snapshots create sbx-abc123
 
   # Snapshot only the filesystem
-  render ea sandboxes snapshots create sbx-abc123 --kind filesystem
+  render sandboxes snapshots create sbx-abc123 --kind filesystem
 
   # Name the snapshot
-  render ea sandboxes snapshots create sbx-abc123 --name gold
+  render sandboxes snapshots create sbx-abc123 --name gold
 
   # Wait until new sandboxes can start from it
-  render ea sandboxes snapshots create sbx-abc123 --name gold --wait
+  render sandboxes snapshots create sbx-abc123 --name gold --wait
 
   # JSON output
-  render ea sandboxes snapshots create sbx-abc123 --output json`,
+  render sandboxes snapshots create sbx-abc123 --output json`,
 	}
 
 	cmd.Flags().String("kind", "", "Snapshot kind: runtime (default), filesystem")

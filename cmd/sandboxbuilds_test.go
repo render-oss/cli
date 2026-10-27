@@ -40,7 +40,7 @@ func (h sandboxBuildsHarness) execute(args ...string) (CommandResult, error) {
 
 func (h sandboxBuildsHarness) executeWithStdin(stdin string, args ...string) (CommandResult, error) {
 	h.t.Helper()
-	return executeSandboxGroupsCommandWithStdin(h.t, h.server, stdin, append([]string{"ea", "sandbox-groups", "builds"}, args...)...)
+	return executeSandboxGroupsCommandWithStdin(h.t, h.server, stdin, append([]string{"sandbox-groups", "builds"}, args...)...)
 }
 
 func (h sandboxBuildsHarness) seedBuild(b sandboxesclient.SandboxBuild) *sandboxesclient.SandboxBuild {
@@ -53,7 +53,7 @@ func (h sandboxBuildsHarness) seedBuild(b sandboxesclient.SandboxBuild) *sandbox
 func TestSandboxGroups_HelpListsBuilds(t *testing.T) {
 	h := newSandboxBuildsHarness(t)
 
-	result, err := executeSandboxGroupsCommand(t, h.server, "ea", "sandbox-groups", "--help")
+	result, err := executeSandboxGroupsCommand(t, h.server, "sandbox-groups", "--help")
 	require.NoError(t, err)
 	assert.Contains(t, result.Stdout, "builds")
 }

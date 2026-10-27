@@ -13,8 +13,8 @@ import (
 	"github.com/render-oss/cli/pkg/dependencies"
 )
 
-// executeSandboxCommand runs the CLI with the sandbox tree registered under
-// ea, mirroring executeSandboxGroupsCommand in sandboxgroups_test.go.
+// executeSandboxCommand runs the CLI with the sandbox tree registered at the
+// root, mirroring executeSandboxGroupsCommand in sandboxgroups_test.go.
 func executeSandboxCommand(t *testing.T, server *renderapi.Server, args ...string) (CommandResult, error) {
 	t.Helper()
 	t.Setenv("RENDER_CLI_CONFIG_PATH", newTestConfigPath(t))
@@ -28,9 +28,7 @@ func executeSandboxCommand(t *testing.T, server *renderapi.Server, args ...strin
 	}
 
 	root := newRootCmd()
-	ea := newEarlyAccessCmd()
-	root.AddCommand(ea)
-	setupSandboxCommands(ea, deps)
+	setupSandboxCommands(root, deps)
 	setupRootCmdPersistentRun(root, deps)
 
 	var stdout, stderr bytes.Buffer
@@ -47,24 +45,18 @@ func executeSandboxCommand(t *testing.T, server *renderapi.Server, args ...strin
 func TestSandboxes_PluralCommandResolves(t *testing.T) {
 	server := renderapi.NewServer(t)
 
-	result, err := executeSandboxCommand(t, server, "ea", "sandboxes", "--help")
+	result, err := executeSandboxCommand(t, server, "sandboxes", "--help")
 	require.NoError(t, err)
 	assert.Contains(t, result.Stdout, "Manage sandboxes")
-	assert.Contains(t, result.Stdout, "render ea sandboxes")
+	assert.Contains(t, result.Stdout, "render sandboxes")
 }
 
 // The singular form is removed outright (no alias), per the #sandboxes-core
-// decision that pre-alpha backwards compatibility is not needed. This test
-// locks that in: if someone reintroduces "sandbox" as a name or alias, this
-// fails and forces a deliberate decision.
-//
-// No --help here on purpose: the help flag short-circuits before Cobra
-// validates args, so "ea sandbox --help" would print ea's help with no error.
-// The unknown-command error comes from ea's cobra.NoArgs validator.
+// decision that pre-alpha backwards compatibility is not needed.
 func TestSandboxes_SingularFormRemoved(t *testing.T) {
 	server := renderapi.NewServer(t)
 
-	_, err := executeSandboxCommand(t, server, "ea", "sandbox")
+	_, err := executeSandboxCommand(t, server, "sandbox")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unknown command")
 }
@@ -72,7 +64,7 @@ func TestSandboxes_SingularFormRemoved(t *testing.T) {
 func TestSandboxes_HelpListsSubcommands(t *testing.T) {
 	server := renderapi.NewServer(t)
 
-	result, err := executeSandboxCommand(t, server, "ea", "sandboxes", "--help")
+	result, err := executeSandboxCommand(t, server, "sandboxes", "--help")
 	require.NoError(t, err)
 	for _, sub := range []string{"create", "exec", "list", "snapshots", "stop"} {
 		assert.Contains(t, result.Stdout, sub, "expected subcommand %q in help output", sub)

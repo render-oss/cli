@@ -172,14 +172,14 @@ func setupKVCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
 	parent.AddCommand(newKVCmd(newKVCreateCmd(deps), newKVDeleteCmd(deps), newKVGetCmd(deps), newKVListCmd(deps), newKVResumeCmd(deps), newKVSuspendCmd(deps), newKVUpdateCmd(deps)))
 }
 
-func setupSandboxCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
+func setupSandboxCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
 	snapshots := newSandboxSnapshotsCmd(newSandboxSnapshotsCreateCmd(deps), newSandboxSnapshotsGetCmd(deps), newSandboxSnapshotsListCmd(deps), newSandboxSnapshotsDeleteCmd(deps))
-	earlyAccess.AddCommand(newSandboxCmd(newSandboxCreateCmd(deps), newSandboxCopyCmd(deps), newSandboxExecCmd(deps), newSandboxListCmd(deps), snapshots, newSandboxStopCmd(deps)))
+	parent.AddCommand(newSandboxCmd(newSandboxCreateCmd(deps), newSandboxCopyCmd(deps), newSandboxExecCmd(deps), newSandboxListCmd(deps), snapshots, newSandboxStopCmd(deps)))
 }
 
-func setupSandboxGroupsCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
+func setupSandboxGroupsCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
 	builds := newSandboxBuildsCmd(newSandboxBuildsCreateCmd(deps), newSandboxBuildsGetCmd(deps))
-	earlyAccess.AddCommand(newSandboxGroupsCmd(builds, newSandboxGroupsListCmd(deps), newSandboxGroupsCreateCmd(deps)))
+	parent.AddCommand(newSandboxGroupsCmd(builds, newSandboxGroupsListCmd(deps), newSandboxGroupsCreateCmd(deps)))
 }
 
 func setupServiceCommands(deps *dependencies.Dependencies) {
@@ -216,8 +216,8 @@ func setupCommands() (*dependencies.Dependencies, error) {
 	setupSSHCommands(rootCmd, deps)
 	setupKVCommands(rootCmd, deps)
 	setupPGCommands(rootCmd, deps)
-	setupSandboxCommands(EarlyAccessCmd, deps)
-	setupSandboxGroupsCommands(EarlyAccessCmd, deps)
+	setupSandboxCommands(rootCmd, deps)
+	setupSandboxGroupsCommands(rootCmd, deps)
 	setupRootCmdPersistentRun(rootCmd, deps)
 
 	return deps, nil

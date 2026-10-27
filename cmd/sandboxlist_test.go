@@ -15,7 +15,7 @@ import (
 func TestSandboxList_StatusHelpListsEveryStatus(t *testing.T) {
 	server := renderapi.NewServer(t)
 
-	result, err := executeSandboxCommand(t, server, "ea", "sandboxes", "list", "--help")
+	result, err := executeSandboxCommand(t, server, "sandboxes", "list", "--help")
 	require.NoError(t, err)
 
 	for _, status := range sandbox.AllStatuses() {
@@ -29,7 +29,7 @@ func TestSandboxList_GroupSelection(t *testing.T) {
 	server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxes.SandboxGroup{Id: groupID, OwnerId: sandboxCreateActiveWorkspaceID}))
 	server.Sandboxes.Add(renderapi.NewSandbox(sandboxes.Sandbox{Id: "sbx-selected", SandboxGroupId: &groupID}))
 	server.Sandboxes.Add(renderapi.NewSandbox(sandboxes.Sandbox{Id: "sbx-other", SandboxGroupId: new(sandboxCreateDefaultGroup(t, server).Id)}))
-	result, err := executeSandboxCommand(t, server, "ea", "sandboxes", "list", "--sandbox-group", groupID, "--output", "json")
+	result, err := executeSandboxCommand(t, server, "sandboxes", "list", "--sandbox-group", groupID, "--output", "json")
 	require.NoError(t, err)
 	assert.Contains(t, result.Stdout, "sbx-selected")
 	assert.NotContains(t, result.Stdout, "sbx-other")

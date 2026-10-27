@@ -159,21 +159,21 @@ func newSandboxCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Long: `Create a new sandbox in the current workspace.
 
 Examples:
-  render ea sandboxes create
-  render ea sandboxes create --plan=2c-4g
-  render ea sandboxes create --sandbox-group=sbg-cph1rs3idesc73a2b2mg
-  render ea sandboxes create --timeout=3600
-  render ea sandboxes create --idle-timeout=1800
-  render ea sandboxes create --idle-timeout=0
-  render ea sandboxes create --network-policy=deny-all
-  render ea sandboxes create --allow-egress-https api.github.com --allow-egress-https '*.pypi.org'
-  render ea sandboxes create --env-var FOO=bar --env-var BAZ=qux
-  render ea sandboxes create --env-file .env.production --env-var LOG_LEVEL=debug
-  render ea sandboxes create --from gold
-  render ea sandboxes create --from snp-cph1rs3idesc73a2b2mg
-  render ea sandboxes create --build python
-  render ea sandboxes create --build sbb-cph1rs3idesc73a2b2mg
-  render ea sandboxes create --from gold --wait
+  render sandboxes create
+  render sandboxes create --plan=2c-4g
+  render sandboxes create --sandbox-group=sbg-cph1rs3idesc73a2b2mg
+  render sandboxes create --timeout=3600
+  render sandboxes create --idle-timeout=1800
+  render sandboxes create --idle-timeout=0
+  render sandboxes create --network-policy=deny-all
+  render sandboxes create --allow-egress-https api.github.com --allow-egress-https '*.pypi.org'
+  render sandboxes create --env-var FOO=bar --env-var BAZ=qux
+  render sandboxes create --env-file .env.production --env-var LOG_LEVEL=debug
+  render sandboxes create --from gold
+  render sandboxes create --from snp-cph1rs3idesc73a2b2mg
+  render sandboxes create --build python
+  render sandboxes create --build sbb-cph1rs3idesc73a2b2mg
+  render sandboxes create --from gold --wait
 `,
 	}
 

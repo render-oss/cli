@@ -46,16 +46,16 @@ func newSandboxSnapshotsListCmd(deps *dependencies.Dependencies) *cobra.Command 
 Uses the active workspace's default sandbox group unless --group is provided.
 Deleted and expired snapshots are not listed.`,
 		Example: `  # List every snapshot in the default sandbox group
-  render ea sandboxes snapshots list
+  render sandboxes snapshots list
 
   # List snapshots in a specific group
-  render ea sandboxes snapshots list --group sbg-abc123
+  render sandboxes snapshots list --group sbg-abc123
 
   # Only snapshots that are ready to start a sandbox from
-  render ea sandboxes snapshots list --status available
+  render sandboxes snapshots list --status available
 
   # JSON output
-  render ea sandboxes snapshots list --output json`,
+  render sandboxes snapshots list --output json`,
 	}
 
 	cmd.Flags().String("group", "", "Sandbox group to list (defaults to the active workspace's default group)")

@@ -30,7 +30,7 @@ func newSandboxGroupsCreateHarness(t *testing.T) sandboxGroupsCreateHarness {
 
 func (h sandboxGroupsCreateHarness) execute(extraArgs ...string) (CommandResult, error) {
 	h.t.Helper()
-	return executeSandboxGroupsCommand(h.t, h.server, append([]string{"ea", "sandbox-groups", "create"}, extraArgs...)...)
+	return executeSandboxGroupsCommand(h.t, h.server, append([]string{"sandbox-groups", "create"}, extraArgs...)...)
 }
 
 func unmarshalSandboxGroupJSONOutput(t *testing.T, stdout string) map[string]any {

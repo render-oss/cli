@@ -27,11 +27,11 @@ func newSandboxListCmd(deps *dependencies.Dependencies) *cobra.Command {
 By default, terminated sandboxes are excluded. Use --all to include them, or --status to filter by specific statuses.
 
 Examples:
-  render ea sandboxes list
-  render ea sandboxes list --all
-  render ea sandboxes list --status=running
-  render ea sandboxes list --status=running --status=creating
-  render ea sandboxes list -o json
+  render sandboxes list
+  render sandboxes list --all
+  render sandboxes list --status=running
+  render sandboxes list --status=running --status=creating
+  render sandboxes list -o json
 `,
 	}
 

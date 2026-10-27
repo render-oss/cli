@@ -31,7 +31,7 @@ func TestSandboxCreate_PlanPassesThroughToAPI(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			server := newSandboxCreateServer(t)
 
-			args := []string{"ea", "sandboxes", "create", "--plan", tc.plan, "--output", "json"}
+			args := []string{"sandboxes", "create", "--plan", tc.plan, "--output", "json"}
 			_, err := executeSandboxCommand(t, server, args...)
 			require.NoError(t, err)
 
@@ -281,7 +281,7 @@ func TestSandboxCreate_SnapshotIDSent(t *testing.T) {
 	group := sandboxCreateDefaultGroup(t, server)
 	snap := server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(sandboxclient.SandboxSnapshot{SandboxGroupId: group.Id}))
 
-	_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--snapshot-id", snap.Id, "--output", "json")
+	_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--snapshot-id", snap.Id, "--output", "json")
 	require.NoError(t, err)
 
 	req, ok := server.LastRequest("POST", "/sandboxes")
@@ -337,7 +337,7 @@ func TestSandboxCreate_FromDispatchesSnapshotSource(t *testing.T) {
 			group := sandboxCreateDefaultGroup(t, server)
 			server.SandboxSnapshots.Add(renderapi.NewSandboxSnapshot(tc.snapshot(group)))
 
-			_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--from", tc.from, "--output", "json")
+			_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--from", tc.from, "--output", "json")
 			if tc.wantError == "" {
 				require.NoError(t, err)
 			} else {
@@ -360,7 +360,7 @@ func TestSandboxCreate_FromDispatchesSnapshotSource(t *testing.T) {
 func TestSandboxCreate_FromAndSnapshotIDAreMutuallyExclusive(t *testing.T) {
 	server := newSandboxCreateServer(t)
 
-	_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--from", "gold", "--snapshot-id", "snp-explicit")
+	_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--from", "gold", "--snapshot-id", "snp-explicit")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "if any flags in the group")
 	assert.False(t, server.HasRequest("POST", "/sandboxes"))
@@ -369,7 +369,7 @@ func TestSandboxCreate_FromAndSnapshotIDAreMutuallyExclusive(t *testing.T) {
 func TestSandboxCreate_WithoutSnapshotIDOmitsIt(t *testing.T) {
 	server := newSandboxCreateServer(t)
 
-	_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--output", "json")
+	_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--output", "json")
 	require.NoError(t, err)
 
 	req, ok := server.LastRequest("POST", "/sandboxes")
@@ -394,7 +394,7 @@ func TestSandboxCreate_IdleTimeout(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			server := newSandboxCreateServer(t)
-			args := append([]string{"ea", "sandboxes", "create", "--output", "json"}, tc.args...)
+			args := append([]string{"sandboxes", "create", "--output", "json"}, tc.args...)
 			_, err := executeSandboxCommand(t, server, args...)
 			require.NoError(t, err)
 
@@ -462,7 +462,7 @@ func TestSandboxCreate_SnapshotIDErrors(t *testing.T) {
 			server := newSandboxCreateServer(t)
 			snapshotID := tc.seed(server, sandboxCreateDefaultGroup(t, server))
 
-			_, err := executeSandboxCommand(t, server, append([]string{"ea", "sandboxes", "create", "--snapshot-id", snapshotID, "--output", "json"}, tc.extraArgs...)...)
+			_, err := executeSandboxCommand(t, server, append([]string{"sandboxes", "create", "--snapshot-id", snapshotID, "--output", "json"}, tc.extraArgs...)...)
 			require.Error(t, err)
 			for _, want := range tc.errContains {
 				assert.Contains(t, err.Error(), want)
@@ -508,7 +508,7 @@ func TestSandboxCreate_NetworkPolicyRequest(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			server := newSandboxCreateServer(t)
 
-			args := append([]string{"ea", "sandboxes", "create", "--output", "json"}, tc.args...)
+			args := append([]string{"sandboxes", "create", "--output", "json"}, tc.args...)
 			out, err := executeSandboxCommand(t, server, args...)
 			require.NoError(t, err)
 
@@ -529,7 +529,7 @@ func TestSandboxCreate_NetworkPolicyRequest(t *testing.T) {
 func TestSandboxCreate_AllowEgressHTTPSRejectedWithOtherPolicy(t *testing.T) {
 	server := newSandboxCreateServer(t)
 
-	_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--network-policy", "deny-all", "--allow-egress-https", "api.example.com")
+	_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--network-policy", "deny-all", "--allow-egress-https", "api.example.com")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "--allow-egress-https requires --network-policy=allow-list")
 	assert.False(t, server.HasRequest("POST", "/sandboxes"))
@@ -555,7 +555,7 @@ func TestSandboxCreate_BuildDispatchesSource(t *testing.T) {
 			server.SandboxBuilds.Add(renderapi.NewSandboxBuild(sandboxclient.SandboxBuild{Id: "sbb-0123456789abcdefghij", SandboxGroupId: group.Id}))
 			server.SandboxBuilds.Add(renderapi.NewSandboxBuild(sandboxclient.SandboxBuild{SandboxGroupId: group.Id, Name: "python"}))
 
-			_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--build", tc.build, "--output", "json")
+			_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--build", tc.build, "--output", "json")
 			if tc.wantError == "" {
 				require.NoError(t, err)
 			} else {
@@ -583,7 +583,7 @@ func TestSandboxCreate_BuildNamePrefersNewestSucceededBuild(t *testing.T) {
 	server.SandboxBuilds.Add(renderapi.NewSandboxBuild(sandboxclient.SandboxBuild{SandboxGroupId: group.Id, Name: "python", CreatedAt: time.Now().Add(-time.Hour)}))
 	server.SandboxBuilds.Add(renderapi.NewSandboxBuild(sandboxclient.SandboxBuild{SandboxGroupId: group.Id, Name: "python", Status: sandboxclient.SandboxBuildStatusRunning}))
 
-	_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--build", "python", "--output", "json")
+	_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--build", "python", "--output", "json")
 	require.NoError(t, err)
 	assert.Len(t, server.Sandboxes.Instances, 1)
 }
@@ -593,7 +593,7 @@ func TestSandboxCreate_BuildIsMutuallyExclusiveWithSnapshotFlags(t *testing.T) {
 		t.Run(extra[0], func(t *testing.T) {
 			server := newSandboxCreateServer(t)
 
-			_, err := executeSandboxCommand(t, server, append([]string{"ea", "sandboxes", "create", "--build", "python"}, extra...)...)
+			_, err := executeSandboxCommand(t, server, append([]string{"sandboxes", "create", "--build", "python"}, extra...)...)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "none of the others can be")
 			assert.False(t, server.HasRequest("POST", "/sandboxes"))
@@ -664,7 +664,7 @@ func TestSandboxCreate_BuildErrors(t *testing.T) {
 			server := newSandboxCreateServer(t)
 			build := tc.seed(server, sandboxCreateDefaultGroup(t, server))
 
-			_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--build", build, "--output", "json")
+			_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--build", build, "--output", "json")
 			require.Error(t, err)
 			for _, want := range tc.errContains {
 				assert.Contains(t, err.Error(), want)
@@ -677,7 +677,7 @@ func TestSandboxCreate_BuildErrors(t *testing.T) {
 func TestSandboxCreate_Wait(t *testing.T) {
 	server := newSandboxCreateServer(t)
 
-	result, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--wait", "--output", "json")
+	result, err := executeSandboxCommand(t, server, "sandboxes", "create", "--wait", "--output", "json")
 	require.NoError(t, err)
 
 	created := server.Sandboxes.Only(t)
@@ -688,7 +688,7 @@ func TestSandboxCreate_Wait(t *testing.T) {
 func TestSandboxCreate_NoWaitDoesNotPoll(t *testing.T) {
 	server := newSandboxCreateServer(t)
 
-	_, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--output", "json")
+	_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--output", "json")
 	require.NoError(t, err)
 
 	created := server.Sandboxes.Only(t)
@@ -701,7 +701,7 @@ func TestSandboxCreate_WaitFailurePrintsSandbox(t *testing.T) {
 			server := newSandboxCreateServer(t)
 			server.Sandboxes.RespondToGetWith(http.StatusInternalServerError)
 
-			result, err := executeSandboxCommand(t, server, "ea", "sandboxes", "create", "--wait", "--output", format)
+			result, err := executeSandboxCommand(t, server, "sandboxes", "create", "--wait", "--output", format)
 			require.Error(t, err)
 
 			created := server.Sandboxes.Only(t)
@@ -717,7 +717,7 @@ func TestSandboxCreate_GroupSelection(t *testing.T) {
 			if groupID != "" {
 				server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxclient.SandboxGroup{Id: groupID, OwnerId: sandboxCreateActiveWorkspaceID}))
 			}
-			args := []string{"ea", "sandboxes", "create", "--output", "json"}
+			args := []string{"sandboxes", "create", "--output", "json"}
 			if groupID != "" {
 				args = append(args, "--sandbox-group", groupID)
 			}

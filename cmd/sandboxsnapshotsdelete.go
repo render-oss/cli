@@ -29,16 +29,16 @@ Without --confirm, this command previews what would be deleted and makes no
 changes. A snapshot that is still being created cannot be deleted yet. An
 expired snapshot is reported as not found.`,
 		Example: `  # Preview deletion (no changes made)
-  render ea sandboxes snapshots delete snp-abc123
+  render sandboxes snapshots delete snp-abc123
 
   # Delete the snapshot
-  render ea sandboxes snapshots delete snp-abc123 --confirm
+  render sandboxes snapshots delete snp-abc123 --confirm
 
   # Delete a snapshot in a specific group
-  render ea sandboxes snapshots delete snp-abc123 --group sbg-abc123 --confirm
+  render sandboxes snapshots delete snp-abc123 --group sbg-abc123 --confirm
 
   # JSON output
-  render ea sandboxes snapshots delete snp-abc123 --confirm --output json`,
+  render sandboxes snapshots delete snp-abc123 --confirm --output json`,
 	}
 
 	cmd.Flags().String("group", "", "Sandbox group the snapshot belongs to (defaults to the active workspace's default group)")

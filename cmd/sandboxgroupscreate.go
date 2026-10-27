@@ -32,13 +32,13 @@ func newSandboxGroupsCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Long: `Create a sandbox group in your workspace.
 
 Group names are unique within a workspace. The workspace's first group becomes
-its default, where "render ea sandboxes create" places sandboxes unless
+its default, where "render sandboxes create" places sandboxes unless
 --sandbox-group is given.`,
 		Example: `  # Create a sandbox group
-  render ea sandbox-groups create --name agents
+  render sandbox-groups create --name agents
 
   # Output as JSON
-  render ea sandbox-groups create --name agents -o json`,
+  render sandbox-groups create --name agents -o json`,
 	}
 
 	cmd.Flags().String("name", "", "Name for the group, unique within the workspace")

@@ -45,8 +45,8 @@ func newSandboxBuildsCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Long: `Convert an OCI image into a sandbox base image.
 
 The command returns as soon as the build has started, while its status is
-"running". Poll with "render ea sandbox-groups builds get" until the status is
-"succeeded", then start sandboxes from it with "render ea sandboxes create
+"running". Poll with "render sandbox-groups builds get" until the status is
+"succeeded", then start sandboxes from it with "render sandboxes create
 --build". A failed build reports why in its failure reason.
 
 Every build of an image shares its --name. A request for a name and image
@@ -56,19 +56,19 @@ starting another, so a build by tag is rebuilt only when the tag has moved.
 Uses the active workspace's default sandbox group unless --group is provided.
 A registry credential is used for this build only and never stored.`,
 		Example: `  # Build a public image
-  render ea sandbox-groups builds create python:3.13 --name python
+  render sandbox-groups builds create python:3.13 --name python
 
   # Build an image at a digest
-  render ea sandbox-groups builds create python@sha256:c19d4a1... --name python
+  render sandbox-groups builds create python@sha256:c19d4a1... --name python
 
   # Pull the image from a private registry
-  echo "$REGISTRY_TOKEN" | render ea sandbox-groups builds create ghcr.io/acme/agent:1.0 --name agent --registry-username bot --registry-password-stdin
+  echo "$REGISTRY_TOKEN" | render sandbox-groups builds create ghcr.io/acme/agent:1.0 --name agent --registry-username bot --registry-password-stdin
 
   # Build in a specific group
-  render ea sandbox-groups builds create python:3.13 --name python --group sbg-abc123
+  render sandbox-groups builds create python:3.13 --name python --group sbg-abc123
 
   # JSON output
-  render ea sandbox-groups builds create python:3.13 --name python --output json`,
+  render sandbox-groups builds create python:3.13 --name python --output json`,
 	}
 
 	cmd.Flags().String("name", "", "Name of the image the build belongs to. Every build of an image shares it")

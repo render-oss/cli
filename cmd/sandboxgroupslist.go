@@ -17,10 +17,10 @@ func newSandboxGroupsListCmd(deps *dependencies.Dependencies) *cobra.Command {
 		SilenceUsage: true,
 		Long:         `List all sandbox groups in your workspace, newest first.`,
 		Example: `  # List sandbox groups in the active workspace
-  render ea sandbox-groups list
+  render sandbox-groups list
 
   # Output as JSON
-  render ea sandbox-groups list -o json`,
+  render sandbox-groups list -o json`,
 	}
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {

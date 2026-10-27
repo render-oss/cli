@@ -36,9 +36,7 @@ func executeSandboxGroupsCommandWithStdin(t *testing.T, server *renderapi.Server
 	}
 
 	root := newRootCmd()
-	ea := newEarlyAccessCmd()
-	root.AddCommand(ea)
-	setupSandboxGroupsCommands(ea, deps)
+	setupSandboxGroupsCommands(root, deps)
 	setupRootCmdPersistentRun(root, deps)
 
 	var stdout, stderr bytes.Buffer

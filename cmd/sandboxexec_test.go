@@ -10,7 +10,7 @@ import (
 )
 
 func TestSandboxExecKeepsFileCompletion(t *testing.T) {
-	requireCompletionDirective(t, []string{"ea", "sandboxes", "exec", ""}, cobra.ShellCompDirectiveDefault)
+	requireCompletionDirective(t, []string{"sandboxes", "exec", ""}, cobra.ShellCompDirectiveDefault)
 }
 
 func TestExitWithProcessCodeUsesRemoteExitCode(t *testing.T) {

@@ -19,16 +19,12 @@ func TestSandboxCopyAlias(t *testing.T) {
 }
 
 // Every "render ..." line in a sandbox command's help must resolve to that same
-// command. The singular "ea sandbox" is not an alias (see
-// TestSandboxes_SingularFormRemoved), so an example using it is copy-pasteable
-// but unrunnable, and with --help appended it prints ea's help and exits 0.
+// command.
 func TestSandboxHelpExamplesResolve(t *testing.T) {
-	root := &cobra.Command{Use: "render"}
-	earlyAccess := &cobra.Command{Use: "ea"}
-	root.AddCommand(earlyAccess)
-	setupSandboxCommands(earlyAccess, nil)
+	root := newRootCmd()
+	setupSandboxCommands(root, nil)
 
-	sandboxes, _, err := root.Find([]string{"ea", "sandboxes"})
+	sandboxes, _, err := root.Find([]string{"sandboxes"})
 	require.NoError(t, err)
 	require.NotEmpty(t, sandboxes.Commands())
 

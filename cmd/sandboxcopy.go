@@ -73,11 +73,11 @@ sbx-abc123:/tmp/src puts src's contents at /tmp/src, not at /tmp/src/src. A
 single file copied to an existing local directory does land inside it.
 
 Examples:
-  render ea sandboxes copy ./main.py sbx-abc123:main.py
-  render ea sandboxes copy sbx-abc123:output.json ./output.json
-  render ea sandboxes copy ./src sbx-abc123:/tmp/src
-  render ea sandboxes cp sbx-abc123:. ./sandbox-home
-  render ea sandboxes copy sbx-abc123:output.json ./downloads/ --output json
+  render sandboxes copy ./main.py sbx-abc123:main.py
+  render sandboxes copy sbx-abc123:output.json ./output.json
+  render sandboxes copy ./src sbx-abc123:/tmp/src
+  render sandboxes cp sbx-abc123:. ./sandbox-home
+  render sandboxes copy sbx-abc123:output.json ./downloads/ --output json
 `,
 		Args:         cobra.ExactArgs(2),
 		SilenceUsage: true,
