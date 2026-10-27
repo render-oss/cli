@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- `render sandbox-groups images import` (with `--wait`) and `images get`, and `--image` on `render sandboxes create`, to start sandboxes from an imported OCI image
+
+### Changed
+
+- `render sandbox-groups builds` and `--build` on `render sandboxes create` are deprecated in favor of the images commands and `--image`. They still work; the `builds` commands print a deprecation notice
+
 ## [2.33.0] - 2026-10-27
 
 ### Changed

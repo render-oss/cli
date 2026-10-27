@@ -535,17 +535,18 @@ func TestSandboxCreate_AllowEgressHTTPSRejectedWithOtherPolicy(t *testing.T) {
 	assert.False(t, server.HasRequest("POST", "/sandboxes"))
 }
 
-func TestSandboxCreate_BuildDispatchesSource(t *testing.T) {
+func TestSandboxCreate_ImageDispatchesSource(t *testing.T) {
 	tests := []struct {
 		name      string
-		build     string
+		image     string
 		wantField string
 		wantValue string
 		wantError string
 	}{
-		{name: "build id", build: "sbb-0123456789abcdefghij", wantField: "buildId", wantValue: "sbb-0123456789abcdefghij"},
-		{name: "build name", build: "python", wantField: "buildName", wantValue: "python"},
-		{name: "empty build name is sent for server validation", build: "", wantField: "buildName", wantValue: "", wantError: "400: invalid buildName"},
+		{name: "image id", image: "sbb-0123456789abcdefghij", wantField: "buildId", wantValue: "sbb-0123456789abcdefghij"},
+		{name: "image name", image: "python", wantField: "buildName", wantValue: "python"},
+		{name: "name with the id prefix is a name", image: "sbb-runtime", wantField: "buildName", wantValue: "sbb-runtime", wantError: "404"},
+		{name: "empty image name is sent for server validation", image: "", wantField: "buildName", wantValue: "", wantError: "400: invalid buildName"},
 	}
 
 	for _, tc := range tests {
@@ -555,7 +556,7 @@ func TestSandboxCreate_BuildDispatchesSource(t *testing.T) {
 			server.SandboxBuilds.Add(renderapi.NewSandboxBuild(sandboxclient.SandboxBuild{Id: "sbb-0123456789abcdefghij", SandboxGroupId: group.Id}))
 			server.SandboxBuilds.Add(renderapi.NewSandboxBuild(sandboxclient.SandboxBuild{SandboxGroupId: group.Id, Name: "python"}))
 
-			_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--build", tc.build, "--output", "json")
+			_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--image", tc.image, "--output", "json")
 			if tc.wantError == "" {
 				require.NoError(t, err)
 			} else {
@@ -577,23 +578,42 @@ func TestSandboxCreate_BuildDispatchesSource(t *testing.T) {
 	}
 }
 
-func TestSandboxCreate_BuildNamePrefersNewestSucceededBuild(t *testing.T) {
+func TestSandboxCreate_BuildFlagIsAnAliasForImage(t *testing.T) {
+	server := newSandboxCreateServer(t)
+	group := sandboxCreateDefaultGroup(t, server)
+	server.SandboxBuilds.Add(renderapi.NewSandboxBuild(sandboxclient.SandboxBuild{SandboxGroupId: group.Id, Name: "python"}))
+
+	result, err := executeSandboxCommand(t, server, "sandboxes", "create", "--build", "python", "--output", "json")
+	require.NoError(t, err)
+
+	req, ok := server.LastRequest("POST", "/sandboxes")
+	require.True(t, ok, "expected a create request")
+	assert.Equal(t, "python", testrequire.ParseJSONMap(t, string(req.Body))["buildName"])
+	testrequire.ParseJSONMap(t, result.Stdout)
+
+	help, err := executeSandboxCommand(t, server, "sandboxes", "create", "--help")
+	require.NoError(t, err)
+	assert.Contains(t, help.Stdout, "--image")
+	assert.NotContains(t, help.Stdout, "--build")
+}
+
+func TestSandboxCreate_ImageNamePrefersNewestSucceededImage(t *testing.T) {
 	server := newSandboxCreateServer(t)
 	group := sandboxCreateDefaultGroup(t, server)
 	server.SandboxBuilds.Add(renderapi.NewSandboxBuild(sandboxclient.SandboxBuild{SandboxGroupId: group.Id, Name: "python", CreatedAt: time.Now().Add(-time.Hour)}))
 	server.SandboxBuilds.Add(renderapi.NewSandboxBuild(sandboxclient.SandboxBuild{SandboxGroupId: group.Id, Name: "python", Status: sandboxclient.SandboxBuildStatusRunning}))
 
-	_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--build", "python", "--output", "json")
+	_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--image", "python", "--output", "json")
 	require.NoError(t, err)
 	assert.Len(t, server.Sandboxes.Instances, 1)
 }
 
-func TestSandboxCreate_BuildIsMutuallyExclusiveWithSnapshotFlags(t *testing.T) {
+func TestSandboxCreate_ImageIsMutuallyExclusiveWithSnapshotFlags(t *testing.T) {
 	for _, extra := range [][]string{{"--from", "gold"}, {"--snapshot-id", "snp-explicit"}} {
 		t.Run(extra[0], func(t *testing.T) {
 			server := newSandboxCreateServer(t)
 
-			_, err := executeSandboxCommand(t, server, append([]string{"sandboxes", "create", "--build", "python"}, extra...)...)
+			_, err := executeSandboxCommand(t, server, append([]string{"sandboxes", "create", "--image", "python"}, extra...)...)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "none of the others can be")
 			assert.False(t, server.HasRequest("POST", "/sandboxes"))
@@ -601,41 +621,41 @@ func TestSandboxCreate_BuildIsMutuallyExclusiveWithSnapshotFlags(t *testing.T) {
 	}
 }
 
-func TestSandboxCreateInputValidateBuild(t *testing.T) {
-	assert.NoError(t, (&SandboxCreateInput{Build: "python"}).Validate(false))
-	assert.ErrorContains(t, (&SandboxCreateInput{Build: "python", From: "gold"}).Validate(false), "--build cannot be used with --from or --snapshot-id")
-	assert.ErrorContains(t, (&SandboxCreateInput{Build: "python", SnapshotID: "snp-abc"}).Validate(false), "--build cannot be used with --from or --snapshot-id")
+func TestSandboxCreateInputValidateImage(t *testing.T) {
+	assert.NoError(t, (&SandboxCreateInput{Image: "python"}).Validate(false))
+	assert.ErrorContains(t, (&SandboxCreateInput{Image: "python", From: "gold"}).Validate(false), "--image cannot be used with --from or --snapshot-id")
+	assert.ErrorContains(t, (&SandboxCreateInput{Image: "python", SnapshotID: "snp-abc"}).Validate(false), "--image cannot be used with --from or --snapshot-id")
 }
 
-func TestSandboxCreate_BuildErrors(t *testing.T) {
+func TestSandboxCreate_ImageErrors(t *testing.T) {
 	tests := []struct {
 		name        string
 		seed        func(server *renderapi.Server, group *sandboxclient.SandboxGroup) string
 		errContains []string
 	}{
 		{
-			name: "unknown build is not found",
+			name: "unknown image is not found",
 			seed: func(*renderapi.Server, *sandboxclient.SandboxGroup) string {
 				return testids.SandboxBuildID("missing")
 			},
 			errContains: []string{"404", "not found: build"},
 		},
 		{
-			name: "build still running has not succeeded",
+			name: "image still importing has not succeeded",
 			seed: func(server *renderapi.Server, group *sandboxclient.SandboxGroup) string {
 				return server.SandboxBuilds.Add(renderapi.NewSandboxBuild(sandboxclient.SandboxBuild{SandboxGroupId: group.Id, Status: sandboxclient.SandboxBuildStatusRunning})).Id
 			},
 			errContains: []string{"409", "build has not succeeded"},
 		},
 		{
-			name: "failed build has not succeeded",
+			name: "failed image has not succeeded",
 			seed: func(server *renderapi.Server, group *sandboxclient.SandboxGroup) string {
 				return server.SandboxBuilds.Add(renderapi.NewSandboxBuild(sandboxclient.SandboxBuild{SandboxGroupId: group.Id, Status: sandboxclient.SandboxBuildStatusFailed})).Id
 			},
 			errContains: []string{"409", "build has not succeeded"},
 		},
 		{
-			name: "build owned by another workspace is not found",
+			name: "image owned by another workspace is not found",
 			seed: func(server *renderapi.Server, _ *sandboxclient.SandboxGroup) string {
 				other := server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxclient.SandboxGroup{OwnerId: testids.WorkspaceID("other")}))
 				return server.SandboxBuilds.Add(renderapi.NewSandboxBuild(sandboxclient.SandboxBuild{SandboxGroupId: other.Id})).Id
@@ -643,14 +663,14 @@ func TestSandboxCreate_BuildErrors(t *testing.T) {
 			errContains: []string{"404", "not found: build"},
 		},
 		{
-			name: "unknown build name is not found",
+			name: "unknown image name is not found",
 			seed: func(*renderapi.Server, *sandboxclient.SandboxGroup) string {
 				return "missing"
 			},
 			errContains: []string{"404", "not found: build"},
 		},
 		{
-			name: "name with no succeeded build has not succeeded",
+			name: "name with no succeeded image has not succeeded",
 			seed: func(server *renderapi.Server, group *sandboxclient.SandboxGroup) string {
 				server.SandboxBuilds.Add(renderapi.NewSandboxBuild(sandboxclient.SandboxBuild{SandboxGroupId: group.Id, Name: "broken", Status: sandboxclient.SandboxBuildStatusFailed}))
 				return "broken"
@@ -662,9 +682,9 @@ func TestSandboxCreate_BuildErrors(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			server := newSandboxCreateServer(t)
-			build := tc.seed(server, sandboxCreateDefaultGroup(t, server))
+			image := tc.seed(server, sandboxCreateDefaultGroup(t, server))
 
-			_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--build", build, "--output", "json")
+			_, err := executeSandboxCommand(t, server, "sandboxes", "create", "--image", image, "--output", "json")
 			require.Error(t, err)
 			for _, want := range tc.errContains {
 				assert.Contains(t, err.Error(), want)

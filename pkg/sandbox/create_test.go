@@ -199,17 +199,17 @@ func stringPointer(value string) *string {
 	return &value
 }
 
-func TestServiceCreate_BuildSourceBody(t *testing.T) {
+func TestServiceCreate_ImageSourceBody(t *testing.T) {
 	tests := []struct {
 		name          string
 		input         CreateInput
 		wantBuildID   string
 		wantBuildName *string
 	}{
-		{name: "unset omits build source", input: CreateInput{}},
-		{name: "build id is sent", input: CreateInput{BuildID: "sbb-abc123"}, wantBuildID: "sbb-abc123"},
-		{name: "build name is sent", input: CreateInput{BuildName: stringPointer("python")}, wantBuildName: stringPointer("python")},
-		{name: "empty build name is sent for server validation", input: CreateInput{BuildName: stringPointer("")}, wantBuildName: stringPointer("")},
+		{name: "unset omits image source", input: CreateInput{}},
+		{name: "image id is sent as buildId", input: CreateInput{ImageID: "sbb-abc123"}, wantBuildID: "sbb-abc123"},
+		{name: "image name is sent as buildName", input: CreateInput{ImageName: stringPointer("python")}, wantBuildName: stringPointer("python")},
+		{name: "empty image name is sent for server validation", input: CreateInput{ImageName: stringPointer("")}, wantBuildName: stringPointer("")},
 	}
 
 	for _, tc := range tests {

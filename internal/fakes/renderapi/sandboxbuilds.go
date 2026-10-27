@@ -13,11 +13,18 @@ import (
 
 type SandboxBuildResource struct {
 	Resource[*sandboxesclient.SandboxBuild]
-	errorQueue []int
+	errorQueue    []int
+	getErrorQueue []int
 }
 
 func (r *SandboxBuildResource) RespondWith(status int) {
 	r.errorQueue = append(r.errorQueue, status)
+}
+
+// RespondToGetWith queues an HTTP error status for the next
+// GET /sandbox-groups/{groupId}/builds/{buildId}.
+func (r *SandboxBuildResource) RespondToGetWith(status int) {
+	r.getErrorQueue = append(r.getErrorQueue, status)
 }
 
 func (r *SandboxBuildResource) nextError() (int, bool) {
@@ -147,11 +154,22 @@ func registerSandboxBuildRoutes(mux *http.ServeMux, s *Server, record func(*http
 			w.WriteHeader(status)
 			return
 		}
+		if q := s.SandboxBuilds.getErrorQueue; len(q) > 0 {
+			s.SandboxBuilds.getErrorQueue = q[1:]
+			writeAPIError(w, q[0], http.StatusText(q[0]), "")
+			return
+		}
 		idx := s.buildIndex(r.PathValue("groupId"), r.PathValue("buildId"))
 		if idx == -1 {
 			writeAPIError(w, http.StatusNotFound, "not found: build", "")
 			return
 		}
-		writeJSON(w, http.StatusOK, s.SandboxBuilds.Instances[idx])
+		// A running build finishes once polled, so a wait for it returns.
+		build := s.SandboxBuilds.Instances[idx]
+		if build.Status == sandboxesclient.SandboxBuildStatusRunning {
+			finishedAt := time.Now()
+			build.Status, build.FinishedAt = sandboxesclient.SandboxBuildStatusSucceeded, &finishedAt
+		}
+		writeJSON(w, http.StatusOK, build)
 	})
 }

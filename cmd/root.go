@@ -178,8 +178,9 @@ func setupSandboxCommands(parent *cobra.Command, deps *dependencies.Dependencies
 }
 
 func setupSandboxGroupsCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
-	builds := newSandboxBuildsCmd(newSandboxBuildsCreateCmd(deps), newSandboxBuildsGetCmd(deps))
-	parent.AddCommand(newSandboxGroupsCmd(builds, newSandboxGroupsListCmd(deps), newSandboxGroupsCreateCmd(deps)))
+	images := newSandboxImagesCmd(newSandboxImagesImportCmd(deps), newSandboxImagesGetCmd(deps))
+	builds := newDeprecatedSandboxBuildsCmd(newSandboxImagesImportCmd(deps), newSandboxImagesGetCmd(deps))
+	parent.AddCommand(newSandboxGroupsCmd(images, builds, newSandboxGroupsListCmd(deps), newSandboxGroupsCreateCmd(deps)))
 }
 
 func setupServiceCommands(deps *dependencies.Dependencies) {

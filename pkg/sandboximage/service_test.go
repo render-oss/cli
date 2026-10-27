@@ -1,4 +1,4 @@
-package sandboxbuild_test
+package sandboximage_test
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
-	"github.com/render-oss/cli/pkg/sandboxbuild"
 	"github.com/render-oss/cli/pkg/sandboxgroup"
+	"github.com/render-oss/cli/pkg/sandboximage"
 )
 
 const testWorkspace = "tea-workspace"
@@ -25,7 +25,7 @@ type recordedRequest struct {
 	Body   map[string]any
 }
 
-func newTestService(t *testing.T, groups []client.SandboxGroupWithCursor, respond func(w http.ResponseWriter)) (*sandboxbuild.Service, *[]recordedRequest) {
+func newTestService(t *testing.T, groups []client.SandboxGroupWithCursor, respond func(w http.ResponseWriter)) (*sandboximage.Service, *[]recordedRequest) {
 	t.Helper()
 	var recorded []recordedRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +45,7 @@ func newTestService(t *testing.T, groups []client.SandboxGroupWithCursor, respon
 
 	c, err := client.NewClientWithResponses(server.URL)
 	require.NoError(t, err)
-	return sandboxbuild.NewService(sandboxbuild.NewRepo(c), sandboxgroup.NewService(sandboxgroup.NewRepo(c))), &recorded
+	return sandboximage.NewService(sandboximage.NewRepo(c), sandboxgroup.NewService(sandboxgroup.NewRepo(c))), &recorded
 }
 
 func respondJSON(status int, v any) func(w http.ResponseWriter) {
@@ -60,19 +60,19 @@ func defaultGroup(id string) []client.SandboxGroupWithCursor {
 	return []client.SandboxGroupWithCursor{{Cursor: "c0", SandboxGroup: sandboxesclient.SandboxGroup{Id: id, IsDefault: true}}}
 }
 
-func TestServiceCreate_Body(t *testing.T) {
+func TestServiceImport_Body(t *testing.T) {
 	tests := []struct {
 		name           string
-		input          sandboxbuild.CreateInput
+		input          sandboximage.ImportInput
 		wantCredential map[string]any
 	}{
 		{
 			name:  "no credential omits registryCredential",
-			input: sandboxbuild.CreateInput{SandboxGroupID: "sbg-1", Name: "python", SourceImage: "python:3.13"},
+			input: sandboximage.ImportInput{SandboxGroupID: "sbg-1", Name: "python", Source: "python:3.13"},
 		},
 		{
 			name:           "credential is sent",
-			input:          sandboxbuild.CreateInput{SandboxGroupID: "sbg-1", Name: "agent", SourceImage: "ghcr.io/acme/agent:1.0", RegistryUsername: "bot", RegistryPassword: "s3cret"},
+			input:          sandboximage.ImportInput{SandboxGroupID: "sbg-1", Name: "agent", Source: "ghcr.io/acme/agent:1.0", RegistryUsername: "bot", RegistryPassword: "s3cret"},
 			wantCredential: map[string]any{"username": "bot", "password": "s3cret"},
 		},
 	}
@@ -83,9 +83,9 @@ func TestServiceCreate_Body(t *testing.T) {
 				Id: "sbb-1", Status: sandboxesclient.SandboxBuildStatusRunning,
 			}))
 
-			build, err := svc.Create(context.Background(), tc.input)
+			image, err := svc.Import(context.Background(), tc.input)
 			require.NoError(t, err)
-			assert.Equal(t, "sbb-1", build.Id)
+			assert.Equal(t, "sbb-1", image.Id)
 
 			require.Len(t, *recorded, 1, "an explicit group needs no lookup")
 			rec := (*recorded)[0]
@@ -93,7 +93,7 @@ func TestServiceCreate_Body(t *testing.T) {
 			assert.Equal(t, "/sandbox-groups/sbg-1/builds", rec.Path)
 			assert.NotContains(t, rec.Query, "ownerId")
 			assert.Equal(t, tc.input.Name, rec.Body["name"])
-			assert.Equal(t, tc.input.SourceImage, rec.Body["sourceImage"])
+			assert.Equal(t, tc.input.Source, rec.Body["sourceImage"])
 			if tc.wantCredential == nil {
 				assert.NotContains(t, rec.Body, "registryCredential")
 			} else {
@@ -103,10 +103,10 @@ func TestServiceCreate_Body(t *testing.T) {
 	}
 }
 
-func TestServiceCreate_ResolvesDefaultGroup(t *testing.T) {
+func TestServiceImport_ResolvesDefaultGroup(t *testing.T) {
 	svc, recorded := newTestService(t, defaultGroup("sbg-default"), respondJSON(http.StatusCreated, sandboxesclient.SandboxBuild{Id: "sbb-1"}))
 
-	_, err := svc.Create(context.Background(), sandboxbuild.CreateInput{Name: "python", SourceImage: "python:3.13"})
+	_, err := svc.Import(context.Background(), sandboximage.ImportInput{Name: "python", Source: "python:3.13"})
 	require.NoError(t, err)
 
 	require.Len(t, *recorded, 2)
@@ -118,9 +118,9 @@ func TestServiceCreate_ResolvesDefaultGroup(t *testing.T) {
 func TestServiceGet_SendsGroupWithoutOwner(t *testing.T) {
 	svc, recorded := newTestService(t, nil, respondJSON(http.StatusOK, sandboxesclient.SandboxBuild{Id: "sbb-1"}))
 
-	build, err := svc.Get(context.Background(), "sbg-1", "sbb-1")
+	image, err := svc.Get(context.Background(), "sbg-1", "sbb-1")
 	require.NoError(t, err)
-	assert.Equal(t, "sbb-1", build.Id)
+	assert.Equal(t, "sbb-1", image.Id)
 
 	require.Len(t, *recorded, 1)
 	assert.Equal(t, http.MethodGet, (*recorded)[0].Method)
@@ -150,7 +150,7 @@ func TestService_MissingWorkspaceReturnsError(t *testing.T) {
 	t.Setenv("RENDER_WORKSPACE", "")
 	t.Setenv("RENDER_CLI_CONFIG_PATH", t.TempDir()+"/nonexistent.yaml")
 
-	_, err := svc.Create(context.Background(), sandboxbuild.CreateInput{Name: "python", SourceImage: "python:3.13"})
+	_, err := svc.Import(context.Background(), sandboximage.ImportInput{Name: "python", Source: "python:3.13"})
 	require.Error(t, err)
 	assert.Empty(t, *recorded, "no request should be sent without a workspace")
 }

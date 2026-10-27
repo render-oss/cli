@@ -19,8 +19,8 @@ import (
 	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/sandbox"
-	"github.com/render-oss/cli/pkg/sandboxbuild"
 	"github.com/render-oss/cli/pkg/sandboxgroup"
+	"github.com/render-oss/cli/pkg/sandboximage"
 	"github.com/render-oss/cli/pkg/sandboxsnapshot"
 	"github.com/render-oss/cli/pkg/service"
 	"github.com/render-oss/cli/pkg/tasks"
@@ -60,7 +60,7 @@ type cachedDependencies struct {
 	sandboxRepo            cache[*sandbox.Repo]
 	sandboxGroupRepo       cache[*sandboxgroup.Repo]
 	sandboxSnapshotRepo    cache[*sandboxsnapshot.Repo]
-	sandboxBuildRepo       cache[*sandboxbuild.Repo]
+	sandboxImageRepo       cache[*sandboximage.Repo]
 	keyValueRepo           cache[*keyvalue.Repo]
 	userRepo               cache[*user.Repo]
 	ownerRepo              cache[*owner.Repo]
@@ -71,7 +71,7 @@ type cachedDependencies struct {
 	sandboxService         cache[*sandbox.Service]
 	sandboxGroupService    cache[*sandboxgroup.Service]
 	sandboxSnapshotService cache[*sandboxsnapshot.Service]
-	sandboxBuildService    cache[*sandboxbuild.Service]
+	sandboxImageService    cache[*sandboximage.Service]
 	keyValueService        cache[*keyvalue.Service]
 	resourceService        cache[*resource.Service]
 	logRepo                cache[*logs.LogRepo]
@@ -189,9 +189,9 @@ func (d *Dependencies) SandboxSnapshotRepo() *sandboxsnapshot.Repo {
 	})
 }
 
-func (d *Dependencies) SandboxBuildRepo() *sandboxbuild.Repo {
-	return d.cache.sandboxBuildRepo.Get(func() *sandboxbuild.Repo {
-		return sandboxbuild.NewRepo(d.client)
+func (d *Dependencies) SandboxImageRepo() *sandboximage.Repo {
+	return d.cache.sandboxImageRepo.Get(func() *sandboximage.Repo {
+		return sandboximage.NewRepo(d.client)
 	})
 }
 
@@ -255,9 +255,9 @@ func (d *Dependencies) SandboxSnapshotService() *sandboxsnapshot.Service {
 	})
 }
 
-func (d *Dependencies) SandboxBuildService() *sandboxbuild.Service {
-	return d.cache.sandboxBuildService.Get(func() *sandboxbuild.Service {
-		return sandboxbuild.NewService(d.SandboxBuildRepo(), d.SandboxGroupService())
+func (d *Dependencies) SandboxImageService() *sandboximage.Service {
+	return d.cache.sandboxImageService.Get(func() *sandboximage.Service {
+		return sandboximage.NewService(d.SandboxImageRepo(), d.SandboxGroupService())
 	})
 }
 

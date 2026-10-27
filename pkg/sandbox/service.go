@@ -35,8 +35,10 @@ type CreateInput struct {
 	Env          map[string]string
 	SnapshotID   string
 	SnapshotName *string
-	BuildID      string
-	BuildName    *string
+	// ImageID or ImageName starts the sandbox from an imported image. The API
+	// calls images builds.
+	ImageID   string
+	ImageName *string
 }
 
 // allSandboxStatuses is every sandbox status. --all sends the full set so the
@@ -120,11 +122,11 @@ func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*s
 	if input.SnapshotName != nil {
 		body.SnapshotName = input.SnapshotName
 	}
-	if input.BuildID != "" {
-		body.BuildId = &input.BuildID
+	if input.ImageID != "" {
+		body.BuildId = &input.ImageID
 	}
-	if input.BuildName != nil {
-		body.BuildName = input.BuildName
+	if input.ImageName != nil {
+		body.BuildName = input.ImageName
 	}
 
 	return s.repo.CreateSandbox(ctx, body, onEvent)
