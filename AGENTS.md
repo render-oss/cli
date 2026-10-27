@@ -180,6 +180,10 @@ state with `renderapi.NewServer(t)`, resource factories, and server helpers; if
 coverage is missing, expand the shared fake unless a one-off server or mock is
 much more ergonomic for an edge case.
 
+Name new response helpers `RespondWith<ResponseType>For<Action>`,
+- Response type will normally be: Body, Error, or RawBytes
+- Action should be a 1 or 2 word stand-in for the endpoint, e.g., Create, Update, Get
+
 ```go
 server := renderapi.NewServer(t)
 server.Owners.Add(renderapi.NewOwner(client.Owner{Id: activeWorkspaceID}))

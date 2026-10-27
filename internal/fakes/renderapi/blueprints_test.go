@@ -14,8 +14,8 @@ import (
 
 func TestBlueprintValidationResponsesAreQueuedBeforeDefault(t *testing.T) {
 	server := NewServer(t)
-	server.Blueprints.RespondWithValidation(bptypes.ValidateBlueprintResponse{Valid: true})
-	server.Blueprints.RespondWithRawValidation("text/plain", []byte("unexpected response"))
+	server.Blueprints.RespondWithBodyForValidate(bptypes.ValidateBlueprintResponse{Valid: true})
+	server.Blueprints.RespondWithRawBytesForValidate("text/plain", []byte("unexpected response"))
 
 	c, err := client.NewClientWithResponses(server.URL())
 	require.NoError(t, err)

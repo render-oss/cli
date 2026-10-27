@@ -74,7 +74,7 @@ func TestBlueprintValidateNonInteractiveExitCode(t *testing.T) {
 
 func TestBlueprintValidateRejectsUnexpectedResponseBody(t *testing.T) {
 	server := renderapi.NewServer(t)
-	server.Blueprints.RespondWithRawValidation("text/html", []byte("<html>not the API</html>"))
+	server.Blueprints.RespondWithRawBytesForValidate("text/html", []byte("<html>not the API</html>"))
 
 	execution, output := executeBlueprintValidate(t, server, command.TEXT)
 
@@ -134,7 +134,7 @@ func captureStdout(t *testing.T, f func()) string {
 func requireBlueprintValidateResult(t *testing.T, result bptypes.ValidateBlueprintResponse, outputFormat command.Output, wantExitCode int) CommandResult {
 	t.Helper()
 	server := renderapi.NewServer(t)
-	server.Blueprints.RespondWithValidation(result)
+	server.Blueprints.RespondWithBodyForValidate(result)
 	execution, output := executeBlueprintValidate(t, server, outputFormat)
 
 	require.Equal(t, wantExitCode, execution.ExitCode)

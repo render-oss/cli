@@ -79,6 +79,26 @@ func RandomServiceID() string {
 	return ServiceID(xid.New().String())
 }
 
+// BlueprintID returns a syntactically valid exs- Blueprint ID for tests.
+func BlueprintID(label string) string {
+	return objectID("exs", label)
+}
+
+// RandomBlueprintID returns a syntactically valid Blueprint ID for tests.
+func RandomBlueprintID() string {
+	return BlueprintID(xid.New().String())
+}
+
+// SyncID returns a syntactically valid exe- Sync ID for tests.
+func SyncID(label string) string {
+	return objectID("exe", label)
+}
+
+// RandomSyncID returns a syntactically valid Sync ID for tests.
+func RandomSyncID() string {
+	return SyncID(xid.New().String())
+}
+
 // DeployID returns a syntactically valid dep- deploy ID for tests.
 func DeployID(label string) string {
 	return objectID("dep", label)
