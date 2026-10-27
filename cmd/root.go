@@ -134,6 +134,8 @@ func setupWorkflowCommands(deps *dependencies.Dependencies) {
 	tasksRunsCmd.AddCommand(deps.Commands.Workflow.RunDetailsCmd)
 	tasksRunsCmd.AddCommand(deps.Commands.Workflow.RunCancelCmd)
 
+	setupFlowCommands(WorkflowsCmd, deps)
+
 	WorkflowsCmd.AddCommand(workflowStartShortcut(deps))
 	WorkflowsCmd.AddCommand(workflowCancelShortcut(deps))
 
@@ -160,6 +162,10 @@ func setupWorkspaceCommands(deps *dependencies.Dependencies) {
 
 func setupPGCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
 	parent.AddCommand(newPgCmd(newPgCreateCmd(deps), newPgDeleteCmd(deps), newPgGetCmd(deps), newPgListCmd(deps), newPgUpdateCmd(deps), newPgSuspendCmd(deps), newPgResumeCmd(deps)))
+}
+
+func setupFlowCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
+	parent.AddCommand(newFlowsCmd(newFlowRunsCmd(newFlowRunShowCmd(deps))))
 }
 
 func setupKVCommands(parent *cobra.Command, deps *dependencies.Dependencies) {

@@ -312,6 +312,7 @@ type Server struct {
 	CliTelemetry     *CliTelemetryResource
 	OAuth            *OAuthResource
 	Logs             *LogResource
+	FlowRuns         *Resource[*FlowRun]
 	userErrorQueue   []int
 }
 
@@ -430,6 +431,7 @@ func NewServer(t *testing.T) *Server {
 		CliTelemetry:     &CliTelemetryResource{},
 		OAuth:            &OAuthResource{},
 		Logs:             &LogResource{t: t},
+		FlowRuns:         &Resource[*FlowRun]{},
 	}
 
 	mux := http.NewServeMux()
@@ -1093,6 +1095,7 @@ func NewServer(t *testing.T) *Server {
 	registerCliTelemetryRoutes(mux, s, record)
 	registerOAuthRoutes(mux, s, record)
 	registerLogRoutes(mux, s, record)
+	registerFlowRunRoutes(mux, s, record)
 
 	s.server = httptest.NewServer(mux)
 	t.Cleanup(s.server.Close)

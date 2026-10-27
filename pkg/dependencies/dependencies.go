@@ -9,6 +9,7 @@ import (
 	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/deploy"
 	"github.com/render-oss/cli/pkg/environment"
+	"github.com/render-oss/cli/pkg/flowrun"
 	"github.com/render-oss/cli/pkg/keyvalue"
 	"github.com/render-oss/cli/pkg/logs"
 	"github.com/render-oss/cli/pkg/owner"
@@ -49,6 +50,7 @@ type cachedDependencies struct {
 	workflowRepo           cache[*workflow.Repo]
 	workflowVersionRepo    cache[*version.Repo]
 	taskRepo               cache[*tasks.Repo]
+	flowRunRepo            cache[*flowrun.Repo]
 	projectRepo            cache[*project.Repo]
 	environmentRepo        cache[*environment.Repo]
 	serviceRepo            cache[*service.Repo]
@@ -118,6 +120,12 @@ func (d *Dependencies) SetStack(stack *tui.StackModel) {
 func (d *Dependencies) TaskRepo() *tasks.Repo {
 	return d.cache.taskRepo.Get(func() *tasks.Repo {
 		return tasks.NewRepo(d.client)
+	})
+}
+
+func (d *Dependencies) FlowRunRepo() *flowrun.Repo {
+	return d.cache.flowRunRepo.Get(func() *flowrun.Repo {
+		return flowrun.NewRepo(d.client)
 	})
 }
 
