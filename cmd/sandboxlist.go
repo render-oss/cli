@@ -13,7 +13,7 @@ import (
 )
 
 type SandboxListInput struct {
-	SandboxGroupID string   `cli:"sandbox-group"`
+	SandboxGroupID string   `cli:"group"`
 	Status         []string `cli:"status"`
 	All            bool     `cli:"all"`
 }
@@ -37,8 +37,9 @@ Examples:
 
 	cmd.Flags().StringArray("status", nil, "Filter by status (repeatable: "+strings.Join(sandboxStatusNames(), ", ")+")")
 	cmd.Flags().Bool("all", false, "Include terminated sandboxes")
-	cmd.Flags().String("sandbox-group", "", "Filter by sandbox group ID")
-	setFlagPlaceholder(cmd.Flags(), "sandbox-group", "SANDBOX_GROUP_ID")
+	cmd.Flags().String("group", "", "Filter by sandbox group ID")
+	setFlagPlaceholder(cmd.Flags(), "group", "SANDBOX_GROUP_ID")
+	setFlagAlias(cmd.Flags(), "sandbox-group", "group")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		command.DefaultFormatNonInteractive(cmd)

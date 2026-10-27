@@ -719,7 +719,7 @@ func TestSandboxCreate_GroupSelection(t *testing.T) {
 			}
 			args := []string{"sandboxes", "create", "--output", "json"}
 			if groupID != "" {
-				args = append(args, "--sandbox-group", groupID)
+				args = append(args, "--group", groupID)
 			}
 			_, err := executeSandboxCommand(t, server, args...)
 			require.NoError(t, err)

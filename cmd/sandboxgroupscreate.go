@@ -33,7 +33,7 @@ func newSandboxGroupsCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 
 Group names are unique within a workspace. The workspace's first group becomes
 its default, where "render sandboxes create" places sandboxes unless
---sandbox-group is given.`,
+--group is given.`,
 		Example: `  # Create a sandbox group
   render sandbox-groups create --name agents
 

@@ -37,6 +37,18 @@ func setFlagPlaceholder(flags *pflag.FlagSet, flagName, placeholder string) bool
 	return setAnnotationBestEffort(flags, flagName, flagPlaceholderAnnotation, []string{placeholder})
 }
 
+// setFlagAlias makes --alias set the flag registered as name. The alias is
+// accepted on the command line but does not appear in help output.
+func setFlagAlias(flags *pflag.FlagSet, alias, name string) {
+	normalize := flags.GetNormalizeFunc()
+	flags.SetNormalizeFunc(func(f *pflag.FlagSet, flagName string) pflag.NormalizedName {
+		if flagName == alias {
+			flagName = name
+		}
+		return normalize(f, flagName)
+	})
+}
+
 // setAllFlagPlaceholders applies help-output placeholder metadata to every local value flag.
 // Panics when any visible value flag is missing a placeholder or any placeholder names an invalid flag.
 // These panics happen during command construction, so they are intended as a dev and test aid.

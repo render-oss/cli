@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [2.33.0] - 2026-10-27
+
+### Changed
+
+- `render sandboxes create` and `sandboxes list` now take `--group`, matching the other sandbox commands
+
 ## [2.32.0] - 2026-10-27
 
 ### Added
