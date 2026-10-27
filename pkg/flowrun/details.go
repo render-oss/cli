@@ -10,6 +10,66 @@ import (
 	workflows "github.com/render-oss/cli/pkg/client/workflows"
 )
 
+// FlowDetails formats a flow definition for text output.
+func FlowDetails(f *workflows.Flow) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Flow %s\n", f.Id)
+	fmt.Fprintf(&b, "Name: %s\n", f.Name)
+	if f.WorkflowId != nil {
+		fmt.Fprintf(&b, "Workflow ID: %s\n", *f.WorkflowId)
+	}
+	if f.WorkflowVersionId != nil {
+		fmt.Fprintf(&b, "Workflow Version ID: %s\n", *f.WorkflowVersionId)
+	}
+	fmt.Fprintf(&b, "Created at: %s\n", f.CreatedAt.Format(time.RFC3339))
+	return b.String()
+}
+
+// StepDetails formats a flow run step for text output.
+func StepDetails(step *workflows.FlowRunStepDetails) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Step %d (%s)\n", step.Seq, step.StepKey)
+	if step.Name != nil {
+		fmt.Fprintf(&b, "Name: %s\n", *step.Name)
+	}
+	fmt.Fprintf(&b, "Type: %s\n", step.Type)
+	fmt.Fprintf(&b, "Status: %s\n", step.Status)
+	fmt.Fprintf(&b, "Flow run attempt: %d\n", step.FlowRunAttempt)
+	fmt.Fprintf(&b, "Started at: %s\n", step.StartedAt.Format(time.RFC3339))
+	if step.CompletedAt != nil {
+		fmt.Fprintf(&b, "Completed at: %s\n", step.CompletedAt.Format(time.RFC3339))
+	}
+	if step.WakeAt != nil {
+		fmt.Fprintf(&b, "Wake at: %s\n", step.WakeAt.Format(time.RFC3339))
+	}
+	if step.ChildTaskRunId != nil {
+		fmt.Fprintf(&b, "Child task run: %s\n", *step.ChildTaskRunId)
+	}
+	if step.Input != nil {
+		if input, err := json.Marshal(step.Input); err == nil {
+			fmt.Fprintf(&b, "Input: %s\n", input)
+		}
+	}
+	if step.Result != nil {
+		fmt.Fprintf(&b, "Result: %s\n", string(*step.Result))
+	}
+	if step.Error != nil {
+		fmt.Fprintf(&b, "Error: %s\n", *step.Error)
+	}
+	for _, attempt := range step.Attempts {
+		fmt.Fprintf(&b, "Attempt %d (flow run attempt %d): started %s, completed %s\n",
+			attempt.Attempt,
+			attempt.FlowRunAttempt,
+			attempt.StartedAt.Format(time.RFC3339),
+			attempt.CompletedAt.Format(time.RFC3339),
+		)
+		if attempt.Error != "" {
+			fmt.Fprintf(&b, "  Error: %s\n", attempt.Error)
+		}
+	}
+	return b.String()
+}
+
 // Details formats a flow run for text output.
 func Details(run *workflows.FlowRunDetails) string {
 	var b strings.Builder

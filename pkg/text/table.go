@@ -7,6 +7,7 @@ import (
 	clientjob "github.com/render-oss/cli/pkg/client/jobs"
 	wfclient "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/deploy"
+	"github.com/render-oss/cli/pkg/flowrun"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/task"
 	"github.com/render-oss/cli/pkg/taskrun"
@@ -93,6 +94,33 @@ func TaskRunTable(v []*wfclient.TaskRun) string {
 	t.AppendHeader(toRow(taskrun.Header()))
 	for _, r := range v {
 		t.AppendRow(toRow(taskrun.Row(r)))
+	}
+	return FormatString(t.Render())
+}
+
+func FlowTable(v []*wfclient.Flow) string {
+	t := newTable()
+	t.AppendHeader(toRow(flowrun.FlowHeader()))
+	for _, r := range v {
+		t.AppendRow(toRow(flowrun.FlowRow(r)))
+	}
+	return FormatString(t.Render())
+}
+
+func FlowRunTable(v []*wfclient.FlowRun) string {
+	t := newTable()
+	t.AppendHeader(toRow(flowrun.RunHeader()))
+	for _, r := range v {
+		t.AppendRow(toRow(flowrun.RunRow(r)))
+	}
+	return FormatString(t.Render())
+}
+
+func FlowRunStepTable(v []*wfclient.FlowRunStep) string {
+	t := newTable()
+	t.AppendHeader(toRow(flowrun.StepHeader()))
+	for _, r := range v {
+		t.AppendRow(toRow(flowrun.StepRow(r)))
 	}
 	return FormatString(t.Render())
 }

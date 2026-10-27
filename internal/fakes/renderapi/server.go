@@ -312,7 +312,8 @@ type Server struct {
 	CliTelemetry     *CliTelemetryResource
 	OAuth            *OAuthResource
 	Logs             *LogResource
-	FlowRuns         *Resource[*FlowRun]
+	Flows            *FlowResource
+	FlowRuns         *FlowRunResource
 	userErrorQueue   []int
 }
 
@@ -431,7 +432,8 @@ func NewServer(t *testing.T) *Server {
 		CliTelemetry:     &CliTelemetryResource{},
 		OAuth:            &OAuthResource{},
 		Logs:             &LogResource{t: t},
-		FlowRuns:         &Resource[*FlowRun]{},
+		Flows:            &FlowResource{},
+		FlowRuns:         &FlowRunResource{},
 	}
 
 	mux := http.NewServeMux()

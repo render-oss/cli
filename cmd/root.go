@@ -165,7 +165,21 @@ func setupPGCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
 }
 
 func setupFlowCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
-	parent.AddCommand(newFlowsCmd(newFlowRunsCmd(newFlowRunShowCmd(deps))))
+	runs := newFlowRunsCmd(
+		newFlowRunStartCmd(deps),
+		newFlowRunListCmd(deps),
+		newFlowRunShowCmd(deps),
+		newFlowRunCancelCmd(deps),
+		newFlowRunStepsCmd(
+			newFlowRunStepListCmd(deps),
+			newFlowRunStepShowCmd(deps),
+		),
+	)
+	parent.AddCommand(newFlowsCmd(
+		newFlowListCmd(deps),
+		newFlowGetCmd(deps),
+		runs,
+	))
 }
 
 func setupKVCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
