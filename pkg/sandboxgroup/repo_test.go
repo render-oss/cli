@@ -58,3 +58,37 @@ func TestRepoList_PropagatesAPIError(t *testing.T) {
 	_, err := repo.List(context.Background(), ownerID)
 	require.Error(t, err)
 }
+
+func TestRepoCreate_ReturnsCreatedGroup(t *testing.T) {
+	repo, server := newRepoWithServer(t)
+	ownerID := testids.WorkspaceID("active")
+	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: ownerID}))
+
+	got, err := repo.Create(context.Background(), sandboxesclient.SandboxGroupPOST{
+		OwnerId: ownerID,
+		Name:    "agents",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "agents", got.Name)
+	assert.Equal(t, ownerID, got.OwnerId)
+	assert.True(t, got.IsDefault, "first group in a workspace is the default")
+	require.Len(t, server.SandboxGroups.Instances, 1)
+	assert.Equal(t, server.SandboxGroups.Instances[0].Id, got.Id)
+}
+
+func TestRepoCreate_PropagatesAPIError(t *testing.T) {
+	repo, server := newRepoWithServer(t)
+	ownerID := testids.WorkspaceID("active")
+	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: ownerID}))
+	server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxesclient.SandboxGroup{
+		OwnerId: ownerID,
+		Name:    "agents",
+	}))
+
+	_, err := repo.Create(context.Background(), sandboxesclient.SandboxGroupPOST{
+		OwnerId: ownerID,
+		Name:    "agents",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "sandbox group name is taken")
+}

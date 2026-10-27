@@ -2,6 +2,7 @@ package sandboxgroup
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/render-oss/cli/pkg/client"
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
@@ -42,4 +43,20 @@ func (r *Repo) List(ctx context.Context, ownerID string) ([]*sandboxesclient.San
 		out = append(out, &g)
 	}
 	return out, nil
+}
+
+// Create creates a sandbox group. The API returns 409 when the name is taken
+// and 400 when the workspace is at its group limit.
+func (r *Repo) Create(ctx context.Context, body sandboxesclient.SandboxGroupPOST) (*sandboxesclient.SandboxGroup, error) {
+	resp, err := r.client.CreateSandboxGroupWithResponse(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+	if resp.JSON201 == nil {
+		return nil, fmt.Errorf("create sandbox group: success response missing group body")
+	}
+	return resp.JSON201, nil
 }

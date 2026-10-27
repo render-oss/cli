@@ -53,3 +53,39 @@ func TestServiceList_MissingWorkspaceReturnsError(t *testing.T) {
 	_, err = svc.List(context.Background())
 	require.Error(t, err)
 }
+
+func TestServiceCreate_UsesActiveWorkspace(t *testing.T) {
+	server := renderapi.NewServer(t)
+	activeWorkspace := testids.WorkspaceID("active")
+	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: activeWorkspace}))
+	t.Setenv("RENDER_WORKSPACE", activeWorkspace)
+
+	c, err := client.NewClientWithResponses(server.URL())
+	require.NoError(t, err)
+	svc := sandboxgroup.NewService(sandboxgroup.NewRepo(c))
+
+	got, err := svc.Create(context.Background(), sandboxgroup.CreateInput{Name: "agents"})
+	require.NoError(t, err)
+	assert.Equal(t, "agents", got.Name)
+	assert.Equal(t, activeWorkspace, got.OwnerId)
+
+	req, ok := server.LastRequest("POST", "/sandbox-groups")
+	require.True(t, ok)
+	assert.Contains(t, string(req.Body), `"ownerId":"`+activeWorkspace+`"`)
+	assert.NotContains(t, string(req.Body), `"region"`)
+}
+
+func TestServiceCreate_MissingWorkspaceReturnsError(t *testing.T) {
+	server := renderapi.NewServer(t)
+	c, err := client.NewClientWithResponses(server.URL())
+	require.NoError(t, err)
+	svc := sandboxgroup.NewService(sandboxgroup.NewRepo(c))
+
+	t.Setenv("RENDER_WORKSPACE", "")
+	t.Setenv("RENDER_CLI_CONFIG_PATH", t.TempDir()+"/nonexistent.yaml")
+
+	_, err = svc.Create(context.Background(), sandboxgroup.CreateInput{Name: "agents"})
+	require.Error(t, err)
+	_, ok := server.LastRequest("POST", "/sandbox-groups")
+	assert.False(t, ok, "no request should be sent without a workspace")
+}

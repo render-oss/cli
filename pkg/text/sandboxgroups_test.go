@@ -38,3 +38,34 @@ func TestSandboxGroupTable_NoEnvironmentShowsDash(t *testing.T) {
 	assert.True(t, strings.Contains(out, "sbg-xyz"))
 	assert.True(t, strings.Contains(out, " - "), "unbound environment should render as -:\n%s", out)
 }
+
+func TestSandboxGroupDetail_ShowsFields(t *testing.T) {
+	envID := "evm-abc"
+	group := &sandboxesclient.SandboxGroup{
+		Id:               "sbg-abc",
+		Name:             "agents",
+		Region:           "oregon",
+		IsDefault:        false,
+		ConcurrencyLimit: 10,
+		EnvironmentId:    &envID,
+		CreatedAt:        time.Date(2026, 7, 2, 18, 30, 0, 0, time.UTC),
+	}
+	out := text.SandboxGroupDetail(group)
+	for _, want := range []string{
+		"ID:                sbg-abc",
+		"Name:              agents",
+		"Region:            oregon",
+		"Default:           false",
+		"Concurrency limit: 10",
+		"Environment:       evm-abc",
+		"Created:           2026-07-02T18:30:00Z",
+	} {
+		assert.True(t, strings.Contains(out, want), "expected %q in output:\n%s", want, out)
+	}
+}
+
+func TestSandboxGroupDetail_NoEnvironmentShowsDash(t *testing.T) {
+	group := &sandboxesclient.SandboxGroup{Id: "sbg-xyz", Name: "Default", Region: "oregon", IsDefault: true, CreatedAt: time.Now()}
+	out := text.SandboxGroupDetail(group)
+	assert.True(t, strings.Contains(out, "Environment:       -"), "unbound environment should render as -:\n%s", out)
+}

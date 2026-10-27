@@ -1,6 +1,7 @@
 package renderapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -58,10 +59,54 @@ func NewSandboxGroup(g sandboxesclient.SandboxGroup) *sandboxesclient.SandboxGro
 	return &g
 }
 
-// registerSandboxGroupRoutes wires GET /sandbox-groups on the shared mux. GET
-// returns groups filtered by ownerId (matches the API's server-side contract:
-// ownerId is required and accepts at most one value).
+// registerSandboxGroupRoutes wires GET and POST /sandbox-groups on the shared
+// mux. GET returns groups filtered by ownerId (matches the API's server-side
+// contract: ownerId is required and accepts at most one value). POST creates a
+// group, 409 when the name is taken within the workspace, and makes the
+// workspace's first group its default.
 func registerSandboxGroupRoutes(mux *http.ServeMux, s *Server, record func(*http.Request)) {
+	mux.HandleFunc("POST /sandbox-groups", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.SandboxGroups.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		var body sandboxesclient.SandboxGroupPOST
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeAPIError(w, http.StatusBadRequest, "invalid body", "")
+			return
+		}
+		if body.Name == "" {
+			writeAPIError(w, http.StatusBadRequest, "name is required", "")
+			return
+		}
+		if _, ok := s.ownerByID(body.OwnerId); !ok {
+			writeAPIError(w, http.StatusNotFound, "owner not found", "")
+			return
+		}
+		isDefault := true
+		for _, g := range s.SandboxGroups.Instances {
+			if g.OwnerId != body.OwnerId {
+				continue
+			}
+			isDefault = false
+			if g.Name == body.Name {
+				writeAPIError(w, http.StatusConflict, "sandbox group name is taken", "")
+				return
+			}
+		}
+		group := NewSandboxGroup(sandboxesclient.SandboxGroup{
+			OwnerId: body.OwnerId,
+			Name:    body.Name,
+		})
+		if body.Region != nil {
+			group.Region = *body.Region
+		}
+		group.IsDefault = isDefault
+		s.SandboxGroups.Add(group)
+		writeJSON(w, http.StatusCreated, *group)
+	})
+
 	mux.HandleFunc("GET /sandbox-groups", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
 		if status, hasError := s.SandboxGroups.nextError(); hasError {

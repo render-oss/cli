@@ -18,6 +18,11 @@ func NewService(repo *Repo) *Service {
 	return &Service{repo: repo}
 }
 
+// CreateInput names a new sandbox group.
+type CreateInput struct {
+	Name string
+}
+
 // List returns the sandbox groups for the active workspace.
 func (s *Service) List(ctx context.Context) ([]*sandboxesclient.SandboxGroup, error) {
 	workspace, err := config.WorkspaceID()
@@ -43,4 +48,16 @@ func (s *Service) IDOrDefault(ctx context.Context, sandboxGroupID string) (strin
 		}
 	}
 	return "", fmt.Errorf("no default sandbox group found in the active workspace; specify --group")
+}
+
+// Create creates a sandbox group in the active workspace.
+func (s *Service) Create(ctx context.Context, input CreateInput) (*sandboxesclient.SandboxGroup, error) {
+	workspace, err := config.WorkspaceID()
+	if err != nil {
+		return nil, err
+	}
+	return s.repo.Create(ctx, sandboxesclient.SandboxGroupPOST{
+		OwnerId: workspace,
+		Name:    input.Name,
+	})
 }
