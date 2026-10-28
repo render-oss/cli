@@ -197,6 +197,10 @@ func setupSandboxGroupsCommands(parent *cobra.Command, deps *dependencies.Depend
 	parent.AddCommand(newSandboxGroupsCmd(images, builds, newSandboxGroupsListCmd(deps), newSandboxGroupsCreateCmd(deps)))
 }
 
+func setupBlueprintCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
+	earlyAccess.AddCommand(newEarlyAccessBlueprintsCmd(newBlueprintCreateCmd(deps)))
+}
+
 func setupServiceCommands(deps *dependencies.Dependencies) {
 	servicesCmd.AddCommand(newServiceDeleteCmd(deps), newServiceUpdateCmd(deps))
 }
@@ -233,6 +237,7 @@ func setupCommands() (*dependencies.Dependencies, error) {
 	setupPGCommands(rootCmd, deps)
 	setupSandboxCommands(rootCmd, deps)
 	setupSandboxGroupsCommands(rootCmd, deps)
+	setupBlueprintCommands(EarlyAccessCmd, deps)
 	setupRootCmdPersistentRun(rootCmd, deps)
 
 	return deps, nil
