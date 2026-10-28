@@ -3,6 +3,8 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +14,7 @@ import (
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
 	lclient "github.com/render-oss/cli/pkg/client/logs"
+	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/stretchr/testify/require"
 )
@@ -84,4 +87,39 @@ func executeLogsCommand(t *testing.T, server *renderapi.Server, args ...string) 
 	root.SetArgs(append([]string{"logs", "--resources", testids.ServiceID("logs")}, args...))
 	err = root.Execute()
 	return CommandResult{Stdout: stdout.String(), Stderr: stderr.String()}, err
+}
+
+func TestWriteLogTextSanitizesControlBytes(t *testing.T) {
+	ts := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	log := &lclient.Log{
+		Id:        "log-1",
+		Timestamp: ts,
+		Message:   "before\x1b[1A\x1b[2K\x1b]8;;https://attacker.example\x1b\\link\x1b]8;;\x1b\\\x1b]52;c;QUJD\x07\rafter",
+	}
+
+	var buf bytes.Buffer
+	require.NoError(t, writeLog(command.TEXT, &buf, log))
+	require.Equal(t, "2026-01-02 03:04:05  beforelinkafter\n", buf.String())
+
+	// Structured formats already escape control bytes and must keep the
+	// message intact.
+	buf.Reset()
+	require.NoError(t, writeLog(command.JSON, &buf, log))
+	require.NotContains(t, buf.String(), "\x1b")
+	require.Contains(t, buf.String(), `\u001b[1A`)
+}
+
+func TestWriteLogTextPreservesMessageInRegularFile(t *testing.T) {
+	ts := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	message := "before\x1b[1A\x1b[2K\rafter"
+
+	path := filepath.Join(t.TempDir(), "logs.txt")
+	f, err := os.Create(path)
+	require.NoError(t, err)
+	require.NoError(t, writeLog(command.TEXT, f, &lclient.Log{Timestamp: ts, Message: message}))
+	require.NoError(t, f.Close())
+
+	got, err := os.ReadFile(path)
+	require.NoError(t, err)
+	require.Equal(t, "2026-01-02 03:04:05  "+message+"\n", string(got))
 }

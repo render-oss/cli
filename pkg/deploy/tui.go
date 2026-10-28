@@ -56,7 +56,7 @@ func (i ListItem) Description() string {
 			style.FormatKeyValue("SHA", pointers.StringValue(i.deploy.Image.Sha))
 	} else if i.deploy.Commit != nil {
 		deployInfoLine = style.FormatKeyValue("Commit", pointers.StringValue(i.deploy.Commit.Id)) + " " +
-			style.FormatKeyValue("Message", rstrings.StripNewlines(pointers.StringValue(i.deploy.Commit.Message)))
+			style.FormatKeyValue("Message", rstrings.SanitizeTerminalPlain(rstrings.StripNewlines(pointers.StringValue(i.deploy.Commit.Message))))
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left,

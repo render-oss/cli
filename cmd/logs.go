@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -13,6 +14,7 @@ import (
 	lclient "github.com/render-oss/cli/pkg/client/logs"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/logs"
+	rstrings "github.com/render-oss/cli/pkg/strings"
 	"github.com/render-oss/cli/pkg/tui/flows"
 	"github.com/render-oss/cli/pkg/tui/views"
 )
@@ -116,7 +118,15 @@ func writeLog(format command.Output, out io.Writer, log *lclient.Log) error {
 	} else if format == command.YAML {
 		str, err = yaml.Marshal(log)
 	} else if format == command.TEXT {
-		str = []byte(fmt.Sprintf("%s  %s\n", log.Timestamp.Format(time.DateTime), log.Message))
+		// Log messages are server-supplied and may contain terminal escape
+		// sequences; neutralize them before writing to the TTY. JSON/YAML
+		// output already escapes control bytes. When the output is
+		// redirected to a regular file, keep the message exactly as logged.
+		msg := log.Message
+		if !isRegularFile(out) {
+			msg = rstrings.SanitizeTerminal(msg)
+		}
+		str = []byte(fmt.Sprintf("%s  %s\n", log.Timestamp.Format(time.DateTime), msg))
 	}
 
 	if err != nil {
@@ -125,6 +135,19 @@ func writeLog(format command.Output, out io.Writer, log *lclient.Log) error {
 
 	_, err = out.Write(str)
 	return err
+}
+
+// isRegularFile reports whether out is an *os.File backed by a regular file
+// (e.g. `render logs > logs.txt`). Terminals, pipes, and any other writer
+// return false, so they stay sanitized: a pipe like `render logs | cat` can
+// still end up on a terminal.
+func isRegularFile(out io.Writer) bool {
+	f, ok := out.(*os.File)
+	if !ok {
+		return false
+	}
+	info, err := f.Stat()
+	return err == nil && info.Mode().IsRegular()
 }
 
 func nonInteractiveLogs(logLoader *views.LogLoader, format *command.Output, cmd *cobra.Command, input views.LogInput) error {

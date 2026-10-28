@@ -12,6 +12,7 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	lclient "github.com/render-oss/cli/pkg/client/logs"
+	rstrings "github.com/render-oss/cli/pkg/strings"
 )
 
 type LogResult struct {
@@ -88,7 +89,9 @@ func formatLogs(logs []lclient.Log) []string {
 		formattedLogs = append(formattedLogs, lipgloss.JoinHorizontal(
 			lipgloss.Top,
 			timeStyle.Render(log.Timestamp.Format(time.DateTime)),
-			log.Message,
+			// Messages are server-supplied; strip escape sequences so they
+			// can't drive the terminal through the viewport.
+			rstrings.SanitizeTerminal(log.Message),
 		))
 	}
 
