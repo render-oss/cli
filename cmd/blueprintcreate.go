@@ -22,17 +22,28 @@ func newBlueprintCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 		SilenceUsage: true,
 		Long: `Create a Blueprint from a remote repository and plan its first sync in the active workspace.
 
---repo is required and accepts an HTTPS or SSH repository URL. If --branch is
-omitted, the command uses the repository's default branch. --path is relative
-to the repository root, not the current directory. Render reads the pushed
-repository, so push local changes first.
+Without --repo, the command uses the URL of the local Git repository's remote
+named "origin" and the current local branch.
+
+With --repo, the command uses that repository and its default branch. The
+repository URL can be HTTPS or SSH.
+
+In either case, --branch overrides the branch. If the local checkout has a
+detached HEAD, provide --branch or --repo.
+
+--path is relative to the repository root, not the current directory, and
+defaults to render.yaml. Render reads the pushed repository, so push local
+changes first.
 
 Creating a Blueprint does not approve its first sync. With --auto-sync enabled,
 future pushes sync automatically after the first approval. Existing resources
 are left unchanged unless --existing-resources=adopt is supplied.
 
 Output defaults to text. Use --output json or yaml for structured responses.`,
-		Example: `  # Use a remote repository and its default branch
+		Example: `  # Use the local remote named "origin" and the current branch
+  render ea blueprints create
+
+  # Use a remote repository and its default branch
   render ea blueprints create --repo https://github.com/acme/my-app
 
   # Set the branch and repository-relative Blueprint path
@@ -87,8 +98,8 @@ Output defaults to text. Use --output json or yaml for structured responses.`,
 		},
 	}
 
-	cmd.Flags().String("repo", "", "Set the repository URL (required)")
-	cmd.Flags().String("branch", "", "Set the branch (defaults to the repository's default branch)")
+	cmd.Flags().String("repo", "", `Set the repository URL (defaults to the local remote named "origin")`)
+	cmd.Flags().String("branch", "", "Set the branch (defaults to the local branch, or the repository's default branch with --repo)")
 	cmd.Flags().String("path", "render.yaml", "Set the Blueprint file path relative to the repository root")
 	cmd.Flags().String("name", "", "Set the Blueprint name (defaults to the repository name)")
 	cmd.Flags().Bool("auto-sync", true, "Automatically sync future pushes after the first approval")

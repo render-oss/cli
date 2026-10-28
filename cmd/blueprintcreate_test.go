@@ -5,9 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/go-git/go-git/v5"
+	gitconfig "github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/stretchr/testify/require"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
@@ -158,16 +163,36 @@ func TestBlueprintCreateHelp(t *testing.T) {
 	}
 	require.NotContains(t, output.Stdout, "--workspace")
 	require.Contains(t, output.Stdout, "relative to the repository root")
+	require.Contains(t, output.Stdout, "defaults to render.yaml")
 	require.Contains(t, output.Stdout, "create_new")
 	require.Empty(t, server.Requests)
 }
 
-func TestBlueprintCreateRequiresRepository(t *testing.T) {
-	server := renderapi.NewServer(t)
+func TestBlueprintCreateRequiresRepositoryOutsideAGitRepo(t *testing.T) {
+	t.Chdir(t.TempDir())
+	server := newBlueprintCreateServer(t)
 	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--output", "json")
 	require.Equal(t, 1, result.ExitCode)
 	require.Empty(t, output.Stdout)
-	require.Contains(t, output.Stderr, "--repo is required")
+	require.Contains(t, output.Stderr, "cannot determine the repository from the local checkout; provide --repo")
+	require.Empty(t, server.Requests)
+}
+
+func TestBlueprintCreateReportsGitConfigError(t *testing.T) {
+	server := newBlueprintCreateServer(t)
+	dir := t.TempDir()
+	_, err := git.PlainInit(dir, false)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(dir, ".git", "config"), []byte("[invalid\n"), 0o644))
+	t.Setenv("LC_ALL", "C")
+	t.Chdir(dir)
+
+	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--output", "json")
+
+	require.Equal(t, 1, result.ExitCode)
+	require.Empty(t, output.Stdout)
+	require.Contains(t, output.Stderr, "cannot determine the repository from the local checkout; provide --repo")
+	require.Contains(t, output.Stderr, "bad config line 1")
 	require.Empty(t, server.Requests)
 }
 
@@ -184,8 +209,8 @@ func TestBlueprintCreateInputParsing(t *testing.T) {
 			want: blueprint.CreateInput{Repo: new("https://github.com/acme/app")},
 		},
 		{
-			name:    "missing repository",
-			wantErr: "--repo is required",
+			name: "omitted flags remain nil for later inference",
+			want: blueprint.CreateInput{},
 		},
 		{
 			name: "explicit non-default values are present",
@@ -227,7 +252,7 @@ func TestBlueprintCreateInputParsing(t *testing.T) {
 		{
 			name:    "explicit empty repository",
 			args:    []string{"--repo", ""},
-			wantErr: "--repo is required",
+			wantErr: "--repo must be a valid https:// or ssh:// URL",
 		},
 		{
 			name:    "malformed repository URL",
@@ -269,4 +294,30 @@ func TestBlueprintCreateInputParsing(t *testing.T) {
 func TestBlueprintCreateRejectsPositionalArguments(t *testing.T) {
 	cmd := newBlueprintCreateCmd(nil)
 	require.ErrorContains(t, cmd.Args(cmd, []string{"unexpected"}), "unknown command")
+}
+
+func TestBlueprintCreateGitDefaults(t *testing.T) {
+	server := newBlueprintCreateServer(t)
+
+	// Set up an SSH origin and a release branch, then run from a subdirectory.
+	dir := t.TempDir()
+	repo, err := git.PlainInit(dir, false)
+	require.NoError(t, err)
+	_, err = repo.CreateRemote(&gitconfig.RemoteConfig{Name: "origin", URLs: []string{"git@github.com:acme/app.git"}})
+	require.NoError(t, err)
+	require.NoError(t, repo.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, "refs/heads/release")))
+	subdir := filepath.Join(dir, "infra")
+	require.NoError(t, os.MkdirAll(subdir, 0o755))
+	t.Chdir(subdir)
+
+	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--path", "infra/render.yaml", "--output", "json")
+
+	require.Equal(t, 0, result.ExitCode, output.Stderr)
+
+	created := server.Blueprints.Only(t)
+	require.Equal(t, "app", created.Name)
+
+	require.Equal(t, "https://github.com/acme/app.git", created.Repo)
+	require.Equal(t, "release", created.Branch)
+	require.Equal(t, "infra/render.yaml", created.Path)
 }

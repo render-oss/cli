@@ -56,14 +56,13 @@ func TestCreateInputValidate(t *testing.T) {
 			wantErrs: []string{"--repo must be a valid https:// or ssh:// URL"},
 		},
 		{
-			name:     "missing repository",
-			input:    blueprint.CreateInput{},
-			wantErrs: []string{"--repo is required"},
+			name:  "repository can be inferred later",
+			input: blueprint.CreateInput{},
 		},
 		{
 			name:     "explicit empty repository",
 			input:    blueprint.CreateInput{Repo: new("")},
-			wantErrs: []string{"--repo is required"},
+			wantErrs: []string{"--repo must be a valid https:// or ssh:// URL"},
 		},
 		{
 			name:     "malformed repository URL",
@@ -84,7 +83,6 @@ func TestCreateInputValidate(t *testing.T) {
 				Name:              new(""),
 			},
 			wantErrs: []string{
-				"--repo is required",
 				"--existing-resources must be create_new or adopt",
 				"--path must not be empty",
 				"--branch must not be empty",
@@ -105,12 +103,27 @@ func TestCreateInputValidate(t *testing.T) {
 	}
 }
 
-func TestServiceCreateRequiresRepository(t *testing.T) {
+func TestServiceCreateRequiresRepositoryOutsideAGitRepo(t *testing.T) {
+	t.Chdir(t.TempDir())
 	repo, server, body := newBlueprintRepoFixture(t)
 	svc := blueprint.NewService(repo)
 
 	result, err := svc.Create(context.Background(), body.OwnerId, blueprint.CreateInput{})
-	require.ErrorContains(t, err, "--repo is required")
+	require.ErrorContains(t, err, "cannot determine the repository from the local checkout; provide --repo")
+	require.Nil(t, result)
+	require.Empty(t, server.Requests)
+}
+
+func TestServiceCreateGitDiscoveryHonorsCanceledContext(t *testing.T) {
+	t.Chdir(t.TempDir())
+	repo, server, body := newBlueprintRepoFixture(t)
+	svc := blueprint.NewService(repo)
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	result, err := svc.Create(ctx, body.OwnerId, blueprint.CreateInput{})
+
+	require.ErrorIs(t, err, context.Canceled)
 	require.Nil(t, result)
 	require.Empty(t, server.Requests)
 }
@@ -145,13 +158,13 @@ func TestServiceCreate(t *testing.T) {
 				},
 			},
 			{
-				name: "SSH repository URL is passed through unchanged",
+				name: "SSH repository URL is normalized to HTTPS",
 				input: blueprint.CreateInput{
 					Repo: new("ssh://git@github.com/acme/my-app.git"),
 				},
 				want: bptypes.CreateBlueprintRequest{
 					Name:     "my-app",
-					Source:   bptypes.BlueprintSource{Repo: "ssh://git@github.com/acme/my-app.git", Path: new("render.yaml")},
+					Source:   bptypes.BlueprintSource{Repo: "https://github.com/acme/my-app.git", Path: new("render.yaml")},
 					AutoSync: new(true), ExistingResources: new(bptypes.CreateNew),
 				},
 			},
@@ -182,6 +195,7 @@ func TestServiceCreate(t *testing.T) {
 			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
+				t.Chdir(t.TempDir())
 				repo, server, body := newBlueprintRepoFixture(t)
 				svc := blueprint.NewService(repo)
 				_, err := svc.Create(context.Background(), body.OwnerId, tc.input)
