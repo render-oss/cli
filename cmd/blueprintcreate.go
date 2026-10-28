@@ -11,35 +11,6 @@ import (
 	"github.com/render-oss/cli/pkg/dependencies"
 )
 
-// BlueprintCreateInput preserves omitted flags as nil for creation-default resolution.
-type BlueprintCreateInput struct {
-	Repo              *string                       `cli:"repo"`
-	Branch            *string                       `cli:"branch"`
-	Path              *string                       `cli:"path"`
-	Name              *string                       `cli:"name"`
-	AutoSync          *bool                         `cli:"auto-sync"`
-	ExistingResources *bptypes.ExistingResourceMode `cli:"existing-resources"`
-}
-
-func (i *BlueprintCreateInput) Validate(_ bool) error {
-	if i.ExistingResources != nil && !i.ExistingResources.Valid() {
-		return errors.New("--existing-resources must be create_new or adopt")
-	}
-	if i.Repo != nil && *i.Repo == "" {
-		return errors.New("--repo must not be empty")
-	}
-	if i.Path != nil && *i.Path == "" {
-		return errors.New("--path must not be empty")
-	}
-	if i.Branch != nil && *i.Branch == "" {
-		return errors.New("--branch must not be empty")
-	}
-	if i.Name != nil && *i.Name == "" {
-		return errors.New("--name must not be empty")
-	}
-	return nil
-}
-
 func newBlueprintCreateCmd(_ *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "create",
@@ -49,11 +20,10 @@ func newBlueprintCreateCmd(_ *dependencies.Dependencies) *cobra.Command {
 		SilenceUsage: true,
 		Long: `Create a Blueprint from a remote repository and plan its first sync in the active workspace.
 
-If --repo is omitted, the command uses the local repository's origin remote.
-If --branch is omitted, the command uses the current local branch when the
-selected repository matches origin, or the repository's default branch
-otherwise. --path is relative to the repository root, not the current
-directory. Render reads the pushed repository, so push local changes first.
+--repo is required and accepts an HTTPS or SSH repository URL. If --branch is
+omitted, the command uses the repository's default branch. --path is relative
+to the repository root, not the current directory. Render reads the pushed
+repository, so push local changes first.
 
 Creating a Blueprint does not approve its first sync. With --auto-sync enabled,
 future pushes sync automatically after the first approval. Existing resources
@@ -63,23 +33,20 @@ Output defaults to text. Use --output json or yaml for structured responses.
 
 This command is under development. Execution currently returns an error without
 creating a Blueprint.`,
-		Example: `  # Use the local origin remote and current branch
-  render ea blueprints create
-
-  # Use a remote repository and its default branch
+		Example: `  # Use a remote repository and its default branch
   render ea blueprints create --repo https://github.com/acme/my-app
 
   # Set the branch and repository-relative Blueprint path
-  render ea blueprints create --branch release --path infra/render.yaml
+  render ea blueprints create --repo https://github.com/acme/my-app --branch release --path infra/render.yaml
 
   # Explicitly adopt matching resources and disable future automatic syncs
-  render ea blueprints create --existing-resources adopt --auto-sync=false
+  render ea blueprints create --repo https://github.com/acme/my-app --existing-resources adopt --auto-sync=false
 
   # Output the Blueprint and planning result as JSON
-  render ea blueprints create --output json`,
+  render ea blueprints create --repo https://github.com/acme/my-app --output json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			command.DefaultFormatNonInteractive(cmd)
-			var input BlueprintCreateInput
+			var input blueprint.CreateInput
 			if err := command.ParseCommand(cmd, args, &input); err != nil {
 				return err
 			}
@@ -93,8 +60,8 @@ creating a Blueprint.`,
 		},
 	}
 
-	cmd.Flags().String("repo", "", "Set the repository URL (defaults to the local origin remote)")
-	cmd.Flags().String("branch", "", "Set the branch (defaults to the local branch for the same repository)")
+	cmd.Flags().String("repo", "", "Set the repository URL (required)")
+	cmd.Flags().String("branch", "", "Set the branch (defaults to the repository's default branch)")
 	cmd.Flags().String("path", "render.yaml", "Set the Blueprint file path relative to the repository root")
 	cmd.Flags().String("name", "", "Set the Blueprint name (defaults to the repository name)")
 	cmd.Flags().Bool("auto-sync", true, "Automatically sync future pushes after the first approval")
@@ -109,7 +76,7 @@ creating a Blueprint.`,
 	return cmd
 }
 
-func createBlueprint(_ BlueprintCreateInput) (blueprint.CreateOut, error) {
+func createBlueprint(_ blueprint.CreateInput) (blueprint.CreateOut, error) {
 	return blueprint.CreateOut{}, errors.New("blueprint creation is not implemented yet")
 }
 

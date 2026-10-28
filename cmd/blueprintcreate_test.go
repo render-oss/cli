@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/render-oss/cli/pkg/blueprint"
 	"github.com/render-oss/cli/pkg/client"
 	bptypes "github.com/render-oss/cli/pkg/client/blueprints"
 	"github.com/render-oss/cli/pkg/command"
@@ -49,7 +50,7 @@ func TestBlueprintCommandsHidden(t *testing.T) {
 
 func TestBlueprintCreateNotImplemented(t *testing.T) {
 	server := renderapi.NewServer(t)
-	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--output", "json")
+	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/app", "--output", "json")
 	require.Equal(t, 1, result.ExitCode)
 	require.Empty(t, output.Stdout)
 	require.Contains(t, output.Stderr, "blueprint creation is not implemented yet")
@@ -69,21 +70,35 @@ func TestBlueprintCreateHelp(t *testing.T) {
 	require.Empty(t, server.Requests)
 }
 
+func TestBlueprintCreateRequiresRepository(t *testing.T) {
+	server := renderapi.NewServer(t)
+	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--output", "json")
+	require.Equal(t, 1, result.ExitCode)
+	require.Empty(t, output.Stdout)
+	require.Contains(t, output.Stderr, "--repo is required")
+	require.Empty(t, server.Requests)
+}
+
 func TestBlueprintCreateInputParsing(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		args    []string
-		want    BlueprintCreateInput
+		want    blueprint.CreateInput
 		wantErr string
 	}{
 		{
-			name: "omitted flags remain nil despite Cobra defaults",
-			want: BlueprintCreateInput{},
+			name: "omitted optional flags remain nil despite Cobra defaults",
+			args: []string{"--repo", "https://github.com/acme/app"},
+			want: blueprint.CreateInput{Repo: new("https://github.com/acme/app")},
+		},
+		{
+			name:    "missing repository",
+			wantErr: "--repo is required",
 		},
 		{
 			name: "explicit non-default values are present",
 			args: []string{"--repo", "https://github.com/acme/app", "--branch", "release", "--path", "infra/render.yaml", "--name", "production", "--auto-sync=false", "--existing-resources", "adopt"},
-			want: BlueprintCreateInput{
+			want: blueprint.CreateInput{
 				Repo:              new("https://github.com/acme/app"),
 				Branch:            new("release"),
 				Path:              new("infra/render.yaml"),
@@ -94,8 +109,9 @@ func TestBlueprintCreateInputParsing(t *testing.T) {
 		},
 		{
 			name: "explicit default values remain present",
-			args: []string{"--path", "render.yaml", "--auto-sync=true", "--existing-resources", "create_new"},
-			want: BlueprintCreateInput{
+			args: []string{"--repo", "https://github.com/acme/app", "--path", "render.yaml", "--auto-sync=true", "--existing-resources", "create_new"},
+			want: blueprint.CreateInput{
+				Repo:              new("https://github.com/acme/app"),
 				Path:              new("render.yaml"),
 				AutoSync:          new(true),
 				ExistingResources: new(bptypes.CreateNew),
@@ -103,37 +119,42 @@ func TestBlueprintCreateInputParsing(t *testing.T) {
 		},
 		{
 			name:    "invalid existing resources mode",
-			args:    []string{"--existing-resources", "delete"},
+			args:    []string{"--repo", "https://github.com/acme/app", "--existing-resources", "delete"},
 			wantErr: "--existing-resources must be create_new or adopt",
 		},
 		{
 			name:    "hyphenated resource mode is rejected",
-			args:    []string{"--existing-resources", "create-new"},
+			args:    []string{"--repo", "https://github.com/acme/app", "--existing-resources", "create-new"},
 			wantErr: "--existing-resources must be create_new or adopt",
 		},
 		{
 			name:    "explicit empty resource mode",
-			args:    []string{"--existing-resources", ""},
+			args:    []string{"--repo", "https://github.com/acme/app", "--existing-resources", ""},
 			wantErr: "--existing-resources must be create_new or adopt",
 		},
 		{
 			name:    "explicit empty repository",
 			args:    []string{"--repo", ""},
-			wantErr: "--repo must not be empty",
+			wantErr: "--repo is required",
+		},
+		{
+			name:    "malformed repository URL",
+			args:    []string{"--repo", "https://github.com/acme/%gh"},
+			wantErr: "--repo must be a valid https:// or ssh:// URL",
 		},
 		{
 			name:    "explicit empty path",
-			args:    []string{"--path", ""},
+			args:    []string{"--repo", "https://github.com/acme/app", "--path", ""},
 			wantErr: "--path must not be empty",
 		},
 		{
 			name:    "explicit empty branch",
-			args:    []string{"--branch", ""},
+			args:    []string{"--repo", "https://github.com/acme/app", "--branch", ""},
 			wantErr: "--branch must not be empty",
 		},
 		{
 			name:    "explicit empty name",
-			args:    []string{"--name", ""},
+			args:    []string{"--repo", "https://github.com/acme/app", "--name", ""},
 			wantErr: "--name must not be empty",
 		},
 	} {
@@ -141,7 +162,7 @@ func TestBlueprintCreateInputParsing(t *testing.T) {
 			cmd := newBlueprintCreateCmd(nil)
 			cmd.SetContext(command.SetFormatInContext(context.Background(), new(command.TEXT)))
 			require.NoError(t, cmd.ParseFlags(tc.args))
-			var input BlueprintCreateInput
+			var input blueprint.CreateInput
 			err := command.ParseCommand(cmd, nil, &input)
 			if tc.wantErr != "" {
 				require.ErrorContains(t, err, tc.wantErr)

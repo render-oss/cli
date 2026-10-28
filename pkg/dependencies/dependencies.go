@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/render-oss/cli/pkg/analytics"
+	"github.com/render-oss/cli/pkg/blueprint"
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/config"
@@ -57,6 +58,8 @@ type cachedDependencies struct {
 	registryRepo           cache[*registry.Repo]
 	registryService        cache[*registry.Service]
 	postgresRepo           cache[*postgres.Repo]
+	blueprintRepo          cache[*blueprint.Repo]
+	blueprintService       cache[*blueprint.Service]
 	sandboxRepo            cache[*sandbox.Repo]
 	sandboxGroupRepo       cache[*sandboxgroup.Repo]
 	sandboxSnapshotRepo    cache[*sandboxsnapshot.Repo]
@@ -168,6 +171,18 @@ func (d *Dependencies) RegistryRepo() *registry.Repo {
 func (d *Dependencies) PostgresRepo() *postgres.Repo {
 	return d.cache.postgresRepo.Get(func() *postgres.Repo {
 		return postgres.NewRepo(d.client)
+	})
+}
+
+func (d *Dependencies) BlueprintRepo() *blueprint.Repo {
+	return d.cache.blueprintRepo.Get(func() *blueprint.Repo {
+		return blueprint.NewRepo(d.client)
+	})
+}
+
+func (d *Dependencies) BlueprintService() *blueprint.Service {
+	return d.cache.blueprintService.Get(func() *blueprint.Service {
+		return blueprint.NewService(d.BlueprintRepo())
 	})
 }
 
