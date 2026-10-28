@@ -8,10 +8,12 @@ import (
 	"github.com/render-oss/cli/pkg/blueprint"
 	bptypes "github.com/render-oss/cli/pkg/client/blueprints"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/dependencies"
+	"github.com/render-oss/cli/pkg/text"
 )
 
-func newBlueprintCreateCmd(_ *dependencies.Dependencies) *cobra.Command {
+func newBlueprintCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "create",
 		Short:        "Create a Blueprint and plan its first sync",
@@ -29,10 +31,7 @@ Creating a Blueprint does not approve its first sync. With --auto-sync enabled,
 future pushes sync automatically after the first approval. Existing resources
 are left unchanged unless --existing-resources=adopt is supplied.
 
-Output defaults to text. Use --output json or yaml for structured responses.
-
-This command is under development. Execution currently returns an error without
-creating a Blueprint.`,
+Output defaults to text. Use --output json or yaml for structured responses.`,
 		Example: `  # Use a remote repository and its default branch
   render ea blueprints create --repo https://github.com/acme/my-app
 
@@ -50,13 +49,41 @@ creating a Blueprint.`,
 			if err := command.ParseCommand(cmd, args, &input); err != nil {
 				return err
 			}
-			_, err := command.NonInteractive(cmd,
+			workspaceID, err := config.WorkspaceID()
+			if err != nil {
+				return err
+			}
+			var result *bptypes.CreateBlueprintResponse
+			_, err = command.NonInteractive(cmd,
 				func() (blueprint.CreateOut, error) {
-					return createBlueprint(input)
+					var err error
+					result, err = deps.BlueprintService().Create(cmd.Context(), workspaceID, input)
+					if err != nil {
+						return blueprint.CreateOut{}, err
+					}
+					return blueprint.NewCreateOut(result), nil
 				},
-				blueprintCreateText,
+				text.BlueprintCreate,
 			)
-			return err
+			if err != nil {
+				return err
+			}
+			if result == nil {
+				return errors.New("create blueprint: command completed without a creation result")
+			}
+			//exhaustive:enforce
+			switch result.PlanningOutcome {
+			case bptypes.PlanningOutcomeFailed:
+				// The planning outcome is already on stdout; exit without
+				// duplicating it through Cobra's stderr output.
+				cmd.SilenceErrors = true
+				return command.NewExitError(1, nil)
+			case bptypes.PlanningOutcomePlanned, bptypes.PlanningOutcomeNoChanges:
+				return nil
+			default:
+				// An unfamiliar planning outcome does not imply creation failed.
+				return nil
+			}
 		},
 	}
 
@@ -74,12 +101,4 @@ creating a Blueprint.`,
 		"existing-resources": "EXISTING_RESOURCE_MODE",
 	})
 	return cmd
-}
-
-func createBlueprint(_ blueprint.CreateInput) (blueprint.CreateOut, error) {
-	return blueprint.CreateOut{}, errors.New("blueprint creation is not implemented yet")
-}
-
-func blueprintCreateText(_ blueprint.CreateOut) string {
-	return ""
 }

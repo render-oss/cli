@@ -3,12 +3,15 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/blueprint"
 	"github.com/render-oss/cli/pkg/client"
 	bptypes "github.com/render-oss/cli/pkg/client/blueprints"
@@ -48,12 +51,101 @@ func TestBlueprintCommandsHidden(t *testing.T) {
 	require.Empty(t, server.Requests)
 }
 
-func TestBlueprintCreateNotImplemented(t *testing.T) {
+func newBlueprintCreateServer(t *testing.T) *renderapi.Server {
+	t.Helper()
 	server := renderapi.NewServer(t)
-	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/app", "--output", "json")
+	workspace := testids.WorkspaceID("blueprint-create")
+	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: workspace}))
+	t.Setenv("RENDER_WORKSPACE", workspace)
+	return server
+}
+
+func TestBlueprintCreateText(t *testing.T) {
+	server := newBlueprintCreateServer(t)
+	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/my-app", "--output", "text")
+	require.Equal(t, 0, result.ExitCode, output.Stderr)
+	require.Contains(t, output.Stdout, "Blueprint my-app")
+	require.Contains(t, output.Stdout, "Planned, waiting for approval")
+	require.Contains(t, output.Stdout, "render ea blueprints approve")
+	require.Empty(t, output.Stderr)
+}
+
+func TestBlueprintCreatePlanningOutcomes(t *testing.T) {
+	t.Run("maps planning outcomes to exit codes", func(t *testing.T) {
+		bp := *renderapi.NewBlueprint(bptypes.Blueprint{Name: "my-app"})
+		errorNotices := []bptypes.BlueprintNotice{{Severity: bptypes.BlueprintNoticeSeverityError, Message: "invalid service configuration"}}
+		for _, tc := range []struct {
+			name         string
+			response     bptypes.CreateBlueprintResponse
+			wantExitCode int
+		}{
+			{
+				name: "planned",
+				response: bptypes.CreateBlueprintResponse{
+					Blueprint: bp, PlanningOutcome: bptypes.PlanningOutcomePlanned,
+					Sync: &bptypes.SyncWithPlan{Id: testids.SyncID("planned")}, Notices: []bptypes.BlueprintNotice{},
+				},
+			},
+			{
+				name: "no changes",
+				response: bptypes.CreateBlueprintResponse{
+					Blueprint: bp, PlanningOutcome: bptypes.PlanningOutcomeNoChanges, Notices: []bptypes.BlueprintNotice{},
+				},
+			},
+			{
+				name: "unknown planning outcome does not fail creation",
+				response: bptypes.CreateBlueprintResponse{
+					Blueprint: bp, PlanningOutcome: bptypes.PlanningOutcome("unknown"), Notices: []bptypes.BlueprintNotice{},
+				},
+				wantExitCode: 0,
+			},
+			{
+				name: "failed without a saved sync",
+				response: bptypes.CreateBlueprintResponse{
+					Blueprint: bp, PlanningOutcome: bptypes.PlanningOutcomeFailed, Notices: errorNotices,
+				},
+				wantExitCode: 1,
+			},
+			{
+				name: "failed with a saved sync",
+				response: bptypes.CreateBlueprintResponse{
+					Blueprint: bp, PlanningOutcome: bptypes.PlanningOutcomeFailed, Notices: errorNotices,
+					Sync: &bptypes.SyncWithPlan{Id: testids.SyncID("failed"), State: bptypes.SyncStateError},
+				},
+				wantExitCode: 1,
+			},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				server := newBlueprintCreateServer(t)
+				server.Blueprints.RespondWithBodyForCreate(tc.response)
+
+				result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/my-app", "--output", "json")
+				require.Equal(t, tc.wantExitCode, result.ExitCode)
+				require.Empty(t, output.Stderr)
+				var out blueprint.CreateOut
+				require.NoError(t, json.Unmarshal([]byte(output.Stdout), &out))
+				require.Equal(t, &tc.response, out.Data)
+			})
+		}
+	})
+}
+
+func TestBlueprintCreateHTTPError(t *testing.T) {
+	server := newBlueprintCreateServer(t)
+	server.Blueprints.RespondWithErrorForCreate(http.StatusConflict, "repository is not connected")
+	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/my-app", "--output", "json")
 	require.Equal(t, 1, result.ExitCode)
 	require.Empty(t, output.Stdout)
-	require.Contains(t, output.Stderr, "blueprint creation is not implemented yet")
+	require.Contains(t, output.Stderr, "repository is not connected")
+}
+
+func TestBlueprintCreateRequiresWorkspace(t *testing.T) {
+	server := renderapi.NewServer(t)
+	t.Setenv("RENDER_WORKSPACE", "")
+	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/my-app", "--output", "json")
+	require.Equal(t, 1, result.ExitCode)
+	require.Empty(t, output.Stdout)
+	require.Contains(t, output.Stderr, "render workspace set")
 	require.Empty(t, server.Requests)
 }
 
