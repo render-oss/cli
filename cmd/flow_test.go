@@ -304,7 +304,7 @@ func TestFlowRunList_RequiresWorkspace(t *testing.T) {
 	t.Setenv("RENDER_WORKSPACE", "")
 	server := renderapi.NewServer(t)
 
-	_, err := executeFlowCommand(t, server, "flows", "runs", "list", "--output", "text")
+	_, err := executeFlowCommand(t, server, "flows", "runs", "list", "--flow", "flw-1", "--output", "text")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no workspace set")
 	assert.Empty(t, server.FlowRuns.ListCalls)
@@ -317,6 +317,7 @@ func TestFlowRunList_PaginationFlags(t *testing.T) {
 
 	result, err := executeFlowCommand(t, server,
 		"flows", "runs", "list",
+		"--flow", "flw-1",
 		"--limit", "1",
 		"--cursor", "c-prev",
 		"--output", "text",

@@ -189,19 +189,16 @@ func newFlowRunListCmd(deps *dependencies.Dependencies) *cobra.Command {
 		SilenceUsage: true,
 		Long: `List flow runs accessible to your active workspace.
 
-Narrow results with any combination of --flow-slug, --flow, --status, --workflow,
-or --workflow-version. Each flag is repeatable.`,
-		Example: `  # List all flow runs in the active workspace
-  render workflows flows runs list
-
-  # Filter by flow slug
+At least one of --flow-slug, --flow, --workflow, or --workflow-version
+is required. Narrow further with --status. Each flag is repeatable.`,
+		Example: `  # Filter by flow slug
   render workflows flows runs list --flow-slug my-workflow/my-flow
 
-  # Filter by status
-  render workflows flows runs list --status running --status pending
+  # Filter by flow and status
+  render workflows flows runs list --flow flw-1234 --status running --status pending
 
   # JSON output
-  render workflows flows runs list --output json`,
+  render workflows flows runs list --workflow wfl-1234 --output json`,
 	}
 
 	cmd.Flags().StringArray("flow-slug", nil, "Filter by flow slug (repeatable)")
@@ -209,6 +206,7 @@ or --workflow-version. Each flag is repeatable.`,
 	cmd.Flags().StringArray("status", nil, "Filter by flow run status (pending|running|succeeded|failed|canceled|paused, repeatable)")
 	cmd.Flags().StringArray("workflow", nil, "Filter by workflow ID (repeatable)")
 	cmd.Flags().StringArray("workflow-version", nil, "Filter by workflow version ID (repeatable)")
+	cmd.MarkFlagsOneRequired("flow-slug", "flow", "workflow", "workflow-version")
 	addPaginationFlags(cmd)
 	setAllFlagPlaceholders(cmd, map[string]string{
 		"flow-slug":        "SLUG",
