@@ -18,15 +18,17 @@ type CreateOutMeta struct {
 }
 
 // NewCreateOut adds follow-up guidance without changing the REST response.
-func NewCreateOut(result *bptypes.CreateBlueprintResponse) CreateOut {
+// manualEnvVarsPath is the prepared manual env var file, or empty if none was
+// written. Callers handle file preparation errors before constructing output.
+func NewCreateOut(result *bptypes.CreateBlueprintResponse, manualEnvVarsPath string) CreateOut {
 	out := CreateOut{Data: result}
 	var next string
 	//exhaustive:enforce
 	switch result.PlanningOutcome {
 	case bptypes.PlanningOutcomePlanned:
 		next = fmt.Sprintf("render ea blueprints approve %s", result.Blueprint.Id)
-		if result.Sync != nil && len(result.Sync.RequiredManualEnvVars) > 0 {
-			next = fmt.Sprintf("Create and populate manual-env-vars.json with the required environment variable values, then run %s --manual-env-vars-file manual-env-vars.json.", next)
+		if manualEnvVarsPath != "" {
+			next = fmt.Sprintf("%s lists these environment variables with empty values. Set any values you want, then run %s, which reads this file unless you pass --manual-env-vars-file.", manualEnvVarsPath, next)
 		}
 	case bptypes.PlanningOutcomeNoChanges:
 		next = fmt.Sprintf("Nothing to approve. If this is unexpected, update %q and push your changes to the remote %q branch, then re-plan with render ea blueprints plan %s.", result.Blueprint.Path, result.Blueprint.Branch, result.Blueprint.Id)

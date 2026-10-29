@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/render-oss/cli/internal/testassert"
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/blueprint"
 	"github.com/render-oss/cli/pkg/client"
@@ -24,7 +25,7 @@ import (
 	"github.com/render-oss/cli/pkg/dependencies"
 )
 
-func executeBlueprintCreate(t *testing.T, server *renderapi.Server, args ...string) (command.ExecutionResult, CommandResult) {
+func executeBlueprintCommand(t *testing.T, server *renderapi.Server, args ...string) (command.ExecutionResult, CommandResult) {
 	t.Helper()
 	t.Setenv("RENDER_CLI_CONFIG_PATH", newTestConfigPath(t))
 	t.Setenv("RENDER_API_KEY", "test-api-key")
@@ -46,11 +47,11 @@ func executeBlueprintCreate(t *testing.T, server *renderapi.Server, args ...stri
 
 func TestBlueprintCommandsHidden(t *testing.T) {
 	server := renderapi.NewServer(t)
-	result, help := executeBlueprintCreate(t, server, "ea", "--help")
+	result, help := executeBlueprintCommand(t, server, "ea", "--help")
 	require.Equal(t, 0, result.ExitCode)
 	require.NotContains(t, help.Stdout, "blueprints")
 
-	result, parentHelp := executeBlueprintCreate(t, server, "ea", "blueprints", "--help")
+	result, parentHelp := executeBlueprintCommand(t, server, "ea", "blueprints", "--help")
 	require.Equal(t, 0, result.ExitCode)
 	require.NotContains(t, parentHelp.Stdout, "Create a Blueprint")
 	require.Empty(t, server.Requests)
@@ -67,7 +68,7 @@ func newBlueprintCreateServer(t *testing.T) *renderapi.Server {
 
 func TestBlueprintCreateText(t *testing.T) {
 	server := newBlueprintCreateServer(t)
-	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/my-app", "--output", "text")
+	result, output := executeBlueprintCommand(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/my-app", "--output", "text")
 	require.Equal(t, 0, result.ExitCode, output.Stderr)
 	require.Contains(t, output.Stdout, "Blueprint my-app")
 	require.Contains(t, output.Stdout, "Planned, waiting for approval")
@@ -124,7 +125,7 @@ func TestBlueprintCreatePlanningOutcomes(t *testing.T) {
 				server := newBlueprintCreateServer(t)
 				server.Blueprints.RespondWithBodyForCreate(tc.response)
 
-				result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/my-app", "--output", "json")
+				result, output := executeBlueprintCommand(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/my-app", "--output", "json")
 				require.Equal(t, tc.wantExitCode, result.ExitCode)
 				require.Empty(t, output.Stderr)
 				var out blueprint.CreateOut
@@ -138,7 +139,7 @@ func TestBlueprintCreatePlanningOutcomes(t *testing.T) {
 func TestBlueprintCreateHTTPError(t *testing.T) {
 	server := newBlueprintCreateServer(t)
 	server.Blueprints.RespondWithErrorForCreate(http.StatusConflict, "repository is not connected")
-	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/my-app", "--output", "json")
+	result, output := executeBlueprintCommand(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/my-app", "--output", "json")
 	require.Equal(t, 1, result.ExitCode)
 	require.Empty(t, output.Stdout)
 	require.Contains(t, output.Stderr, "repository is not connected")
@@ -147,7 +148,7 @@ func TestBlueprintCreateHTTPError(t *testing.T) {
 func TestBlueprintCreateRequiresWorkspace(t *testing.T) {
 	server := renderapi.NewServer(t)
 	t.Setenv("RENDER_WORKSPACE", "")
-	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/my-app", "--output", "json")
+	result, output := executeBlueprintCommand(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/my-app", "--output", "json")
 	require.Equal(t, 1, result.ExitCode)
 	require.Empty(t, output.Stdout)
 	require.Contains(t, output.Stderr, "render workspace set")
@@ -156,22 +157,31 @@ func TestBlueprintCreateRequiresWorkspace(t *testing.T) {
 
 func TestBlueprintCreateHelp(t *testing.T) {
 	server := renderapi.NewServer(t)
-	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--help")
+	result, output := executeBlueprintCommand(t, server, "ea", "blueprints", "create", "--help")
 	require.Equal(t, 0, result.ExitCode)
-	for _, flag := range []string{"--repo", "--branch", "--path", "--name", "--auto-sync", "--existing-resources", "--output"} {
-		require.Contains(t, output.Stdout, flag)
-	}
-	require.NotContains(t, output.Stdout, "--workspace")
-	require.Contains(t, output.Stdout, "relative to the repository root")
-	require.Contains(t, output.Stdout, "defaults to render.yaml")
-	require.Contains(t, output.Stdout, "create_new")
 	require.Empty(t, server.Requests)
+
+	testassert.ContainsInOrder(t, output.Stdout,
+		"--auto-sync",
+		"--branch",
+		"--existing-resources",
+		"create_new",
+		"--name",
+		"--path",
+		"relative to the repository root",
+		"--repo",
+		"--output",
+		"defaults to render.yaml",
+		"~/.render/state/manual-env-vars/<blueprintID>.json",
+		"RENDER_CLI_CONFIG_DIR",
+	)
+	require.NotContains(t, output.Stdout, "--workspace")
 }
 
 func TestBlueprintCreateRequiresRepositoryOutsideAGitRepo(t *testing.T) {
 	t.Chdir(t.TempDir())
 	server := newBlueprintCreateServer(t)
-	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--output", "json")
+	result, output := executeBlueprintCommand(t, server, "ea", "blueprints", "create", "--output", "json")
 	require.Equal(t, 1, result.ExitCode)
 	require.Empty(t, output.Stdout)
 	require.Contains(t, output.Stderr, "cannot determine the repository from the local checkout; provide --repo")
@@ -187,7 +197,7 @@ func TestBlueprintCreateReportsGitConfigError(t *testing.T) {
 	t.Setenv("LC_ALL", "C")
 	t.Chdir(dir)
 
-	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--output", "json")
+	result, output := executeBlueprintCommand(t, server, "ea", "blueprints", "create", "--output", "json")
 
 	require.Equal(t, 1, result.ExitCode)
 	require.Empty(t, output.Stdout)
@@ -310,7 +320,7 @@ func TestBlueprintCreateGitDefaults(t *testing.T) {
 	require.NoError(t, os.MkdirAll(subdir, 0o755))
 	t.Chdir(subdir)
 
-	result, output := executeBlueprintCreate(t, server, "ea", "blueprints", "create", "--path", "infra/render.yaml", "--output", "json")
+	result, output := executeBlueprintCommand(t, server, "ea", "blueprints", "create", "--path", "infra/render.yaml", "--output", "json")
 
 	require.Equal(t, 0, result.ExitCode, output.Stderr)
 
@@ -320,4 +330,60 @@ func TestBlueprintCreateGitDefaults(t *testing.T) {
 	require.Equal(t, "https://github.com/acme/app.git", created.Repo)
 	require.Equal(t, "release", created.Branch)
 	require.Equal(t, "infra/render.yaml", created.Path)
+}
+
+func createResponseWithRequiredManualEnvVars() bptypes.CreateBlueprintResponse {
+	return bptypes.CreateBlueprintResponse{
+		Blueprint:       *renderapi.NewBlueprint(bptypes.Blueprint{Id: testids.BlueprintID("manual-env-file")}),
+		PlanningOutcome: bptypes.PlanningOutcomePlanned,
+		Notices:         []bptypes.BlueprintNotice{},
+		Sync: &bptypes.SyncWithPlan{RequiredManualEnvVars: []bptypes.RequiredManualEnvVar{
+			{ServiceType: bptypes.ManualEnvVarTargetTypeWeb, ServiceName: "app", Key: "API_KEY"},
+		}},
+	}
+}
+
+func TestBlueprintCreateWritesManualEnvVarsFile(t *testing.T) {
+	configDir := t.TempDir()
+	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
+	server := newBlueprintCreateServer(t)
+	response := createResponseWithRequiredManualEnvVars()
+	server.Blueprints.RespondWithBodyForCreate(response)
+
+	result, output := executeBlueprintCommand(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/app", "--output", "json")
+
+	require.Equal(t, 0, result.ExitCode, output.Stderr)
+	require.Empty(t, output.Stderr)
+
+	filename := filepath.Join(configDir, "state", "manual-env-vars", response.Blueprint.Id+".json")
+	require.FileExists(t, filename)
+
+	var out blueprint.CreateOut
+	require.NoError(t, json.Unmarshal([]byte(output.Stdout), &out))
+	require.Equal(t, &response, out.Data)
+	testassert.ContainsInOrder(t, *out.Meta.Next,
+		filename+" lists these environment variables with empty values.",
+		"then run render ea blueprints approve "+response.Blueprint.Id,
+	)
+}
+
+func TestBlueprintCreatePrintsBlueprintWhenPreparingManualEnvVarsFileFails(t *testing.T) {
+	configDir := t.TempDir()
+	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
+	server := newBlueprintCreateServer(t)
+	response := createResponseWithRequiredManualEnvVars()
+	server.Blueprints.RespondWithBodyForCreate(response)
+	// Make the expected state directory a regular file so creating
+	// state/manual-env-vars fails after the Blueprint is created.
+	require.NoError(t, os.WriteFile(filepath.Join(configDir, "state"), nil, 0o600))
+
+	result, output := executeBlueprintCommand(t, server, "ea", "blueprints", "create", "--repo", "https://github.com/acme/app", "--output", "json")
+
+	require.Equal(t, 1, result.ExitCode)
+	require.Contains(t, output.Stderr, "write manual environment variables file")
+
+	var out blueprint.CreateOut
+	require.NoError(t, json.Unmarshal([]byte(output.Stdout), &out))
+	require.Equal(t, &response, out.Data)
+	require.Nil(t, out.Meta.Next)
 }

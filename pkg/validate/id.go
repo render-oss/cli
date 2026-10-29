@@ -43,6 +43,11 @@ func IsEnvironmentID(s string) bool {
 	return IsObjectID("evm", s)
 }
 
+// IsBlueprintID checks if the string is a valid Blueprint ID (exs-[a-z0-9]{20}).
+func IsBlueprintID(s string) bool {
+	return IsObjectID("exs", s)
+}
+
 // IsKeyValueID checks if the string is a valid Key Value ID (red-[a-z0-9]{20}).
 func IsKeyValueID(s string) bool {
 	return IsObjectID("red", s)

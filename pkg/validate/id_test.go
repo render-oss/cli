@@ -3,6 +3,8 @@ package validate_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/render-oss/cli/pkg/validate"
 )
 
@@ -147,6 +149,24 @@ func TestIsEnvironmentID(t *testing.T) {
 			if got != tc.expected {
 				t.Errorf("IsEnvironmentID(%q) = %v, want %v", tc.input, got, tc.expected)
 			}
+		})
+	}
+}
+
+func TestIsBlueprintID(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{"valid Blueprint ID", "exs-12345678901234567890", true},
+		{"Sync ID rejected", "exe-12345678901234567890", false},
+		{"path traversal rejected", "exs-12345678901234567890/../x", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, validate.IsBlueprintID(tc.input))
 		})
 	}
 }

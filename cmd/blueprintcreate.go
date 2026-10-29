@@ -39,6 +39,12 @@ Creating a Blueprint does not approve its first sync. With --auto-sync enabled,
 future pushes sync automatically after the first approval. Existing resources
 are left unchanged unless --existing-resources=adopt is supplied.
 
+When a successful plan requires manual values, this command creates a file for
+manually-supplied environment variables at
+` + blueprint.ManualEnvVarsFileHelpPath + `. Values start as empty strings;
+you can edit the file before approving the sync. Existing manual env var files
+are replaced. Set RENDER_CLI_CONFIG_DIR to use a different config directory.
+
 Output defaults to text. Use --output json or yaml for structured responses.`,
 		Example: `  # Use the local remote named "origin" and the current branch
   render ea blueprints create
@@ -65,6 +71,7 @@ Output defaults to text. Use --output json or yaml for structured responses.`,
 				return err
 			}
 			var result *bptypes.CreateBlueprintResponse
+			var fileErr error
 			_, err = command.NonInteractive(cmd,
 				func() (blueprint.CreateOut, error) {
 					var err error
@@ -72,12 +79,21 @@ Output defaults to text. Use --output json or yaml for structured responses.`,
 					if err != nil {
 						return blueprint.CreateOut{}, err
 					}
-					return blueprint.NewCreateOut(result), nil
+					filePath, err := blueprint.PrepareManualEnvVarsFile(result)
+					if err != nil {
+						// Print the saved Blueprint result before reporting a local file error.
+						fileErr = err
+						return blueprint.CreateOut{Data: result}, nil
+					}
+					return blueprint.NewCreateOut(result, filePath), nil
 				},
 				text.BlueprintCreate,
 			)
 			if err != nil {
 				return err
+			}
+			if fileErr != nil {
+				return fileErr
 			}
 			if result == nil {
 				return errors.New("create blueprint: command completed without a creation result")

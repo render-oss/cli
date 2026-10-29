@@ -40,7 +40,7 @@ func TestBlueprintCreatePrintsPlanBeforeSummary(t *testing.T) {
 		}},
 	}
 
-	out := text.BlueprintCreate(blueprint.NewCreateOut(&result))
+	out := text.BlueprintCreate(blueprint.NewCreateOut(&result, "/home/user/.render/state/manual-env-vars/exs-example.json"))
 	require.Equal(t, `Plan
 These are the changes that will be applied if this sync is approved.
 
@@ -66,7 +66,7 @@ Environment variables required at approval:
 Review in Dashboard (optional): https://dashboard.render.com/review
 
 Next:
-  Create and populate manual-env-vars.json with the required environment variable values, then run render ea blueprints approve exs-example --manual-env-vars-file manual-env-vars.json.
+  /home/user/.render/state/manual-env-vars/exs-example.json lists these environment variables with empty values. Set any values you want, then run render ea blueprints approve exs-example, which reads this file unless you pass --manual-env-vars-file.
 `, out)
 }
 
@@ -137,7 +137,7 @@ func TestBlueprintCreateWithoutPlan(t *testing.T) {
 					Path:   "render.yaml",
 				}
 
-				out := text.BlueprintCreate(blueprint.NewCreateOut(&result))
+				out := text.BlueprintCreate(blueprint.NewCreateOut(&result, ""))
 				require.Equal(t, "Blueprint app (exs-example)\nSource: https://github.com/acme/app\nBranch: main\nPath: render.yaml\n"+tc.want, out)
 			})
 		}
@@ -168,7 +168,7 @@ func TestBlueprintNoticePositions(t *testing.T) {
 					Column:   &tc.column,
 				}},
 			}
-			out := text.BlueprintCreate(blueprint.NewCreateOut(&result))
+			out := text.BlueprintCreate(blueprint.NewCreateOut(&result, ""))
 			require.Contains(t, out, tc.want)
 		})
 	}

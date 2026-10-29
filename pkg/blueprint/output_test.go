@@ -24,7 +24,7 @@ func TestCreateOutPreservesPlanningFailureData(t *testing.T) {
 		},
 		Notices: []bptypes.BlueprintNotice{{Severity: bptypes.BlueprintNoticeSeverityError, Message: "invalid plan"}},
 	}
-	out := NewCreateOut(&result)
+	out := NewCreateOut(&result, "")
 	encoded, err := json.Marshal(out)
 	require.NoError(t, err)
 	require.JSONEq(t, `{
@@ -42,7 +42,7 @@ func TestCreateOutPreservesPlanningFailureData(t *testing.T) {
 // enum value is preserved in the API result, with no next-step guidance.
 func TestCreateOutUnknownPlanningOutcome(t *testing.T) {
 	result := &bptypes.CreateBlueprintResponse{PlanningOutcome: bptypes.PlanningOutcome("future_outcome")}
-	out := NewCreateOut(result)
+	out := NewCreateOut(result, "")
 	require.Same(t, result, out.Data)
 	require.Nil(t, out.Meta.Next)
 }
@@ -52,6 +52,7 @@ func TestNewCreateOutNext(t *testing.T) {
 		for _, tc := range []struct {
 			name     string
 			response bptypes.CreateBlueprintResponse
+			filePath string
 			next     string
 		}{
 			{
@@ -63,19 +64,16 @@ func TestNewCreateOutNext(t *testing.T) {
 				next: "render ea blueprints approve exs-example",
 			},
 			{
-				name: "planned with manual env vars",
+				name: "planned with a manual env var file",
 				response: bptypes.CreateBlueprintResponse{
 					PlanningOutcome: bptypes.PlanningOutcomePlanned,
 					Sync: &bptypes.SyncWithPlan{
-						State: bptypes.SyncStateCreated,
-						RequiredManualEnvVars: []bptypes.RequiredManualEnvVar{{
-							ServiceType: bptypes.ManualEnvVarTargetTypeWeb,
-							ServiceName: "app",
-							Key:         "API_KEY",
-						}},
+						State:                 bptypes.SyncStateCreated,
+						RequiredManualEnvVars: []bptypes.RequiredManualEnvVar{{Key: "API_KEY"}},
 					},
 				},
-				next: "Create and populate manual-env-vars.json with the required environment variable values, then run render ea blueprints approve exs-example --manual-env-vars-file manual-env-vars.json.",
+				filePath: "manual-env-vars/exs-example.json",
+				next:     "manual-env-vars/exs-example.json lists these environment variables with empty values. Set any values you want, then run render ea blueprints approve exs-example, which reads this file unless you pass --manual-env-vars-file.",
 			},
 			{
 				name: "no changes",
@@ -98,7 +96,7 @@ func TestNewCreateOutNext(t *testing.T) {
 				result := tc.response
 				result.Blueprint.Id = "exs-example"
 
-				out := NewCreateOut(&result)
+				out := NewCreateOut(&result, tc.filePath)
 				require.Equal(t, new(tc.next), out.Meta.Next)
 			})
 		}
