@@ -54,6 +54,7 @@ func TestBlueprintCommandsHidden(t *testing.T) {
 	result, parentHelp := executeBlueprintCommand(t, server, "ea", "blueprints", "--help")
 	require.Equal(t, 0, result.ExitCode)
 	require.NotContains(t, parentHelp.Stdout, "Create a Blueprint")
+	require.NotContains(t, parentHelp.Stdout, "Update a Blueprint")
 	require.Empty(t, server.Requests)
 }
 

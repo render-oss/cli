@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/blueprint"
 	bptypes "github.com/render-oss/cli/pkg/client/blueprints"
 )
@@ -96,6 +97,68 @@ func TestCreateInputValidate(t *testing.T) {
 				require.NoError(t, err)
 				return
 			}
+			for _, wantErr := range tc.wantErrs {
+				require.ErrorContains(t, err, wantErr)
+			}
+		})
+	}
+}
+
+func TestUpdateInputValidate(t *testing.T) {
+	blueprintID := testids.BlueprintID("update")
+	for _, tc := range []struct {
+		name     string
+		input    blueprint.UpdateInput
+		wantErrs []string
+	}{
+		{
+			name:     "updating just branch is ok",
+			input:    blueprint.UpdateInput{BlueprintID: blueprintID, Branch: new("release")},
+			wantErrs: []string{},
+		},
+		{
+			name:     "disabling auto-sync is ok",
+			input:    blueprint.UpdateInput{BlueprintID: blueprintID, AutoSync: new(false)},
+			wantErrs: []string{},
+		},
+		{
+			name:     "no updates is not allowed",
+			input:    blueprint.UpdateInput{BlueprintID: blueprintID},
+			wantErrs: []string{"provide at least one of --name, --branch, --path, or --auto-sync"},
+		},
+		{
+			name:     "sync IDs are not valid blueprint IDs",
+			input:    blueprint.UpdateInput{BlueprintID: testids.SyncID("update"), Name: new("app")},
+			wantErrs: []string{"invalid Blueprint ID"},
+		},
+		{
+			name:     "Blueprint ID with wrong length",
+			input:    blueprint.UpdateInput{BlueprintID: "exs-abc", Name: new("app")},
+			wantErrs: []string{`invalid Blueprint ID "exs-abc"`},
+		},
+		{
+			name: "reports multiple validation errors",
+			input: blueprint.UpdateInput{
+				Name:   new(""),
+				Branch: new(""),
+				Path:   new(""),
+			},
+			wantErrs: []string{
+				"invalid Blueprint ID",
+				"--name must not be empty",
+				"--branch must not be empty",
+				"--path must not be empty",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.input.Validate(false)
+
+			if len(tc.wantErrs) == 0 {
+				require.NoError(t, err)
+				return
+			}
+
 			for _, wantErr := range tc.wantErrs {
 				require.ErrorContains(t, err, wantErr)
 			}

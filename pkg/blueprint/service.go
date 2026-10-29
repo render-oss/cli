@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	bptypes "github.com/render-oss/cli/pkg/client/blueprints"
+	"github.com/render-oss/cli/pkg/validate"
 )
 
 type Service struct {
@@ -49,6 +50,36 @@ func (i CreateInput) Validate(_isInteractive bool) error {
 	}
 	if i.Name != nil && *i.Name == "" {
 		errs = append(errs, errors.New("--name must not be empty"))
+	}
+	return errors.Join(errs...)
+}
+
+// UpdateInput preserves omitted flags as nil so only supplied settings change.
+type UpdateInput struct {
+	BlueprintID string  `cli:"arg:0"`
+	Name        *string `cli:"name"`
+	Branch      *string `cli:"branch"`
+	Path        *string `cli:"path"`
+	AutoSync    *bool   `cli:"auto-sync"`
+}
+
+// Validate requires a Blueprint ID and at least one setting to change.
+func (i UpdateInput) Validate(_isInteractive bool) error {
+	var errs []error
+	if !validate.IsBlueprintID(i.BlueprintID) {
+		errs = append(errs, fmt.Errorf("invalid Blueprint ID %q: Blueprint IDs start with exs- followed by 20 lowercase letters or digits", i.BlueprintID))
+	}
+	if i.Name == nil && i.Branch == nil && i.Path == nil && i.AutoSync == nil {
+		errs = append(errs, errors.New("provide at least one of --name, --branch, --path, or --auto-sync"))
+	}
+	if i.Name != nil && *i.Name == "" {
+		errs = append(errs, errors.New("--name must not be empty"))
+	}
+	if i.Branch != nil && *i.Branch == "" {
+		errs = append(errs, errors.New("--branch must not be empty"))
+	}
+	if i.Path != nil && *i.Path == "" {
+		errs = append(errs, errors.New("--path must not be empty"))
 	}
 	return errors.Join(errs...)
 }

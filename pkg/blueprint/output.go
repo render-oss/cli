@@ -17,6 +17,16 @@ type CreateOutMeta struct {
 	Next *string `json:"next"`
 }
 
+// UpdateOut preserves the REST update result.
+type UpdateOut struct {
+	Data *bptypes.Blueprint `json:"data"`
+	Meta UpdateOutMeta      `json:"meta"`
+}
+
+type UpdateOutMeta struct {
+	Next *string `json:"next"`
+}
+
 // NewCreateOut adds follow-up guidance without changing the REST response.
 // manualEnvVarsPath is the prepared manual env var file, or empty if none was
 // written. Callers handle file preparation errors before constructing output.
