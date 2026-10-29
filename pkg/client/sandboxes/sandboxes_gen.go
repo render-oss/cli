@@ -310,7 +310,7 @@ type Sandbox struct {
 	// TerminatedAt When the sandbox was terminated, or null.
 	TerminatedAt *time.Time `json:"terminatedAt,omitempty"`
 
-	// TimeoutSeconds Maximum sandbox lifetime in seconds.
+	// TimeoutSeconds Maximum sandbox lifetime in seconds. 0 means the sandbox has no timeout.
 	//
 	// Example: 86400
 	TimeoutSeconds int `json:"timeoutSeconds"`
@@ -716,7 +716,7 @@ type SandboxPOST struct {
 	// `snapshotId`.
 	SnapshotName *SandboxSnapshotName `json:"snapshotName,omitempty"`
 
-	// TimeoutSeconds Maximum sandbox lifetime in seconds. Sandbox is terminated when reached.
+	// TimeoutSeconds Maximum sandbox lifetime in seconds. Sandbox is terminated when reached. Use 0 for no timeout.
 	TimeoutSeconds *int `json:"timeoutSeconds,omitempty"`
 }
 

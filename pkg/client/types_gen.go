@@ -107,6 +107,7 @@ const (
 	InviteToOrgEvent                   AuditLogEvent = "InviteToOrgEvent"
 	InviteToTeamEvent                  AuditLogEvent = "InviteToTeamEvent"
 	JoinTeamEvent                      AuditLogEvent = "JoinTeamEvent"
+	LinkBuildSourceEnvGroupEvent       AuditLogEvent = "LinkBuildSourceEnvGroupEvent"
 	LoginEvent                         AuditLogEvent = "LoginEvent"
 	LogoutEvent                        AuditLogEvent = "LogoutEvent"
 	MaintenanceModeEnabledEvent        AuditLogEvent = "MaintenanceModeEnabledEvent"
@@ -124,6 +125,7 @@ const (
 	StartShellEvent                    AuditLogEvent = "StartShellEvent"
 	SuspendPostgresEvent               AuditLogEvent = "SuspendPostgresEvent"
 	SuspendServiceEvent                AuditLogEvent = "SuspendServiceEvent"
+	UnlinkBuildSourceEnvGroupEvent     AuditLogEvent = "UnlinkBuildSourceEnvGroupEvent"
 	UpdateEnvVarsEvent                 AuditLogEvent = "UpdateEnvVarsEvent"
 	UpdateIPAllowListEvent             AuditLogEvent = "UpdateIPAllowListEvent"
 	UpdateOrgPaymentMethodEvent        AuditLogEvent = "UpdateOrgPaymentMethodEvent"
@@ -250,6 +252,8 @@ func (e AuditLogEvent) Valid() bool {
 		return true
 	case JoinTeamEvent:
 		return true
+	case LinkBuildSourceEnvGroupEvent:
+		return true
 	case LoginEvent:
 		return true
 	case LogoutEvent:
@@ -283,6 +287,8 @@ func (e AuditLogEvent) Valid() bool {
 	case SuspendPostgresEvent:
 		return true
 	case SuspendServiceEvent:
+		return true
+	case UnlinkBuildSourceEnvGroupEvent:
 		return true
 	case UpdateEnvVarsEvent:
 		return true
