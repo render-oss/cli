@@ -198,7 +198,7 @@ func setupSandboxGroupsCommands(parent *cobra.Command, deps *dependencies.Depend
 }
 
 func setupBlueprintCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
-	earlyAccess.AddCommand(newEarlyAccessBlueprintsCmd(newBlueprintCreateCmd(deps), newBlueprintUpdateCmd(deps), newBlueprintApproveCmd(deps)))
+	earlyAccess.AddCommand(newEarlyAccessBlueprintsCmd(newBlueprintCreateCmd(deps), newBlueprintUpdateCmd(deps), newBlueprintApproveCmd(deps), newBlueprintPlanCmd(deps)))
 }
 
 func setupServiceCommands(deps *dependencies.Dependencies) {

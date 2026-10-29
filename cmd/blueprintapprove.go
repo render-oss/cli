@@ -26,7 +26,7 @@ pending or running, the command returns it unchanged.
 Some plans need manually-supplied environment variables (env vars with
 sync: false in the Blueprint file). The Blueprint file does not contain their
 values, so you supply them when you approve. When a plan needs them,
-render ea blueprints create and render ea blueprints plan write a file listing
+"render ea blueprints create" and "render ea blueprints plan" write a file listing
 each one with an empty value to
 ` + blueprint.ManualEnvVarsFileHelpPath + `. Fill in the values, then
 approve. Values are sent as written, so any value you leave as an empty string

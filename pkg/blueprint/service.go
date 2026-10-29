@@ -104,6 +104,19 @@ func (i ApproveInput) Validate(_isInteractive bool) error {
 	return errors.Join(errs...)
 }
 
+// PlanInput identifies the Blueprint to plan a sync for.
+type PlanInput struct {
+	BlueprintID string `cli:"arg:0"`
+}
+
+// Validate rejects anything that is not a Blueprint ID, such as a sync ID.
+func (i PlanInput) Validate(_isInteractive bool) error {
+	if !validate.IsBlueprintID(i.BlueprintID) {
+		return fmt.Errorf("invalid Blueprint ID %q: Blueprint IDs start with exs- followed by 20 lowercase letters or digits", i.BlueprintID)
+	}
+	return nil
+}
+
 // Create validates and resolves input, then creates and plans the Blueprint in the given workspace.
 func (s *Service) Create(ctx context.Context, workspaceID string, input CreateInput) (*bptypes.CreateBlueprintResponse, error) {
 	body, err := input.buildCreateRequest(ctx, workspaceID)

@@ -27,6 +27,16 @@ type UpdateOutMeta struct {
 	Next *string `json:"next"`
 }
 
+// PlanOut preserves the REST plan result, including a failed planning attempt.
+type PlanOut struct {
+	Data *bptypes.CreateBlueprintSyncResponse `json:"data"`
+	Meta PlanOutMeta                          `json:"meta"`
+}
+
+type PlanOutMeta struct {
+	Next *string `json:"next"`
+}
+
 // NewCreateOut adds follow-up guidance without changing the REST response.
 // manualEnvVarsPath is the prepared manual env var file, or empty if none was
 // written. Callers handle file preparation errors before constructing output.

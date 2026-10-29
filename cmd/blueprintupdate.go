@@ -24,7 +24,7 @@ Pass a Blueprint ID (exs-...), not a sync ID. The branch must contain a
 Blueprint file at the configured path.
 
 Changing --branch or --path also plans a sync from the new Blueprint file, as
-render ea blueprints plan does. Approve it with render ea blueprints approve.
+"render ea blueprints plan" does. Approve it with "render ea blueprints approve".
 Changing only --name or --auto-sync does not plan a sync.
 
 This command is under development. Execution currently returns an error without

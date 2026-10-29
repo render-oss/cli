@@ -55,6 +55,7 @@ func TestBlueprintCommandsHidden(t *testing.T) {
 	require.Equal(t, 0, result.ExitCode)
 	require.NotContains(t, parentHelp.Stdout, "Create a Blueprint")
 	require.NotContains(t, parentHelp.Stdout, "Update a Blueprint")
+	require.NotContains(t, parentHelp.Stdout, "Plan a sync of a Blueprint")
 	require.Empty(t, server.Requests)
 }
 
