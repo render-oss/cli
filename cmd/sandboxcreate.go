@@ -49,10 +49,8 @@ func (i *SandboxCreateInput) Validate(_ bool) error {
 	case policy != sandboxclient.AllowList && len(i.egressRules()) > 0:
 		return fmt.Errorf("--allow-egress-https requires --network-policy=%s, got %s", sandboxclient.AllowList, policy)
 	}
-	// Only positive timeouts reach the request body, so without this a negative
-	// value would silently get the default rather than the lifetime asked for.
 	if i.Timeout < 0 {
-		return fmt.Errorf("invalid timeout %d: use a positive number of seconds, or 0 for the default", i.Timeout)
+		return fmt.Errorf("invalid timeout %d: use 0 for no timeout, or a positive number of seconds", i.Timeout)
 	}
 	if i.IdleTimeout != 0 && (i.IdleTimeout < 300 || i.IdleTimeout > 86400) {
 		return fmt.Errorf("invalid idle timeout %d: use 0 to disable, or 300 to 86400 seconds", i.IdleTimeout)
@@ -163,6 +161,7 @@ Examples:
   render sandboxes create --plan=2c-4g
   render sandboxes create --group=sbg-cph1rs3idesc73a2b2mg
   render sandboxes create --timeout=3600
+  render sandboxes create --timeout=0
   render sandboxes create --idle-timeout=1800
   render sandboxes create --idle-timeout=0
   render sandboxes create --network-policy=deny-all
@@ -182,7 +181,7 @@ Examples:
 	cmd.Flags().String("group", "", "Sandbox group ID. Omit to use the workspace default group")
 	setFlagPlaceholder(cmd.Flags(), "group", "SANDBOX_GROUP_ID")
 	setFlagAlias(cmd.Flags(), "sandbox-group", "group")
-	cmd.Flags().Int("timeout", 0, "Maximum sandbox lifetime in seconds, up to 2592000 (30 days), or 86400 (24 hours) on Hobby workspaces. 0 uses the default of 86400 (24 hours)")
+	cmd.Flags().Int("timeout", 0, "Maximum sandbox lifetime in seconds, up to 2592000 (30 days), or 86400 (24 hours) on Hobby workspaces. 0 means no timeout. Omit to use the default of 86400 (24 hours)")
 	cmd.Flags().Int("idle-timeout", 900, "Seconds of inactivity before suspension. 0 disables automatic idle suspension")
 	cmd.Flags().String("network-policy", "", "Outbound network policy: "+strings.Join(sandboxNetworkPolicyNames(), ", "))
 	setFlagPlaceholder(cmd.Flags(), "network-policy", "NETWORK_POLICY")
@@ -233,6 +232,10 @@ Examples:
 		}
 		snapshotID, snapshotName := resolveSandboxSource(input.From, cmd.Flags().Changed("from"), input.SnapshotID)
 		imageID, imageName := resolveSandboxImage(input.Image, cmd.Flags().Changed("image"))
+		var timeout *int
+		if cmd.Flags().Changed("timeout") {
+			timeout = &input.Timeout
+		}
 		var idleTimeout *int
 		if cmd.Flags().Changed("idle-timeout") {
 			idleTimeout = &input.IdleTimeout
@@ -245,7 +248,7 @@ Examples:
 				SandboxGroupID: input.SandboxGroupID,
 				Plan:           input.Plan,
 				Region:         input.Region,
-				Timeout:        input.Timeout,
+				Timeout:        timeout,
 				IdleTimeout:    idleTimeout,
 				NetworkPolicy:  input.resolvedNetworkPolicy(),
 				EgressRules:    input.egressRules(),

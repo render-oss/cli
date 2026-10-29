@@ -92,7 +92,7 @@ func TestSandboxCreateInputValidateTimeout(t *testing.T) {
 		timeout     int
 		errContains string
 	}{
-		{name: "zero means the server default", timeout: 0},
+		{name: "zero means no timeout", timeout: 0},
 		{name: "one second", timeout: 1},
 		{name: "the documented maximum", timeout: 86400},
 		{name: "negative is rejected rather than silently defaulted", timeout: -1, errContains: "invalid timeout -1"},
@@ -379,16 +379,32 @@ func TestSandboxCreate_WithoutSnapshotIDOmitsIt(t *testing.T) {
 	assert.NotContains(t, body, "snapshotName")
 }
 
-func TestSandboxCreate_IdleTimeout(t *testing.T) {
+func TestSandboxCreate_TimeoutFlags(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        []string
+		field       string
 		wantPresent bool
 		want        float64
 	}{
-		{name: "omitted uses the server default"},
-		{name: "custom timeout", args: []string{"--idle-timeout", "1800"}, wantPresent: true, want: 1800},
-		{name: "zero disables", args: []string{"--idle-timeout", "0"}, wantPresent: true, want: 0},
+		{name: "omitted timeout uses the server default", field: "timeoutSeconds"},
+		{
+			name: "custom timeout", args: []string{"--timeout", "3600"},
+			field: "timeoutSeconds", wantPresent: true, want: 3600,
+		},
+		{
+			name: "zero timeout means no timeout", args: []string{"--timeout", "0"},
+			field: "timeoutSeconds", wantPresent: true, want: 0,
+		},
+		{name: "omitted idle timeout uses the server default", field: "idleTimeoutSeconds"},
+		{
+			name: "custom idle timeout", args: []string{"--idle-timeout", "1800"},
+			field: "idleTimeoutSeconds", wantPresent: true, want: 1800,
+		},
+		{
+			name: "zero idle timeout disables", args: []string{"--idle-timeout", "0"},
+			field: "idleTimeoutSeconds", wantPresent: true, want: 0,
+		},
 	}
 
 	for _, tc := range tests {
@@ -401,7 +417,7 @@ func TestSandboxCreate_IdleTimeout(t *testing.T) {
 			req, ok := server.LastRequest("POST", "/sandboxes")
 			require.True(t, ok)
 			body := testrequire.ParseJSONMap(t, string(req.Body))
-			got, present := body["idleTimeoutSeconds"]
+			got, present := body[tc.field]
 			assert.Equal(t, tc.wantPresent, present)
 			if tc.wantPresent {
 				assert.Equal(t, tc.want, got)
