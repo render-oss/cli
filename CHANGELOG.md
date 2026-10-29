@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.34.0] - 2026-10-29
+
 ### Added
 
 - `render sandbox-groups images import` (with `--wait`) and `images get`, and `--image` on `render sandboxes create`, to start sandboxes from an imported OCI image
@@ -9,6 +11,11 @@
 ### Changed
 
 - `render sandbox-groups builds` and `--build` on `render sandboxes create` are deprecated in favor of the images commands and `--image`. They still work; the `builds` commands print a deprecation notice
+- `render sandboxes create --timeout=0` now creates a sandbox with no timeout. Omit `--timeout` to use the default of 24 hours
+
+### Fixed
+
+- Log output now strips terminal escape and control sequences from log messages, so log content can no longer move the cursor, erase lines, or write to the clipboard
 
 ## [2.33.0] - 2026-10-27
 
