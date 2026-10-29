@@ -84,6 +84,26 @@ func (i UpdateInput) Validate(_isInteractive bool) error {
 	return errors.Join(errs...)
 }
 
+// ApproveInput identifies the Blueprint whose newest sync to approve. An
+// omitted --manual-env-vars-file remains nil so approval can fall back to the
+// file that create and plan write.
+type ApproveInput struct {
+	BlueprintID       string  `cli:"arg:0"`
+	ManualEnvVarsFile *string `cli:"manual-env-vars-file"`
+}
+
+// Validate reports input errors without reading the manual env vars file.
+func (i ApproveInput) Validate(_isInteractive bool) error {
+	var errs []error
+	if !validate.IsBlueprintID(i.BlueprintID) {
+		errs = append(errs, fmt.Errorf("invalid Blueprint ID %q: Blueprint IDs start with exs- followed by 20 lowercase letters or digits", i.BlueprintID))
+	}
+	if i.ManualEnvVarsFile != nil && *i.ManualEnvVarsFile == "" {
+		errs = append(errs, errors.New("--manual-env-vars-file must not be empty"))
+	}
+	return errors.Join(errs...)
+}
+
 // Create validates and resolves input, then creates and plans the Blueprint in the given workspace.
 func (s *Service) Create(ctx context.Context, workspaceID string, input CreateInput) (*bptypes.CreateBlueprintResponse, error) {
 	body, err := input.buildCreateRequest(ctx, workspaceID)

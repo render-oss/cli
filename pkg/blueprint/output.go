@@ -50,3 +50,14 @@ func NewCreateOut(result *bptypes.CreateBlueprintResponse, manualEnvVarsPath str
 	out.Meta.Next = &next
 	return out
 }
+
+// ApproveOut preserves the REST approve result: the newly approved sync, or
+// the pending or running sync it left unchanged.
+type ApproveOut struct {
+	Data *bptypes.ApprovedSync `json:"data"`
+	Meta ApproveOutMeta        `json:"meta"`
+}
+
+type ApproveOutMeta struct {
+	Next *string `json:"next"`
+}

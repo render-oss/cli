@@ -102,3 +102,16 @@ func TestNewCreateOutNext(t *testing.T) {
 		}
 	})
 }
+
+func TestApproveOutSerializesCorrectly(t *testing.T) {
+	out := ApproveOut{Data: &bptypes.ApprovedSync{
+		Id: "exe-example", State: bptypes.SyncStatePending,
+		Commit: bptypes.CommitRef{Id: "abc123"}, DashboardUrl: "https://dashboard.render.com/sync",
+	}}
+	encoded, err := json.Marshal(out)
+	require.NoError(t, err)
+	require.JSONEq(t, `{
+  "data": {"id":"exe-example","state":"pending","commit":{"id":"abc123"},"dashboardUrl":"https://dashboard.render.com/sync"},
+  "meta": {"next":null}
+}`, string(encoded))
+}
