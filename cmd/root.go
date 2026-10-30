@@ -289,9 +289,14 @@ func rootPersistentPreRun(deps *dependencies.Dependencies) func(cmd *cobra.Comma
 		}
 
 		explicitOutputSet := cmd.Flags().Changed("output")
-		signals, err := deps.DetectRuntimeSignals()
-		if err != nil {
-			return printRootPreRunError(cmd, err)
+		// An explicit --output wins over RENDER_OUTPUT, so the environment is
+		// only read (and validated) when it would actually select the format.
+		var signals command.RuntimeSignals
+		if !explicitOutputSet {
+			signals, err = deps.DetectRuntimeSignals()
+			if err != nil {
+				return printRootPreRunError(cmd, err)
+			}
 		}
 		output, err := command.ResolveAutoOutput(explicitOutputSet, requestedOutput, signals)
 		if err != nil {
