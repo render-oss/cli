@@ -62,6 +62,20 @@ func executeBlueprintCommand(t *testing.T, server *renderapi.Server, args []stri
 	return result, CommandResult{Stdout: stdout.String(), Stderr: stderr.String()}
 }
 
+var testBlueprintID = testids.BlueprintID("blueprint")
+
+// newBlueprintFixture seeds the Blueprint testBlueprintID in a fake API server
+// and returns the path of its default manual env var file under a temporary
+// config directory.
+func newBlueprintFixture(t *testing.T) (server *renderapi.Server, manualEnvVarsFile string) {
+	t.Helper()
+	configDir := t.TempDir()
+	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
+	server = renderapi.NewServer(t)
+	server.Blueprints.Add(renderapi.NewBlueprint(bptypes.Blueprint{Id: testBlueprintID}))
+	return server, filepath.Join(configDir, "state", "manual-env-vars", testBlueprintID+".json")
+}
+
 func TestBlueprintCommandsHidden(t *testing.T) {
 	server := renderapi.NewServer(t)
 	result, help := executeBlueprintCommand(t, server, []string{"ea", "--help"})
@@ -382,7 +396,7 @@ func TestBlueprintCreateWritesManualEnvVarsFile(t *testing.T) {
 	require.Equal(t, &response, out.Data)
 	testassert.ContainsInOrder(t, *out.Meta.Next,
 		filename+" lists these environment variables with empty values.",
-		"then run render ea blueprints approve "+response.Blueprint.Id,
+		"then run \"render ea blueprints approve "+response.Blueprint.Id+"\"",
 	)
 }
 

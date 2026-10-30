@@ -12,22 +12,18 @@ import (
 	bptypes "github.com/render-oss/cli/pkg/client/blueprints"
 )
 
-func createResponseWithRequiredManualEnvVars() *bptypes.CreateBlueprintResponse {
-	return &bptypes.CreateBlueprintResponse{
-		Blueprint:       bptypes.Blueprint{Id: testids.BlueprintID("example")},
-		PlanningOutcome: bptypes.PlanningOutcomePlanned,
-		Sync: &bptypes.SyncWithPlan{RequiredManualEnvVars: []bptypes.RequiredManualEnvVar{
-			{ServiceType: bptypes.ManualEnvVarTargetTypeWeb, ServiceName: "web", Key: "API_KEY"},
-			{ServiceType: bptypes.ManualEnvVarTargetTypeWorker, ServiceName: "worker", Key: "API_KEY"},
-		}},
-	}
+func syncWithRequiredManualEnvVars() *bptypes.SyncWithPlan {
+	return &bptypes.SyncWithPlan{RequiredManualEnvVars: []bptypes.RequiredManualEnvVar{
+		{ServiceType: bptypes.ManualEnvVarTargetTypeWeb, ServiceName: "web", Key: "API_KEY"},
+		{ServiceType: bptypes.ManualEnvVarTargetTypeWorker, ServiceName: "worker", Key: "API_KEY"},
+	}}
 }
 
 func TestPrepareManualEnvVarsFileHappyPath(t *testing.T) {
 	configDir := t.TempDir()
 	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
 
-	filename, err := blueprint.PrepareManualEnvVarsFile(createResponseWithRequiredManualEnvVars())
+	filename, err := blueprint.PrepareManualEnvVarsFile(testids.BlueprintID("example"), bptypes.PlanningOutcomePlanned, syncWithRequiredManualEnvVars())
 
 	require.NoError(t, err)
 	require.Equal(t, filepath.Join(configDir, "state", "manual-env-vars", testids.BlueprintID("example")+".json"), filename)
@@ -48,7 +44,7 @@ func TestPrepareManualEnvVarsFileReplacesExistingFile(t *testing.T) {
 	existing := []byte(`[{"serviceType":"web","serviceName":"web","key":"OLD_KEY","value":"old-value"}]`)
 	require.NoError(t, os.WriteFile(filename, existing, 0o600))
 
-	_, err := blueprint.PrepareManualEnvVarsFile(createResponseWithRequiredManualEnvVars())
+	_, err := blueprint.PrepareManualEnvVarsFile(testids.BlueprintID("example"), bptypes.PlanningOutcomePlanned, syncWithRequiredManualEnvVars())
 
 	require.NoError(t, err)
 
@@ -61,10 +57,8 @@ func TestPrepareManualEnvVarsFileReplacesExistingFile(t *testing.T) {
 func TestPrepareManualEnvVarsFileRejectsUnexpectedBlueprintID(t *testing.T) {
 	configDir := t.TempDir()
 	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
-	response := createResponseWithRequiredManualEnvVars()
-	response.Blueprint.Id = "../exs-example"
 
-	filename, err := blueprint.PrepareManualEnvVarsFile(response)
+	filename, err := blueprint.PrepareManualEnvVarsFile("../exs-example", bptypes.PlanningOutcomePlanned, syncWithRequiredManualEnvVars())
 
 	require.ErrorContains(t, err, `unexpected Blueprint ID "../exs-example"`)
 	require.Empty(t, filename)
@@ -77,29 +71,19 @@ func TestPrepareManualEnvVarsFileRejectsUnexpectedBlueprintID(t *testing.T) {
 func TestPrepareManualEnvVarsFileNotNeeded(t *testing.T) {
 	t.Run("writes no file when the plan does not need manual values", func(t *testing.T) {
 		for _, tc := range []struct {
-			name     string
-			response bptypes.CreateBlueprintResponse
+			name    string
+			outcome bptypes.PlanningOutcome
+			sync    *bptypes.SyncWithPlan
 		}{
-			{
-				name: "plan has no manual values",
-				response: bptypes.CreateBlueprintResponse{
-					PlanningOutcome: bptypes.PlanningOutcomePlanned, Sync: &bptypes.SyncWithPlan{},
-				},
-			},
-			{name: "no changes", response: bptypes.CreateBlueprintResponse{PlanningOutcome: bptypes.PlanningOutcomeNoChanges}},
-			{
-				name: "failed plan with required values",
-				response: bptypes.CreateBlueprintResponse{
-					PlanningOutcome: bptypes.PlanningOutcomeFailed,
-					Sync:            &bptypes.SyncWithPlan{RequiredManualEnvVars: []bptypes.RequiredManualEnvVar{{Key: "API_KEY"}}},
-				},
-			},
+			{name: "plan has no manual values", outcome: bptypes.PlanningOutcomePlanned, sync: &bptypes.SyncWithPlan{}},
+			{name: "no changes", outcome: bptypes.PlanningOutcomeNoChanges},
+			{name: "failed plan with required values", outcome: bptypes.PlanningOutcomeFailed, sync: syncWithRequiredManualEnvVars()},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				dir := t.TempDir()
 				t.Setenv("RENDER_CLI_CONFIG_DIR", dir)
 
-				filename, err := blueprint.PrepareManualEnvVarsFile(&tc.response)
+				filename, err := blueprint.PrepareManualEnvVarsFile(testids.BlueprintID("example"), tc.outcome, tc.sync)
 
 				require.NoError(t, err)
 				require.Empty(t, filename)

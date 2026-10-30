@@ -34,7 +34,7 @@ func TestCreateOutPreservesPlanningFailureData(t *testing.T) {
     "sync": {"id":"exe-example","state":"error","commit":{"id":"abc123"},"dashboardUrl":"https://dashboard.render.com/review","rawPlan":{"actions":["create service"]},"requiredManualEnvVars":[]},
     "notices": [{"severity":"error","message":"invalid plan"}]
   },
-  "meta": {"next":"fix the errors above, then run render ea blueprints plan exs-example"}
+  "meta": {"next":"fix the errors above, then run \"render ea blueprints plan exs-example\""}
 }`, string(encoded))
 }
 
@@ -73,7 +73,7 @@ func TestNewCreateOutNext(t *testing.T) {
 					},
 				},
 				filePath: "manual-env-vars/exs-example.json",
-				next:     "manual-env-vars/exs-example.json lists these environment variables with empty values. Set any values you want, then run render ea blueprints approve exs-example, which reads this file unless you pass --manual-env-vars-file.",
+				next:     "manual-env-vars/exs-example.json lists these environment variables with empty values. Set any values you want, then run \"render ea blueprints approve exs-example\", which reads this file unless you pass --manual-env-vars-file.",
 			},
 			{
 				name: "no changes",
@@ -81,7 +81,7 @@ func TestNewCreateOutNext(t *testing.T) {
 					Blueprint:       bptypes.Blueprint{Path: "infra/render.yaml", Branch: "release"},
 					PlanningOutcome: bptypes.PlanningOutcomeNoChanges,
 				},
-				next: "Nothing to approve. If this is unexpected, update \"infra/render.yaml\" and push your changes to the remote \"release\" branch, then re-plan with render ea blueprints plan exs-example.",
+				next: "Nothing to approve. If this is unexpected, update \"infra/render.yaml\" and push your changes to the remote \"release\" branch, then re-plan with \"render ea blueprints plan exs-example\".",
 			},
 			{
 				name: "planning failed despite a saved sync",
@@ -89,7 +89,7 @@ func TestNewCreateOutNext(t *testing.T) {
 					PlanningOutcome: bptypes.PlanningOutcomeFailed,
 					Sync:            &bptypes.SyncWithPlan{State: bptypes.SyncStateError},
 				},
-				next: "fix the errors above, then run render ea blueprints plan exs-example",
+				next: "fix the errors above, then run \"render ea blueprints plan exs-example\"",
 			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {

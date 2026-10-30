@@ -12,16 +12,23 @@ import (
 	"github.com/render-oss/cli/pkg/pointers"
 )
 
-// BlueprintResource holds created Blueprints and queued create/approve/validation responses.
+// BlueprintResource holds created Blueprints and queued create/approve/plan/validation responses.
 type BlueprintResource struct {
 	Resource[*bptypes.Blueprint]
 	createResponses     []blueprintCreateResponse
 	approveResponses    []blueprintApproveResponse
+	planResponses       []blueprintPlanResponse
 	validationResponses []blueprintValidationResponse
 }
 
 type blueprintApproveResponse struct {
 	result  *bptypes.ApprovedSync
+	status  int
+	message string
+}
+
+type blueprintPlanResponse struct {
+	result  *bptypes.CreateBlueprintSyncResponse
 	status  int
 	message string
 }
@@ -87,6 +94,18 @@ func (r *BlueprintResource) RespondWithErrorForApprove(status int, message strin
 	r.approveResponses = append(r.approveResponses, blueprintApproveResponse{status: status, message: message})
 }
 
+// RespondWithBodyForPlan queues the response body for the next Plan Blueprint
+// sync request, whether or not the Blueprint exists. The server returns it as
+// JSON with HTTP 201 Created when it includes a sync, and HTTP 200 OK otherwise.
+func (r *BlueprintResource) RespondWithBodyForPlan(result bptypes.CreateBlueprintSyncResponse) {
+	r.planResponses = append(r.planResponses, blueprintPlanResponse{result: &result})
+}
+
+// RespondWithErrorForPlan queues an HTTP error for the next Plan Blueprint sync request.
+func (r *BlueprintResource) RespondWithErrorForPlan(status int, message string) {
+	r.planResponses = append(r.planResponses, blueprintPlanResponse{status: status, message: message})
+}
+
 // RespondWithBodyForValidate queues the response body for the next Validate Blueprint request.
 // The server returns it as JSON with HTTP 200 OK.
 func (r *BlueprintResource) RespondWithBodyForValidate(result bptypes.ValidateBlueprintResponse) {
@@ -130,6 +149,15 @@ func (r *BlueprintResource) nextApproveResponse() (blueprintApproveResponse, boo
 	return response, true
 }
 
+func (r *BlueprintResource) nextPlanResponse() (blueprintPlanResponse, bool) {
+	if len(r.planResponses) == 0 {
+		return blueprintPlanResponse{}, false
+	}
+	response := r.planResponses[0]
+	r.planResponses = r.planResponses[1:]
+	return response, true
+}
+
 func (r *BlueprintResource) has(id string) bool {
 	for _, b := range r.Instances {
 		if b.Id == id {
@@ -148,6 +176,11 @@ func registerBlueprintRoutes(mux *http.ServeMux, s *Server, record func(*http.Re
 	mux.HandleFunc("POST /blueprints/{blueprintId}/approve", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
 		s.handleApproveBlueprint(w, r)
+	})
+
+	mux.HandleFunc("POST /blueprints/{blueprintId}/syncs", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		s.handlePlanBlueprint(w, r)
 	})
 
 	mux.HandleFunc("POST /blueprints/validate", func(w http.ResponseWriter, r *http.Request) {
@@ -193,19 +226,26 @@ func (s *Server) handleCreateBlueprint(w http.ResponseWriter, r *http.Request) {
 		Path:     pointers.ValueOrDefault(body.Source.Path, "render.yaml"),
 		AutoSync: pointers.ValueOrDefault(body.AutoSync, true),
 	}))
-	syncID := testids.RandomSyncID()
 	writeJSON(w, http.StatusCreated, bptypes.CreateBlueprintResponse{
 		Blueprint:       *blueprint,
 		PlanningOutcome: bptypes.PlanningOutcomePlanned,
 		Notices:         []bptypes.BlueprintNotice{},
-		Sync: &bptypes.SyncWithPlan{
-			Id: syncID, State: bptypes.SyncStateCreated,
-			Commit:                bptypes.CommitRef{Id: "fake-commit"},
-			DashboardUrl:          fmt.Sprintf("https://dashboard.render.com/blueprint/%s/sync/%s", blueprint.Id, syncID),
-			RawPlan:               new(map[string]interface{}{"actions": []interface{}{}}),
-			RequiredManualEnvVars: []bptypes.RequiredManualEnvVar{},
-		},
+		Sync:            newSyncWithPlan(blueprint.Id),
 	})
+}
+
+// newSyncWithPlan returns a sync awaiting approval with an empty plan and no
+// required manual env vars.
+func newSyncWithPlan(blueprintID string) *bptypes.SyncWithPlan {
+	syncID := testids.RandomSyncID()
+	return &bptypes.SyncWithPlan{
+		Id:                    syncID,
+		State:                 bptypes.SyncStateCreated,
+		Commit:                bptypes.CommitRef{Id: "fake-commit"},
+		DashboardUrl:          fmt.Sprintf("https://dashboard.render.com/blueprint/%s/sync/%s", blueprintID, syncID),
+		RawPlan:               new(map[string]interface{}{"actions": []interface{}{}}),
+		RequiredManualEnvVars: []bptypes.RequiredManualEnvVar{},
+	}
 }
 
 // handleApproveBlueprint does not simulate syncs. Without a queued response,
@@ -247,4 +287,30 @@ func (s *Server) handleValidateBlueprint(w http.ResponseWriter, _ *http.Request)
 		return
 	}
 	writeJSON(w, http.StatusOK, response.result)
+}
+
+// handlePlanBlueprint does not simulate planning. Without a queued response,
+// it plans a sync with no required manual env vars for any known Blueprint.
+func (s *Server) handlePlanBlueprint(w http.ResponseWriter, r *http.Request) {
+	if response, queued := s.Blueprints.nextPlanResponse(); queued {
+		switch {
+		case response.result == nil:
+			writeAPIError(w, response.status, response.message, "")
+		case response.result.Sync != nil:
+			writeJSON(w, http.StatusCreated, response.result)
+		default:
+			writeJSON(w, http.StatusOK, response.result)
+		}
+		return
+	}
+	blueprintID := r.PathValue("blueprintId")
+	if !s.Blueprints.has(blueprintID) {
+		writeAPIError(w, http.StatusNotFound, "blueprint not found", "")
+		return
+	}
+	writeJSON(w, http.StatusCreated, bptypes.CreateBlueprintSyncResponse{
+		PlanningOutcome: bptypes.PlanningOutcomePlanned,
+		Notices:         []bptypes.BlueprintNotice{},
+		Sync:            newSyncWithPlan(blueprintID),
+	})
 }

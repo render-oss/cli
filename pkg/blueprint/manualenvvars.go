@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"unicode/utf8"
 
 	"github.com/render-oss/cli/internal/files"
@@ -27,15 +28,11 @@ const manualEnvVarsDirName = "manual-env-vars"
 const ManualEnvVarsFileHelpPath = "~/.render/state/" + manualEnvVarsDirName + "/<blueprintID>.json"
 
 // PrepareManualEnvVarsFile writes a manual env var file with empty string values
-// when a successful create plan requires manual values. Existing files are
-// replaced. It returns the file path on success, an empty path with no error
-// when no file is needed, and an empty path with an error on failure.
-func PrepareManualEnvVarsFile(result *bptypes.CreateBlueprintResponse) (string, error) {
-	if result == nil || result.PlanningOutcome != bptypes.PlanningOutcomePlanned {
-		return "", nil
-	}
-	sync := result.Sync
-	if sync == nil || len(sync.RequiredManualEnvVars) == 0 {
+// when a successful plan requires manual values. Existing files are replaced.
+// It returns the file path on success, an empty path with no error when no
+// file is needed, and an empty path with an error on failure.
+func PrepareManualEnvVarsFile(blueprintID string, outcome bptypes.PlanningOutcome, sync *bptypes.SyncWithPlan) (string, error) {
+	if outcome != bptypes.PlanningOutcomePlanned || sync == nil || len(sync.RequiredManualEnvVars) == 0 {
 		return "", nil
 	}
 	vars := make([]bptypes.SuppliedManualEnvVar, 0, len(sync.RequiredManualEnvVars))
@@ -51,7 +48,7 @@ func PrepareManualEnvVarsFile(result *bptypes.CreateBlueprintResponse) (string, 
 	if err != nil {
 		return "", fmt.Errorf("format manual environment variables: %w", err)
 	}
-	filename, err := manualEnvVarsFilePath(result.Blueprint.Id)
+	filename, err := manualEnvVarsFilePath(blueprintID)
 	if err != nil {
 		return "", fmt.Errorf("prepare manual environment variables file: %w", err)
 	}
@@ -59,6 +56,22 @@ func PrepareManualEnvVarsFile(result *bptypes.CreateBlueprintResponse) (string, 
 		return "", fmt.Errorf("write manual environment variables file \"%s\": %w", filename, err)
 	}
 	return filename, nil
+}
+
+// RemoveManualEnvVarsFile removes the Blueprint's default manual env var file,
+// if there is one.
+func RemoveManualEnvVarsFile(blueprintID string) error {
+	filename, err := manualEnvVarsFilePath(blueprintID)
+	if err != nil {
+		return fmt.Errorf("remove manual environment variables file: %w", err)
+	}
+	err = os.Remove(filename)
+	if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
+		// There is no file to remove. ENOTDIR means a parent of filename is
+		// not a directory, so the file cannot exist either.
+		return nil
+	}
+	return err
 }
 
 // manualEnvVarsFilePath returns the default manual env var file for a

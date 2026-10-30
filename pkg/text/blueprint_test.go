@@ -66,7 +66,7 @@ Environment variables required at approval:
 Review in Dashboard (optional): https://dashboard.render.com/review
 
 Next:
-  /home/user/.render/state/manual-env-vars/exs-example.json lists these environment variables with empty values. Set any values you want, then run render ea blueprints approve exs-example, which reads this file unless you pass --manual-env-vars-file.
+  /home/user/.render/state/manual-env-vars/exs-example.json lists these environment variables with empty values. Set any values you want, then run "render ea blueprints approve exs-example", which reads this file unless you pass --manual-env-vars-file.
 `, out)
 }
 
@@ -82,7 +82,7 @@ func TestBlueprintCreateWithoutPlan(t *testing.T) {
 				response: bptypes.CreateBlueprintResponse{
 					PlanningOutcome: bptypes.PlanningOutcomeNoChanges,
 				},
-				want: "\nNo changes: the Blueprint already matches its configuration\n\nNext:\n  Nothing to approve. If this is unexpected, update \"render.yaml\" and push your changes to the remote \"main\" branch, then re-plan with render ea blueprints plan exs-example.\n",
+				want: "\nNo changes: the Blueprint already matches its configuration\n\nNext:\n  Nothing to approve. If this is unexpected, update \"render.yaml\" and push your changes to the remote \"main\" branch, then re-plan with \"render ea blueprints plan exs-example\".\n",
 			},
 			{
 				name: "unknown planning outcome preserves details without a next step",
@@ -108,7 +108,7 @@ func TestBlueprintCreateWithoutPlan(t *testing.T) {
 						Message:  "invalid plan",
 					}},
 				},
-				want: "\nPlanning failed\n\n  Error: invalid plan\n\nNext:\n  fix the errors above, then run render ea blueprints plan exs-example\n",
+				want: "\nPlanning failed\n\n  Error: invalid plan\n\nNext:\n  fix the errors above, then run \"render ea blueprints plan exs-example\"\n",
 			},
 			{
 				name: "planning failed with a saved sync",
@@ -124,7 +124,7 @@ func TestBlueprintCreateWithoutPlan(t *testing.T) {
 						Message:  "invalid plan",
 					}},
 				},
-				want: "Sync: exe-failed\n\nPlanning failed\n\n  Error: invalid plan\n\nReview in Dashboard (optional): https://dashboard.render.com/review\n\nNext:\n  fix the errors above, then run render ea blueprints plan exs-example\n",
+				want: "Sync: exe-failed\n\nPlanning failed\n\n  Error: invalid plan\n\nReview in Dashboard (optional): https://dashboard.render.com/review\n\nNext:\n  fix the errors above, then run \"render ea blueprints plan exs-example\"\n",
 			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
@@ -142,6 +142,54 @@ func TestBlueprintCreateWithoutPlan(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestBlueprintPlan(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		response bptypes.CreateBlueprintSyncResponse
+		want     string
+	}{
+		{
+			name: "planned",
+			response: bptypes.CreateBlueprintSyncResponse{
+				PlanningOutcome: bptypes.PlanningOutcomePlanned,
+				Sync: &bptypes.SyncWithPlan{
+					Id:           "exe-example",
+					DashboardUrl: "https://dashboard.render.com/review",
+					RawPlan:      new(map[string]interface{}{"actions": []interface{}{"update service"}}),
+				},
+			},
+			want: "Plan\nThese are the changes that will be applied if this sync is approved.\n\n{\n  \"actions\": [\n    \"update service\"\n  ]\n}\n\nSync exe-example\n\nPlanned, waiting for approval\n\nReview in Dashboard (optional): https://dashboard.render.com/review\n\nNext:\n  render ea blueprints approve exs-example\n",
+		},
+		{
+			name:     "no changes",
+			response: bptypes.CreateBlueprintSyncResponse{PlanningOutcome: bptypes.PlanningOutcomeNoChanges},
+			want:     "No changes: the Blueprint already matches its configuration\n\nNext:\n  Nothing to approve. If this is unexpected, push your Blueprint file changes to the Blueprint's branch, then re-plan with \"render ea blueprints plan exs-example\".\n",
+		},
+		{
+			name: "planning failed without a saved sync",
+			response: bptypes.CreateBlueprintSyncResponse{
+				PlanningOutcome: bptypes.PlanningOutcomeFailed,
+				Notices: []bptypes.BlueprintNotice{{
+					Severity: bptypes.BlueprintNoticeSeverityError,
+					Message:  "Planning timed out. Re-plan to try again.",
+				}},
+			},
+			want: "Planning failed\n\n  Error: Planning timed out. Re-plan to try again.\n\nNext:\n  fix the errors above, then run \"render ea blueprints plan exs-example\"\n",
+		},
+		{
+			name:     "unknown planning outcome has no next step",
+			response: bptypes.CreateBlueprintSyncResponse{PlanningOutcome: bptypes.PlanningOutcome("future_outcome")},
+			want:     "Unknown planning outcome: \"future_outcome\"\nThis CLI cannot determine the next step.\n",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out := text.BlueprintPlan(blueprint.NewPlanOut("exs-example", &tc.response, ""))
+
+			require.Equal(t, tc.want, out)
+		})
+	}
 }
 
 // TestBlueprintNoticePositions verifies that zero and negative source positions

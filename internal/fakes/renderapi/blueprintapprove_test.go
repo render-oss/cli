@@ -8,21 +8,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/render-oss/cli/internal/testids"
-	"github.com/render-oss/cli/pkg/client"
 	bptypes "github.com/render-oss/cli/pkg/client/blueprints"
 )
 
-func newBlueprintApproveFixture(t *testing.T) (*Server, *client.ClientWithResponses) {
-	t.Helper()
-	server := NewServer(t)
-	c, err := client.NewClientWithResponses(server.URL())
-	require.NoError(t, err)
-	return server, c
-}
-
 func TestFakeRenderServerBlueprintApprove(t *testing.T) {
 	t.Run("approves a pending sync for a known Blueprint", func(t *testing.T) {
-		server, c := newBlueprintApproveFixture(t)
+		server, c := newServerAndClient(t)
 		blueprint := server.Blueprints.Add(NewBlueprint(bptypes.Blueprint{}))
 
 		resp, err := c.ApproveBlueprintWithResponse(context.Background(), blueprint.Id, bptypes.ApproveBlueprintRequest{})
@@ -35,7 +26,7 @@ func TestFakeRenderServerBlueprintApprove(t *testing.T) {
 	})
 
 	t.Run("returns 404 for an unknown Blueprint", func(t *testing.T) {
-		_, c := newBlueprintApproveFixture(t)
+		_, c := newServerAndClient(t)
 
 		resp, err := c.ApproveBlueprintWithResponse(context.Background(), testids.BlueprintID("unknown"), bptypes.ApproveBlueprintRequest{})
 

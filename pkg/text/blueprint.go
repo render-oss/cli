@@ -16,23 +16,7 @@ func BlueprintCreate(out blueprint.CreateOut) string {
 	}
 	result := out.Data
 	var b strings.Builder
-	if result.Sync != nil && result.Sync.RawPlan != nil {
-		fmt.Fprintln(&b, style.Title.Render("Plan"))
-		caption := "Planning output for this sync."
-		switch result.PlanningOutcome {
-		case bptypes.PlanningOutcomePlanned:
-			caption = "These are the changes that will be applied if this sync is approved."
-		case bptypes.PlanningOutcomeFailed:
-			caption = "Planning failed. This output may be incomplete; fix the errors below and re-plan before approval."
-		}
-		fmt.Fprintf(&b, "%s\n\n", style.SubtleText.Render(caption))
-		plan, err := json.MarshalIndent(result.Sync.RawPlan, "", "  ")
-		if err != nil {
-			fmt.Fprintf(&b, "Could not format the plan: %s\n\n", err)
-		} else {
-			fmt.Fprintf(&b, "%s\n\n", plan)
-		}
-	}
+	writeRawPlan(&b, result.PlanningOutcome, result.Sync)
 
 	bp := result.Blueprint
 	fmt.Fprintf(&b, "%s (%s)\n", style.Title.Render("Blueprint "+bp.Name), bp.Id)
@@ -43,39 +27,84 @@ func BlueprintCreate(out blueprint.CreateOut) string {
 		fmt.Fprintf(&b, "%s %s\n", style.SubtleText.Render("Sync:"), result.Sync.Id)
 	}
 	b.WriteString("\n")
-	//exhaustive:enforce
-	switch result.PlanningOutcome {
-	case bptypes.PlanningOutcomePlanned:
-		fmt.Fprintln(&b, style.Status.Foreground(style.ColorInfo).Render("Planned, waiting for approval"))
-	case bptypes.PlanningOutcomeNoChanges:
-		fmt.Fprintf(&b, "%s: the Blueprint already matches its configuration\n", style.Status.Foreground(style.ColorOK).Render("No changes"))
-	case bptypes.PlanningOutcomeFailed:
-		fmt.Fprintln(&b, style.Status.Foreground(style.ColorError).Render("Planning failed"))
-	default:
-		fmt.Fprintf(&b, "%s: %q\n", style.Status.Foreground(style.ColorWarning).Render("Unknown planning outcome"), result.PlanningOutcome)
-		fmt.Fprintln(&b, "The Blueprint was created, but this CLI cannot determine the next step.")
+	writePlanningResult(&b, result.PlanningOutcome, result.Notices, result.Sync, out.Meta.Next,
+		"The Blueprint was created, but this CLI cannot determine the next step.")
+	return b.String()
+}
+
+func BlueprintPlan(out blueprint.PlanOut) string {
+	if out.Data == nil {
+		return ""
 	}
-	if len(result.Notices) > 0 {
+	result := out.Data
+	var b strings.Builder
+	writeRawPlan(&b, result.PlanningOutcome, result.Sync)
+	if result.Sync != nil {
+		fmt.Fprintf(&b, "%s\n\n", style.Title.Render("Sync "+result.Sync.Id))
+	}
+	writePlanningResult(&b, result.PlanningOutcome, result.Notices, result.Sync, out.Meta.Next,
+		"This CLI cannot determine the next step.")
+	return b.String()
+}
+
+// writeRawPlan writes the sync's raw plan, when there is one.
+func writeRawPlan(b *strings.Builder, outcome bptypes.PlanningOutcome, sync *bptypes.SyncWithPlan) {
+	if sync == nil || sync.RawPlan == nil {
+		return
+	}
+	fmt.Fprintln(b, style.Title.Render("Plan"))
+	caption := "Planning output for this sync."
+	switch outcome {
+	case bptypes.PlanningOutcomePlanned:
+		caption = "These are the changes that will be applied if this sync is approved."
+	case bptypes.PlanningOutcomeFailed:
+		caption = "Planning failed. This output may be incomplete; fix the errors below and re-plan before approval."
+	}
+	fmt.Fprintf(b, "%s\n\n", style.SubtleText.Render(caption))
+	plan, err := json.MarshalIndent(sync.RawPlan, "", "  ")
+	if err != nil {
+		fmt.Fprintf(b, "Could not format the plan: %s\n\n", err)
+	} else {
+		fmt.Fprintf(b, "%s\n\n", plan)
+	}
+}
+
+// writePlanningResult writes the planning outcome, notices, required manual
+// env vars, Dashboard link, and next step. unknownOutcomeMessage explains an
+// unknown PlanningOutcome value.
+func writePlanningResult(b *strings.Builder, outcome bptypes.PlanningOutcome, notices []bptypes.BlueprintNotice, sync *bptypes.SyncWithPlan, next *string, unknownOutcomeMessage string) {
+	//exhaustive:enforce
+	switch outcome {
+	case bptypes.PlanningOutcomePlanned:
+		fmt.Fprintln(b, style.Status.Foreground(style.ColorInfo).Render("Planned, waiting for approval"))
+	case bptypes.PlanningOutcomeNoChanges:
+		fmt.Fprintf(b, "%s: the Blueprint already matches its configuration\n", style.Status.Foreground(style.ColorOK).Render("No changes"))
+	case bptypes.PlanningOutcomeFailed:
+		fmt.Fprintln(b, style.Status.Foreground(style.ColorError).Render("Planning failed"))
+	default:
+		fmt.Fprintf(b, "%s: %q\n", style.Status.Foreground(style.ColorWarning).Render("Unknown planning outcome"), outcome)
+		fmt.Fprintln(b, unknownOutcomeMessage)
+	}
+	if len(notices) > 0 {
 		b.WriteString("\n")
 	}
-	for _, notice := range result.Notices {
-		fmt.Fprintf(&b, "  %s\n", blueprintNotice(notice))
+	for _, notice := range notices {
+		fmt.Fprintf(b, "  %s\n", blueprintNotice(notice))
 	}
-	if result.Sync != nil {
-		if len(result.Sync.RequiredManualEnvVars) > 0 {
-			fmt.Fprintf(&b, "\n%s\n", style.Bold("Environment variables required at approval:"))
-			for _, envVar := range result.Sync.RequiredManualEnvVars {
-				fmt.Fprintf(&b, "  %s/%s: %s\n", envVar.ServiceType, envVar.ServiceName, style.Bold(envVar.Key))
+	if sync != nil {
+		if len(sync.RequiredManualEnvVars) > 0 {
+			fmt.Fprintf(b, "\n%s\n", style.Bold("Environment variables required at approval:"))
+			for _, envVar := range sync.RequiredManualEnvVars {
+				fmt.Fprintf(b, "  %s/%s: %s\n", envVar.ServiceType, envVar.ServiceName, style.Bold(envVar.Key))
 			}
 		}
-		if result.Sync.DashboardUrl != "" {
-			fmt.Fprintf(&b, "\n%s%s %s\n", style.Bold("Review in Dashboard"), style.SubtleText.Render(" (optional):"), result.Sync.DashboardUrl)
+		if sync.DashboardUrl != "" {
+			fmt.Fprintf(b, "\n%s%s %s\n", style.Bold("Review in Dashboard"), style.SubtleText.Render(" (optional):"), sync.DashboardUrl)
 		}
 	}
-	if out.Meta.Next != nil {
-		fmt.Fprintf(&b, "\n%s\n  %s\n", style.Title.Render("Next:"), *out.Meta.Next)
+	if next != nil {
+		fmt.Fprintf(b, "\n%s\n  %s\n", style.Title.Render("Next:"), *next)
 	}
-	return b.String()
 }
 
 func blueprintNotice(notice bptypes.BlueprintNotice) string {

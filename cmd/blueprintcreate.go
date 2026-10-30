@@ -79,7 +79,7 @@ Output defaults to text. Use --output json or yaml for structured responses.`,
 					if err != nil {
 						return blueprint.CreateOut{}, err
 					}
-					filePath, err := blueprint.PrepareManualEnvVarsFile(result)
+					filePath, err := blueprint.PrepareManualEnvVarsFile(result.Blueprint.Id, result.PlanningOutcome, result.Sync)
 					if err != nil {
 						// Print the saved Blueprint result before reporting a local file error.
 						fileErr = err
@@ -98,19 +98,7 @@ Output defaults to text. Use --output json or yaml for structured responses.`,
 			if result == nil {
 				return errors.New("create blueprint: command completed without a creation result")
 			}
-			//exhaustive:enforce
-			switch result.PlanningOutcome {
-			case bptypes.PlanningOutcomeFailed:
-				// The planning outcome is already on stdout; exit without
-				// duplicating it through Cobra's stderr output.
-				cmd.SilenceErrors = true
-				return command.NewExitError(1, nil)
-			case bptypes.PlanningOutcomePlanned, bptypes.PlanningOutcomeNoChanges:
-				return nil
-			default:
-				// An unfamiliar planning outcome does not imply creation failed.
-				return nil
-			}
+			return exitForPlanningOutcome(cmd, result.PlanningOutcome)
 		},
 	}
 

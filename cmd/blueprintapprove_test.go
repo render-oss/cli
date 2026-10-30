@@ -20,8 +20,6 @@ import (
 	"github.com/render-oss/cli/pkg/command"
 )
 
-var testBlueprintID = testids.BlueprintID("approve")
-
 func TestBlueprintApproveIsHidden(t *testing.T) {
 	server := renderapi.NewServer(t)
 
@@ -38,15 +36,6 @@ const approveSecret = "s3cr3t-approve-value"
 
 const approveManualEnvVarsJSON = `[{"serviceType":"web","serviceName":"app","key":"API_KEY","value":"` + approveSecret + `"}]`
 
-func newBlueprintApproveFixture(t *testing.T) (server *renderapi.Server, defaultFile string) {
-	t.Helper()
-	configDir := t.TempDir()
-	t.Setenv("RENDER_CLI_CONFIG_DIR", configDir)
-	server = renderapi.NewServer(t)
-	server.Blueprints.Add(renderapi.NewBlueprint(bptypes.Blueprint{Id: testBlueprintID}))
-	return server, filepath.Join(configDir, "state", "manual-env-vars", testBlueprintID+".json")
-}
-
 func requireNoSecret(t *testing.T, output CommandResult) {
 	t.Helper()
 	require.NotContains(t, output.Stdout, approveSecret)
@@ -54,7 +43,7 @@ func requireNoSecret(t *testing.T, output CommandResult) {
 }
 
 func TestBlueprintApproveTextOutput(t *testing.T) {
-	server, _ := newBlueprintApproveFixture(t)
+	server, _ := newBlueprintFixture(t)
 
 	result, output := executeBlueprintCommand(t, server, []string{"ea", "blueprints", "approve", testBlueprintID})
 
@@ -67,7 +56,7 @@ func TestBlueprintApproveTextOutput(t *testing.T) {
 }
 
 func TestBlueprintApproveJSONOutput(t *testing.T) {
-	server, _ := newBlueprintApproveFixture(t)
+	server, _ := newBlueprintFixture(t)
 	sync := bptypes.ApprovedSync{
 		Id:           testids.SyncID("running"),
 		State:        bptypes.SyncStateRunning,
@@ -129,7 +118,7 @@ func TestBlueprintApproveManualEnvVarsAreSentInRequestCorrectly(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			server, defaultFile := newBlueprintApproveFixture(t)
+			server, defaultFile := newBlueprintFixture(t)
 			args := []string{"ea", "blueprints", "approve", testBlueprintID}
 			if tc.defaultFileContents != "" {
 				require.NoError(t, files.Write(defaultFile, []byte(tc.defaultFileContents)))
@@ -162,7 +151,7 @@ func TestBlueprintApproveManualEnvVarsAreSentInRequestCorrectly(t *testing.T) {
 }
 
 func TestBlueprintApproveExpandsTildeInManualEnvVarsFile(t *testing.T) {
-	server, _ := newBlueprintApproveFixture(t)
+	server, _ := newBlueprintFixture(t)
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -176,7 +165,7 @@ func TestBlueprintApproveExpandsTildeInManualEnvVarsFile(t *testing.T) {
 }
 
 func TestBlueprintApproveDoesNotDeleteManualEnvVarFileAfterHTTPError(t *testing.T) {
-	server, defaultFile := newBlueprintApproveFixture(t)
+	server, defaultFile := newBlueprintFixture(t)
 	require.NoError(t, files.Write(defaultFile, []byte(approveManualEnvVarsJSON)))
 	message := "Missing values for 1 sync: false environment variables: worker/app-worker STRIPE_SECRET. Nothing was approved."
 	server.Blueprints.RespondWithErrorForApprove(http.StatusBadRequest, message)
@@ -233,7 +222,7 @@ func TestBlueprintApproveRejectsMalformedManualEnvVars(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			server, _ := newBlueprintApproveFixture(t)
+			server, _ := newBlueprintFixture(t)
 
 			result, output := executeBlueprintCommand(t, server,
 				[]string{"ea", "blueprints", "approve", testBlueprintID, "--manual-env-vars-file", "-"}, withStdin(tc.input))
@@ -248,7 +237,7 @@ func TestBlueprintApproveRejectsMalformedManualEnvVars(t *testing.T) {
 }
 
 func TestBlueprintApproveReportsMissingExplicitManualEnvVarFile(t *testing.T) {
-	server, _ := newBlueprintApproveFixture(t)
+	server, _ := newBlueprintFixture(t)
 	missing := filepath.Join(t.TempDir(), "missing.json")
 
 	result, output := executeBlueprintCommand(t, server, []string{"ea", "blueprints", "approve", testBlueprintID, "--manual-env-vars-file", missing})
@@ -259,7 +248,7 @@ func TestBlueprintApproveReportsMissingExplicitManualEnvVarFile(t *testing.T) {
 }
 
 func TestBlueprintApproveReportsMalformedExplicitManualEnvVarFile(t *testing.T) {
-	server, _ := newBlueprintApproveFixture(t)
+	server, _ := newBlueprintFixture(t)
 	explicit := filepath.Join(t.TempDir(), "values.json")
 	require.NoError(t, files.Write(explicit, []byte("API_KEY="+approveSecret+"\n")))
 
@@ -276,7 +265,7 @@ func TestBlueprintApproveWarnsWhenDefaultFileCannotBeDeleted(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("directory permissions do not prevent deletion on Windows")
 	}
-	server, defaultFile := newBlueprintApproveFixture(t)
+	server, defaultFile := newBlueprintFixture(t)
 	require.NoError(t, files.Write(defaultFile, []byte(approveManualEnvVarsJSON)))
 	dir := filepath.Dir(defaultFile)
 	require.NoError(t, os.Chmod(dir, 0o500))

@@ -41,24 +41,44 @@ type PlanOutMeta struct {
 // manualEnvVarsPath is the prepared manual env var file, or empty if none was
 // written. Callers handle file preparation errors before constructing output.
 func NewCreateOut(result *bptypes.CreateBlueprintResponse, manualEnvVarsPath string) CreateOut {
-	out := CreateOut{Data: result}
+	bp := result.Blueprint
+	noChangesNext := fmt.Sprintf("Nothing to approve. If this is unexpected, update %q and push your changes to the remote %q branch, then re-plan with \"render ea blueprints plan %s\".", bp.Path, bp.Branch, bp.Id)
+	return CreateOut{
+		Data: result,
+		Meta: CreateOutMeta{Next: planningNext(bp.Id, result.PlanningOutcome, manualEnvVarsPath, noChangesNext)},
+	}
+}
+
+// NewPlanOut adds follow-up guidance without changing the REST response. The
+// plan response does not include the Blueprint, so blueprintID comes from the
+// command input. manualEnvVarsPath is as for NewCreateOut.
+func NewPlanOut(blueprintID string, result *bptypes.CreateBlueprintSyncResponse, manualEnvVarsPath string) PlanOut {
+	noChangesNext := fmt.Sprintf("Nothing to approve. If this is unexpected, push your Blueprint file changes to the Blueprint's branch, then re-plan with \"render ea blueprints plan %s\".", blueprintID)
+	return PlanOut{
+		Data: result,
+		Meta: PlanOutMeta{Next: planningNext(blueprintID, result.PlanningOutcome, manualEnvVarsPath, noChangesNext)},
+	}
+}
+
+// planningNext returns the next step after planning a sync, or nil for an
+// unknown planning outcome. noChangesNext is the next step when no sync is needed.
+func planningNext(blueprintID string, outcome bptypes.PlanningOutcome, manualEnvVarsPath, noChangesNext string) *string {
 	var next string
 	//exhaustive:enforce
-	switch result.PlanningOutcome {
+	switch outcome {
 	case bptypes.PlanningOutcomePlanned:
-		next = fmt.Sprintf("render ea blueprints approve %s", result.Blueprint.Id)
+		next = fmt.Sprintf("render ea blueprints approve %s", blueprintID)
 		if manualEnvVarsPath != "" {
-			next = fmt.Sprintf("%s lists these environment variables with empty values. Set any values you want, then run %s, which reads this file unless you pass --manual-env-vars-file.", manualEnvVarsPath, next)
+			next = fmt.Sprintf("%s lists these environment variables with empty values. Set any values you want, then run \"%s\", which reads this file unless you pass --manual-env-vars-file.", manualEnvVarsPath, next)
 		}
 	case bptypes.PlanningOutcomeNoChanges:
-		next = fmt.Sprintf("Nothing to approve. If this is unexpected, update %q and push your changes to the remote %q branch, then re-plan with render ea blueprints plan %s.", result.Blueprint.Path, result.Blueprint.Branch, result.Blueprint.Id)
+		next = noChangesNext
 	case bptypes.PlanningOutcomeFailed:
-		next = fmt.Sprintf("fix the errors above, then run render ea blueprints plan %s", result.Blueprint.Id)
+		next = fmt.Sprintf("fix the errors above, then run \"render ea blueprints plan %s\"", blueprintID)
 	default:
-		return out
+		return nil
 	}
-	out.Meta.Next = &next
-	return out
+	return &next
 }
 
 // ApproveOut preserves the REST approve result: the newly approved sync, or

@@ -136,6 +136,11 @@ func (s *Service) Approve(ctx context.Context, blueprintID string, manualEnvVars
 	return s.repo.Approve(ctx, blueprintID, body)
 }
 
+// Plan plans a new sync from the Blueprint's branch and path without applying it.
+func (s *Service) Plan(ctx context.Context, blueprintID string) (*bptypes.CreateBlueprintSyncResponse, error) {
+	return s.repo.Plan(ctx, blueprintID)
+}
+
 // buildCreateRequest validates input, resolves defaults,
 // and builds the REST create request for the supplied workspace.
 func (i CreateInput) buildCreateRequest(ctx context.Context, workspaceID string) (bptypes.CreateBlueprintRequest, error) {

@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+
+	bptypes "github.com/render-oss/cli/pkg/client/blueprints"
+	"github.com/render-oss/cli/pkg/command"
 )
 
 var blueprintsCmd = &cobra.Command{
@@ -36,4 +39,21 @@ Learn more: https://render.com/docs/infrastructure-as-code`,
 	}
 	cmd.AddCommand(children...)
 	return cmd
+}
+
+// exitForPlanningOutcome returns the exit status for a planning outcome. Failed
+// planning exits 1 without an error message, so the caller must show the user
+// the planning outcome. Other outcomes exit 0, including PlanningOutcome values
+// the API added after this CLI was generated.
+func exitForPlanningOutcome(cmd *cobra.Command, outcome bptypes.PlanningOutcome) error {
+	//exhaustive:enforce
+	switch outcome {
+	case bptypes.PlanningOutcomeFailed:
+		cmd.SilenceErrors = true
+		return command.NewExitError(1, nil)
+	case bptypes.PlanningOutcomePlanned, bptypes.PlanningOutcomeNoChanges:
+		return nil
+	default:
+		return nil
+	}
 }
