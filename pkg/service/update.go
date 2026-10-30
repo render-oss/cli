@@ -401,13 +401,19 @@ func buildImageUpdateEnvSpecificDetails(input servicetypes.ServiceUpdateInput) (
 }
 
 func buildImageUpdateEnvSpecificDetailsForCronJob(input servicetypes.ServiceUpdateInput) (*client.EnvSpecificDetailsPATCH, error) {
-	if input.BuildCommand != nil || input.CronCommand != nil {
-		return nil, errors.New("--build-command and --cron-command are only supported for native runtimes")
+	if input.BuildCommand != nil {
+		return nil, errors.New("--build-command is only supported for native runtimes")
 	}
 	if input.RegistryCredential != nil {
 		return nil, errors.New(registryCredentialUpdateIncompatibleRuntimeError)
 	}
-	return nil, nil
+	if input.CronCommand == nil {
+		return nil, nil
+	}
+
+	// An image cron job runs its command as a Docker command override, the same
+	// field image cron creation sets.
+	return dockerEnvSpecificDetailsFromInput(input.CronCommand, nil)
 }
 
 func buildDockerUpdateEnvSpecificDetails(input servicetypes.ServiceUpdateInput) (*client.EnvSpecificDetailsPATCH, error) {
