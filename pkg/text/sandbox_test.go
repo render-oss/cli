@@ -77,6 +77,52 @@ func TestSandboxTable_NetworkPolicyColumns(t *testing.T) {
 	}
 }
 
+func TestSandboxDetail_Timeouts(t *testing.T) {
+	tests := []struct {
+		name               string
+		timeoutSeconds     int
+		idleTimeoutSeconds int
+		wantTimeout        string
+		wantIdleTimeout    string
+	}{
+		{
+			name:               "positive timeouts are shown in seconds",
+			timeoutSeconds:     3600,
+			idleTimeoutSeconds: 900,
+			wantTimeout:        "Timeout: 3600s",
+			wantIdleTimeout:    "Idle timeout: 900s",
+		},
+		{
+			name:               "zero timeout is shown as disabled",
+			timeoutSeconds:     0,
+			idleTimeoutSeconds: 900,
+			wantTimeout:        "Timeout: disabled",
+			wantIdleTimeout:    "Idle timeout: 900s",
+		},
+		{
+			name:               "zero idle timeout is shown as disabled",
+			timeoutSeconds:     3600,
+			idleTimeoutSeconds: 0,
+			wantTimeout:        "Timeout: 3600s",
+			wantIdleTimeout:    "Idle timeout: disabled",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := text.SandboxDetail(&sandboxesclient.Sandbox{
+				Id:                 "sbx-abc",
+				TimeoutSeconds:     tt.timeoutSeconds,
+				IdleTimeoutSeconds: tt.idleTimeoutSeconds,
+			})
+
+			lines := strings.Split(out, "\n")
+			assert.Contains(t, lines, tt.wantTimeout)
+			assert.Contains(t, lines, tt.wantIdleTimeout)
+		})
+	}
+}
+
 // tableCell returns the value under column in a single-row table, using the
 // header's position so values containing spaces stay intact.
 func tableCell(t *testing.T, out, column string) string {
