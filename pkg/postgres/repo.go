@@ -88,7 +88,7 @@ func (r *Repo) GetPostgresConnectionInfo(ctx context.Context, id string) (*clien
 }
 
 func (r *Repo) RestartPostgresDatabase(ctx context.Context, id string) error {
-	resp, err := r.client.RestartPostgres(ctx, id)
+	resp, err := r.client.RestartPostgresWithResponse(ctx, id)
 	if err != nil {
 		return err
 	}
