@@ -2,6 +2,7 @@ package resolve
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -223,22 +224,29 @@ func validateEnvironmentBelongsToWorkspace(env *client.Environment, project *cli
 // them; when absent, this helper resolves the missing ancestors from the
 // environment itself.
 func (r *Resolver) resolveEnvironmentAndProject(ctx context.Context, envIDOrName string, workspaceID string, resolvedProject *client.Project) (*client.Environment, *client.Project, error) {
+	// An ID-shaped selector that 404s by ID may still be an environment name,
+	// so fall through to the scoped name lookup. idErr is reported if no
+	// environment has that name either. Other errors are returned as-is.
+	var idErr error
 	if validate.IsEnvironmentID(envIDOrName) {
 		env, err := r.environmentRepo.GetEnvironment(ctx, envIDOrName)
-		if err != nil {
-			return nil, nil, fmt.Errorf("environment %q not found: %w", envIDOrName, err)
+		if err == nil {
+			project, err := r.projectRepo.GetProject(ctx, env.ProjectId)
+			if err != nil {
+				return nil, nil, err
+			}
+			if err := validateEnvironmentBelongsToProject(env, resolvedProject); err != nil {
+				return nil, nil, err
+			}
+			if err := validateEnvironmentBelongsToWorkspace(env, project, workspaceID); err != nil {
+				return nil, nil, err
+			}
+			return env, project, nil
 		}
-		project, err := r.projectRepo.GetProject(ctx, env.ProjectId)
-		if err != nil {
-			return nil, nil, err
+		idErr = fmt.Errorf("environment %q not found: %w", envIDOrName, err)
+		if !errors.Is(err, environment.ErrEnvironmentNotFound) {
+			return nil, nil, idErr
 		}
-		if err := validateEnvironmentBelongsToProject(env, resolvedProject); err != nil {
-			return nil, nil, err
-		}
-		if err := validateEnvironmentBelongsToWorkspace(env, project, workspaceID); err != nil {
-			return nil, nil, err
-		}
-		return env, project, nil
 	}
 
 	projects, err := r.candidateProjectsForEnvironmentLookup(ctx, resolvedProject, workspaceID)
@@ -252,7 +260,7 @@ func (r *Resolver) resolveEnvironmentAndProject(ctx context.Context, envIDOrName
 		projectByID[p.Id] = p
 	}
 	if len(projectIDs) == 0 {
-		return nil, nil, fmt.Errorf("no environment found with name %q", envIDOrName)
+		return nil, nil, noEnvironmentMatch(envIDOrName, idErr)
 	}
 
 	nameFilter := client.NameParam{envIDOrName}
@@ -265,7 +273,7 @@ func (r *Resolver) resolveEnvironmentAndProject(ctx context.Context, envIDOrName
 	}
 
 	if len(matches) == 0 {
-		return nil, nil, fmt.Errorf("no environment found with name %q", envIDOrName)
+		return nil, nil, noEnvironmentMatch(envIDOrName, idErr)
 	}
 	if len(matches) > 1 {
 		return nil, nil, fmt.Errorf("multiple environments found with name %q across projects — please use the environment ID instead", envIDOrName)
@@ -286,6 +294,15 @@ func (r *Resolver) resolveEnvironmentAndProject(ctx context.Context, envIDOrName
 		return nil, nil, err
 	}
 	return env, project, nil
+}
+
+// noEnvironmentMatch reports a selector that matched no environment name,
+// preferring the by-ID 404 error when the selector was ID-shaped.
+func noEnvironmentMatch(envIDOrName string, idErr error) error {
+	if idErr != nil {
+		return idErr
+	}
+	return fmt.Errorf("no environment found with name %q", envIDOrName)
 }
 
 // candidateProjectsForEnvironmentLookup returns the projects whose environments
@@ -313,12 +330,19 @@ func (r *Resolver) candidateProjectsForEnvironmentLookup(ctx context.Context, re
 // search spans every workspace the caller can access. Returns the full
 // *client.Project so callers can read Owner.Id without re-fetching.
 func (r *Resolver) ResolveProject(ctx context.Context, idOrName string, workspaceID string) (*client.Project, error) {
+	// An ID-shaped selector that 404s by ID may still be a project name, so
+	// fall through to the scoped name lookup. idErr is reported if no project
+	// has that name either. Other errors are returned as-is.
+	var idErr error
 	if validate.IsProjectID(idOrName) {
 		proj, err := r.projectRepo.GetProject(ctx, idOrName)
-		if err != nil {
-			return nil, fmt.Errorf("project %q not found: %w", idOrName, err)
+		if err == nil {
+			return proj, nil
 		}
-		return proj, nil
+		idErr = fmt.Errorf("project %q not found: %w", idOrName, err)
+		if !errors.Is(err, project.ErrProjectNotFound) {
+			return nil, idErr
+		}
 	}
 
 	matches, err := r.projectRepo.ListProjectsByName(ctx, idOrName, workspaceID)
@@ -326,6 +350,9 @@ func (r *Resolver) ResolveProject(ctx context.Context, idOrName string, workspac
 		return nil, err
 	}
 	if len(matches) == 0 {
+		if idErr != nil {
+			return nil, idErr
+		}
 		return nil, fmt.Errorf("no project found with name %q", idOrName)
 	}
 	if len(matches) > 1 {

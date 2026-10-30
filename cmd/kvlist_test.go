@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/render-oss/cli/internal/testids"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -184,4 +185,35 @@ func TestKVList_UnknownProject_Errors(t *testing.T) {
 	_, err := executeKVList(t, server, "--project", "does-not-exist", "--output", "text")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "does-not-exist")
+}
+
+func TestKVList_FilterByIDShapedProjectAndEnvironmentNames(t *testing.T) {
+	server := renderapi.NewServer(t)
+
+	// Accepted names that match the prj-/evm- ID shape must still resolve by
+	// name when no object has that ID.
+	projectA := server.CreateProject(
+		renderapi.ProjectAttrs{Id: testids.ProjectID("id shaped a"), Name: "prj-00000000000000093206", OwnerId: kvTestWorkspaceID},
+		renderapi.EnvAttrs{ID: testids.EnvironmentID("id shaped a"), Name: "evm-00000000000000093206"},
+		renderapi.EnvAttrs{ID: testids.EnvironmentID("id shaped staging"), Name: "staging"},
+	)
+	projectB := server.CreateProject(
+		renderapi.ProjectAttrs{Id: testids.ProjectID("id shaped b"), Name: "Project B", OwnerId: kvTestWorkspaceID},
+		renderapi.EnvAttrs{ID: testids.EnvironmentID("id shaped b"), Name: "evm-00000000000000093206"},
+	)
+
+	aKV := seedKVInEnv(server, "a-cache", projectA.Env("evm-00000000000000093206").Id)
+	aStagingKV := seedKVInEnv(server, "a-staging-cache", projectA.Env("staging").Id)
+	bKV := seedKVInEnv(server, "b-cache", projectB.Env("evm-00000000000000093206").Id)
+
+	result, err := executeKVList(t, server,
+		"--project", "prj-00000000000000093206",
+		"--environment", "evm-00000000000000093206",
+		"--output", "text",
+	)
+	require.NoError(t, err)
+
+	assert.Contains(t, result.Stdout, aKV.Id)
+	assert.NotContains(t, result.Stdout, aStagingKV.Id)
+	assert.NotContains(t, result.Stdout, bKV.Id)
 }

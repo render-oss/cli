@@ -2,12 +2,32 @@ package project
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/pointers"
 )
+
+// ErrProjectNotFound is matched (via errors.Is) by the error Repo.GetProject returns
+// when the API responds 404 Not Found for the requested ID.
+var ErrProjectNotFound = errors.New("project not found")
+
+// projectNotFoundError keeps the existing "unexpected response: <status>" message
+// while letting callers distinguish a 404 from other failures.
+type projectNotFoundError struct {
+	status string
+}
+
+func (e *projectNotFoundError) Error() string {
+	return fmt.Sprintf("unexpected response: %v", e.status)
+}
+
+func (e *projectNotFoundError) Unwrap() error {
+	return ErrProjectNotFound
+}
 
 func NewRepo(client *client.ClientWithResponses) *Repo {
 	return &Repo{client: client}
@@ -85,6 +105,10 @@ func (p *Repo) GetProject(ctx context.Context, id string) (*client.Project, erro
 	resp, err := p.client.RetrieveProjectWithResponse(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.StatusCode() == http.StatusNotFound {
+		return nil, &projectNotFoundError{status: resp.Status()}
 	}
 
 	if resp.JSON200 == nil {
