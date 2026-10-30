@@ -41,8 +41,10 @@ func NewResourceView(ctx context.Context,
 		return onSelect(r)
 	}
 
-	// check for a persistent project filter if other input has not been provided
-	if len(input.EnvironmentIDs) == 0 {
+	// check for a persistent project filter if other input has not been provided.
+	// An explicitly selected Project counts as input even when it has no
+	// environments.
+	if input.Project == nil && len(input.EnvironmentIDs) == 0 {
 		savedInput, err := DefaultListResourceInput(ctx)
 		if err == nil && savedInput.Project != nil {
 			input.Project = savedInput.Project
