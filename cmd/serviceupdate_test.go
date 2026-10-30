@@ -284,6 +284,127 @@ func (h serviceUpdateHarness) addWebService(name string) *client.Service {
 	}))
 }
 
+// addCronJob seeds a native cron job under a new project and returns it.
+func (h serviceUpdateHarness) addCronJob(name string) *client.Service {
+	h.t.Helper()
+
+	project := h.server.CreateProject(
+		renderapi.ProjectAttrs{Name: "Jobs", OwnerId: serviceTestWorkspaceID},
+		renderapi.EnvAttrs{Name: "production"},
+	)
+	return h.server.Services.Add(renderapi.NewCronJob(renderapi.CronJobAttrs{
+		Service: renderapi.CommonServiceAttrs{
+			Name:          name,
+			OwnerID:       serviceTestWorkspaceID,
+			EnvironmentID: project.Env("production").Id,
+		},
+	}))
+}
+
+// patchBody runs `services update` against a fresh service seeded by addService
+// and returns the decoded PATCH body.
+func (h serviceUpdateHarness) patchBody(addService func(string) *client.Service, args ...string) map[string]any {
+	h.t.Helper()
+
+	svc := addService("command-text")
+	_, err := h.execute(append(append([]string{svc.Id}, args...), "--output", "json")...)
+	require.NoError(h.t, err)
+
+	rec, ok := h.server.LastRequest("PATCH", "/services/"+svc.Id)
+	require.True(h.t, ok, "expected a PATCH request to be recorded")
+	return testrequire.ParseJSONMap(h.t, string(rec.Body))
+}
+
+// serviceUpdateCommandFlags maps each command flag to the service type that
+// accepts it and to the PATCH body that carries its value. Cron jobs carry the
+// cron command as envSpecificDetails.startCommand.
+var serviceUpdateCommandFlags = []struct {
+	flag     string
+	cronJob  bool
+	wantBody func(command string) map[string]any
+}{
+	{
+		flag: "build-command",
+		wantBody: func(command string) map[string]any {
+			return map[string]any{"serviceDetails": map[string]any{
+				"envSpecificDetails": map[string]any{"buildCommand": command},
+			}}
+		},
+	},
+	{
+		flag: "start-command",
+		wantBody: func(command string) map[string]any {
+			return map[string]any{"serviceDetails": map[string]any{
+				"envSpecificDetails": map[string]any{"startCommand": command},
+			}}
+		},
+	},
+	{
+		flag: "pre-deploy-command",
+		wantBody: func(command string) map[string]any {
+			return map[string]any{"serviceDetails": map[string]any{"preDeployCommand": command}}
+		},
+	},
+	{
+		flag:    "cron-command",
+		cronJob: true,
+		wantBody: func(command string) map[string]any {
+			return map[string]any{"serviceDetails": map[string]any{
+				"envSpecificDetails": map[string]any{"startCommand": command},
+			}}
+		},
+	},
+}
+
+func TestServiceUpdate_CommandFlagsSendExactCommandText(t *testing.T) {
+	for _, ff := range serviceUpdateCommandFlags {
+		for _, tc := range serviceCommandTextCases {
+			t.Run(ff.flag+"/"+tc.name, func(t *testing.T) {
+				harness := newServiceUpdateHarness(t)
+				addService := harness.addWebService
+				if ff.cronJob {
+					addService = harness.addCronJob
+				}
+
+				body := harness.patchBody(addService, "--"+ff.flag, tc.value)
+				assert.Equal(t, ff.wantBody(tc.value), body)
+			})
+		}
+	}
+}
+
+// A blank command flag explicitly clears the command, so it is sent as "".
+func TestServiceUpdate_BlankCommandFlagsSendEmptyCommand(t *testing.T) {
+	for _, ff := range serviceUpdateCommandFlags {
+		t.Run(ff.flag, func(t *testing.T) {
+			harness := newServiceUpdateHarness(t)
+			addService := harness.addWebService
+			if ff.cronJob {
+				addService = harness.addCronJob
+			}
+
+			body := harness.patchBody(addService, "--"+ff.flag, " \t ")
+			assert.Equal(t, ff.wantBody(""), body)
+		})
+	}
+}
+
+func TestServiceUpdate_UnsetCommandFlagsAreNotSent(t *testing.T) {
+	t.Run("web service", func(t *testing.T) {
+		harness := newServiceUpdateHarness(t)
+
+		body := harness.patchBody(harness.addWebService, "--health-check-path", "/ready")
+		assert.Equal(t, map[string]any{"serviceDetails": map[string]any{"healthCheckPath": "/ready"}}, body)
+	})
+
+	t.Run("cron job", func(t *testing.T) {
+		harness := newServiceUpdateHarness(t)
+
+		body := harness.patchBody(harness.addCronJob, "--cron-schedule", "0 * * * *")
+		assert.Equal(t, map[string]any{"serviceDetails": map[string]any{"schedule": "0 * * * *"}}, body)
+	})
+}
+
 // TestServiceUpdate_ParseCommand_HappyPath verifies that every flag the update command
 // registers binds to the expected ServiceUpdateInput field with the expected
 // type. It drives the real command's flag set through ParseCommand in memory —
