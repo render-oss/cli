@@ -1,11 +1,14 @@
 package command
 
 import (
+	"bytes"
+	"encoding/csv"
 	"fmt"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -370,13 +373,32 @@ func ParseCommand(cmd *cobra.Command, args []string, v any) error {
 	return nil
 }
 
+// InputToString formats the cli-tagged fields of v as shell-quoted command
+// arguments. []string fields are encoded with pflag's StringSlice CSV grammar;
+// use CommandName to honor the effective flag types of a specific command.
 func InputToString(v any) (string, error) {
+	return inputToString(v, nil)
+}
+
+func inputToString(v any, flags *pflag.FlagSet) (string, error) {
+	args, err := inputArgs(v, flags)
+	if err != nil {
+		return "", err
+	}
+	return strings.Join(args, " "), nil
+}
+
+// inputArgs converts the cli-tagged fields of v into shell-quoted argv tokens:
+// positional arguments in index order, followed by flags. When flags is
+// non-nil, slice fields are encoded for the registered flag type so that
+// parsing the tokens again with ParseCommand yields the same values.
+func inputArgs(v any, flags *pflag.FlagSet) ([]string, error) {
 	vtype := reflect.TypeOf(v).Elem()
 	elem := reflect.ValueOf(v).Elem()
 
-	// Create a slice to store the arguments. The size is the maximum number of fields.
+	// Positional arguments by index. The size is the maximum number of fields.
 	args := make([]string, vtype.NumField())
-	var flagsStr []string
+	var flagArgs []string
 
 	// Loop through the struct fields
 	for i := 0; i < vtype.NumField(); i++ {
@@ -391,6 +413,17 @@ func InputToString(v any) (string, error) {
 
 		elemField := elem.FieldByName(field.Name)
 
+		// Time flags keep the relative text the user entered or the full
+		// absolute timestamp, in a form accepted by CobraTime.Set.
+		if field.Type == reflect.TypeOf(&TimeOrRelative{}) {
+			strVal, ok := timeArgValue(elemField.Interface().(*TimeOrRelative))
+			if !ok {
+				continue
+			}
+			flagArgs = append(flagArgs, flagArg(cliTag, strVal))
+			continue
+		}
+
 		// If the field is a pointer, get the value
 		if field.Type.Kind() == reflect.Ptr {
 			if elemField.IsNil() {
@@ -400,10 +433,8 @@ func InputToString(v any) (string, error) {
 			elemField = elemField.Elem()
 		}
 
-		var strVal string
-
-		// If the field is a slice, join the values
-		if field.Type.Kind() == reflect.Slice {
+		// Slices are encoded according to the effective flag type
+		if elemField.Kind() == reflect.Slice {
 			if elemField.Len() == 0 {
 				continue
 			}
@@ -412,13 +443,35 @@ func InputToString(v any) (string, error) {
 			for i := 0; i < elemField.Len(); i++ {
 				slice = append(slice, fmt.Sprintf("%v", elemField.Index(i)))
 			}
-			strVal = strings.Join(slice, ",")
-		} else {
-			if elemField.IsZero() {
-				continue
+
+			var flag *pflag.Flag
+			if flags != nil {
+				flag = flags.Lookup(cliTag)
 			}
-			strVal = fmt.Sprintf("%v", elemField)
+
+			switch {
+			case flag != nil && flag.Value.Type() == "stringArray":
+				// StringArray flags take one element per invocation
+				for _, s := range slice {
+					flagArgs = append(flagArgs, flagArg(cliTag, s))
+				}
+			case elemField.Type().Elem().Kind() == reflect.String && (flag == nil || flag.Value.Type() == "stringSlice"):
+				strVal, err := stringSliceArgValue(slice)
+				if err != nil {
+					return nil, err
+				}
+				flagArgs = append(flagArgs, flagArg(cliTag, strVal))
+			default:
+				// Enum and numeric/bool slice flags split on bare commas
+				flagArgs = append(flagArgs, flagArg(cliTag, strings.Join(slice, ",")))
+			}
+			continue
 		}
+
+		if elemField.IsZero() {
+			continue
+		}
+		strVal := fmt.Sprintf("%v", elemField)
 
 		if isArg(cliTag) {
 			matches := argRegex.FindStringSubmatch(cliTag)
@@ -426,17 +479,63 @@ func InputToString(v any) (string, error) {
 			// This should never error. It means the tag is not formatted correctly.
 			index, err := strconv.Atoi(indexStr)
 			if err != nil {
-				return "", fmt.Errorf("internal failure parsing arguments")
+				return nil, fmt.Errorf("internal failure parsing arguments")
 			}
 
-			args[index] = strVal
+			args[index] = shellQuote(strVal)
 		} else {
-			flagsStr = append(flagsStr, fmt.Sprintf("--%s=%s", cliTag, strVal))
+			flagArgs = append(flagArgs, flagArg(cliTag, strVal))
 		}
 	}
 
-	argsString := strings.Trim(strings.Join(args, " "), " ")
-	flagsString := strings.Join(flagsStr, " ")
+	var result []string
+	for _, arg := range args {
+		if arg != "" {
+			result = append(result, arg)
+		}
+	}
+	return append(result, flagArgs...), nil
+}
 
-	return strings.Trim(fmt.Sprintf("%s %s", argsString, flagsString), " "), nil
+func timeArgValue(t *TimeOrRelative) (string, bool) {
+	switch {
+	case t == nil:
+		return "", false
+	case t.Relative != nil:
+		return *t.Relative, true
+	case t.T != nil:
+		return t.T.Format(time.RFC3339Nano), true
+	default:
+		return "", false
+	}
+}
+
+// stringSliceArgValue encodes values with the CSV grammar pflag's StringSlice
+// flags parse, so commas, quotes and spaces inside an element are retained.
+func stringSliceArgValue(values []string) (string, error) {
+	b := &bytes.Buffer{}
+	w := csv.NewWriter(b)
+	if err := w.Write(values); err != nil {
+		return "", err
+	}
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(b.String(), "\n"), nil
+}
+
+func flagArg(name, value string) string {
+	return "--" + name + "=" + shellQuote(value)
+}
+
+var shellSafeRegex = regexp.MustCompile(`^[A-Za-z0-9_@%+=:,./-]+$`)
+
+// shellQuote quotes s for POSIX shells when it contains characters the shell
+// would otherwise interpret.
+func shellQuote(s string) string {
+	if shellSafeRegex.MatchString(s) {
+		return s
+	}
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
