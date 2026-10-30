@@ -33,13 +33,15 @@ func NewStringFormValue(s string) *stringFormValue {
 type stringSliceFormValue []string
 
 func NewStringSliceFormValue(s string) *stringSliceFormValue {
-	slice := strings.Split(s, ",")
+	slice, err := arrayFromString(s)
+	if err != nil {
+		slice = strings.Split(s, ",")
+	}
 	return (*stringSliceFormValue)(&slice)
 }
 
 func (s *stringSliceFormValue) String() string {
-	str := strings.Join(*s, ",")
-	return str
+	return stringArrayToString(*s)
 }
 
 type FormValues map[string]FormValue
@@ -93,7 +95,7 @@ func FormValuesFromStruct(v any) FormValues {
 			switch field.Type.Elem().Kind() {
 			case reflect.String:
 				val := elemField.Interface().([]string)
-				formValues[cliTag] = NewStringFormValue(strings.Join(val, ","))
+				formValues[cliTag] = NewStringFormValue(stringArrayToString(val))
 			case reflect.Int:
 				val := elemField.Interface().([]int)
 				var strs []string
@@ -141,12 +143,76 @@ func FormValuesFromStruct(v any) FormValues {
 	return formValues
 }
 
-func arrayFromString(str string) []string {
-	if str == "" {
-		return []string{}
+func stringArrayToString(values []string) string {
+	if len(values) == 0 {
+		return ""
 	}
 
-	return strings.Split(str, ",")
+	encoded := make([]string, 0, len(values))
+	for _, value := range values {
+		if value == "" || strings.ContainsAny(value, ",\"\r\n") {
+			encoded = append(encoded, `"`+strings.ReplaceAll(value, `"`, `""`)+`"`)
+			continue
+		}
+		encoded = append(encoded, value)
+	}
+	return strings.Join(encoded, ",")
+}
+
+func arrayFromString(str string) ([]string, error) {
+	if str == "" {
+		return []string{}, nil
+	}
+
+	var values []string
+	var current strings.Builder
+	inQuotes := false
+	quotedField := false
+	fieldStart := true
+
+	for i := 0; i < len(str); i++ {
+		ch := str[i]
+		if inQuotes {
+			switch ch {
+			case '"':
+				if i+1 < len(str) && str[i+1] == '"' {
+					current.WriteByte('"')
+					i++
+					continue
+				}
+				inQuotes = false
+			default:
+				current.WriteByte(ch)
+			}
+			continue
+		}
+
+		switch ch {
+		case ',':
+			values = append(values, current.String())
+			current.Reset()
+			quotedField = false
+			fieldStart = true
+		case '"':
+			if !fieldStart {
+				return nil, fmt.Errorf("parse comma-separated list: quote in unquoted field")
+			}
+			inQuotes = true
+			quotedField = true
+			fieldStart = false
+		default:
+			if quotedField {
+				return nil, fmt.Errorf("parse comma-separated list: data after closing quote")
+			}
+			current.WriteByte(ch)
+			fieldStart = false
+		}
+	}
+	if inQuotes {
+		return nil, fmt.Errorf("parse comma-separated list: unterminated quoted field")
+	}
+	values = append(values, current.String())
+	return values, nil
 }
 
 func StructFromFormValues(formValues FormValues, v any) error {
@@ -230,14 +296,22 @@ func StructFromFormValues(formValues FormValues, v any) error {
 				if !ok {
 					continue
 				}
-				elemField.Set(reflect.ValueOf(arrayFromString(val.String())))
+				values, err := arrayFromString(val.String())
+				if err != nil {
+					return err
+				}
+				elemField.Set(reflect.ValueOf(values))
 			case reflect.Int:
 				val, ok := formValues[cliTag]
 				if !ok {
 					continue
 				}
 				var intVals []int
-				for _, v := range arrayFromString(val.String()) {
+				values, err := arrayFromString(val.String())
+				if err != nil {
+					return err
+				}
+				for _, v := range values {
 					intVal, err := strconv.Atoi(v)
 					if err != nil {
 						return err
@@ -251,7 +325,11 @@ func StructFromFormValues(formValues FormValues, v any) error {
 					continue
 				}
 				var floatVals []float64
-				for _, v := range arrayFromString(val.String()) {
+				values, err := arrayFromString(val.String())
+				if err != nil {
+					return err
+				}
+				for _, v := range values {
 					floatVal, err := strconv.ParseFloat(v, 64)
 					if err != nil {
 						return err
@@ -265,7 +343,11 @@ func StructFromFormValues(formValues FormValues, v any) error {
 					continue
 				}
 				var boolVals []bool
-				for _, v := range arrayFromString(val.String()) {
+				values, err := arrayFromString(val.String())
+				if err != nil {
+					return err
+				}
+				for _, v := range values {
 					boolVal, err := strconv.ParseBool(v)
 					if err != nil {
 						return err
