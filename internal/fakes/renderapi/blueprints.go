@@ -2,7 +2,9 @@ package renderapi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/render-oss/cli/internal/testids"
@@ -10,11 +12,18 @@ import (
 	"github.com/render-oss/cli/pkg/pointers"
 )
 
-// BlueprintResource holds created Blueprints and queued create/validation responses.
+// BlueprintResource holds created Blueprints and queued create/approve/validation responses.
 type BlueprintResource struct {
 	Resource[*bptypes.Blueprint]
 	createResponses     []blueprintCreateResponse
+	approveResponses    []blueprintApproveResponse
 	validationResponses []blueprintValidationResponse
+}
+
+type blueprintApproveResponse struct {
+	result  *bptypes.ApprovedSync
+	status  int
+	message string
 }
 
 type blueprintCreateResponse struct {
@@ -67,6 +76,17 @@ func (r *BlueprintResource) RespondWithErrorForCreate(status int, message string
 	r.createResponses = append(r.createResponses, blueprintCreateResponse{status: status, message: message})
 }
 
+// RespondWithBodyForApprove queues the response body for the next Approve Blueprint request.
+// The server returns it as JSON with HTTP 200 OK, whether or not the Blueprint exists.
+func (r *BlueprintResource) RespondWithBodyForApprove(result bptypes.ApprovedSync) {
+	r.approveResponses = append(r.approveResponses, blueprintApproveResponse{result: &result})
+}
+
+// RespondWithErrorForApprove queues an HTTP error for the next Approve Blueprint request.
+func (r *BlueprintResource) RespondWithErrorForApprove(status int, message string) {
+	r.approveResponses = append(r.approveResponses, blueprintApproveResponse{status: status, message: message})
+}
+
 // RespondWithBodyForValidate queues the response body for the next Validate Blueprint request.
 // The server returns it as JSON with HTTP 200 OK.
 func (r *BlueprintResource) RespondWithBodyForValidate(result bptypes.ValidateBlueprintResponse) {
@@ -101,10 +121,33 @@ func (r *BlueprintResource) nextCreateResponse() (blueprintCreateResponse, bool)
 	return response, true
 }
 
+func (r *BlueprintResource) nextApproveResponse() (blueprintApproveResponse, bool) {
+	if len(r.approveResponses) == 0 {
+		return blueprintApproveResponse{}, false
+	}
+	response := r.approveResponses[0]
+	r.approveResponses = r.approveResponses[1:]
+	return response, true
+}
+
+func (r *BlueprintResource) has(id string) bool {
+	for _, b := range r.Instances {
+		if b.Id == id {
+			return true
+		}
+	}
+	return false
+}
+
 func registerBlueprintRoutes(mux *http.ServeMux, s *Server, record func(*http.Request)) {
 	mux.HandleFunc("POST /blueprints", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
 		s.handleCreateBlueprint(w, r)
+	})
+
+	mux.HandleFunc("POST /blueprints/{blueprintId}/approve", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		s.handleApproveBlueprint(w, r)
 	})
 
 	mux.HandleFunc("POST /blueprints/validate", func(w http.ResponseWriter, r *http.Request) {
@@ -162,6 +205,36 @@ func (s *Server) handleCreateBlueprint(w http.ResponseWriter, r *http.Request) {
 			RawPlan:               new(map[string]interface{}{"actions": []interface{}{}}),
 			RequiredManualEnvVars: []bptypes.RequiredManualEnvVar{},
 		},
+	})
+}
+
+// handleApproveBlueprint does not simulate syncs. Without a queued response,
+// it approves a new pending sync for any known Blueprint.
+func (s *Server) handleApproveBlueprint(w http.ResponseWriter, r *http.Request) {
+	var body bptypes.ApproveBlueprintRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+		writeAPIError(w, http.StatusBadRequest, "invalid JSON", "")
+		return
+	}
+	if response, queued := s.Blueprints.nextApproveResponse(); queued {
+		if response.result != nil {
+			writeJSON(w, http.StatusOK, response.result)
+		} else {
+			writeAPIError(w, response.status, response.message, "")
+		}
+		return
+	}
+	blueprintID := r.PathValue("blueprintId")
+	if !s.Blueprints.has(blueprintID) {
+		writeAPIError(w, http.StatusNotFound, "blueprint not found", "")
+		return
+	}
+	syncID := testids.RandomSyncID()
+	writeJSON(w, http.StatusOK, bptypes.ApprovedSync{
+		Id:           syncID,
+		State:        bptypes.SyncStatePending,
+		Commit:       bptypes.CommitRef{Id: "fake-commit"},
+		DashboardUrl: fmt.Sprintf("https://dashboard.render.com/blueprint/%s/sync/%s", blueprintID, syncID),
 	})
 }
 

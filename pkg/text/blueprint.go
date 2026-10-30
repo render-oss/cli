@@ -102,3 +102,25 @@ func blueprintNotice(notice bptypes.BlueprintNotice) string {
 	}
 	return message
 }
+
+// BlueprintApprove does not distinguish a newly approved sync from one that
+// was already pending or running, because the API response does not.
+func BlueprintApprove(out blueprint.ApproveOut) string {
+	if out.Data == nil {
+		return ""
+	}
+	sync := out.Data
+	var b strings.Builder
+	fmt.Fprintln(&b, style.Title.Render("Sync "+sync.Id))
+	fmt.Fprintf(&b, "%s %s\n", style.SubtleText.Render("Commit:"), sync.Commit.Id)
+	fmt.Fprintf(&b, "%s %s\n", style.SubtleText.Render("State:"), sync.State)
+	b.WriteString("\n")
+	fmt.Fprintln(&b, style.Status.Foreground(style.ColorOK).Render("Approved"))
+	if sync.DashboardUrl != "" {
+		fmt.Fprintf(&b, "\n%s %s\n", style.Bold("Track in Dashboard:"), sync.DashboardUrl)
+	}
+	if out.Meta.Next != nil {
+		fmt.Fprintf(&b, "\n%s\n  %s\n", style.Title.Render("Next:"), *out.Meta.Next)
+	}
+	return b.String()
+}

@@ -2,15 +2,19 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
+	"io/fs"
 
 	"github.com/spf13/cobra"
 
 	"github.com/render-oss/cli/pkg/blueprint"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
+	"github.com/render-oss/cli/pkg/style"
+	"github.com/render-oss/cli/pkg/text"
 )
 
-func newBlueprintApproveCmd(_ *dependencies.Dependencies) *cobra.Command {
+func newBlueprintApproveCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "approve <blueprintId>",
 		Short:        "Approve a Blueprint's newest sync",
@@ -38,10 +42,7 @@ the sync is approved so the values do not stay on disk. Use
 which lets you pipe values in without writing them to disk. A file passed with
 --manual-env-vars-file is never deleted. The file is a JSON array of objects
 with serviceType, serviceName, key, and value, not .env format. Set
-RENDER_CLI_CONFIG_DIR to use a different config directory.
-
-This command is under development. Execution currently returns an error without
-approving a sync.`,
+RENDER_CLI_CONFIG_DIR to use a different config directory.`,
 		Example: `  # Approve the newest sync, reading values from the file create or plan wrote, if any
   render ea blueprints approve exs-d0k8jv3e4t2s73a1b2c0
 
@@ -53,11 +54,28 @@ approving a sync.`,
 			if err := command.ParseCommand(cmd, args, &input); err != nil {
 				return err
 			}
-			_, err := command.NonInteractive(cmd,
+			manualEnvVars, cleanup, err := blueprint.ReadManualEnvVars(input, cmd.InOrStdin())
+			if err != nil {
+				return err
+			}
+			_, err = command.NonInteractive(cmd,
 				func() (blueprint.ApproveOut, error) {
-					return approveBlueprint(input)
+					sync, err := deps.BlueprintService().Approve(cmd.Context(), input.BlueprintID, manualEnvVars)
+					if err != nil {
+						return blueprint.ApproveOut{}, err
+					}
+					// Clean up as soon as the sync is approved, so a later
+					// failure, such as writing the output, still deletes the file.
+					if err := cleanup(); err != nil {
+						// The sync is approved, so a leftover file does not fail the command.
+						var pathErr *fs.PathError
+						_ = errors.As(err, &pathErr)
+						warning := style.Status.Foreground(style.ColorWarning).Render("Warning:")
+						_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%s Could not delete %s (%v). Delete it yourself so its values do not stay on disk.\n", warning, pathErr.Path, pathErr.Err)
+					}
+					return blueprint.NewApproveOut(sync), nil
 				},
-				blueprintApproveText,
+				text.BlueprintApprove,
 			)
 			return err
 		},
@@ -69,12 +87,4 @@ approving a sync.`,
 		"manual-env-vars-file": "PATH",
 	})
 	return cmd
-}
-
-func approveBlueprint(_ blueprint.ApproveInput) (blueprint.ApproveOut, error) {
-	return blueprint.ApproveOut{}, errors.New("blueprint approval is not implemented yet")
-}
-
-func blueprintApproveText(_ blueprint.ApproveOut) string {
-	return ""
 }

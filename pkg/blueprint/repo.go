@@ -31,3 +31,19 @@ func (r *Repo) Create(ctx context.Context, body bptypes.CreateBlueprintRequest) 
 	}
 	return resp.JSON201, nil
 }
+
+// Approve asks the API to approve the Blueprint's newest sync and returns the
+// sync from its response.
+func (r *Repo) Approve(ctx context.Context, blueprintID string, body bptypes.ApproveBlueprintRequest) (*bptypes.ApprovedSync, error) {
+	resp, err := r.client.ApproveBlueprintWithResponse(ctx, blueprintID, body)
+	if err != nil {
+		return nil, err
+	}
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("approve blueprint: response missing sync (status %d)", resp.StatusCode())
+	}
+	return resp.JSON200, nil
+}

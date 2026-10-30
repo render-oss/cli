@@ -13,7 +13,7 @@ import (
 func TestBlueprintPlanHelp(t *testing.T) {
 	server := renderapi.NewServer(t)
 
-	result, output := executeBlueprintCommand(t, server, "ea", "blueprints", "plan", "--help")
+	result, output := executeBlueprintCommand(t, server, []string{"ea", "blueprints", "plan", "--help"})
 
 	require.Equal(t, 0, result.ExitCode)
 
@@ -55,7 +55,7 @@ func TestBlueprintPlanInputValidation(t *testing.T) {
 			server := renderapi.NewServer(t)
 			args := append([]string{"ea", "blueprints", "plan", "--output", "json"}, tc.args...)
 
-			result, output := executeBlueprintCommand(t, server, args...)
+			result, output := executeBlueprintCommand(t, server, args)
 
 			require.Equal(t, 1, result.ExitCode)
 			require.Empty(t, output.Stdout)

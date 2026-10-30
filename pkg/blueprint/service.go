@@ -126,6 +126,16 @@ func (s *Service) Create(ctx context.Context, workspaceID string, input CreateIn
 	return s.repo.Create(ctx, body)
 }
 
+// Approve approves the Blueprint's newest sync. A nil manualEnvVars omits
+// manually-supplied environment variables from the request.
+func (s *Service) Approve(ctx context.Context, blueprintID string, manualEnvVars []bptypes.SuppliedManualEnvVar) (*bptypes.ApprovedSync, error) {
+	var body bptypes.ApproveBlueprintRequest
+	if manualEnvVars != nil {
+		body.ManualEnvVars = &manualEnvVars
+	}
+	return s.repo.Approve(ctx, blueprintID, body)
+}
+
 // buildCreateRequest validates input, resolves defaults,
 // and builds the REST create request for the supplied workspace.
 func (i CreateInput) buildCreateRequest(ctx context.Context, workspaceID string) (bptypes.CreateBlueprintRequest, error) {

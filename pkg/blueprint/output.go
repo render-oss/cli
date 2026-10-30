@@ -71,3 +71,11 @@ type ApproveOut struct {
 type ApproveOutMeta struct {
 	Next *string `json:"next"`
 }
+
+// NewApproveOut adds follow-up guidance without changing the REST response.
+// Approve does not wait for the sync, so the next step is to check on the
+// resources it changes.
+func NewApproveOut(sync *bptypes.ApprovedSync) ApproveOut {
+	next := "Render will start applying your planned changes. Monitor progress at the provided dashboard URL, or check the affected services with `render services` and `render deploys` commands."
+	return ApproveOut{Data: sync, Meta: ApproveOutMeta{Next: &next}}
+}

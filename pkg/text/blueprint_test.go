@@ -173,3 +173,48 @@ func TestBlueprintNoticePositions(t *testing.T) {
 		})
 	}
 }
+
+func TestBlueprintApprove(t *testing.T) {
+	next := "Render will start applying your planned changes. Monitor progress at the provided dashboard URL, or check the affected services with `render services` and `render deploys` commands."
+	for _, tc := range []struct {
+		name string
+		sync bptypes.ApprovedSync
+		want string
+	}{
+		{
+			name: "pending sync with a Dashboard URL",
+			sync: bptypes.ApprovedSync{
+				Id:           "exe-example",
+				Commit:       bptypes.CommitRef{Id: "abc123"},
+				State:        bptypes.SyncStatePending,
+				DashboardUrl: "https://dashboard.render.com/sync",
+			},
+			want: "Sync exe-example\nCommit: abc123\nState: pending\n\nApproved\n\nTrack in Dashboard: https://dashboard.render.com/sync\n\nNext:\n  " + next + "\n",
+		},
+		{
+			name: "running sync shows its state",
+			sync: bptypes.ApprovedSync{
+				Id:           "exe-example",
+				Commit:       bptypes.CommitRef{Id: "abc123"},
+				State:        bptypes.SyncStateRunning,
+				DashboardUrl: "https://dashboard.render.com/sync",
+			},
+			want: "Sync exe-example\nCommit: abc123\nState: running\n\nApproved\n\nTrack in Dashboard: https://dashboard.render.com/sync\n\nNext:\n  " + next + "\n",
+		},
+		{
+			name: "no Dashboard URL omits the Dashboard line",
+			sync: bptypes.ApprovedSync{
+				Id:     "exe-example",
+				Commit: bptypes.CommitRef{Id: "abc123"},
+				State:  bptypes.SyncStatePending,
+			},
+			want: "Sync exe-example\nCommit: abc123\nState: pending\n\nApproved\n\nNext:\n  " + next + "\n",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out := text.BlueprintApprove(blueprint.NewApproveOut(&tc.sync))
+
+			require.Equal(t, tc.want, out)
+		})
+	}
+}

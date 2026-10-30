@@ -17,7 +17,7 @@ var testUpdateBlueprintID = testids.BlueprintID("update")
 func TestBlueprintUpdateHelp(t *testing.T) {
 	server := renderapi.NewServer(t)
 
-	result, output := executeBlueprintCommand(t, server, "ea", "blueprints", "update", "--help")
+	result, output := executeBlueprintCommand(t, server, []string{"ea", "blueprints", "update", "--help"})
 
 	require.Equal(t, 0, result.ExitCode)
 	require.Contains(t, output.Stdout, "update <blueprintId>")
@@ -32,7 +32,7 @@ func TestBlueprintUpdateHelp(t *testing.T) {
 func TestBlueprintUpdateNotImplemented(t *testing.T) {
 	server := renderapi.NewServer(t)
 
-	result, output := executeBlueprintCommand(t, server, "ea", "blueprints", "update", testUpdateBlueprintID, "--name", "app", "--output", "json")
+	result, output := executeBlueprintCommand(t, server, []string{"ea", "blueprints", "update", testUpdateBlueprintID, "--name", "app", "--output", "json"})
 
 	require.Equal(t, 1, result.ExitCode)
 	require.Empty(t, output.Stdout)
