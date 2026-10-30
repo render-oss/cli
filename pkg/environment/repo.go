@@ -2,10 +2,30 @@ package environment
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/render-oss/cli/pkg/client"
 )
+
+// ErrEnvironmentNotFound is matched (via errors.Is) by the error Repo.GetEnvironment returns
+// when the API responds 404 Not Found for the requested ID.
+var ErrEnvironmentNotFound = errors.New("environment not found")
+
+// environmentNotFoundError keeps the existing "unexpected response: <status>" message
+// while letting callers distinguish a 404 from other failures.
+type environmentNotFoundError struct {
+	status string
+}
+
+func (e *environmentNotFoundError) Error() string {
+	return fmt.Sprintf("unexpected response: %v", e.status)
+}
+
+func (e *environmentNotFoundError) Unwrap() error {
+	return ErrEnvironmentNotFound
+}
 
 type Repo struct {
 	client *client.ClientWithResponses
@@ -23,6 +43,10 @@ func (e *Repo) GetEnvironment(ctx context.Context, id string) (*client.Environme
 	resp, err := e.client.RetrieveEnvironmentWithResponse(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.StatusCode() == http.StatusNotFound {
+		return nil, &environmentNotFoundError{status: resp.Status()}
 	}
 
 	if resp.JSON200 == nil {

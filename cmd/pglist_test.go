@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
+	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/internal/testrequire"
 	"github.com/render-oss/cli/pkg/client"
 )
@@ -177,4 +178,35 @@ func TestPGList_UnknownProject_Errors(t *testing.T) {
 	_, err := harness.execute("--project", "does-not-exist", "--output", "text")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "does-not-exist")
+}
+
+func TestPGList_FilterByIDShapedProjectAndEnvironmentNames(t *testing.T) {
+	harness := newPGListHarness(t)
+
+	// Accepted names that match the prj-/evm- ID shape must still resolve by
+	// name when no object has that ID.
+	projectA := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Id: testids.ProjectID("id shaped a"), Name: "prj-00000000000000093206", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{ID: testids.EnvironmentID("id shaped a"), Name: "evm-00000000000000093206"},
+		renderapi.EnvAttrs{ID: testids.EnvironmentID("id shaped staging"), Name: "staging"},
+	)
+	projectB := harness.server.CreateProject(
+		renderapi.ProjectAttrs{Id: testids.ProjectID("id shaped b"), Name: "Project B", OwnerId: pgActiveWorkspaceID},
+		renderapi.EnvAttrs{ID: testids.EnvironmentID("id shaped b"), Name: "evm-00000000000000093206"},
+	)
+
+	aPG := seedPGInEnv(harness.server, "a-db", projectA.Env("evm-00000000000000093206").Id)
+	aStagingPG := seedPGInEnv(harness.server, "a-staging-db", projectA.Env("staging").Id)
+	bPG := seedPGInEnv(harness.server, "b-db", projectB.Env("evm-00000000000000093206").Id)
+
+	result, err := harness.execute(
+		"--project", "prj-00000000000000093206",
+		"--environment", "evm-00000000000000093206",
+		"--output", "text",
+	)
+	require.NoError(t, err)
+
+	assert.Contains(t, result.Stdout, aPG.Id)
+	assert.NotContains(t, result.Stdout, aStagingPG.Id)
+	assert.NotContains(t, result.Stdout, bPG.Id)
 }
