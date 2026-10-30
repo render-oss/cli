@@ -37,7 +37,10 @@ func (t *TimeOrRelative) String() string {
 	if t.Relative != nil {
 		return *t.Relative
 	}
-	return t.T.Format(time.RFC3339)
+	// RFC3339Nano keeps fractional seconds so that absolute times survive a
+	// String -> ParseTime round trip (e.g. when the log filter form is re-applied).
+	// Whole-second times still format identically to RFC3339.
+	return t.T.Format(time.RFC3339Nano)
 }
 
 var relativeRegex = regexp.MustCompile(`^(\d+)([smhd])$`)

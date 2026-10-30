@@ -129,3 +129,40 @@ func TestTimeSuggestion(t *testing.T) {
 		})
 	}
 }
+
+func TestTimeOrRelativeStringRoundTrip(t *testing.T) {
+	now := time.Date(2026, 10, 11, 1, 0, 0, 0, time.UTC)
+	tcs := []struct {
+		name     string
+		str      string
+		expected string
+	}{
+		{name: "utc nanoseconds", str: "2026-10-11T00:50:00.857576125Z", expected: "2026-10-11T00:50:00.857576125Z"},
+		{name: "utc milliseconds", str: "2026-10-11T00:41:23.001Z", expected: "2026-10-11T00:41:23.001Z"},
+		{name: "offset nanoseconds", str: "2026-10-11T06:11:23.603458191+05:30", expected: "2026-10-11T06:11:23.603458191+05:30"},
+		{name: "utc whole second", str: "2026-10-11T00:41:23Z", expected: "2026-10-11T00:41:23Z"},
+		{name: "offset whole second", str: "2026-10-11T06:11:23+05:30", expected: "2026-10-11T06:11:23+05:30"},
+		{name: "relative", str: "5m", expected: "5m"},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			parsed, err := command.ParseTime(now, &tc.str)
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, parsed.String())
+
+			str := parsed.String()
+			reparsed, err := command.ParseTime(now, &str)
+			require.NoError(t, err)
+			require.True(t, parsed.T.Equal(*reparsed.T), "expected %s, got %s", parsed.T, reparsed.T)
+			require.Equal(t, parsed.Relative, reparsed.Relative)
+		})
+	}
+}
+
+func TestCobraTimeFractionalSeconds(t *testing.T) {
+	cobraTime := command.CobraTime{}
+	require.NoError(t, cobraTime.Set("2026-10-11T00:50:00.857576125Z"))
+	require.Equal(t, "2026-10-11T00:50:00.857576125Z", cobraTime.String())
+	require.Equal(t, 857576125, cobraTime.Get().T.Nanosecond())
+}
