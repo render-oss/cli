@@ -100,7 +100,7 @@ func init() {
 				return fmt.Errorf("postgres ID or name is required in non-interactive mode")
 			}
 
-			result, err := views.ExecutePSQLNonInteractive(ctx, &input)
+			result, err := views.ExecutePSQLNonInteractive(ctx, &input, cmd.InOrStdin(), cmd.ErrOrStderr())
 			if err != nil {
 				return err
 			}
