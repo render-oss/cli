@@ -47,6 +47,11 @@ func getRedisTableOptions(ctx context.Context, input *views.RedisCLIInput) []tui
 		flows.WithProjectFilter(ctx, redisCLICmd, "redisCLI", input, func(ctx context.Context, project *client.Project) tea.Cmd {
 			if project != nil {
 				input.EnvironmentIDs = project.EnvironmentIds
+			} else {
+				// The filter was cleared: drop the previous scope so the
+				// list falls back to the (now cleared) saved default.
+				input.Project = nil
+				input.EnvironmentIDs = nil
 			}
 			return InteractiveKeyValueCLIView(ctx, input)
 		}),

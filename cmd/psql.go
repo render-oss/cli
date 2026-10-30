@@ -60,6 +60,11 @@ func getPsqlTableOptions(ctx context.Context, input *views.PSQLInput) []tui.Cust
 			if project != nil {
 				input.Project = project
 				input.EnvironmentIDs = project.EnvironmentIds
+			} else {
+				// The filter was cleared: drop the previous scope so the
+				// list falls back to the (now cleared) saved default.
+				input.Project = nil
+				input.EnvironmentIDs = nil
 			}
 			return InteractivePSQLView(ctx, input)
 		}),
