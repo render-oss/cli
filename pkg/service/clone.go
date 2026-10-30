@@ -45,8 +45,14 @@ func ServiceFromAPI(input *servicetypes.ServiceCreateInput, source *client.Servi
 	defaults := mapSourceDefaultsToServiceInput(extracted)
 
 	applyBaseDefaults(input, defaults)
+	// The clone's type and runtime may differ from the source's, so it
+	// inherits only the settings they accept: filter once the type is
+	// resolved, and again once the source and runtime are. The caller's own
+	// flags are never filtered, so validation still refuses unsupported ones.
+	defaults = defaults.WithoutFieldsUnsupportedBy(*input)
 	applySourceDefaults(input, defaults)
 	applyRuntimeDefaults(input, defaults)
+	defaults = defaults.WithoutFieldsUnsupportedBy(*input)
 	applyRegistryCredentialDefault(input, defaults)
 	applyCronDefaults(input, defaults)
 	applyAdditionalCloneDefaults(input, defaults)
