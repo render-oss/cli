@@ -24,6 +24,27 @@ func OptionalNonZeroString(value *string) *string {
 	return trimmed
 }
 
+// OptionalCommandText preserves a *string holding shell command text without
+// trimming it, since surrounding whitespace can be part of the command (e.g. an
+// escaped trailing space). Whitespace-only values become "".
+func OptionalCommandText(value *string) *string {
+	if value == nil || strings.TrimSpace(*value) != "" {
+		return value
+	}
+	empty := ""
+	return &empty
+}
+
+// OptionalNonZeroCommandText is like OptionalCommandText but converts
+// empty/whitespace-only values to nil.
+func OptionalNonZeroCommandText(value *string) *string {
+	command := OptionalCommandText(value)
+	if command == nil || *command == "" {
+		return nil
+	}
+	return command
+}
+
 // TrimmedNonEmpty trims whitespace from a plain string and reports if
 // the result is non-empty.
 func TrimmedNonEmpty(value string) (string, bool) {

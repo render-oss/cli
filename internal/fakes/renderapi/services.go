@@ -635,6 +635,32 @@ func registerServiceRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 		w.WriteHeader(http.StatusNotFound)
 	})
 
+	// POST /services - create a service. The response echoes the top-level
+	// fields only; tests assert on serviceDetails via the recorded request body.
+	mux.HandleFunc("POST /services", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.Services.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+
+		var body client.CreateServiceJSONRequestBody
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		svc := s.Services.Add(newService(CommonServiceAttrs{
+			Name:          body.Name,
+			OwnerID:       body.OwnerId,
+			EnvironmentID: pointers.ValueOrDefault(body.EnvironmentId, ""),
+			Repo:          pointers.ValueOrDefault(body.Repo, ""),
+			Branch:        pointers.ValueOrDefault(body.Branch, ""),
+			RootDir:       pointers.ValueOrDefault(body.RootDir, ""),
+		}, body.Type, client.Service_ServiceDetails{}))
+		writeJSON(w, http.StatusCreated, client.ServiceAndDeploy{Service: svc})
+	})
+
 	// PATCH /services/{id} - update a service
 	mux.HandleFunc("PATCH /services/{id}", func(w http.ResponseWriter, r *http.Request) {
 		record(r)

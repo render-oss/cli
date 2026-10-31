@@ -222,18 +222,44 @@ func NormalizeServiceCreateCLIInput(input ServiceCreateInput) ServiceCreateInput
 	input.Plan = types.OptionalNonZeroString(input.Plan)
 	input.Runtime = types.OptionalAlias(input.Runtime)
 	input.RootDirectory = types.OptionalNonZeroString(input.RootDirectory)
-	input.BuildCommand = types.OptionalNonZeroString(input.BuildCommand)
-	input.StartCommand = types.OptionalNonZeroString(input.StartCommand)
+	input.BuildCommand = types.OptionalNonZeroCommandText(input.BuildCommand)
+	input.StartCommand = types.OptionalNonZeroCommandText(input.StartCommand)
 	input.HealthCheckPath = types.OptionalNonZeroString(input.HealthCheckPath)
 	input.PublishDirectory = types.OptionalNonZeroString(input.PublishDirectory)
-	input.CronCommand = types.OptionalNonZeroString(input.CronCommand)
+	input.CronCommand = types.OptionalNonZeroCommandText(input.CronCommand)
 	input.CronSchedule = types.OptionalNonZeroString(input.CronSchedule)
 	input.EnvironmentID = types.OptionalNonZeroString(input.EnvironmentID)
 	input.RegistryCredential = types.OptionalNonZeroString(input.RegistryCredential)
-	input.PreDeployCommand = types.OptionalNonZeroString(input.PreDeployCommand)
+	input.PreDeployCommand = types.OptionalNonZeroCommandText(input.PreDeployCommand)
 	input.Previews = types.OptionalAlias(input.Previews)
 	input.MaintenanceModeURI = types.OptionalNonZeroString(input.MaintenanceModeURI)
 	return input
+}
+
+// NormalizeServiceCloneCLIInput normalizes input for `services create --from`
+// like NormalizeServiceCreateCLIInput, except that an optional setting the
+// caller explicitly set to blank stays "" rather than becoming nil, so the
+// clone clears it instead of inheriting the source's value.
+// NormalizeAndValidateCreateInput then omits it from the request, as it does
+// for a direct create.
+//
+// Only settings whose blank value means "none" are kept: the root directory
+// (the repository root), the health check path and the pre-deploy command. Any
+// other blank flag still counts as not given and inherits the source's value.
+func NormalizeServiceCloneCLIInput(input ServiceCreateInput) ServiceCreateInput {
+	normalized := NormalizeServiceCreateCLIInput(input)
+	normalized.RootDirectory = keepExplicitBlank(input.RootDirectory, normalized.RootDirectory)
+	normalized.HealthCheckPath = keepExplicitBlank(input.HealthCheckPath, normalized.HealthCheckPath)
+	normalized.PreDeployCommand = keepExplicitBlank(input.PreDeployCommand, normalized.PreDeployCommand)
+	return normalized
+}
+
+// keepExplicitBlank returns "" for a value that was set but normalized away as blank.
+func keepExplicitBlank(raw, normalized *string) *string {
+	if raw != nil && normalized == nil {
+		return new(string)
+	}
+	return normalized
 }
 
 func validateEnvVarFlags(envVars []string) error {
