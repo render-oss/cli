@@ -97,3 +97,10 @@ func (p *ListSandboxSnapshotsParams) SetCursor(c *Cursor) {
 func (p *ListSandboxSnapshotsParams) SetLimit(l int) {
 	p.Limit = &l
 }
+
+func (p *ListWorkflowsParams) SetCursor(c *Cursor) {
+	p.Cursor = c
+}
+func (p *ListWorkflowsParams) SetLimit(l int) {
+	p.Limit = &l
+}

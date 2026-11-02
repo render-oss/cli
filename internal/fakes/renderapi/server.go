@@ -18,6 +18,7 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/client/oauth"
 	pgclient "github.com/render-oss/cli/pkg/client/postgres"
+	wfclient "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/pointers"
 )
 
@@ -314,6 +315,7 @@ type Server struct {
 	Logs             *LogResource
 	Flows            *FlowResource
 	FlowRuns         *FlowRunResource
+	Workflows        *Resource[*wfclient.Workflow]
 	userErrorQueue   []int
 }
 
@@ -434,6 +436,7 @@ func NewServer(t *testing.T) *Server {
 		Logs:             &LogResource{t: t},
 		Flows:            &FlowResource{},
 		FlowRuns:         &FlowRunResource{},
+		Workflows:        &Resource[*wfclient.Workflow]{},
 	}
 
 	mux := http.NewServeMux()
@@ -1098,6 +1101,7 @@ func NewServer(t *testing.T) *Server {
 	registerOAuthRoutes(mux, s, record)
 	registerLogRoutes(mux, s, record)
 	registerFlowRunRoutes(mux, s, record)
+	registerWorkflowRoutes(mux, s, record)
 
 	s.server = httptest.NewServer(mux)
 	t.Cleanup(s.server.Close)

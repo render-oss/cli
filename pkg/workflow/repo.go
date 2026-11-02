@@ -43,6 +43,41 @@ func (r *Repo) ListWorkflows(ctx context.Context, params *client.ListWorkflowsPa
 	return workflows, nil
 }
 
+// ListAllWorkflows fetches every page of workflows in the active workspace
+// that match params.
+func (r *Repo) ListAllWorkflows(ctx context.Context, params *client.ListWorkflowsParams) ([]*wfclient.Workflow, error) {
+	workspace, err := config.WorkspaceID()
+	if err != nil {
+		return nil, err
+	}
+
+	params.OwnerId = &client.OwnerIdParam{workspace}
+
+	return client.ListAll(ctx, params, r.listPage)
+}
+
+func (r *Repo) listPage(ctx context.Context, params *client.ListWorkflowsParams) ([]*wfclient.Workflow, *client.Cursor, error) {
+	resp, err := r.client.ListWorkflowsWithResponse(ctx, params)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, nil, err
+	}
+	if resp.JSON200 == nil || len(*resp.JSON200) == 0 {
+		return nil, nil, nil
+	}
+
+	res := *resp.JSON200
+	workflows := make([]*wfclient.Workflow, 0, len(res))
+	for _, workflow := range res {
+		workflows = append(workflows, &workflow.Workflow)
+	}
+
+	return workflows, &res[len(res)-1].Cursor, nil
+}
+
 func (r *Repo) CreateWorkflow(ctx context.Context, body client.CreateWorkflowJSONRequestBody) (*wfclient.Workflow, error) {
 	resp, err := r.client.CreateWorkflowWithResponse(ctx, body)
 	if err != nil {

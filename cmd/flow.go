@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -15,6 +18,7 @@ import (
 	"github.com/render-oss/cli/pkg/flowrun"
 	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/text"
+	"github.com/render-oss/cli/pkg/workflow"
 )
 
 func newFlowsCmd(children ...*cobra.Command) *cobra.Command {
@@ -71,20 +75,20 @@ Flows are filtered by the active workspace. Narrow further with --flow-slug,
   # Filter by flow slug
   render workflows flows list --flow-slug my-workflow/my-flow
 
-  # Filter by workflow service
-  render workflows flows list --workflow wfl-1234
+  # Filter by workflow ID or slug
+  render workflows flows list --workflow my-workflow
 
   # JSON output
   render workflows flows list --output json`,
 	}
 
 	cmd.Flags().StringArray("flow-slug", nil, "Filter by flow slug (workflow-slug/flow-name[:version], repeatable)")
-	cmd.Flags().StringArray("workflow", nil, "Filter by workflow ID (repeatable)")
+	cmd.Flags().StringArray("workflow", nil, "Filter by workflow ID or slug (repeatable)")
 	cmd.Flags().StringArray("workflow-version", nil, "Filter by workflow version ID (repeatable)")
 	addPaginationFlags(cmd)
 	setAllFlagPlaceholders(cmd, map[string]string{
 		"flow-slug":        "SLUG",
-		"workflow":         "WORKFLOW_ID",
+		"workflow":         "WORKFLOW",
 		"workflow-version": "VERSION_ID",
 		"limit":            "COUNT",
 		"cursor":           "CURSOR",
@@ -117,7 +121,11 @@ Flows are filtered by the active workspace. Narrow further with --flow-slug,
 			params.FlowSlug = &input.FlowSlugs
 		}
 		if len(input.WorkflowIDs) > 0 {
-			params.WorkflowId = &input.WorkflowIDs
+			workflowIDs, err := resolveWorkflowIDs(cmd.Context(), deps.WorkflowRepo(), input.WorkflowIDs)
+			if err != nil {
+				return err
+			}
+			params.WorkflowId = &workflowIDs
 		}
 		if len(input.WorkflowVersionIDs) > 0 {
 			params.WorkflowVersionId = &input.WorkflowVersionIDs
@@ -194,14 +202,14 @@ is required. Narrow further with --status. Each flag is repeatable.`,
   # Filter by flow and status
   render workflows flows runs list --flow flw-1234 --status running --status pending
 
-  # JSON output
-  render workflows flows runs list --workflow wfl-1234 --output json`,
+  # Filter by workflow slug, with JSON output
+  render workflows flows runs list --workflow my-workflow --output json`,
 	}
 
 	cmd.Flags().StringArray("flow-slug", nil, "Filter by flow slug (repeatable)")
 	cmd.Flags().StringArray("flow", nil, "Filter by flow ID (repeatable)")
 	cmd.Flags().StringArray("status", nil, "Filter by flow run status (pending|running|succeeded|failed|canceled|paused, repeatable)")
-	cmd.Flags().StringArray("workflow", nil, "Filter by workflow ID (repeatable)")
+	cmd.Flags().StringArray("workflow", nil, "Filter by workflow ID or slug (repeatable)")
 	cmd.Flags().StringArray("workflow-version", nil, "Filter by workflow version ID (repeatable)")
 	cmd.MarkFlagsOneRequired("flow-slug", "flow", "workflow", "workflow-version")
 	addPaginationFlags(cmd)
@@ -209,7 +217,7 @@ is required. Narrow further with --status. Each flag is repeatable.`,
 		"flow-slug":        "SLUG",
 		"flow":             "FLOW_ID",
 		"status":           "STATUS",
-		"workflow":         "WORKFLOW_ID",
+		"workflow":         "WORKFLOW",
 		"workflow-version": "VERSION_ID",
 		"limit":            "COUNT",
 		"cursor":           "CURSOR",
@@ -252,7 +260,11 @@ is required. Narrow further with --status. Each flag is repeatable.`,
 			params.Status = &statuses
 		}
 		if len(input.WorkflowIDs) > 0 {
-			params.WorkflowId = &input.WorkflowIDs
+			workflowIDs, err := resolveWorkflowIDs(cmd.Context(), deps.WorkflowRepo(), input.WorkflowIDs)
+			if err != nil {
+				return err
+			}
+			params.WorkflowId = &workflowIDs
 		}
 		if len(input.WorkflowVersionIDs) > 0 {
 			params.WorkflowVersionId = &input.WorkflowVersionIDs
@@ -557,6 +569,44 @@ func printNextCursorHint(cmd *cobra.Command, cursor client.Cursor) {
 		return
 	}
 	fmt.Fprintf(cmd.ErrOrStderr(), "More results available. Pass --cursor %s to fetch the next page.\n", cursor)
+}
+
+// resolveWorkflowIDs maps each --workflow value to a workflow ID. Values that
+// look like IDs pass through; anything else is treated as a slug and looked up
+// in the active workspace, since the flow endpoints only filter by ID.
+func resolveWorkflowIDs(ctx context.Context, repo *workflow.Repo, values []string) ([]string, error) {
+	if !slices.ContainsFunc(values, isWorkflowSlug) {
+		return values, nil
+	}
+
+	workflows, err := repo.ListAllWorkflows(ctx, &client.ListWorkflowsParams{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to look up workflows: %w", err)
+	}
+	idsBySlug := make(map[string]string, len(workflows))
+	for _, wf := range workflows {
+		if wf.Slug != nil {
+			idsBySlug[*wf.Slug] = wf.Id
+		}
+	}
+
+	ids := make([]string, 0, len(values))
+	for _, v := range values {
+		if !isWorkflowSlug(v) {
+			ids = append(ids, v)
+			continue
+		}
+		id, ok := idsBySlug[v]
+		if !ok {
+			return nil, fmt.Errorf("no workflow found with ID or slug %q in the active workspace", v)
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
+func isWorkflowSlug(v string) bool {
+	return !strings.HasPrefix(v, "wfl-")
 }
 
 func parseStepSeq(s string) (int, error) {

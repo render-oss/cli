@@ -11,8 +11,10 @@ import (
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
+	wfclient "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
+	"github.com/render-oss/cli/pkg/pointers"
 )
 
 var flowActiveWorkspaceID = testids.WorkspaceID("flow-active")
@@ -546,4 +548,99 @@ func TestFlowRunStepShow_BadSeq(t *testing.T) {
 	_, err := executeFlowCommand(t, server, "flows", "runs", "steps", "show", "frn-1", "abc", "--output", "text")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid step sequence")
+}
+
+func seedWorkflow(server *renderapi.Server, slug string) *wfclient.Workflow {
+	return server.Workflows.Add(renderapi.NewWorkflow(wfclient.Workflow{
+		Id:      testids.WorkflowID(slug),
+		OwnerId: flowActiveWorkspaceID,
+		Slug:    pointers.From(slug),
+	}))
+}
+
+func TestFlowList_ResolvesWorkflowSlug(t *testing.T) {
+	withFlowWorkspace(t)
+	server := renderapi.NewServer(t)
+	wf := seedWorkflow(server, "my-workflow")
+
+	_, err := executeFlowCommand(t, server,
+		"flows", "list",
+		"--workflow", "my-workflow",
+		"--output", "json",
+	)
+	require.NoError(t, err)
+
+	require.Len(t, server.Flows.ListCalls, 1)
+	assert.Equal(t, []string{wf.Id}, server.Flows.ListCalls[0].WorkflowIds)
+}
+
+func TestFlowRunList_ResolvesWorkflowSlug(t *testing.T) {
+	withFlowWorkspace(t)
+	server := renderapi.NewServer(t)
+	wf := seedWorkflow(server, "my-workflow")
+
+	_, err := executeFlowCommand(t, server,
+		"flows", "runs", "list",
+		"--workflow", "my-workflow",
+		"--output", "json",
+	)
+	require.NoError(t, err)
+
+	require.Len(t, server.FlowRuns.ListCalls, 1)
+	assert.Equal(t, []string{wf.Id}, server.FlowRuns.ListCalls[0].WorkflowIds)
+}
+
+func TestFlowRunList_MixedWorkflowIDAndSlug(t *testing.T) {
+	withFlowWorkspace(t)
+	server := renderapi.NewServer(t)
+	wf := seedWorkflow(server, "my-workflow")
+	seedWorkflow(server, "other-workflow")
+	otherID := testids.WorkflowID("unlisted")
+
+	_, err := executeFlowCommand(t, server,
+		"flows", "runs", "list",
+		"--workflow", otherID,
+		"--workflow", "my-workflow",
+		"--output", "json",
+	)
+	require.NoError(t, err)
+
+	require.Len(t, server.FlowRuns.ListCalls, 1)
+	assert.Equal(t, []string{otherID, wf.Id}, server.FlowRuns.ListCalls[0].WorkflowIds)
+}
+
+func TestFlowRunList_UnknownWorkflowSlug(t *testing.T) {
+	withFlowWorkspace(t)
+	server := renderapi.NewServer(t)
+	seedWorkflow(server, "my-workflow")
+	// A workflow in another workspace must not satisfy the lookup.
+	server.Workflows.Add(renderapi.NewWorkflow(wfclient.Workflow{
+		OwnerId: testids.WorkspaceID("elsewhere"),
+		Slug:    pointers.From("missing-workflow"),
+	}))
+
+	_, err := executeFlowCommand(t, server,
+		"flows", "runs", "list",
+		"--workflow", "missing-workflow",
+		"--output", "json",
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `no workflow found with ID or slug "missing-workflow"`)
+	assert.Empty(t, server.FlowRuns.ListCalls)
+}
+
+func TestFlowRunList_WorkflowIDSkipsLookup(t *testing.T) {
+	withFlowWorkspace(t)
+	server := renderapi.NewServer(t)
+
+	_, err := executeFlowCommand(t, server,
+		"flows", "runs", "list",
+		"--workflow", "wfl-1",
+		"--output", "json",
+	)
+	require.NoError(t, err)
+
+	for _, req := range server.Requests {
+		assert.NotContains(t, req.URI, "/workflows")
+	}
 }

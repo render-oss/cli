@@ -129,6 +129,16 @@ func RandomSandboxGroupID() string {
 	return SandboxGroupID(xid.New().String())
 }
 
+// WorkflowID returns a syntactically valid wfl- workflow ID for tests.
+func WorkflowID(label string) string {
+	return objectID("wfl", label)
+}
+
+// RandomWorkflowID returns a syntactically valid wfl- workflow ID for tests.
+func RandomWorkflowID() string {
+	return WorkflowID(xid.New().String())
+}
+
 func SandboxID(label string) string {
 	return objectID("sbx", label)
 }
