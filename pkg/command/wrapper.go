@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -86,6 +87,11 @@ type TextTable interface {
 
 func PrintData[T any](cmd *cobra.Command, data T, formatText FormatTextFunc[T]) (bool, error) {
 	outputFormat := GetFormatFromContext(cmd.Context())
+
+	// An empty list prints as [] rather than null.
+	if v := reflect.ValueOf(data); v.Kind() == reflect.Slice && v.IsNil() {
+		data = reflect.MakeSlice(v.Type(), 0, 0).Interface().(T)
+	}
 
 	switch *outputFormat {
 	case JSON:
