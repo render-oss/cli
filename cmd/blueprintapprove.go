@@ -19,7 +19,6 @@ func newBlueprintApproveCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Use:          "approve <blueprintId>",
 		Short:        "Approve a Blueprint's newest sync",
 		Args:         cobra.ExactArgs(1),
-		Hidden:       true,
 		SilenceUsage: true,
 		Long: `Approve the Blueprint's newest sync to start applying its planned changes.
 The command does not wait for the sync to finish.

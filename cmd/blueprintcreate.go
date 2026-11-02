@@ -18,7 +18,6 @@ func newBlueprintCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Use:          "create",
 		Short:        "Create a Blueprint and plan its first sync",
 		Args:         cobra.NoArgs,
-		Hidden:       true,
 		SilenceUsage: true,
 		Long: `Create a Blueprint from a remote repository and plan its first sync in the active workspace.
 

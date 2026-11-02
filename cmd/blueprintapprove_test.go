@@ -20,16 +20,6 @@ import (
 	"github.com/render-oss/cli/pkg/command"
 )
 
-func TestBlueprintApproveIsHidden(t *testing.T) {
-	server := renderapi.NewServer(t)
-
-	result, output := executeBlueprintCommand(t, server, []string{"ea", "blueprints", "--help"})
-
-	require.Equal(t, 0, result.ExitCode)
-	require.NotContains(t, output.Stdout, "approve")
-	require.Empty(t, server.Requests)
-}
-
 // approveSecret stands in for a manually-supplied value that must never be
 // printed.
 const approveSecret = "s3cr3t-approve-value"

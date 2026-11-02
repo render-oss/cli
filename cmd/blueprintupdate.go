@@ -16,7 +16,6 @@ func newBlueprintUpdateCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Use:          "update <blueprintId>",
 		Short:        "Update a Blueprint's settings",
 		Args:         cobra.ExactArgs(1),
-		Hidden:       true,
 		SilenceUsage: true,
 		Long: `Update a Blueprint's name, branch, Blueprint file path, or automatic sync
 setting. Only the flags you pass are changed. The repository cannot be changed.

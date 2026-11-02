@@ -17,7 +17,6 @@ func newBlueprintPlanCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Use:          "plan <blueprintId>",
 		Short:        "Plan a sync of a Blueprint",
 		Args:         cobra.ExactArgs(1),
-		Hidden:       true,
 		SilenceUsage: true,
 		Long: `Plan changes from the latest Blueprint file on the Blueprint's branch without
 applying them, by creating a new sync. Render reads the remote repository, so

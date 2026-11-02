@@ -76,20 +76,6 @@ func newBlueprintFixture(t *testing.T) (server *renderapi.Server, manualEnvVarsF
 	return server, filepath.Join(configDir, "state", "manual-env-vars", testBlueprintID+".json")
 }
 
-func TestBlueprintCommandsHidden(t *testing.T) {
-	server := renderapi.NewServer(t)
-	result, help := executeBlueprintCommand(t, server, []string{"ea", "--help"})
-	require.Equal(t, 0, result.ExitCode)
-	require.NotContains(t, help.Stdout, "blueprints")
-
-	result, parentHelp := executeBlueprintCommand(t, server, []string{"ea", "blueprints", "--help"})
-	require.Equal(t, 0, result.ExitCode)
-	require.NotContains(t, parentHelp.Stdout, "Create a Blueprint")
-	require.NotContains(t, parentHelp.Stdout, "Update a Blueprint")
-	require.NotContains(t, parentHelp.Stdout, "Plan a sync of a Blueprint")
-	require.Empty(t, server.Requests)
-}
-
 func newBlueprintCreateServer(t *testing.T) *renderapi.Server {
 	t.Helper()
 	server := renderapi.NewServer(t)

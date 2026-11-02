@@ -31,8 +31,7 @@ A Blueprint defines services, databases, and environment groups in a YAML file
 that file's configuration to its resources.
 
 Learn more: https://render.com/docs/infrastructure-as-code`,
-		Hidden: true,
-		Args:   cobra.NoArgs,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return cmd.Help()
 		},
