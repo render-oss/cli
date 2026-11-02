@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"slices"
@@ -380,7 +381,12 @@ with --input-file.`,
 		}
 
 		_, err := command.NonInteractive(cmd, func() (*workflows.FlowRun, error) {
-			return deps.FlowRunRepo().StartFlowRun(cmd.Context(), body)
+			run, err := deps.FlowRunRepo().StartFlowRun(cmd.Context(), body)
+			var notFound *flowrun.NotFoundError
+			if errors.As(err, &notFound) {
+				return nil, fmt.Errorf("%w. Identify your flow with `workflow-slug/flow-name`. Run `render workflows flows list` to see your flows", err)
+			}
+			return run, err
 		}, func(run *workflows.FlowRun) string {
 			return text.FormatStringF("Started flow run %s for %s", run.Id, flowSlug)
 		})

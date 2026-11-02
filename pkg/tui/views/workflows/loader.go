@@ -3,6 +3,7 @@ package workflows
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -67,7 +68,12 @@ func (t *WorkflowLoader) CreateTaskRun(ctx context.Context, input TaskRunInput) 
 	if err != nil {
 		return nil, err
 	}
-	return t.taskRepo.RunTask(ctx, input.TaskSlug, inputData)
+	run, err := t.taskRepo.RunTask(ctx, input.TaskSlug, inputData)
+	var notFound *tasks.NotFoundError
+	if errors.As(err, &notFound) {
+		return nil, fmt.Errorf("%w. Identify your task with `workflow-slug/task-name`. Run `render workflows tasks list <workflowVersionID>` to see your tasks", err)
+	}
+	return run, err
 }
 
 func unmarshalInputData(input string) (*workflows.TaskData, error) {

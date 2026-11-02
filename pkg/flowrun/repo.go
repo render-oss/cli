@@ -3,6 +3,7 @@ package flowrun
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/render-oss/cli/pkg/client"
 	workflows "github.com/render-oss/cli/pkg/client/workflows"
@@ -15,6 +16,17 @@ func NewRepo(c *client.ClientWithResponses) *Repo {
 type Repo struct {
 	client *client.ClientWithResponses
 }
+
+type NotFoundError struct {
+	Flow string
+	Err  error
+}
+
+func (e *NotFoundError) Error() string {
+	return fmt.Sprintf("flow %q not found (%v)", e.Flow, e.Err)
+}
+
+func (e *NotFoundError) Unwrap() error { return e.Err }
 
 func (r *Repo) ListFlows(ctx context.Context, params *client.ListFlowsParams) (client.Cursor, []*workflows.Flow, error) {
 	resp, err := r.client.ListFlowsWithResponse(ctx, params)
@@ -83,6 +95,9 @@ func (r *Repo) StartFlowRun(ctx context.Context, body workflows.StartFlowRun) (*
 	}
 
 	if err := client.ErrorFromResponse(resp); err != nil {
+		if resp.StatusCode() == http.StatusNotFound {
+			return nil, &NotFoundError{Flow: body.Flow, Err: err}
+		}
 		return nil, err
 	}
 

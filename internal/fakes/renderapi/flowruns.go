@@ -60,6 +60,7 @@ type FlowRunResource struct {
 	// of the next POST /flow-runs. The default is a stub echoing the request's
 	// flow slug.
 	nextStartRun json.RawMessage
+	startErrors  []int
 	// cancelErrors queues HTTP status codes for subsequent cancel calls.
 	cancelErrors []int
 }
@@ -95,6 +96,11 @@ type FlowRunStepGetCall struct {
 // /flow-runs. The body is returned exactly as given with status 202.
 func (fr *FlowRunResource) RespondWithBodyForStart(body json.RawMessage) {
 	fr.nextStartRun = body
+}
+
+// RespondWithErrorForStart queues an HTTP status code for the next POST /flow-runs.
+func (fr *FlowRunResource) RespondWithErrorForStart(status int) {
+	fr.startErrors = append(fr.startErrors, status)
 }
 
 // RespondWithErrorForCancel queues an HTTP status code for the next
@@ -150,6 +156,12 @@ func registerFlowRunRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 		record(r)
 		body, _ := requestBodyBytes(r)
 		s.FlowRuns.StartedRuns = append(s.FlowRuns.StartedRuns, body)
+		if len(s.FlowRuns.startErrors) > 0 {
+			status := s.FlowRuns.startErrors[0]
+			s.FlowRuns.startErrors = s.FlowRuns.startErrors[1:]
+			writeJSON(w, status, map[string]string{"message": http.StatusText(status)})
+			return
+		}
 
 		response := s.FlowRuns.nextStartRun
 		if response == nil {

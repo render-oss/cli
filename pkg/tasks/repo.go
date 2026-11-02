@@ -3,6 +3,8 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
 
 	"github.com/render-oss/cli/pkg/client"
 	workflows "github.com/render-oss/cli/pkg/client/workflows"
@@ -16,6 +18,17 @@ type Repo struct {
 	client *client.ClientWithResponses
 }
 
+type NotFoundError struct {
+	Task string
+	Err  error
+}
+
+func (e *NotFoundError) Error() string {
+	return fmt.Sprintf("task %q not found (%v)", e.Task, e.Err)
+}
+
+func (e *NotFoundError) Unwrap() error { return e.Err }
+
 func (r *Repo) RunTask(ctx context.Context, taskSlug string, input *workflows.TaskData) (*workflows.TaskRun, error) {
 	resp, err := r.client.CreateTaskWithResponse(ctx, client.CreateTaskJSONRequestBody{
 		Task:  taskSlug,
@@ -27,6 +40,9 @@ func (r *Repo) RunTask(ctx context.Context, taskSlug string, input *workflows.Ta
 	}
 
 	if err := client.ErrorFromResponse(resp); err != nil {
+		if resp.StatusCode() == http.StatusNotFound && strings.Contains(taskSlug, "/") {
+			return nil, &NotFoundError{Task: taskSlug, Err: err}
+		}
 		return nil, err
 	}
 

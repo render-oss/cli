@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,6 +15,7 @@ import (
 	wfclient "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
+	"github.com/render-oss/cli/pkg/flowrun"
 	"github.com/render-oss/cli/pkg/pointers"
 )
 
@@ -355,6 +357,33 @@ func TestFlowRunStart_FromSlug(t *testing.T) {
 	assert.Equal(t, "my-workflow/my-flow", body["flow"])
 	assert.Equal(t, []any{"arg1", "arg2"}, body["input"])
 	assert.Equal(t, "idem-1", body["idempotencyKey"])
+}
+
+func TestFlowRunStart_ErrorGuidance(t *testing.T) {
+	for _, status := range []int{http.StatusNotFound, http.StatusForbidden, http.StatusInternalServerError} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			server := renderapi.NewServer(t)
+			server.FlowRuns.RespondWithErrorForStart(status)
+			result, err := executeFlowCommand(t, server,
+				"flows", "runs", "start", "missing/my-flow", "--input", "[]", "--output", "json")
+			require.Error(t, err)
+			assert.Empty(t, result.Stdout)
+			if status == http.StatusNotFound {
+				assert.EqualError(t, err, "flow \"missing/my-flow\" not found (received response code 404: Not Found). Identify your flow with `workflow-slug/flow-name`. Run `render workflows flows list` to see your flows")
+				var notFound *flowrun.NotFoundError
+				require.ErrorAs(t, err, &notFound)
+				require.ErrorIs(t, err, notFound.Err)
+			} else {
+				if status == http.StatusForbidden {
+					assert.EqualError(t, err, "you are not allowed to take this action")
+				} else {
+					assert.Contains(t, err.Error(), http.StatusText(status))
+				}
+				assert.NotContains(t, err.Error(), "Identify your flow")
+				assert.NotContains(t, err.Error(), "not found")
+			}
+		})
+	}
 }
 
 func TestFlowRunStart_FromFlag(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -14,15 +15,20 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	wfclient "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/tasks"
 	"github.com/render-oss/cli/pkg/version"
 )
 
 // mockTaskRepo implements taskRepo for testing.
 type mockTaskRepo struct {
 	listTasksFn func(ctx context.Context, params *client.ListTasksParams) (client.Cursor, []*wfclient.Task, error)
+	runTaskFn   func(context.Context, string, *wfclient.TaskData) (*wfclient.TaskRun, error)
 }
 
-func (m *mockTaskRepo) RunTask(context.Context, string, *wfclient.TaskData) (*wfclient.TaskRun, error) {
+func (m *mockTaskRepo) RunTask(ctx context.Context, slug string, input *wfclient.TaskData) (*wfclient.TaskRun, error) {
+	if m.runTaskFn != nil {
+		return m.runTaskFn(ctx, slug, input)
+	}
 	return nil, nil
 }
 func (m *mockTaskRepo) GetTask(context.Context, string) (*wfclient.Task, error) { return nil, nil }
@@ -63,6 +69,48 @@ func (m *mockVersionRepo) TriggerRelease(ctx context.Context, workflowID string,
 		return m.triggerReleaseFn(ctx, workflowID, input)
 	}
 	return nil
+}
+
+func TestCreateTaskRunErrorGuidance(t *testing.T) {
+	apiErr := errors.New("received response code 404: not found")
+	notFound := &tasks.NotFoundError{Task: "missing/my-task", Err: apiErr}
+	for _, tc := range []struct {
+		name string
+		err  error
+		hint bool
+	}{
+		{name: "not found", err: notFound, hint: true},
+		{name: "wrapped not found", err: fmt.Errorf("start failed: %w", notFound), hint: true},
+		{name: "local name or task ID", err: apiErr},
+		{name: "forbidden", err: errors.New("received response code 403: forbidden")},
+		{name: "success"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			expectedRun := &wfclient.TaskRun{Id: "trn-created"}
+			loader := &WorkflowLoader{taskRepo: &mockTaskRepo{
+				runTaskFn: func(_ context.Context, slug string, input *wfclient.TaskData) (*wfclient.TaskRun, error) {
+					require.Equal(t, "missing/my-task", slug)
+					require.NotNil(t, input)
+					if tc.err != nil {
+						return nil, tc.err
+					}
+					return expectedRun, nil
+				},
+			}}
+			run, err := loader.CreateTaskRun(context.Background(), TaskRunInput{TaskSlug: "missing/my-task", Input: "[]"})
+			if tc.hint {
+				require.Nil(t, run)
+				require.EqualError(t, err, tc.err.Error()+". Identify your task with `workflow-slug/task-name`. Run `render workflows tasks list <workflowVersionID>` to see your tasks")
+				require.ErrorIs(t, err, apiErr)
+			} else if tc.err != nil {
+				require.Nil(t, run)
+				require.Same(t, tc.err, err)
+			} else {
+				require.NoError(t, err)
+				require.Same(t, expectedRun, run)
+			}
+		})
+	}
 }
 
 func TestUnmarshalInputData(t *testing.T) {
