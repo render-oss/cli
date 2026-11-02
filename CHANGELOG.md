@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [2.35.0] - 2026-11-02
+
+### Added
+
+- `render ea blueprints create`, `plan`, `approve`, and `update` commands (public alpha) to create Blueprints, preview and apply infrastructure changes, and update Blueprint settings
+- `render workflows flows` commands to list and get flows, start, list, show, and cancel flow runs, and inspect their steps
+
+### Fixed
+
+- Top-level empty lists now print as `[]` instead of `null` in JSON and YAML output
+- Starting a task or flow run with an unknown slug now explains the expected slug format and how to list available tasks or flows
+- Updated `golang.org/x/net` to address upstream security advisories
+
 ## [2.34.0] - 2026-10-29
 
 ### Added
