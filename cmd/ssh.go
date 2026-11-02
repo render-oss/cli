@@ -140,7 +140,8 @@ func getSSHTableOptions(ctx context.Context, breadcrumb string) []tui.CustomOpti
 				input.Project = project
 				input.EnvironmentIDs = project.EnvironmentIds
 			}
-			return InteractiveSSHView(ctx, &input, breadcrumb)
+			// A project selection returns to the service chooser; no service has been chosen yet.
+			return interactiveSSHView(ctx, dependencies.GetFromContext(ctx).SSHCmd(), &input, breadcrumb)
 		}),
 	}
 }
