@@ -17,13 +17,10 @@ import (
 	"github.com/render-oss/cli/pkg/text"
 )
 
-// The flows commands stay hidden until durable workflows are generally
-// available.
 func newFlowsCmd(children ...*cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "flows",
-		Short:  "Inspect durable workflow flows and their runs",
-		Hidden: true,
+		Use:   "flows",
+		Short: "Inspect durable workflow flows and their runs",
 	}
 	cmd.AddCommand(children...)
 	return cmd
