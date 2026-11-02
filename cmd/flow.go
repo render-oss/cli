@@ -25,7 +25,7 @@ import (
 func newFlowsCmd(children ...*cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "flows",
-		Short: "Inspect durable workflow flows and their runs",
+		Short: "List flows and manage their runs",
 	}
 	cmd.AddCommand(children...)
 	return cmd
@@ -66,7 +66,7 @@ func newFlowListCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Short:        "List flows in the active workspace",
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
-		Long: `List workflow flows accessible to your active workspace.
+		Long: `List flows accessible to your active workspace.
 
 Flows are filtered by the active workspace. Narrow further with --flow-slug,
 --workflow, or --workflow-version. The flag can be repeated.`,
