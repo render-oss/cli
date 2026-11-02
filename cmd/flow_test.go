@@ -407,7 +407,7 @@ func TestFlowRunCancel(t *testing.T) {
 
 	result, err := executeFlowCommand(t, server, "flows", "runs", "cancel", "frn-cancel", "--output", "text")
 	require.NoError(t, err)
-	assert.Contains(t, result.Stdout, "Cancelled flow run frn-cancel")
+	assert.Contains(t, result.Stdout, "Canceled flow run frn-cancel")
 	assert.True(t, server.HasRequest("DELETE", "/flow-runs/frn-cancel"))
 }
 
@@ -424,7 +424,7 @@ func TestFlowRunCancel_JSONOutput(t *testing.T) {
 	// return, so the message is encoded as a JSON string.
 	var message string
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &message))
-	assert.Equal(t, "Cancelled flow run frn-cancel", message)
+	assert.Equal(t, "Canceled flow run frn-cancel", message)
 }
 
 func TestFlowRunCancel_NotFound(t *testing.T) {
@@ -432,6 +432,25 @@ func TestFlowRunCancel_NotFound(t *testing.T) {
 	_, err := executeFlowCommand(t, server, "flows", "runs", "cancel", "frn-missing", "--output", "text")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "404")
+	assert.False(t, server.HasRequest("DELETE", "/flow-runs/frn-missing"))
+}
+
+func TestFlowRunCancel_AlreadyFinished(t *testing.T) {
+	for _, status := range []string{"succeeded", "failed", "canceled"} {
+		t.Run(status, func(t *testing.T) {
+			server := renderapi.NewServer(t)
+			server.FlowRuns.Add(&renderapi.FlowRun{
+				Id:   "frn-done",
+				Body: json.RawMessage(`{"id":"frn-done","flowId":"flw-1","status":"` + status + `"}`),
+			})
+
+			result, err := executeFlowCommand(t, server, "flows", "runs", "cancel", "frn-done", "--output", "text")
+			require.Error(t, err)
+			assert.Equal(t, "flow run frn-done already finished ("+status+")", err.Error())
+			assert.NotContains(t, result.Stdout, "Canceled")
+			assert.False(t, server.HasRequest("DELETE", "/flow-runs/frn-done"))
+		})
+	}
 }
 
 func TestFlowRunStepsList(t *testing.T) {

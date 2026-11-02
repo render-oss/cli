@@ -396,10 +396,19 @@ func newFlowRunCancelCmd(deps *dependencies.Dependencies) *cobra.Command {
 
 		flowRunID := args[0]
 		_, err := command.NonInteractive(cmd, func() (string, error) {
+			run, err := deps.FlowRunRepo().GetFlowRun(cmd.Context(), flowRunID)
+			if err != nil {
+				return "", err
+			}
+			switch run.Status {
+			case workflows.FlowRunStatusSucceeded, workflows.FlowRunStatusFailed, workflows.FlowRunStatusCanceled:
+				return "", fmt.Errorf("flow run %s already finished (%s)", flowRunID, run.Status)
+			}
+
 			if err := deps.FlowRunRepo().CancelFlowRun(cmd.Context(), flowRunID); err != nil {
 				return "", err
 			}
-			return fmt.Sprintf("Cancelled flow run %s", flowRunID), nil
+			return fmt.Sprintf("Canceled flow run %s", flowRunID), nil
 		}, text.FormatString)
 		return err
 	}
