@@ -3,13 +3,17 @@ package blueprint_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/blueprint"
+	"github.com/render-oss/cli/pkg/client"
 	bptypes "github.com/render-oss/cli/pkg/client/blueprints"
 )
 
@@ -274,5 +278,39 @@ func TestServiceCreate(t *testing.T) {
 				require.Equal(t, tc.want, recorded)
 			})
 		}
+	})
+}
+
+// failingPlanClient sends requests to the fake API, except planning requests,
+// which fail the way a dropped connection would.
+type failingPlanClient struct{}
+
+func (failingPlanClient) Do(r *http.Request) (*http.Response, error) {
+	if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/syncs") {
+		return nil, errors.New("connection reset by peer")
+	}
+	return http.DefaultClient.Do(r)
+}
+
+func TestServiceUpdate(t *testing.T) {
+	t.Run("reports a planning network error as a notice", func(t *testing.T) {
+		server := renderapi.NewServer(t)
+		bp := server.Blueprints.Add(renderapi.NewBlueprint(bptypes.Blueprint{}))
+		c, err := client.NewClientWithResponses(server.URL(), client.WithHTTPClient(failingPlanClient{}))
+		require.NoError(t, err)
+
+		result, err := blueprint.NewService(blueprint.NewRepo(c)).Update(context.Background(), blueprint.UpdateInput{
+			BlueprintID: bp.Id,
+			Branch:      new("release"),
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, "release", result.Blueprint.Branch)
+		require.Equal(t, new(bptypes.PlanningOutcomeFailed), result.PlanningOutcome)
+		require.Nil(t, result.Sync)
+
+		require.Len(t, result.Notices, 1)
+		require.Equal(t, bptypes.BlueprintNoticeSeverityError, result.Notices[0].Severity)
+		require.Contains(t, result.Notices[0].Message, "connection reset by peer")
 	})
 }

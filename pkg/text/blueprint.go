@@ -20,9 +20,7 @@ func BlueprintCreate(out blueprint.CreateOut) string {
 
 	bp := result.Blueprint
 	fmt.Fprintf(&b, "%s (%s)\n", style.Title.Render("Blueprint "+bp.Name), bp.Id)
-	fmt.Fprintf(&b, "%s %s\n", style.SubtleText.Render("Source:"), bp.Repo)
-	fmt.Fprintf(&b, "%s %s\n", style.SubtleText.Render("Branch:"), bp.Branch)
-	fmt.Fprintf(&b, "%s %s\n", style.SubtleText.Render("Path:"), bp.Path)
+	writeBlueprintSource(&b, bp)
 	if result.Sync != nil {
 		fmt.Fprintf(&b, "%s %s\n", style.SubtleText.Render("Sync:"), result.Sync.Id)
 	}
@@ -45,6 +43,38 @@ func BlueprintPlan(out blueprint.PlanOut) string {
 	writePlanningResult(&b, result.PlanningOutcome, result.Notices, result.Sync, out.Meta.Next,
 		"This CLI cannot determine the next step.")
 	return b.String()
+}
+
+func BlueprintUpdate(out blueprint.UpdateOut) string {
+	if out.Data == nil {
+		return ""
+	}
+	result := out.Data
+	var b strings.Builder
+	if result.PlanningOutcome != nil {
+		writeRawPlan(&b, *result.PlanningOutcome, result.Sync)
+	}
+
+	bp := result.Blueprint
+	fmt.Fprintf(&b, "%s (%s) updated\n", style.Title.Render("Blueprint "+bp.Name), bp.Id)
+	writeBlueprintSource(&b, bp)
+	fmt.Fprintf(&b, "%s %t\n", style.SubtleText.Render("Auto-sync:"), bp.AutoSync)
+	if result.Sync != nil {
+		fmt.Fprintf(&b, "%s %s\n", style.SubtleText.Render("Sync:"), result.Sync.Id)
+	}
+	if result.PlanningOutcome != nil {
+		b.WriteString("\n")
+		writePlanningResult(&b, *result.PlanningOutcome, result.Notices, result.Sync, out.Meta.Next,
+			"The Blueprint was updated, but this CLI cannot determine the next step.")
+	}
+	return b.String()
+}
+
+// writeBlueprintSource writes where the Blueprint reads its Blueprint file from.
+func writeBlueprintSource(b *strings.Builder, bp bptypes.Blueprint) {
+	fmt.Fprintf(b, "%s %s\n", style.SubtleText.Render("Source:"), bp.Repo)
+	fmt.Fprintf(b, "%s %s\n", style.SubtleText.Render("Branch:"), bp.Branch)
+	fmt.Fprintf(b, "%s %s\n", style.SubtleText.Render("Path:"), bp.Path)
 }
 
 // writeRawPlan writes the sync's raw plan, when there is one.

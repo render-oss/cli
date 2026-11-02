@@ -12,10 +12,11 @@ import (
 	"github.com/render-oss/cli/pkg/pointers"
 )
 
-// BlueprintResource holds created Blueprints and queued create/approve/plan/validation responses.
+// BlueprintResource holds created Blueprints and queued create/update/approve/plan/validation responses.
 type BlueprintResource struct {
 	Resource[*bptypes.Blueprint]
 	createResponses     []blueprintCreateResponse
+	updateErrors        []blueprintUpdateError
 	approveResponses    []blueprintApproveResponse
 	planResponses       []blueprintPlanResponse
 	validationResponses []blueprintValidationResponse
@@ -29,6 +30,11 @@ type blueprintApproveResponse struct {
 
 type blueprintPlanResponse struct {
 	result  *bptypes.CreateBlueprintSyncResponse
+	status  int
+	message string
+}
+
+type blueprintUpdateError struct {
 	status  int
 	message string
 }
@@ -81,6 +87,12 @@ func (r *BlueprintResource) RespondWithBodyForCreate(result bptypes.CreateBluepr
 // Queued responses override request validation after JSON decoding.
 func (r *BlueprintResource) RespondWithErrorForCreate(status int, message string) {
 	r.createResponses = append(r.createResponses, blueprintCreateResponse{status: status, message: message})
+}
+
+// RespondWithErrorForUpdate queues an HTTP error for the next Update Blueprint
+// request, without updating the Blueprint.
+func (r *BlueprintResource) RespondWithErrorForUpdate(status int, message string) {
+	r.updateErrors = append(r.updateErrors, blueprintUpdateError{status: status, message: message})
 }
 
 // RespondWithBodyForApprove queues the response body for the next Approve Blueprint request.
@@ -140,6 +152,15 @@ func (r *BlueprintResource) nextCreateResponse() (blueprintCreateResponse, bool)
 	return response, true
 }
 
+func (r *BlueprintResource) nextUpdateError() (blueprintUpdateError, bool) {
+	if len(r.updateErrors) == 0 {
+		return blueprintUpdateError{}, false
+	}
+	response := r.updateErrors[0]
+	r.updateErrors = r.updateErrors[1:]
+	return response, true
+}
+
 func (r *BlueprintResource) nextApproveResponse() (blueprintApproveResponse, bool) {
 	if len(r.approveResponses) == 0 {
 		return blueprintApproveResponse{}, false
@@ -159,18 +180,27 @@ func (r *BlueprintResource) nextPlanResponse() (blueprintPlanResponse, bool) {
 }
 
 func (r *BlueprintResource) has(id string) bool {
+	return r.find(id) != nil
+}
+
+func (r *BlueprintResource) find(id string) *bptypes.Blueprint {
 	for _, b := range r.Instances {
 		if b.Id == id {
-			return true
+			return b
 		}
 	}
-	return false
+	return nil
 }
 
 func registerBlueprintRoutes(mux *http.ServeMux, s *Server, record func(*http.Request)) {
 	mux.HandleFunc("POST /blueprints", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
 		s.handleCreateBlueprint(w, r)
+	})
+
+	mux.HandleFunc("PATCH /blueprints/{blueprintId}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		s.handleUpdateBlueprint(w, r)
 	})
 
 	mux.HandleFunc("POST /blueprints/{blueprintId}/approve", func(w http.ResponseWriter, r *http.Request) {
@@ -232,6 +262,38 @@ func (s *Server) handleCreateBlueprint(w http.ResponseWriter, r *http.Request) {
 		Notices:         []bptypes.BlueprintNotice{},
 		Sync:            newSyncWithPlan(blueprint.Id),
 	})
+}
+
+// handleUpdateBlueprint applies the supplied fields to a known Blueprint. It
+// does not check that the branch or path holds a Blueprint file.
+func (s *Server) handleUpdateBlueprint(w http.ResponseWriter, r *http.Request) {
+	var body bptypes.BlueprintPATCH
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeAPIError(w, http.StatusBadRequest, "invalid body", "")
+		return
+	}
+	if response, queued := s.Blueprints.nextUpdateError(); queued {
+		writeAPIError(w, response.status, response.message, "")
+		return
+	}
+	blueprint := s.Blueprints.find(r.PathValue("blueprintId"))
+	if blueprint == nil {
+		writeAPIError(w, http.StatusNotFound, "blueprint not found", "")
+		return
+	}
+	if body.Name != nil {
+		blueprint.Name = *body.Name
+	}
+	if body.Branch != nil {
+		blueprint.Branch = *body.Branch
+	}
+	if body.Path != nil {
+		blueprint.Path = *body.Path
+	}
+	if body.AutoSync != nil {
+		blueprint.AutoSync = *body.AutoSync
+	}
+	writeJSON(w, http.StatusOK, blueprint)
 }
 
 // newSyncWithPlan returns a sync awaiting approval with an empty plan and no

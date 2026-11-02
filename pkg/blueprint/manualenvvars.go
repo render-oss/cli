@@ -58,9 +58,25 @@ func PrepareManualEnvVarsFile(blueprintID string, outcome bptypes.PlanningOutcom
 	return filename, nil
 }
 
-// RemoveManualEnvVarsFile removes the Blueprint's default manual env var file,
+// ReplaceManualEnvVarsFile prepares the manual env var file for a newly planned
+// sync of an existing Blueprint. A planned sync makes any file from an earlier
+// plan stale, because the Blueprint file may now require different env vars,
+// so it is removed first. Writing the new file is not enough on its own: if
+// every sync: false env var was removed, no new file is written, and approve
+// would read the old one. Other outcomes leave the earlier file alone. It
+// returns the same values as PrepareManualEnvVarsFile.
+func ReplaceManualEnvVarsFile(blueprintID string, outcome bptypes.PlanningOutcome, sync *bptypes.SyncWithPlan) (string, error) {
+	if outcome == bptypes.PlanningOutcomePlanned {
+		if err := removeManualEnvVarsFile(blueprintID); err != nil {
+			return "", fmt.Errorf("%w. Delete the earlier manual environment variables file before running \"render ea blueprints approve\", or approve will send its outdated values", err)
+		}
+	}
+	return PrepareManualEnvVarsFile(blueprintID, outcome, sync)
+}
+
+// removeManualEnvVarsFile removes the Blueprint's default manual env var file,
 // if there is one.
-func RemoveManualEnvVarsFile(blueprintID string) error {
+func removeManualEnvVarsFile(blueprintID string) error {
 	filename, err := manualEnvVarsFilePath(blueprintID)
 	if err != nil {
 		return fmt.Errorf("remove manual environment variables file: %w", err)

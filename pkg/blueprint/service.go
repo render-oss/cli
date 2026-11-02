@@ -84,6 +84,12 @@ func (i UpdateInput) Validate(_isInteractive bool) error {
 	return errors.Join(errs...)
 }
 
+// RequestsSync reports whether the update should plan a sync. Supplying
+// --branch or --path plans one even when the value is unchanged.
+func (i UpdateInput) RequestsSync() bool {
+	return i.Branch != nil || i.Path != nil
+}
+
 // ApproveInput identifies the Blueprint whose newest sync to approve. An
 // omitted --manual-env-vars-file remains nil so approval can fall back to the
 // file that create and plan write.
@@ -124,6 +130,37 @@ func (s *Service) Create(ctx context.Context, workspaceID string, input CreateIn
 		return nil, err
 	}
 	return s.repo.Create(ctx, body)
+}
+
+// Update changes the supplied Blueprint fields, then plans a sync when the
+// input requests one. It returns an error only when the update fails. Once the
+// update succeeds, a planning request error is reported as a failed planning
+// outcome with an error notice, so the caller can still show the updated
+// Blueprint.
+func (s *Service) Update(ctx context.Context, input UpdateInput) (*UpdateResult, error) {
+	bp, err := s.repo.Update(ctx, input.BlueprintID, bptypes.BlueprintPATCH{
+		Name:     input.Name,
+		Branch:   input.Branch,
+		Path:     input.Path,
+		AutoSync: input.AutoSync,
+	})
+	if err != nil {
+		return nil, err
+	}
+	result := &UpdateResult{Blueprint: *bp, Notices: []bptypes.BlueprintNotice{}}
+	if !input.RequestsSync() {
+		return result, nil
+	}
+	planned, err := s.repo.Plan(ctx, bp.Id)
+	if err != nil {
+		result.PlanningOutcome = new(bptypes.PlanningOutcomeFailed)
+		result.Notices = []bptypes.BlueprintNotice{{Severity: bptypes.BlueprintNoticeSeverityError, Message: err.Error()}}
+		return result, nil
+	}
+	result.PlanningOutcome = &planned.PlanningOutcome
+	result.Sync = planned.Sync
+	result.Notices = planned.Notices
+	return result, nil
 }
 
 // Approve approves the Blueprint's newest sync. A nil manualEnvVars omits

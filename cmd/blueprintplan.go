@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/spf13/cobra"
 
@@ -57,20 +56,7 @@ config directory.`,
 					if err != nil {
 						return blueprint.PlanOut{}, err
 					}
-					// A new planned sync makes any manual env var file from an earlier plan
-					// stale, because the Blueprint file may now require different env vars.
-					// Writing the new file is not enough on its own: if every sync: false
-					// env var was removed, no new file is written, and approve would read
-					// the old one.
-					if result.PlanningOutcome == bptypes.PlanningOutcomePlanned {
-						if err := blueprint.RemoveManualEnvVarsFile(input.BlueprintID); err != nil {
-							// Returning the error here would skip printing the planned sync, so keep
-							// it for RunE to return after the result is printed.
-							fileErr = fmt.Errorf("%w. Delete the earlier manual environment variables file before running \"render ea blueprints approve\", or approve will send its outdated values", err)
-							return blueprint.PlanOut{Data: result}, nil
-						}
-					}
-					filePath, err := blueprint.PrepareManualEnvVarsFile(input.BlueprintID, result.PlanningOutcome, result.Sync)
+					filePath, err := blueprint.ReplaceManualEnvVarsFile(input.BlueprintID, result.PlanningOutcome, result.Sync)
 					if err != nil {
 						// Returning the error here would skip printing the planned sync, so keep
 						// it for RunE to return after the result is printed.

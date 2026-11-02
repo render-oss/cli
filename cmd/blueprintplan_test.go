@@ -58,7 +58,7 @@ func TestBlueprintPlanPlanningOutcomes(t *testing.T) {
 				PlanningOutcome: bptypes.PlanningOutcomeNoChanges, Notices: []bptypes.BlueprintNotice{},
 			},
 			wantExitCode: 0,
-			wantNext:     new("Nothing to approve. If this is unexpected, push your Blueprint file changes to the Blueprint's branch, then re-plan with \"render ea blueprints plan " + testBlueprintID + "\"."),
+			wantNext:     new("No changes to approve. No further action is needed for this result. If you previously planned changes that are still waiting for approval, running \"render ea blueprints approve " + testBlueprintID + "\" now will approve that earlier plan. If you expected changes from this run, push your Blueprint file changes to the Blueprint's branch, then re-plan with \"render ea blueprints plan " + testBlueprintID + "\"."),
 		},
 		{
 			name: "unknown",
@@ -74,7 +74,7 @@ func TestBlueprintPlanPlanningOutcomes(t *testing.T) {
 				PlanningOutcome: bptypes.PlanningOutcomeFailed, Notices: errorNotices,
 			},
 			wantExitCode: 1,
-			wantNext:     new("fix the errors above, then run \"render ea blueprints plan " + testBlueprintID + "\""),
+			wantNext:     new("fix the errors above, then run \"render ea blueprints plan " + testBlueprintID + "\". Do not approve until re-planning succeeds. If you previously planned changes that are still waiting for approval, approving now could apply that earlier plan."),
 		},
 		{
 			name: "failed with a saved sync",

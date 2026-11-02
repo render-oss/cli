@@ -165,7 +165,7 @@ func TestBlueprintPlan(t *testing.T) {
 		{
 			name:     "no changes",
 			response: bptypes.CreateBlueprintSyncResponse{PlanningOutcome: bptypes.PlanningOutcomeNoChanges},
-			want:     "No changes: the Blueprint already matches its configuration\n\nNext:\n  Nothing to approve. If this is unexpected, push your Blueprint file changes to the Blueprint's branch, then re-plan with \"render ea blueprints plan exs-example\".\n",
+			want:     "No changes: the Blueprint already matches its configuration\n\nNext:\n  No changes to approve. No further action is needed for this result. If you previously planned changes that are still waiting for approval, running \"render ea blueprints approve exs-example\" now will approve that earlier plan. If you expected changes from this run, push your Blueprint file changes to the Blueprint's branch, then re-plan with \"render ea blueprints plan exs-example\".\n",
 		},
 		{
 			name: "planning failed without a saved sync",
@@ -176,7 +176,7 @@ func TestBlueprintPlan(t *testing.T) {
 					Message:  "Planning timed out. Re-plan to try again.",
 				}},
 			},
-			want: "Planning failed\n\n  Error: Planning timed out. Re-plan to try again.\n\nNext:\n  fix the errors above, then run \"render ea blueprints plan exs-example\"\n",
+			want: "Planning failed\n\n  Error: Planning timed out. Re-plan to try again.\n\nNext:\n  fix the errors above, then run \"render ea blueprints plan exs-example\". Do not approve until re-planning succeeds. If you previously planned changes that are still waiting for approval, approving now could apply that earlier plan.\n",
 		},
 		{
 			name:     "unknown planning outcome has no next step",
@@ -186,6 +186,52 @@ func TestBlueprintPlan(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			out := text.BlueprintPlan(blueprint.NewPlanOut("exs-example", &tc.response, ""))
+
+			require.Equal(t, tc.want, out)
+		})
+	}
+}
+
+func TestBlueprintUpdate(t *testing.T) {
+	bp := bptypes.Blueprint{
+		Id:     "exs-example",
+		Name:   "app",
+		Repo:   "https://github.com/acme/app",
+		Branch: "release",
+		Path:   "render.yaml",
+	}
+	header := "Blueprint app (exs-example) updated\nSource: https://github.com/acme/app\nBranch: release\nPath: render.yaml\nAuto-sync: false\n"
+	for _, tc := range []struct {
+		name   string
+		result blueprint.UpdateResult
+		want   string
+	}{
+		{
+			name:   "no sync requested",
+			result: blueprint.UpdateResult{Blueprint: bp},
+			want:   header,
+		},
+		{
+			name: "planned",
+			result: blueprint.UpdateResult{
+				Blueprint:       bp,
+				PlanningOutcome: new(bptypes.PlanningOutcomePlanned),
+				Sync:            &bptypes.SyncWithPlan{Id: "exe-example", DashboardUrl: "https://dashboard.render.com/review"},
+			},
+			want: header + "Sync: exe-example\n\nPlanned, waiting for approval\n\nReview in Dashboard (optional): https://dashboard.render.com/review\n\nNext:\n  render ea blueprints approve exs-example\n",
+		},
+		{
+			name: "planning failed",
+			result: blueprint.UpdateResult{
+				Blueprint:       bp,
+				PlanningOutcome: new(bptypes.PlanningOutcomeFailed),
+				Notices:         []bptypes.BlueprintNotice{{Severity: bptypes.BlueprintNoticeSeverityError, Message: "received response code 409: Wait for sync exe-running to finish, then re-plan."}},
+			},
+			want: header + "\nPlanning failed\n\n  Error: received response code 409: Wait for sync exe-running to finish, then re-plan.\n\nNext:\n  fix the errors above, then run \"render ea blueprints plan exs-example\". Do not approve until re-planning succeeds. If you previously planned changes that are still waiting for approval, approving now could apply that earlier plan.\n",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out := text.BlueprintUpdate(blueprint.NewUpdateOut(&tc.result, ""))
 
 			require.Equal(t, tc.want, out)
 		})

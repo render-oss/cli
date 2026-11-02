@@ -32,6 +32,22 @@ func (r *Repo) Create(ctx context.Context, body bptypes.CreateBlueprintRequest) 
 	return resp.JSON201, nil
 }
 
+// Update changes only the fields set in body. Changing the branch or path does
+// not plan a sync.
+func (r *Repo) Update(ctx context.Context, blueprintID string, body bptypes.BlueprintPATCH) (*bptypes.Blueprint, error) {
+	resp, err := r.client.UpdateBlueprintWithResponse(ctx, blueprintID, body)
+	if err != nil {
+		return nil, err
+	}
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("update blueprint: response missing Blueprint (status %d)", resp.StatusCode())
+	}
+	return resp.JSON200, nil
+}
+
 // Approve asks the API to approve the Blueprint's newest sync and returns the
 // sync from its response.
 func (r *Repo) Approve(ctx context.Context, blueprintID string, body bptypes.ApproveBlueprintRequest) (*bptypes.ApprovedSync, error) {

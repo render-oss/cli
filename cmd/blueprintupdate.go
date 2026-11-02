@@ -8,9 +8,10 @@ import (
 	"github.com/render-oss/cli/pkg/blueprint"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/dependencies"
+	"github.com/render-oss/cli/pkg/text"
 )
 
-func newBlueprintUpdateCmd(_ *dependencies.Dependencies) *cobra.Command {
+func newBlueprintUpdateCmd(deps *dependencies.Dependencies) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "update <blueprintId>",
 		Short:        "Update a Blueprint's settings",
@@ -25,10 +26,15 @@ Blueprint file at the configured path.
 
 Changing --branch or --path also plans a sync from the new Blueprint file, as
 "render ea blueprints plan" does. Approve it with "render ea blueprints approve".
-Changing only --name or --auto-sync does not plan a sync.
+Changing only --name or --auto-sync does not plan a sync. If the update succeeds
+but planning fails, the update still stands; fix the errors and run
+"render ea blueprints plan".
 
-This command is under development. Execution currently returns an error without
-updating a Blueprint.`,
+Like "render ea blueprints plan", a successful plan that needs manual values
+writes a file for manually-supplied environment variables at
+` + blueprint.ManualEnvVarsFileHelpPath + `. A newly planned sync replaces
+any earlier file for the Blueprint, or removes it if the new plan needs no
+manual values.`,
 		Example: `  # Read the Blueprint file from a different branch and plan a sync from it
   render ea blueprints update exs-d0k8jv3e4t2s73a1b2c0 --branch release
 
@@ -43,13 +49,42 @@ updating a Blueprint.`,
 			if err := command.ParseCommand(cmd, args, &input); err != nil {
 				return err
 			}
+			var result *blueprint.UpdateResult
+			var fileErr error
 			_, err := command.NonInteractive(cmd,
 				func() (blueprint.UpdateOut, error) {
-					return updateBlueprint(input)
+					var err error
+					result, err = deps.BlueprintService().Update(cmd.Context(), input)
+					if err != nil {
+						return blueprint.UpdateOut{}, err
+					}
+					if result.PlanningOutcome == nil {
+						return blueprint.NewUpdateOut(result, ""), nil
+					}
+					filePath, err := blueprint.ReplaceManualEnvVarsFile(input.BlueprintID, *result.PlanningOutcome, result.Sync)
+					if err != nil {
+						// Print the updated Blueprint and planning result before reporting a
+						// local file error.
+						fileErr = err
+						return blueprint.UpdateOut{Data: result, Meta: blueprint.UpdateOutMeta{SyncRequested: true}}, nil
+					}
+					return blueprint.NewUpdateOut(result, filePath), nil
 				},
-				blueprintUpdateText,
+				text.BlueprintUpdate,
 			)
-			return err
+			if err != nil {
+				return err
+			}
+			if fileErr != nil {
+				return fileErr
+			}
+			if result == nil {
+				return errors.New("update blueprint: command completed without an update result")
+			}
+			if result.PlanningOutcome == nil {
+				return nil
+			}
+			return exitForPlanningOutcome(cmd, *result.PlanningOutcome)
 		},
 	}
 
@@ -63,12 +98,4 @@ updating a Blueprint.`,
 		"path":   "PATH",
 	})
 	return cmd
-}
-
-func updateBlueprint(_ blueprint.UpdateInput) (blueprint.UpdateOut, error) {
-	return blueprint.UpdateOut{}, errors.New("blueprint update is not implemented yet")
-}
-
-func blueprintUpdateText(_ blueprint.UpdateOut) string {
-	return "not implemented"
 }
