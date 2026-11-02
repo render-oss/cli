@@ -35,7 +35,7 @@ func (r *Repo) ListFlows(ctx context.Context, params *client.ListFlowsParams) (c
 		flow := f.Flow
 		result = append(result, &flow)
 	}
-	return nextCursor(params.Limit, (*resp.JSON200)[len(*resp.JSON200)-1].Cursor, len(result)), result, nil
+	return cursorFromPageLength(params.Limit, (*resp.JSON200)[len(*resp.JSON200)-1].Cursor, len(result)), result, nil
 }
 
 func (r *Repo) GetFlow(ctx context.Context, flowID string) (*workflows.Flow, error) {
@@ -73,7 +73,7 @@ func (r *Repo) ListFlowRuns(ctx context.Context, params *client.ListFlowRunsPara
 		run := fr.FlowRun
 		result = append(result, &run)
 	}
-	return nextCursor(params.Limit, (*resp.JSON200)[len(*resp.JSON200)-1].Cursor, len(result)), result, nil
+	return cursorFromPageLength(params.Limit, (*resp.JSON200)[len(*resp.JSON200)-1].Cursor, len(result)), result, nil
 }
 
 func (r *Repo) StartFlowRun(ctx context.Context, body workflows.StartFlowRun) (*workflows.FlowRun, error) {
@@ -127,30 +127,40 @@ func (r *Repo) ListFlowRunSteps(ctx context.Context, flowRunID string, params *c
 		return "", nil, err
 	}
 
-	if resp.JSON200 == nil || len(*resp.JSON200) == 0 {
+	if resp.JSON200 == nil {
 		return "", nil, nil
 	}
 
-	result := make([]*workflows.FlowRunStep, 0, len(*resp.JSON200))
-	for _, s := range *resp.JSON200 {
-		step := s.Step
-		result = append(result, &step)
+	page := resp.JSON200
+	result := make([]*workflows.FlowRunStep, 0, len(page.Steps))
+	for i := range page.Steps {
+		result = append(result, &page.Steps[i])
 	}
-	return nextCursor(params.Limit, (*resp.JSON200)[len(*resp.JSON200)-1].Cursor, len(result)), result, nil
+	return cursorFromPage(page), result, nil
 }
 
-// nextCursor returns the server's cursor only when the page is full, matching
-// the --limit the caller asked for. An empty cursor signals the final page so
-// callers do not treat a short page as "more coming".
-func nextCursor(limit *int, cursor client.Cursor, pageLen int) client.Cursor {
+// cursorFromPageLength returns the server's cursor only when the page is full,
+// matching the --limit the caller asked for. An empty cursor signals the final
+// page so callers do not treat a short page as "more coming". It applies to
+// endpoints that paginate with a per-item cursor and no explicit "more" flag.
+func cursorFromPageLength(limit *int, cursor client.Cursor, pageLen int) client.Cursor {
 	if limit != nil && pageLen < *limit {
 		return ""
 	}
 	return cursor
 }
 
+// cursorFromPage returns the cursor for endpoints that return
+// a cursor at the top level of the response.
+func cursorFromPage(page *workflows.FlowRunStepsPage) client.Cursor {
+	if page == nil || !page.HasMore || page.Cursor == nil {
+		return ""
+	}
+	return client.Cursor(*page.Cursor)
+}
+
 func (r *Repo) GetFlowRunStep(ctx context.Context, flowRunID string, stepSeq int) (*workflows.FlowRunStepDetails, error) {
-	resp, err := r.client.GetFlowRunStepWithResponse(ctx, flowRunID, stepSeq)
+	resp, err := r.client.GetFlowRunStepWithResponse(ctx, flowRunID, stepSeq, &client.GetFlowRunStepParams{})
 	if err != nil {
 		return nil, err
 	}

@@ -998,17 +998,17 @@ type ClientInterface interface {
 
 	// ListFlowRunSteps List flow run steps
 	//
-	// List the steps a flow run has recorded, in the order the flow started them.
+	// List the steps a flow run has recorded, in the order the flow started them. A page can hold fewer than `limit` steps and still have more after it, so page until `hasMore` is false.
 	//
 	// Corresponds with GET /flow-runs/{flowRunId}/steps (the `ListFlowRunSteps` operationId).
 	ListFlowRunSteps(ctx context.Context, flowRunId externalRef19.FlowRunIDParam, params *ListFlowRunStepsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetFlowRunStep Retrieve flow run step
 	//
-	// Retrieve a single step of a flow run, including its input, result, error, and failed attempts.
+	// Retrieve a single step of a flow run, including its input, result and error. A sequence number can cover more than one step, so pass the `stepKey` the step listing reported to address one of those.
 	//
 	// Corresponds with GET /flow-runs/{flowRunId}/steps/{stepSeq} (the `GetFlowRunStep` operationId).
-	GetFlowRunStep(ctx context.Context, flowRunId externalRef19.FlowRunIDParam, stepSeq externalRef19.FlowRunStepSeqParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetFlowRunStep(ctx context.Context, flowRunId externalRef19.FlowRunIDParam, stepSeq externalRef19.FlowRunStepSeqParam, params *GetFlowRunStepParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListFlows List flows
 	//
@@ -2529,6 +2529,9 @@ type ClientInterface interface {
 	//
 	// Creates a new Render service in the specified workspace with the specified configuration.
 	//
+	// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+	// Build Source in a different region than the service.
+	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with POST /services (the `CreateService` operationId).
@@ -2537,6 +2540,9 @@ type ClientInterface interface {
 	// CreateService Create service
 	//
 	// Creates a new Render service in the specified workspace with the specified configuration.
+	//
+	// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+	// Build Source in a different region than the service.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2561,6 +2567,9 @@ type ClientInterface interface {
 	//
 	// Update the service with the provided ID.
 	//
+	// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+	// Build Source in a different region than the service.
+	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with PATCH /services/{serviceId} (the `UpdateService` operationId).
@@ -2569,6 +2578,9 @@ type ClientInterface interface {
 	// UpdateService Update service
 	//
 	// Update the service with the provided ID.
+	//
+	// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+	// Build Source in a different region than the service.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -5193,7 +5205,7 @@ func (c *Client) GetFlowRun(ctx context.Context, flowRunId externalRef19.FlowRun
 
 // ListFlowRunSteps List flow run steps
 //
-// List the steps a flow run has recorded, in the order the flow started them.
+// List the steps a flow run has recorded, in the order the flow started them. A page can hold fewer than `limit` steps and still have more after it, so page until `hasMore` is false.
 //
 // Corresponds with GET /flow-runs/{flowRunId}/steps (the `ListFlowRunSteps` operationId).
 func (c *Client) ListFlowRunSteps(ctx context.Context, flowRunId externalRef19.FlowRunIDParam, params *ListFlowRunStepsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -5210,11 +5222,11 @@ func (c *Client) ListFlowRunSteps(ctx context.Context, flowRunId externalRef19.F
 
 // GetFlowRunStep Retrieve flow run step
 //
-// Retrieve a single step of a flow run, including its input, result, error, and failed attempts.
+// Retrieve a single step of a flow run, including its input, result and error. A sequence number can cover more than one step, so pass the `stepKey` the step listing reported to address one of those.
 //
 // Corresponds with GET /flow-runs/{flowRunId}/steps/{stepSeq} (the `GetFlowRunStep` operationId).
-func (c *Client) GetFlowRunStep(ctx context.Context, flowRunId externalRef19.FlowRunIDParam, stepSeq externalRef19.FlowRunStepSeqParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetFlowRunStepRequest(c.Server, flowRunId, stepSeq)
+func (c *Client) GetFlowRunStep(ctx context.Context, flowRunId externalRef19.FlowRunIDParam, stepSeq externalRef19.FlowRunStepSeqParam, params *GetFlowRunStepParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetFlowRunStepRequest(c.Server, flowRunId, stepSeq, params)
 	if err != nil {
 		return nil, err
 	}
@@ -8374,6 +8386,9 @@ func (c *Client) ListServices(ctx context.Context, params *ListServicesParams, r
 //
 // Creates a new Render service in the specified workspace with the specified configuration.
 //
+// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+// Build Source in a different region than the service.
+//
 // Takes any type of body and a specified content type.
 //
 // Corresponds with POST /services (the `CreateService` operationId).
@@ -8392,6 +8407,9 @@ func (c *Client) CreateServiceWithBody(ctx context.Context, contentType string, 
 // CreateService Create service
 //
 // Creates a new Render service in the specified workspace with the specified configuration.
+//
+// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+// Build Source in a different region than the service.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8446,6 +8464,9 @@ func (c *Client) RetrieveService(ctx context.Context, serviceId ServiceIdParam, 
 //
 // Update the service with the provided ID.
 //
+// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+// Build Source in a different region than the service.
+//
 // Takes any type of body and a specified content type.
 //
 // Corresponds with PATCH /services/{serviceId} (the `UpdateService` operationId).
@@ -8464,6 +8485,9 @@ func (c *Client) UpdateServiceWithBody(ctx context.Context, serviceId ServiceIdP
 // UpdateService Update service
 //
 // Update the service with the provided ID.
+//
+// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+// Build Source in a different region than the service.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -13823,7 +13847,7 @@ func NewListFlowRunStepsRequest(server string, flowRunId externalRef19.FlowRunID
 }
 
 // NewGetFlowRunStepRequest constructs an http.Request for the GetFlowRunStep method
-func NewGetFlowRunStepRequest(server string, flowRunId externalRef19.FlowRunIDParam, stepSeq externalRef19.FlowRunStepSeqParam) (*http.Request, error) {
+func NewGetFlowRunStepRequest(server string, flowRunId externalRef19.FlowRunIDParam, stepSeq externalRef19.FlowRunStepSeqParam, params *GetFlowRunStepParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -13853,6 +13877,33 @@ func NewGetFlowRunStepRequest(server string, flowRunId externalRef19.FlowRunIDPa
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.StepKey != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "stepKey", *params.StepKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
@@ -27750,7 +27801,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListFlowRunStepsWithResponse List flow run steps
 	//
-	// List the steps a flow run has recorded, in the order the flow started them.
+	// List the steps a flow run has recorded, in the order the flow started them. A page can hold fewer than `limit` steps and still have more after it, so page until `hasMore` is false.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -27759,12 +27810,12 @@ type ClientWithResponsesInterface interface {
 
 	// GetFlowRunStepWithResponse Retrieve flow run step
 	//
-	// Retrieve a single step of a flow run, including its input, result, error, and failed attempts.
+	// Retrieve a single step of a flow run, including its input, result and error. A sequence number can cover more than one step, so pass the `stepKey` the step listing reported to address one of those.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with GET /flow-runs/{flowRunId}/steps/{stepSeq} (the `GetFlowRunStep` operationId).
-	GetFlowRunStepWithResponse(ctx context.Context, flowRunId externalRef19.FlowRunIDParam, stepSeq externalRef19.FlowRunStepSeqParam, reqEditors ...RequestEditorFn) (*GetFlowRunStepResponse, error)
+	GetFlowRunStepWithResponse(ctx context.Context, flowRunId externalRef19.FlowRunIDParam, stepSeq externalRef19.FlowRunStepSeqParam, params *GetFlowRunStepParams, reqEditors ...RequestEditorFn) (*GetFlowRunStepResponse, error)
 
 	// ListFlowsWithResponse List flows
 	//
@@ -29489,6 +29540,9 @@ type ClientWithResponsesInterface interface {
 	//
 	// Creates a new Render service in the specified workspace with the specified configuration.
 	//
+	// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+	// Build Source in a different region than the service.
+	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /services (the `CreateService` operationId).
@@ -29497,6 +29551,9 @@ type ClientWithResponsesInterface interface {
 	// CreateServiceWithResponse Create service
 	//
 	// Creates a new Render service in the specified workspace with the specified configuration.
+	//
+	// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+	// Build Source in a different region than the service.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29525,6 +29582,9 @@ type ClientWithResponsesInterface interface {
 	//
 	// Update the service with the provided ID.
 	//
+	// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+	// Build Source in a different region than the service.
+	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with PATCH /services/{serviceId} (the `UpdateService` operationId).
@@ -29533,6 +29593,9 @@ type ClientWithResponsesInterface interface {
 	// UpdateServiceWithResponse Update service
 	//
 	// Update the service with the provided ID.
+	//
+	// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+	// Build Source in a different region than the service.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -37286,7 +37349,7 @@ type ListFlowRunStepsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *[]FlowRunStepWithCursor
+	JSON200 *externalRef19.FlowRunStepsPage
 	// JSON400 the response for an HTTP 400 `application/json` response
 	JSON400 *N400BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
@@ -37306,7 +37369,7 @@ type ListFlowRunStepsResponse struct {
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ListFlowRunStepsResponse) GetJSON200() *[]FlowRunStepWithCursor {
+func (r ListFlowRunStepsResponse) GetJSON200() *externalRef19.FlowRunStepsPage {
 	return r.JSON200
 }
 
@@ -58442,7 +58505,7 @@ func (c *ClientWithResponses) GetFlowRunWithResponse(ctx context.Context, flowRu
 
 // ListFlowRunStepsWithResponse List flow run steps
 //
-// List the steps a flow run has recorded, in the order the flow started them.
+// List the steps a flow run has recorded, in the order the flow started them. A page can hold fewer than `limit` steps and still have more after it, so page until `hasMore` is false.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -58457,13 +58520,13 @@ func (c *ClientWithResponses) ListFlowRunStepsWithResponse(ctx context.Context, 
 
 // GetFlowRunStepWithResponse Retrieve flow run step
 //
-// Retrieve a single step of a flow run, including its input, result, error, and failed attempts.
+// Retrieve a single step of a flow run, including its input, result and error. A sequence number can cover more than one step, so pass the `stepKey` the step listing reported to address one of those.
 //
 // Returns a wrapper object for the known response body format(s).
 //
 // Corresponds with GET /flow-runs/{flowRunId}/steps/{stepSeq} (the `GetFlowRunStep` operationId).
-func (c *ClientWithResponses) GetFlowRunStepWithResponse(ctx context.Context, flowRunId externalRef19.FlowRunIDParam, stepSeq externalRef19.FlowRunStepSeqParam, reqEditors ...RequestEditorFn) (*GetFlowRunStepResponse, error) {
-	rsp, err := c.GetFlowRunStep(ctx, flowRunId, stepSeq, reqEditors...)
+func (c *ClientWithResponses) GetFlowRunStepWithResponse(ctx context.Context, flowRunId externalRef19.FlowRunIDParam, stepSeq externalRef19.FlowRunStepSeqParam, params *GetFlowRunStepParams, reqEditors ...RequestEditorFn) (*GetFlowRunStepResponse, error) {
+	rsp, err := c.GetFlowRunStep(ctx, flowRunId, stepSeq, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -61175,6 +61238,9 @@ func (c *ClientWithResponses) ListServicesWithResponse(ctx context.Context, para
 //
 // Creates a new Render service in the specified workspace with the specified configuration.
 //
+// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+// Build Source in a different region than the service.
+//
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /services (the `CreateService` operationId).
@@ -61189,6 +61255,9 @@ func (c *ClientWithResponses) CreateServiceWithBodyWithResponse(ctx context.Cont
 // CreateServiceWithResponse Create service
 //
 // Creates a new Render service in the specified workspace with the specified configuration.
+//
+// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+// Build Source in a different region than the service.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61235,6 +61304,9 @@ func (c *ClientWithResponses) RetrieveServiceWithResponse(ctx context.Context, s
 //
 // Update the service with the provided ID.
 //
+// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+// Build Source in a different region than the service.
+//
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with PATCH /services/{serviceId} (the `UpdateService` operationId).
@@ -61249,6 +61321,9 @@ func (c *ClientWithResponses) UpdateServiceWithBodyWithResponse(ctx context.Cont
 // UpdateServiceWithResponse Update service
 //
 // Update the service with the provided ID.
+//
+// 400 with `code: build_source_region_mismatch` if `buildSourceId` names a git-backed
+// Build Source in a different region than the service.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -70195,7 +70270,7 @@ func ParseListFlowRunStepsResponse(rsp *http.Response) (*ListFlowRunStepsRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []FlowRunStepWithCursor
+		var dest externalRef19.FlowRunStepsPage
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

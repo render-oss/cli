@@ -22,8 +22,8 @@ type Flow struct {
 	Body json.RawMessage
 }
 
-// FlowRunStep is a flow run step record. Id combines the parent flow run ID and
-// the step's sequence number so handlers can look it up by both.
+// FlowRunStep is a flow run step record. FlowRunID and Seq identify it on both
+// the list and the get endpoint.
 type FlowRunStep struct {
 	FlowRunID string
 	Seq       int
@@ -53,6 +53,7 @@ type FlowRunResource struct {
 	Steps         []*FlowRunStep
 	ListCalls     []FlowRunListCall
 	StepListCalls []FlowRunStepListCall
+	StepGetCalls  []FlowRunStepGetCall
 	StartedRuns   []json.RawMessage
 	StartResults  []*FlowRun
 	// nextStartRun, when non-nil, is returned verbatim as the 202 response body
@@ -81,6 +82,13 @@ type FlowRunStepListCall struct {
 	FlowRunID string
 	Limit     string
 	Cursor    string
+}
+
+// FlowRunStepGetCall captures the path parameters the fake saw for one steps
+// get call.
+type FlowRunStepGetCall struct {
+	FlowRunID string
+	Seq       int
 }
 
 // RespondWithBodyForStart queues the raw JSON body for the next POST
@@ -203,20 +211,20 @@ func registerFlowRunRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 			Limit:     r.URL.Query().Get("limit"),
 			Cursor:    r.URL.Query().Get("cursor"),
 		})
-		matched := make([]*FlowRunStep, 0)
+		steps := make([]json.RawMessage, 0)
 		for _, step := range s.FlowRuns.Steps {
 			if step.FlowRunID == id {
-				matched = append(matched, step)
+				steps = append(steps, step.Body)
 			}
 		}
-		result := make([]map[string]json.RawMessage, 0, len(matched))
-		for i, step := range matched {
-			result = append(result, map[string]json.RawMessage{
-				"step":   step.Body,
-				"cursor": json.RawMessage(strconv.Quote("c" + strconv.Itoa(i))),
-			})
+		page := map[string]any{
+			"steps":   steps,
+			"hasMore": true,
 		}
-		writeJSON(w, http.StatusOK, result)
+		if len(steps) > 0 {
+			page["cursor"] = "c" + strconv.Itoa(len(steps)-1)
+		}
+		writeJSON(w, http.StatusOK, page)
 	})
 
 	mux.HandleFunc("GET /flow-runs/{flowRunId}/steps/{stepSeq}", func(w http.ResponseWriter, r *http.Request) {
@@ -227,6 +235,10 @@ func registerFlowRunRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 			writeJSON(w, http.StatusBadRequest, map[string]string{"message": "invalid step sequence"})
 			return
 		}
+		s.FlowRuns.StepGetCalls = append(s.FlowRuns.StepGetCalls, FlowRunStepGetCall{
+			FlowRunID: id,
+			Seq:       seq,
+		})
 		for _, step := range s.FlowRuns.Steps {
 			if step.FlowRunID == id && step.Seq == seq {
 				w.Header().Set("Content-Type", "application/json")

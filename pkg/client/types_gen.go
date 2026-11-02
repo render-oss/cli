@@ -126,6 +126,7 @@ const (
 	SuspendPostgresEvent               AuditLogEvent = "SuspendPostgresEvent"
 	SuspendServiceEvent                AuditLogEvent = "SuspendServiceEvent"
 	UnlinkBuildSourceEnvGroupEvent     AuditLogEvent = "UnlinkBuildSourceEnvGroupEvent"
+	UpdateBuildSourceEvent             AuditLogEvent = "UpdateBuildSourceEvent"
 	UpdateEnvVarsEvent                 AuditLogEvent = "UpdateEnvVarsEvent"
 	UpdateIPAllowListEvent             AuditLogEvent = "UpdateIPAllowListEvent"
 	UpdateOrgPaymentMethodEvent        AuditLogEvent = "UpdateOrgPaymentMethodEvent"
@@ -289,6 +290,8 @@ func (e AuditLogEvent) Valid() bool {
 	case SuspendServiceEvent:
 		return true
 	case UnlinkBuildSourceEnvGroupEvent:
+		return true
+	case UpdateBuildSourceEvent:
 		return true
 	case UpdateEnvVarsEvent:
 		return true
@@ -2327,12 +2330,6 @@ type ExecutionWithCursor struct {
 	Execution externalRef16.Execution `json:"execution"`
 }
 
-// FlowRunStepWithCursor defines model for flowRunStepWithCursor.
-type FlowRunStepWithCursor struct {
-	Cursor Cursor                    `json:"cursor"`
-	Step   externalRef19.FlowRunStep `json:"step"`
-}
-
 // FlowRunWithCursor defines model for flowRunWithCursor.
 type FlowRunWithCursor struct {
 	Cursor  Cursor                `json:"cursor"`
@@ -4121,6 +4118,12 @@ type ListFlowRunStepsParams struct {
 
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetFlowRunStepParams defines parameters for GetFlowRunStep.
+type GetFlowRunStepParams struct {
+	// StepKey The SDK's key for the step, as `stepKey` reports it in the step listing. Steps that share a sequence number are told apart by it. Omit it for a step the SDK recorded without one.
+	StepKey *externalRef19.FlowRunStepKeyParam `form:"stepKey,omitempty" json:"stepKey,omitempty"`
 }
 
 // ListFlowsParams defines parameters for ListFlows.

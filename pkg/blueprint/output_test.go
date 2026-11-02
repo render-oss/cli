@@ -12,7 +12,7 @@ import (
 func TestCreateOutPreservesPlanningFailureData(t *testing.T) {
 	result := bptypes.CreateBlueprintResponse{
 		Blueprint: bptypes.Blueprint{
-			Id: "exs-example", Name: "app", Status: bptypes.StatusCreated,
+			Id: "exs-example", Name: "app", OwnerId: "tea-example", Status: bptypes.StatusCreated,
 			Repo: "https://github.com/acme/app", Branch: "main", Path: "render.yaml", AutoSync: true,
 		},
 		PlanningOutcome: bptypes.PlanningOutcomeFailed,
@@ -29,7 +29,7 @@ func TestCreateOutPreservesPlanningFailureData(t *testing.T) {
 	require.NoError(t, err)
 	require.JSONEq(t, `{
   "data": {
-    "blueprint": {"id":"exs-example","name":"app","status":"created","repo":"https://github.com/acme/app","branch":"main","path":"render.yaml","autoSync":true},
+    "blueprint": {"id":"exs-example","name":"app","ownerId":"tea-example","status":"created","repo":"https://github.com/acme/app","branch":"main","path":"render.yaml","autoSync":true},
     "planningOutcome": "failed",
     "sync": {"id":"exe-example","state":"error","commit":{"id":"abc123"},"dashboardUrl":"https://dashboard.render.com/review","rawPlan":{"actions":["create service"]},"requiredManualEnvVars":[]},
     "notices": [{"severity":"error","message":"invalid plan"}]

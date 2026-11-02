@@ -460,13 +460,11 @@ func TestFlowRunStepsList(t *testing.T) {
 		Seq:       0,
 		Body: json.RawMessage(`{
 			"seq": 0,
-			"stepKey": "step-0",
 			"name": "fetch",
 			"type": "inline",
 			"status": "succeeded",
 			"startedAt": "2026-10-20T01:00:00Z",
-			"completedAt": "2026-10-20T01:00:01Z",
-			"flowRunAttempt": 0
+			"completedAt": "2026-10-20T01:00:01Z"
 		}`),
 	})
 	server.FlowRuns.AddStep(&renderapi.FlowRunStep{
@@ -474,11 +472,9 @@ func TestFlowRunStepsList(t *testing.T) {
 		Seq:       1,
 		Body: json.RawMessage(`{
 			"seq": 1,
-			"stepKey": "step-1",
 			"type": "sleep",
 			"status": "running",
-			"startedAt": "2026-10-20T01:00:01Z",
-			"flowRunAttempt": 0
+			"startedAt": "2026-10-20T01:00:01Z"
 		}`),
 	})
 
@@ -497,7 +493,7 @@ func TestFlowRunStepsList_PaginationFlags(t *testing.T) {
 	server.FlowRuns.AddStep(&renderapi.FlowRunStep{
 		FlowRunID: "frn-1",
 		Seq:       0,
-		Body:      json.RawMessage(`{"seq":0,"stepKey":"k","type":"inline","status":"succeeded","flowRunAttempt":0}`),
+		Body:      json.RawMessage(`{"seq":0,"type":"inline","status":"succeeded","startedAt":"2026-10-20T01:00:00Z"}`),
 	})
 
 	result, err := executeFlowCommand(t, server,
@@ -522,27 +518,27 @@ func TestFlowRunStepShow(t *testing.T) {
 		Seq:       3,
 		Body: json.RawMessage(`{
 			"seq": 3,
-			"stepKey": "step-3",
 			"name": "notify",
 			"type": "detached",
 			"status": "failed",
 			"startedAt": "2026-10-20T01:00:00Z",
 			"completedAt": "2026-10-20T01:00:05Z",
-			"flowRunAttempt": 1,
 			"childTaskRunId": "trn-child",
-			"error": "boom",
-			"attempts": []
+			"error": "boom"
 		}`),
 	})
 
 	result, err := executeFlowCommand(t, server, "flows", "runs", "steps", "show", "frn-1", "3", "--output", "text")
 	require.NoError(t, err)
-	assert.Contains(t, result.Stdout, "Step 3 (step-3)")
+	assert.Contains(t, result.Stdout, "Step 3")
 	assert.Contains(t, result.Stdout, "Name: notify")
 	assert.Contains(t, result.Stdout, "Type: detached")
 	assert.Contains(t, result.Stdout, "Status: failed")
 	assert.Contains(t, result.Stdout, "Child task run: trn-child")
 	assert.Contains(t, result.Stdout, "Error: boom")
+
+	require.Len(t, server.FlowRuns.StepGetCalls, 1)
+	assert.Equal(t, 3, server.FlowRuns.StepGetCalls[0].Seq)
 }
 
 func TestFlowRunStepShow_BadSeq(t *testing.T) {

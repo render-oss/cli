@@ -28,13 +28,12 @@ func FlowDetails(f *workflows.Flow) string {
 // StepDetails formats a flow run step for text output.
 func StepDetails(step *workflows.FlowRunStepDetails) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Step %d (%s)\n", step.Seq, step.StepKey)
+	fmt.Fprintf(&b, "Step %d\n", step.Seq)
 	if step.Name != nil {
 		fmt.Fprintf(&b, "Name: %s\n", *step.Name)
 	}
 	fmt.Fprintf(&b, "Type: %s\n", step.Type)
 	fmt.Fprintf(&b, "Status: %s\n", step.Status)
-	fmt.Fprintf(&b, "Flow run attempt: %d\n", step.FlowRunAttempt)
 	fmt.Fprintf(&b, "Started at: %s\n", step.StartedAt.Format(time.RFC3339))
 	if step.CompletedAt != nil {
 		fmt.Fprintf(&b, "Completed at: %s\n", step.CompletedAt.Format(time.RFC3339))
@@ -55,17 +54,6 @@ func StepDetails(step *workflows.FlowRunStepDetails) string {
 	}
 	if step.Error != nil {
 		fmt.Fprintf(&b, "Error: %s\n", *step.Error)
-	}
-	for _, attempt := range step.Attempts {
-		fmt.Fprintf(&b, "Attempt %d (flow run attempt %d): started %s, completed %s\n",
-			attempt.Attempt,
-			attempt.FlowRunAttempt,
-			attempt.StartedAt.Format(time.RFC3339),
-			attempt.CompletedAt.Format(time.RFC3339),
-		)
-		if attempt.Error != "" {
-			fmt.Fprintf(&b, "  Error: %s\n", attempt.Error)
-		}
 	}
 	return b.String()
 }

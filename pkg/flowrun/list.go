@@ -54,7 +54,7 @@ func RunRow(run *workflows.FlowRun) []string {
 
 // StepHeader returns the column titles for a flow run step list table.
 func StepHeader() []string {
-	return []string{"Seq", "Name", "Type", "Status", "Started", "Completed", "Attempt"}
+	return []string{"Seq", "Name", "Type", "Status", "Started", "Completed"}
 }
 
 // StepRow returns the row values for a single flow run step in a list table.
@@ -70,7 +70,6 @@ func StepRow(step *workflows.FlowRunStep) []string {
 		string(step.Status),
 		step.StartedAt.Format(time.RFC3339),
 		completed,
-		strconv.Itoa(step.FlowRunAttempt),
 	}
 }
 
