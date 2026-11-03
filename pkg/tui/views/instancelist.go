@@ -39,9 +39,12 @@ type InstanceListView struct {
 }
 
 func NewInstanceListView(ctx context.Context, input InstanceListInput) *InstanceListView {
+	// Instances load in a single request, so every load is the first page.
 	list := tui.NewList(
 		"",
-		command.LoadCmd(ctx, LoadInstanceList, input),
+		func(string) tui.TypedCmd[[]*client.ServiceInstance] {
+			return command.LoadCmd(ctx, LoadInstanceList, input)
+		},
 		func(serviceInstance *client.ServiceInstance) tui.ListItem {
 			return instance.NewListItem(serviceInstance)
 		},

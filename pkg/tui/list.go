@@ -20,13 +20,18 @@ type List[T any] struct {
 	items        []T
 	selected     *T
 	title        string
-	loadData     TypedCmd[[]T]
 	makeListItem func(T) ListItem
 	windowHeight int
 	windowWidth  int
 	maxWidth     int
 	onSelect     func(ListItem) tea.Cmd
 
+	// The first Init loads the first page; scrolling past the last item loads
+	// nextCursor's page and appends it. Once loaded, pages stay in memory, so
+	// returning to the list (which re-runs Init) keeps them and the selection.
+	loadData    PageLoader[[]T]
+	loaded      bool
+	nextCursor  string
 	hasMoreData bool
 }
 
@@ -38,9 +43,12 @@ func WithOnSelect[T any](onSelect func(ListItem) tea.Cmd) ListOption[T] {
 	}
 }
 
+// NewList creates a list that loads loadData's first page on its first Init.
+// When a page reports more data, scrolling past the last item loads the next
+// page and appends it.
 func NewList[T any](
 	title string,
-	loadData TypedCmd[[]T],
+	loadData PageLoader[[]T],
 	makeListItem func(T) ListItem,
 	opts ...ListOption[T],
 ) *List[T] {
@@ -76,8 +84,11 @@ func NewList[T any](
 }
 
 func (m *List[T]) Init() tea.Cmd {
+	if m.loaded {
+		return tea.WindowSize()
+	}
 	return tea.Batch(
-		m.loadData.Unwrap(),
+		m.loadData("").Unwrap(),
 		tea.WindowSize(),
 	)
 }
@@ -89,21 +100,34 @@ func (m *List[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.windowWidth = msg.Width
 		m.updateListSize()
 	case LoadDataMsg[[]T]:
-		m.items = msg.Data
+		lastIndex := len(m.items) - 1
+		if msg.Cursor == "" {
+			m.items = msg.Data
+			m.loaded = true
+		} else {
+			m.items = append(m.items, msg.Data...)
+		}
 		listItems := make([]list.Item, len(m.items))
 		for i, item := range m.items {
 			listItems[i] = m.makeListItem(item)
 		}
 		m.list.SetItems(listItems)
 		m.updateListSize()
-		m.hasMoreData = msg.HasMore
+		// The keypress that loaded a next page was consumed by the load, so move
+		// onto the first new item as that keypress would have, unless the
+		// selection moved away from the old last item while the page loaded.
+		if msg.Cursor != "" && len(msg.Data) > 0 && m.list.Index() == lastIndex {
+			m.list.Select(lastIndex + 1)
+		}
+		m.nextCursor = msg.NextCursor
+		m.hasMoreData = msg.NextCursor != ""
 		return m, nil
 	case tea.KeyMsg:
 		if isKeyDown(msg, m.list) && m.hasMoreData && m.list.Index() == len(m.items)-1 {
 			// set hasMoreData to false so we don't load multiple times
 			// if the down button is continuously pressed
 			m.hasMoreData = false
-			return m, m.loadData.Unwrap()
+			return m, m.loadData(m.nextCursor).Unwrap()
 		}
 
 		if msg.String() == "enter" && m.onSelect != nil {

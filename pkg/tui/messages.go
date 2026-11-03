@@ -3,8 +3,13 @@ package tui
 import tea "github.com/charmbracelet/bubbletea"
 
 type LoadDataMsg[T any] struct {
-	Data    T
-	HasMore bool
+	Data T
+	// Cursor is the cursor this page was requested with; empty for the first
+	// page, which tui.List loads in place of its items rather than appending.
+	Cursor string
+	// NextCursor is the cursor for the page after this one; empty on the last
+	// page.
+	NextCursor string
 }
 
 type LoadingDataMsg struct {
@@ -23,6 +28,10 @@ type DoneLoadingDataMsg struct{}
 // type should never be executed directly. Instead, we should return the `tea.Cmd`
 // from an Update or Init function on a `tea.Model`.
 type TypedCmd[D any] tea.Cmd
+
+// PageLoader returns a command that loads the page of data starting at
+// cursor. An empty cursor loads the first page.
+type PageLoader[D any] func(cursor string) TypedCmd[D]
 
 func (c TypedCmd[D]) Unwrap() tea.Cmd {
 	return (tea.Cmd)(c)

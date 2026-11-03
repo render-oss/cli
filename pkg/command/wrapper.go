@@ -179,46 +179,47 @@ func LoadCmd[T any, D any](ctx context.Context, loadData func(context.Context, T
 }
 
 func LoadCmdWithLoadingMsg[T any, D any](ctx context.Context, loadData func(context.Context, T) (D, error), in T, loadingMsg string) tui.TypedCmd[D] {
-	loadDataCmd := func() tea.Msg {
+	return withLoading[D](loadingMsg, func() tea.Msg {
+		data, err := loadData(ctx, in)
+		if err != nil {
+			return tui.ErrorMsg{Err: convertToUserFacingErr(err)}
+		}
+		return tui.LoadDataMsg[D]{Data: data}
+	})
+}
+
+// PaginatedLoadCmd returns a loader for the page of data starting at a cursor.
+// The caller (tui.List) owns the cursor, so it can continue from the last page
+// loaded as the user scrolls.
+func PaginatedLoadCmd[T any, D any](ctx context.Context, loadData func(context.Context, T, client.Cursor) (client.Cursor, D, error), in T) tui.PageLoader[D] {
+	return func(cursor string) tui.TypedCmd[D] {
+		return withLoading[D]("", func() tea.Msg {
+			return loadPageMsg(ctx, loadData, in, cursor)
+		})
+	}
+}
+
+// withLoading shows the stack's loading spinner while load runs, then hides it.
+func withLoading[D any](loadingMsg string, load tea.Cmd) tui.TypedCmd[D] {
+	return func() tea.Msg {
 		return tui.LoadingDataMsg{
 			LoadingMsgTmpl: loadingMsg,
 			Cmd: tea.Sequence(
-				func() tea.Msg {
-					data, err := loadData(ctx, in)
-					if err != nil {
-						return tui.ErrorMsg{Err: convertToUserFacingErr(err)}
-					}
-					return tui.LoadDataMsg[D]{Data: data}
-				},
+				load,
 				func() tea.Msg {
 					return tui.DoneLoadingDataMsg{}
 				},
 			),
 		}
 	}
-	return loadDataCmd
 }
 
-func PaginatedLoadCmd[T any, D any](ctx context.Context, loadData func(context.Context, T, client.Cursor) (client.Cursor, D, error), in T) tui.TypedCmd[D] {
-	cursor := ""
-	loadDataCmd := func() tea.Msg {
-		return tui.LoadingDataMsg{
-			Cmd: tea.Sequence(
-				func() tea.Msg {
-					next, data, err := loadData(ctx, in, cursor)
-					if err != nil {
-						return tui.ErrorMsg{Err: convertToUserFacingErr(err)}
-					}
-					cursor = next
-					return tui.LoadDataMsg[D]{Data: data, HasMore: cursor != ""}
-				},
-				func() tea.Msg {
-					return tui.DoneLoadingDataMsg{}
-				},
-			),
-		}
+func loadPageMsg[T any, D any](ctx context.Context, loadData func(context.Context, T, client.Cursor) (client.Cursor, D, error), in T, cursor string) tea.Msg {
+	next, data, err := loadData(ctx, in, cursor)
+	if err != nil {
+		return tui.ErrorMsg{Err: convertToUserFacingErr(err)}
 	}
-	return loadDataCmd
+	return tui.LoadDataMsg[D]{Data: data, Cursor: cursor, NextCursor: next}
 }
 
 func WrapInConfirm[D any](cmd tui.TypedCmd[D], msgFunc func() (string, error)) tui.TypedCmd[D] {
