@@ -94,7 +94,7 @@ func TestSandboxCreateInputValidateTimeout(t *testing.T) {
 	}{
 		{name: "zero means no timeout", timeout: 0},
 		{name: "one second", timeout: 1},
-		{name: "the documented maximum", timeout: 86400},
+		{name: "the documented maximum", timeout: 2592000},
 		{name: "negative is rejected rather than silently defaulted", timeout: -1, errContains: "invalid timeout -1"},
 	}
 

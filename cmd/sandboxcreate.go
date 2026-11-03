@@ -181,7 +181,7 @@ Examples:
 	cmd.Flags().String("group", "", "Sandbox group ID. Omit to use the workspace default group")
 	setFlagPlaceholder(cmd.Flags(), "group", "SANDBOX_GROUP_ID")
 	setFlagAlias(cmd.Flags(), "sandbox-group", "group")
-	cmd.Flags().Int("timeout", 0, "Maximum sandbox lifetime in seconds, up to 2592000 (30 days), or 86400 (24 hours) on Hobby workspaces. 0 means no timeout. Omit to use the default of 86400 (24 hours)")
+	cmd.Flags().Int("timeout", 0, "Maximum sandbox lifetime in seconds, up to 2592000 (30 days). 0 means no timeout. Omit to use the default of 86400 (24 hours)")
 	cmd.Flags().Int("idle-timeout", 900, "Seconds of inactivity before suspension. 0 disables automatic idle suspension")
 	cmd.Flags().String("network-policy", "", "Outbound network policy: "+strings.Join(sandboxNetworkPolicyNames(), ", "))
 	setFlagPlaceholder(cmd.Flags(), "network-policy", "NETWORK_POLICY")
