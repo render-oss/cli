@@ -190,19 +190,26 @@ func TestResolveSandboxSource(t *testing.T) {
 		explicitID       string
 		wantSnapshotID   string
 		wantSnapshotName *string
+		wantErr          string
 	}{
 		{name: "explicit snapshot id", explicitID: "snp-explicit", wantSnapshotID: "snp-explicit"},
 		{name: "exact snapshot id", from: "snp-0123456789abcdefghij", fromSet: true, wantSnapshotID: "snp-0123456789abcdefghij"},
 		{name: "name", from: "gold", fromSet: true, wantSnapshotName: commandStringPointer("gold")},
 		{name: "empty value is a name", fromSet: true, wantSnapshotName: commandStringPointer("")},
-		{name: "short snp prefix is a name", from: "snp-abc123", fromSet: true, wantSnapshotName: commandStringPointer("snp-abc123")},
-		{name: "uppercase character is a name", from: "snp-0123456789abcdefghiJ", fromSet: true, wantSnapshotName: commandStringPointer("snp-0123456789abcdefghiJ")},
-		{name: "w is outside id alphabet", from: "snp-0123456789abcdefghiw", fromSet: true, wantSnapshotName: commandStringPointer("snp-0123456789abcdefghiw")},
+		{name: "short snp prefix is an invalid id", from: "snp-abc123", fromSet: true, wantErr: `invalid snapshot ID "snp-abc123"`},
+		{name: "extra trailing character is an invalid id", from: "snp-dbd6e3hh65dg00ff651ga", fromSet: true, wantErr: `invalid snapshot ID "snp-dbd6e3hh65dg00ff651ga"`},
+		{name: "uppercase character is an invalid id", from: "snp-0123456789abcdefghiJ", fromSet: true, wantErr: `invalid snapshot ID "snp-0123456789abcdefghiJ"`},
+		{name: "w is outside id alphabet", from: "snp-0123456789abcdefghiw", fromSet: true, wantErr: `invalid snapshot ID "snp-0123456789abcdefghiw"`},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			snapshotID, snapshotName := resolveSandboxSource(tc.from, tc.fromSet, tc.explicitID)
+			snapshotID, snapshotName, err := resolveSandboxSource(tc.from, tc.fromSet, tc.explicitID)
+			if tc.wantErr != "" {
+				require.ErrorContains(t, err, tc.wantErr)
+				return
+			}
+			require.NoError(t, err)
 			assert.Equal(t, tc.wantSnapshotID, snapshotID)
 			assert.Equal(t, tc.wantSnapshotName, snapshotName)
 		})

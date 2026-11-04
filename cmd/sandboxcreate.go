@@ -82,14 +82,18 @@ func (i *SandboxCreateInput) egressRules() []sandboxclient.SandboxEgressRule {
 
 var sandboxSnapshotIDPattern = regexp.MustCompile(`^snp-[0-9a-v]{20}$`)
 
-func resolveSandboxSource(from string, fromSet bool, snapshotID string) (string, *string) {
+func resolveSandboxSource(from string, fromSet bool, snapshotID string) (string, *string, error) {
 	if !fromSet {
-		return snapshotID, nil
+		return snapshotID, nil, nil
 	}
 	if sandboxSnapshotIDPattern.MatchString(from) {
-		return from, nil
+		return from, nil, nil
 	}
-	return "", &from
+	// If it looks like a valid id but isn't quite (eg: they deleted a character by mistake), show a clear error
+	if strings.HasPrefix(from, "snp-") {
+		return "", nil, fmt.Errorf("invalid snapshot ID %q: snapshot IDs are \"snp-\" followed by 20 lowercase characters", from)
+	}
+	return "", &from, nil
 }
 
 var sandboxImageIDPattern = regexp.MustCompile(`^sbb-[0-9a-v]{20}$`)
@@ -230,7 +234,10 @@ Examples:
 		if err != nil {
 			return err
 		}
-		snapshotID, snapshotName := resolveSandboxSource(input.From, cmd.Flags().Changed("from"), input.SnapshotID)
+		snapshotID, snapshotName, err := resolveSandboxSource(input.From, cmd.Flags().Changed("from"), input.SnapshotID)
+		if err != nil {
+			return err
+		}
 		imageID, imageName := resolveSandboxImage(input.Image, cmd.Flags().Changed("image"))
 		var timeout *int
 		if cmd.Flags().Changed("timeout") {
