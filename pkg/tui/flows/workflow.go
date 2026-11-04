@@ -191,7 +191,11 @@ func (f *Workflow) versionList(ctx context.Context, input *workflowviews.Version
 	)
 }
 
-func (f *Workflow) workflowListPalette(ctx context.Context, r resource.Resource) tea.Cmd {
+// FlowListAction opens the flows of the given workflow. The flow screens live
+// in cmd, so the caller supplies them.
+type FlowListAction func(ctx context.Context, workflowID string) tea.Cmd
+
+func (f *Workflow) workflowListPalette(ctx context.Context, r resource.Resource, flowList FlowListAction) tea.Cmd {
 	return command.AddToStack(f.deps.Stack(), f.deps.ListWorkflow(), resource.BreadcrumbForResource(r), &views.PaletteCommand{},
 		views.NewPaletteView(ctx, []views.PaletteCommand{
 			{
@@ -201,6 +205,13 @@ func (f *Workflow) workflowListPalette(ctx context.Context, r resource.Resource)
 					return f.taskList(ctx, &workflowviews.TaskListInput{WorkflowID: r.ID(), LatestVersionOnly: true}, func(t *workflows.Task) tea.Cmd {
 						return f.taskListPalette(ctx, t)
 					})
+				},
+			},
+			{
+				Name:        "flows",
+				Description: "View flows for this workflow",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return flowList(ctx, r.ID())
 				},
 			},
 			{
@@ -239,9 +250,9 @@ func (f *Workflow) workflowListPalette(ctx context.Context, r resource.Resource)
 	)
 }
 
-func (f *Workflow) WorkflowListPaletteFlow(ctx context.Context, input *workflowviews.WorkflowInput) tea.Cmd {
+func (f *Workflow) WorkflowListPaletteFlow(ctx context.Context, input *workflowviews.WorkflowInput, flowList FlowListAction) tea.Cmd {
 	return f.workflowList(ctx, input, func(ctx context.Context, r resource.Resource) tea.Cmd {
-		return f.workflowListPalette(ctx, r)
+		return f.workflowListPalette(ctx, r, flowList)
 	})
 }
 

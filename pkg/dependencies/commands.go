@@ -13,6 +13,10 @@ type WorkflowCommands struct {
 	RunCancelCmd      *cobra.Command
 	WorkflowListCmd   *cobra.Command
 	WorkflowCreateCmd *cobra.Command
+	FlowListCmd       *cobra.Command
+	FlowRunListCmd    *cobra.Command
+	FlowRunStartCmd   *cobra.Command
+	FlowRunShowCmd    *cobra.Command
 }
 
 type LogsCommands struct {

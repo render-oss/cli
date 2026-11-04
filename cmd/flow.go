@@ -173,6 +173,34 @@ type flowTUI struct {
 	runShowCmd  *cobra.Command
 }
 
+// newFlowTUI opens the flow screens under the commands setupFlowCommands
+// registered.
+func newFlowTUI(deps *dependencies.Dependencies) *flowTUI {
+	cmds := deps.Commands.Workflow
+	return &flowTUI{
+		deps:        deps,
+		listCmd:     cmds.FlowListCmd,
+		runListCmd:  cmds.FlowRunListCmd,
+		runStartCmd: cmds.FlowRunStartCmd,
+		runShowCmd:  cmds.FlowRunShowCmd,
+	}
+}
+
+// workflowFlows shows the flows of one workflow, as flows list --workflow does.
+func (s *flowTUI) workflowFlows(ctx context.Context, workflowID string) tea.Cmd {
+	workspaceID, err := config.WorkspaceID()
+	if err != nil {
+		return command.AddErrToStack(ctx, s.listCmd, err)
+	}
+
+	input := &FlowListInput{WorkflowIDs: []string{workflowID}}
+	return s.flowTable(ctx, "Flows", input, &client.ListFlowsParams{
+		OwnerId:    pointers.From([]string{workspaceID}),
+		WorkflowId: &input.WorkflowIDs,
+		Limit:      pointers.From(defaultFlowListPageSize),
+	})
+}
+
 // flowList prompts for a workflow when no filter narrows the list, then shows
 // the matching flows.
 func (s *flowTUI) flowList(ctx context.Context, input *FlowListInput, params *client.ListFlowsParams) tea.Cmd {

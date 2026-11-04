@@ -178,8 +178,14 @@ func setupFlowCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
 			newFlowRunStepShowCmd(deps),
 		),
 	)
+	list := newFlowListCmd(deps, runList, runStart, runShow)
+	// The workflow list menu opens the same flow screens as flows list.
+	deps.Commands.Workflow.FlowListCmd = list
+	deps.Commands.Workflow.FlowRunListCmd = runList
+	deps.Commands.Workflow.FlowRunStartCmd = runStart
+	deps.Commands.Workflow.FlowRunShowCmd = runShow
 	parent.AddCommand(newFlowsCmd(
-		newFlowListCmd(deps, runList, runStart, runShow),
+		list,
 		newFlowGetCmd(deps),
 		runs,
 	))

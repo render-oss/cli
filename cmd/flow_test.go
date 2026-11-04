@@ -661,6 +661,19 @@ func TestFlowList_InteractivePromptsForWorkflowWithoutFilters(t *testing.T) {
 	assert.Empty(t, server.Flows.ListCalls)
 }
 
+func TestFlowList_WorkflowMenuShowsFlowsForWorkflow(t *testing.T) {
+	withFlowWorkspace(t)
+	server := renderapi.NewServer(t)
+	screens := newFlowTUI(newTestFlowTUI(t, server).deps)
+
+	screens.workflowFlows(context.Background(), "wfl-1")
+
+	pushed := popOnly(t, screens.deps.Stack())
+	assert.Equal(t, "Flows", pushed.Breadcrumb)
+	assert.Equal(t, "render flows list --workflow=wfl-1", strings.TrimSpace(pushed.Cmd))
+	assert.Empty(t, server.Flows.ListCalls)
+}
+
 func TestFlowList_InteractiveFlowMenu(t *testing.T) {
 	screens := newTestFlowTUI(t, renderapi.NewServer(t))
 

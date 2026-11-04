@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/text"
 	"github.com/render-oss/cli/pkg/tui/flows"
@@ -13,7 +14,7 @@ import (
 	"github.com/render-oss/cli/pkg/workflow"
 )
 
-func NewWorkflowListCmd(deps flows.WorkflowDeps) *cobra.Command {
+func NewWorkflowListCmd(deps *dependencies.Dependencies) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List workflow services in your workspace",
@@ -41,7 +42,7 @@ func NewWorkflowListCmd(deps flows.WorkflowDeps) *cobra.Command {
 				return nil
 			}
 
-			flows.NewWorkflow(deps, flows.NewLogFlow(deps), false).WorkflowListPaletteFlow(cmd.Context(), &input)
+			flows.NewWorkflow(deps, flows.NewLogFlow(deps), false).WorkflowListPaletteFlow(cmd.Context(), &input, newFlowTUI(deps).workflowFlows)
 
 			return nil
 		},
