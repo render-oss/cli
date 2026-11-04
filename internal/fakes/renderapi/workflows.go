@@ -33,8 +33,9 @@ func NewWorkflow(w wfclient.Workflow) *wfclient.Workflow {
 	return &w
 }
 
-// registerWorkflowRoutes wires GET /workflows on the shared mux. It supports
-// the ownerId filter and returns every match on a single page.
+// registerWorkflowRoutes wires GET /workflows and GET /workflows/{workflowId}
+// on the shared mux. The list supports the ownerId filter and returns every
+// match on a single page.
 func registerWorkflowRoutes(mux *http.ServeMux, s *Server, record func(*http.Request)) {
 	mux.HandleFunc("GET /workflows", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
@@ -50,5 +51,17 @@ func registerWorkflowRoutes(mux *http.ServeMux, s *Server, record func(*http.Req
 			})
 		}
 		writeJSON(w, http.StatusOK, result)
+	})
+
+	mux.HandleFunc("GET /workflows/{workflowId}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		id := r.PathValue("workflowId")
+		for _, wf := range s.Workflows.Instances {
+			if wf.Id == id {
+				writeJSON(w, http.StatusOK, wf)
+				return
+			}
+		}
+		http.NotFound(w, r)
 	})
 }

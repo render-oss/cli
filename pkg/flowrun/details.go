@@ -8,6 +8,7 @@ import (
 	"time"
 
 	workflows "github.com/render-oss/cli/pkg/client/workflows"
+	"github.com/render-oss/cli/pkg/tui"
 )
 
 // FlowDetails formats a flow definition for text output.
@@ -23,6 +24,46 @@ func FlowDetails(f *workflows.Flow) string {
 	}
 	fmt.Fprintf(&b, "Created at: %s\n", f.CreatedAt.Format(time.RFC3339))
 	return b.String()
+}
+
+// RunDetailsFormat formats a flow run for the interactive details view.
+func RunDetailsFormat(run *workflows.FlowRunDetails) []tui.KeyValue {
+	if run == nil {
+		return nil
+	}
+
+	var startedAt, completedAt string
+	if run.StartedAt != nil {
+		startedAt = run.StartedAt.Format(time.RFC3339)
+	}
+	if run.CompletedAt != nil {
+		completedAt = run.CompletedAt.Format(time.RFC3339)
+	}
+
+	keyValues := []tui.KeyValue{
+		{Key: "ID", Value: run.Id},
+		{Key: "Flow ID", Value: run.FlowId},
+		{Key: "Status", Value: runStatusStyle(run.Status).Render(string(run.Status))},
+		{Key: "Started At", Value: startedAt},
+		{Key: "Completed At", Value: completedAt},
+	}
+
+	if input, err := json.Marshal(run.Input); err == nil {
+		keyValues = append(keyValues, tui.KeyValue{Key: "Input", Value: string(input)})
+	}
+
+	switch {
+	case run.ErrorDetails != nil:
+		keyValues = append(keyValues, tui.KeyValue{Key: "Error", Value: strings.TrimSpace(ErrorDescription(run.ErrorDetails))})
+	case run.Error != nil:
+		keyValues = append(keyValues, tui.KeyValue{Key: "Error", Value: *run.Error})
+	case len(run.Results) > 0:
+		if results, err := json.Marshal(run.Results); err == nil {
+			keyValues = append(keyValues, tui.KeyValue{Key: "Results", Value: string(results)})
+		}
+	}
+
+	return keyValues
 }
 
 // StepDetails formats a flow run step for text output.

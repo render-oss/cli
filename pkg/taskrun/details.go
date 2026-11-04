@@ -50,3 +50,12 @@ func TaskRunDetailsFormat(taskRun *wfclient.TaskRunDetails) []tui.KeyValue {
 
 	return keyValues
 }
+
+// IsFinished reports whether a task run has reached a final status.
+func IsFinished(status wfclient.TaskRunStatus) bool {
+	switch status {
+	case wfclient.Completed, wfclient.Succeeded, wfclient.Failed, wfclient.Canceled:
+		return true
+	}
+	return false
+}

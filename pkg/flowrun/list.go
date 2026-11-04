@@ -87,3 +87,12 @@ func runStatusStyle(status workflows.FlowRunStatus) lipgloss.Style {
 func RunStatusStyle(status workflows.FlowRunStatus) lipgloss.Style {
 	return runStatusStyle(status)
 }
+
+// IsFinished reports whether a flow run has reached a final status.
+func IsFinished(status workflows.FlowRunStatus) bool {
+	switch status {
+	case workflows.FlowRunStatusSucceeded, workflows.FlowRunStatusFailed, workflows.FlowRunStatusCanceled:
+		return true
+	}
+	return false
+}

@@ -2,10 +2,14 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -17,6 +21,8 @@ import (
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/flowrun"
 	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/tui"
+	workflowviews "github.com/render-oss/cli/pkg/tui/views/workflows"
 )
 
 var flowActiveWorkspaceID = testids.WorkspaceID("flow-active")
@@ -585,6 +591,195 @@ func seedWorkflow(server *renderapi.Server, slug string) *wfclient.Workflow {
 		OwnerId: flowActiveWorkspaceID,
 		Slug:    pointers.From(slug),
 	}))
+}
+
+// newTestFlowTUI builds the interactive flow screens against server, using
+// the same commands setupFlowCommands registers.
+func newTestFlowTUI(t *testing.T, server *renderapi.Server) *flowTUI {
+	t.Helper()
+	// The log screen builds its API client from config, so keep tests off the
+	// developer's own login.
+	t.Setenv("RENDER_CLI_CONFIG_PATH", newTestConfigPath(t))
+	t.Setenv("RENDER_API_KEY", "test-api-key")
+
+	c, err := client.NewClientWithResponses(server.URL())
+	require.NoError(t, err)
+	deps := dependencies.New(c)
+	deps.SetStack(tui.NewStack())
+
+	root := newRootCmd()
+	setupFlowCommands(root, deps)
+	find := func(path ...string) *cobra.Command {
+		found, _, err := root.Find(path)
+		require.NoError(t, err)
+		return found
+	}
+
+	deps.Logs.LogsCmd = NewLogsCmd(deps)
+	root.AddCommand(deps.Logs.LogsCmd)
+
+	return &flowTUI{
+		deps:        deps,
+		listCmd:     find("flows", "list"),
+		runListCmd:  find("flows", "runs", "list"),
+		runStartCmd: find("flows", "runs", "start"),
+		runShowCmd:  find("flows", "runs", "show"),
+	}
+}
+
+// popOnly pops the stack's only entry.
+func popOnly(t *testing.T, stack *tui.StackModel) *tui.ModelWithCmd {
+	t.Helper()
+	pushed := stack.Pop()
+	require.NotNil(t, pushed)
+	assert.True(t, stack.IsEmpty())
+	return pushed
+}
+
+func TestFlowList_InteractiveShowsFlowsForFilter(t *testing.T) {
+	server := renderapi.NewServer(t)
+	screens := newTestFlowTUI(t, server)
+
+	input := &FlowListInput{WorkflowIDs: []string{"wfl-1"}}
+	screens.flowList(context.Background(), input, &client.ListFlowsParams{})
+
+	pushed := popOnly(t, screens.deps.Stack())
+	assert.Equal(t, "Flows", pushed.Breadcrumb)
+	assert.Equal(t, "render flows list --workflow=wfl-1", strings.TrimSpace(pushed.Cmd))
+	// Flows load when the view initializes, not when it is pushed.
+	assert.Empty(t, server.Flows.ListCalls)
+}
+
+func TestFlowList_InteractivePromptsForWorkflowWithoutFilters(t *testing.T) {
+	server := renderapi.NewServer(t)
+	screens := newTestFlowTUI(t, server)
+
+	screens.flowList(context.Background(), &FlowListInput{}, &client.ListFlowsParams{})
+
+	pushed := popOnly(t, screens.deps.Stack())
+	assert.Equal(t, "Workflows", pushed.Breadcrumb)
+	assert.Empty(t, server.Flows.ListCalls)
+}
+
+func TestFlowList_InteractiveFlowMenu(t *testing.T) {
+	screens := newTestFlowTUI(t, renderapi.NewServer(t))
+
+	screens.flowPalette(context.Background(), &wfclient.Flow{Id: "flw-1", Name: "my-flow"})
+
+	pushed := popOnly(t, screens.deps.Stack())
+	assert.Equal(t, "my-flow", pushed.Breadcrumb)
+}
+
+func TestFlowList_InteractiveRunsLoadsRunsForFlow(t *testing.T) {
+	withFlowWorkspace(t)
+	server := renderapi.NewServer(t)
+	screens := newTestFlowTUI(t, server)
+
+	screens.runList(context.Background(), &wfclient.Flow{Id: "flw-1", Name: "my-flow"})
+
+	pushed := popOnly(t, screens.deps.Stack())
+	assert.Equal(t, "Runs", pushed.Breadcrumb)
+	assert.Equal(t, "render flows runs list --flow=flw-1", strings.TrimSpace(pushed.Cmd))
+
+	_, err := screens.loadRuns(context.Background(), "flw-1")
+	require.NoError(t, err)
+	require.Len(t, server.FlowRuns.ListCalls, 1)
+	call := server.FlowRuns.ListCalls[0]
+	assert.Equal(t, []string{flowActiveWorkspaceID}, call.OwnerIds)
+	assert.Equal(t, []string{"flw-1"}, call.FlowIds)
+}
+
+func TestFlowList_InteractiveRunMenu(t *testing.T) {
+	screens := newTestFlowTUI(t, renderapi.NewServer(t))
+
+	screens.runPalette(context.Background(), &wfclient.Flow{Id: "flw-1"}, &wfclient.FlowRun{Id: "frn-1"})
+
+	pushed := popOnly(t, screens.deps.Stack())
+	assert.Equal(t, "frn-1", pushed.Breadcrumb)
+}
+
+func TestFlowList_InteractiveRunLogs(t *testing.T) {
+	startedAt := time.Date(2026, 10, 20, 1, 0, 0, 0, time.UTC)
+	completedAt := startedAt.Add(time.Minute)
+	flow := &wfclient.Flow{Id: "flw-1", WorkflowId: pointers.From("wfl-1")}
+
+	tests := []struct {
+		name     string
+		run      *wfclient.FlowRun
+		wantArgs []string
+		wantTail bool
+	}{
+		{
+			name: "finished run shows its window",
+			run: &wfclient.FlowRun{
+				Id: "frn-1", Status: wfclient.FlowRunStatusSucceeded,
+				StartedAt: &startedAt, CompletedAt: &completedAt,
+			},
+			wantArgs: []string{"--start=", "--end="},
+		},
+		{
+			name:     "running run tails",
+			run:      &wfclient.FlowRun{Id: "frn-1", Status: wfclient.FlowRunStatusRunning, StartedAt: &startedAt},
+			wantArgs: []string{"--start="},
+			wantTail: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			screens := newTestFlowTUI(t, renderapi.NewServer(t))
+
+			screens.runLogs(context.Background(), flow, tc.run)
+
+			pushed := popOnly(t, screens.deps.Stack())
+			assert.Equal(t, "Logs", pushed.Breadcrumb)
+			assert.Contains(t, pushed.Cmd, "render logs")
+			assert.Contains(t, pushed.Cmd, "--resources=wfl-1")
+			assert.Contains(t, pushed.Cmd, "--task-run-id=frn-1")
+			for _, arg := range tc.wantArgs {
+				assert.Contains(t, pushed.Cmd, arg)
+			}
+			if tc.wantTail {
+				assert.Contains(t, pushed.Cmd, "--tail")
+			} else {
+				assert.NotContains(t, pushed.Cmd, "--tail")
+				assert.Contains(t, pushed.Cmd, "--end=")
+			}
+		})
+	}
+}
+
+// A versioned flow must run that version, so the TUI starts it by ID instead
+// of by slug, which would run the workflow's latest version.
+func TestFlowList_InteractiveStartRunUsesFlowID(t *testing.T) {
+	server := renderapi.NewServer(t)
+	server.FlowRuns.RespondWithBodyForStart(json.RawMessage(`{
+		"id": "frn-new",
+		"flowId": "flw-1",
+		"status": "pending"
+	}`))
+	screens := newTestFlowTUI(t, server)
+	flow := &wfclient.Flow{Id: "flw-1", Name: "my-flow", WorkflowId: pointers.From("wfl-1"), WorkflowVersionId: pointers.From("wfv-old")}
+
+	run, err := screens.startRun(context.Background(), flow, workflowviews.FlowRunInput{Input: `{"name": "x"}`})
+	require.NoError(t, err)
+	assert.Equal(t, "frn-new", run.Id)
+
+	require.Len(t, server.FlowRuns.StartedRuns, 1)
+	var body map[string]any
+	require.NoError(t, json.Unmarshal(server.FlowRuns.StartedRuns[0], &body))
+	assert.Equal(t, "flw-1", body["flow"])
+	assert.Equal(t, map[string]any{"name": "x"}, body["input"])
+}
+
+func TestFlowList_InteractiveStartRunRejectsInvalidJSON(t *testing.T) {
+	server := renderapi.NewServer(t)
+	screens := newTestFlowTUI(t, server)
+	flow := &wfclient.Flow{Id: "flw-1", Name: "my-flow"}
+
+	_, err := screens.startRun(context.Background(), flow, workflowviews.FlowRunInput{Input: "not json"})
+	require.ErrorContains(t, err, "input must be valid JSON")
+	assert.Empty(t, server.FlowRuns.StartedRuns)
 }
 
 func TestFlowList_ResolvesWorkflowSlug(t *testing.T) {

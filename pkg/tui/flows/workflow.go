@@ -86,18 +86,12 @@ func (f *Workflow) taskRun(ctx context.Context, input *workflowviews.TaskRunInpu
 		f.deps.StartTask(),
 		"Run",
 		input,
-		workflowviews.NewTaskRunView(ctx, f.deps.WorkflowLoader(), input, f.deps.StartTask(), func(j *workflows.TaskRun) tea.Cmd {
+		workflowviews.NewRunView(ctx, f.deps.WorkflowLoader().CreateTaskRun, input, f.deps.StartTask(), func(j *workflows.TaskRun) tea.Cmd {
 			workflowID, err := f.getWorkflowID(ctx, j.TaskId)
 			if err != nil {
 				return command.AddErrToStack(ctx, f.deps.StartTask(), err)
 			}
-			return f.logsFlow.LogsFlow(ctx, views.LogInput{
-				// Start querying logs from 10 seconds ago to avoid missing any logs
-				StartTime:   &command.TimeOrRelative{T: pointers.From(time.Now().Add(-10 * time.Second))},
-				ResourceIDs: []string{workflowID},
-				TaskRunID:   []string{j.Id},
-				Tail:        true,
-			})
+			return f.logsFlow.LogsFlow(ctx, views.StartedRunLogInput(workflowID, j.Id))
 		}),
 	)
 }
@@ -326,27 +320,9 @@ func (f *Workflow) runListPalette(ctx context.Context, taskRun *workflows.TaskRu
 					if err != nil {
 						return command.AddErrToStack(ctx, f.deps.ListRuns(), err)
 					}
-					var startTime *command.TimeOrRelative
-					if taskRun.StartedAt != nil {
-						t := taskRun.StartedAt.Add(-5 * time.Second)
-						startTime = &command.TimeOrRelative{T: &t}
-					}
-					var endTime *command.TimeOrRelative
-					if taskRun.CompletedAt != nil {
-						t := taskRun.CompletedAt.Add(5 * time.Second)
-						endTime = &command.TimeOrRelative{T: &t}
-					}
-					var tail bool
-					if taskRun.Status != workflows.Completed && taskRun.Status != workflows.Succeeded && taskRun.Status != workflows.Failed {
-						tail = true
-					}
-					return f.logsFlow.LogsFlow(ctx, views.LogInput{
-						ResourceIDs: []string{workflowID},
-						TaskRunID:   []string{taskRun.Id},
-						StartTime:   startTime,
-						EndTime:     endTime,
-						Tail:        tail,
-					})
+					return f.logsFlow.LogsFlow(ctx, views.RunLogInput(
+						workflowID, taskRun.Id, taskRun.StartedAt, taskRun.CompletedAt, taskrun.IsFinished(taskRun.Status),
+					))
 				},
 			},
 			{

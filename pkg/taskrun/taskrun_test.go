@@ -216,3 +216,25 @@ func TestRow(t *testing.T) {
 		assert.True(t, strings.Contains(row[4], "5m30s"), "expected duration to contain 5m30s, got %s", row[4])
 	})
 }
+
+func TestIsFinished(t *testing.T) {
+	tests := []struct {
+		status wfclient.TaskRunStatus
+		want   bool
+	}{
+		{wfclient.Pending, false},
+		{wfclient.Running, false},
+		{wfclient.Paused, false},
+		{wfclient.Completed, true},
+		{wfclient.Succeeded, true},
+		{wfclient.Failed, true},
+		// Canceled runs used to be treated as unfinished, so their logs tailed forever.
+		{wfclient.Canceled, true},
+	}
+
+	for _, tc := range tests {
+		t.Run(string(tc.status), func(t *testing.T) {
+			assert.Equal(t, tc.want, IsFinished(tc.status))
+		})
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
 	"github.com/render-oss/cli/pkg/client"
@@ -18,7 +19,12 @@ import (
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/flowrun"
 	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/text"
+	"github.com/render-oss/cli/pkg/tui"
+	tuiflows "github.com/render-oss/cli/pkg/tui/flows"
+	"github.com/render-oss/cli/pkg/tui/views"
+	workflowviews "github.com/render-oss/cli/pkg/tui/views/workflows"
 	"github.com/render-oss/cli/pkg/workflow"
 )
 
@@ -59,7 +65,7 @@ type FlowListInput struct {
 	Cursor             string   `cli:"cursor"`
 }
 
-func newFlowListCmd(deps *dependencies.Dependencies) *cobra.Command {
+func newFlowListCmd(deps *dependencies.Dependencies, runListCmd, runStartCmd, runShowCmd *cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "list",
 		Aliases:      []string{"ls"},
@@ -69,7 +75,11 @@ func newFlowListCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Long: `List flows accessible to your active workspace.
 
 Flows are filtered by the active workspace. Narrow further with --flow-slug,
---workflow, or --workflow-version. The flag can be repeated.`,
+--workflow, or --workflow-version. The flag can be repeated.
+
+In interactive mode, you will be prompted to select a workflow if no filter is
+provided. Select a flow to view its runs or start a new run, then view a
+run's logs or results.`,
 		Example: `  # List all flows in the active workspace
   render workflows flows list
 
@@ -96,8 +106,6 @@ Flows are filtered by the active workspace. Narrow further with --flow-slug,
 	})
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		command.DefaultFormatNonInteractive(cmd)
-
 		var input FlowListInput
 		if err := command.ParseCommand(cmd, args, &input); err != nil {
 			return err
@@ -133,19 +141,177 @@ Flows are filtered by the active workspace. Narrow further with --flow-slug,
 		}
 
 		var cursor client.Cursor
-		if _, err := command.NonInteractive(cmd, func() ([]*workflows.Flow, error) {
+		nonInteractive, err := command.NonInteractive(cmd, func() ([]*workflows.Flow, error) {
 			var flows []*workflows.Flow
 			var err error
 			cursor, flows, err = deps.FlowRunRepo().ListFlows(cmd.Context(), params)
 			return flows, err
-		}, text.FlowTable); err != nil {
+		}, text.FlowTable)
+		if err != nil {
 			return err
 		}
-		printNextCursorHint(cmd, cursor)
+		if nonInteractive {
+			printNextCursorHint(cmd, cursor)
+			return nil
+		}
+
+		screens := &flowTUI{deps: deps, listCmd: cmd, runListCmd: runListCmd, runStartCmd: runStartCmd, runShowCmd: runShowCmd}
+		screens.flowList(cmd.Context(), &input, params)
 		return nil
 	}
 
 	return cmd
+}
+
+// flowTUI opens the interactive flow screens. Each screen is pushed under the
+// command that prints the same data, so the stack shows the equivalent command.
+type flowTUI struct {
+	deps        *dependencies.Dependencies
+	listCmd     *cobra.Command
+	runListCmd  *cobra.Command
+	runStartCmd *cobra.Command
+	runShowCmd  *cobra.Command
+}
+
+// flowList prompts for a workflow when no filter narrows the list, then shows
+// the matching flows.
+func (s *flowTUI) flowList(ctx context.Context, input *FlowListInput, params *client.ListFlowsParams) tea.Cmd {
+	if len(input.FlowSlugs) == 0 && len(input.WorkflowIDs) == 0 && len(input.WorkflowVersionIDs) == 0 {
+		return command.AddToStack(s.deps.Stack(), s.listCmd, "Workflows", input,
+			workflowviews.NewWorkflowList(ctx, s.deps.WorkflowLoader(), workflowviews.WorkflowInput{}, func(ctx context.Context, r resource.Resource) tea.Cmd {
+				input.WorkflowIDs = []string{r.ID()}
+				params.WorkflowId = &input.WorkflowIDs
+				return s.flowTable(ctx, resource.BreadcrumbForResource(r), input, params)
+			}),
+		)
+	}
+
+	return s.flowTable(ctx, "Flows", input, params)
+}
+
+func (s *flowTUI) flowTable(ctx context.Context, breadcrumb string, input *FlowListInput, params *client.ListFlowsParams) tea.Cmd {
+	loadFlows := func(ctx context.Context, params *client.ListFlowsParams) ([]*workflows.Flow, error) {
+		_, flows, err := s.deps.FlowRunRepo().ListFlows(ctx, params)
+		return flows, err
+	}
+
+	return command.AddToStack(s.deps.Stack(), s.listCmd, breadcrumb, input,
+		workflowviews.NewFlowListView(command.LoadCmd(ctx, loadFlows, params), func(f *workflows.Flow) tea.Cmd {
+			return s.flowPalette(ctx, f)
+		}),
+	)
+}
+
+func (s *flowTUI) flowPalette(ctx context.Context, f *workflows.Flow) tea.Cmd {
+	return command.AddToStack(s.deps.Stack(), s.listCmd, f.Name, &views.PaletteCommand{},
+		views.NewPaletteView(ctx, []views.PaletteCommand{
+			{
+				Name:        "runs",
+				Description: "View all runs for this flow",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return s.runList(ctx, f)
+				},
+			},
+			{
+				Name:        "run",
+				Description: "Start a new flow run with inputs",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return s.runStart(ctx, f)
+				},
+			},
+		}),
+	)
+}
+
+func (s *flowTUI) runList(ctx context.Context, f *workflows.Flow) tea.Cmd {
+	return command.AddToStack(s.deps.Stack(), s.runListCmd, "Runs", &FlowRunListInput{FlowIDs: []string{f.Id}},
+		workflowviews.NewFlowRunListView(command.LoadCmd(ctx, s.loadRuns, f.Id), func(run *workflows.FlowRun) tea.Cmd {
+			return s.runPalette(ctx, f, run)
+		}),
+	)
+}
+
+func (s *flowTUI) runPalette(ctx context.Context, f *workflows.Flow, run *workflows.FlowRun) tea.Cmd {
+	return command.AddToStack(s.deps.Stack(), s.runListCmd, run.Id, &views.PaletteCommand{},
+		views.NewPaletteView(ctx, []views.PaletteCommand{
+			{
+				Name:        "logs",
+				Description: "View flow run logs",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return s.runLogs(ctx, f, run)
+				},
+			},
+			{
+				Name:        "results",
+				Description: "View flow run results",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return s.runDetails(ctx, run.Id)
+				},
+			},
+		}),
+	)
+}
+
+// runLogs opens a flow run's logs.
+func (s *flowTUI) runLogs(ctx context.Context, f *workflows.Flow, run *workflows.FlowRun) tea.Cmd {
+	if f.WorkflowId == nil {
+		return command.AddErrToStack(ctx, s.runListCmd, fmt.Errorf("flow %s has no workflow", f.Id))
+	}
+
+	return tuiflows.NewLogFlow(s.deps).LogsFlow(ctx, views.RunLogInput(
+		*f.WorkflowId, run.Id, run.StartedAt, run.CompletedAt, flowrun.IsFinished(run.Status),
+	))
+}
+
+func (s *flowTUI) loadRuns(ctx context.Context, flowID string) ([]*workflows.FlowRun, error) {
+	workspaceID, err := config.WorkspaceID()
+	if err != nil {
+		return nil, err
+	}
+
+	_, runs, err := s.deps.FlowRunRepo().ListFlowRuns(ctx, &client.ListFlowRunsParams{
+		OwnerId: pointers.From([]string{workspaceID}),
+		FlowId:  pointers.From([]string{flowID}),
+		Limit:   pointers.From(defaultFlowListPageSize),
+	})
+	return runs, err
+}
+
+func (s *flowTUI) runStart(ctx context.Context, f *workflows.Flow) tea.Cmd {
+	input := &workflowviews.FlowRunInput{}
+	startRun := func(ctx context.Context, in workflowviews.FlowRunInput) (*workflows.FlowRun, error) {
+		return s.startRun(ctx, f, in)
+	}
+
+	return command.AddToStack(s.deps.Stack(), s.runStartCmd, "Run", input,
+		workflowviews.NewRunView(ctx, startRun, input, s.runStartCmd, func(run *workflows.FlowRun) tea.Cmd {
+			return tuiflows.NewLogFlow(s.deps).LogsFlow(ctx, views.StartedRunLogInput(pointers.StringValue(f.WorkflowId), run.Id))
+		}),
+	)
+}
+
+// startRun starts a run of the selected flow. It passes the flow's ID rather
+// than a slug so the run uses the flow's own version, not the latest.
+func (s *flowTUI) startRun(ctx context.Context, f *workflows.Flow, in workflowviews.FlowRunInput) (*workflows.FlowRun, error) {
+	var flowInput workflows.FlowInput
+	if err := json.Unmarshal([]byte(in.Input), &flowInput); err != nil {
+		return nil, fmt.Errorf("input must be valid JSON: %w", err)
+	}
+
+	return s.deps.FlowRunRepo().StartFlowRun(ctx, workflows.StartFlowRun{
+		Flow:  f.Id,
+		Input: flowInput,
+	})
+}
+
+func (s *flowTUI) runDetails(ctx context.Context, flowRunID string) tea.Cmd {
+	return command.AddToStack(s.deps.Stack(), s.runShowCmd, "Details", &FlowRunShowInput{FlowRunID: flowRunID},
+		tui.NewDetailsModel(
+			"Flow Run Details",
+			command.LoadCmd(ctx, s.deps.FlowRunRepo().GetFlowRun, flowRunID),
+			flowrun.RunDetailsFormat,
+		),
+	)
 }
 
 func newFlowGetCmd(deps *dependencies.Dependencies) *cobra.Command {
@@ -415,8 +581,7 @@ func newFlowRunCancelCmd(deps *dependencies.Dependencies) *cobra.Command {
 			if err != nil {
 				return "", err
 			}
-			switch run.Status {
-			case workflows.FlowRunStatusSucceeded, workflows.FlowRunStatusFailed, workflows.FlowRunStatusCanceled:
+			if flowrun.IsFinished(run.Status) {
 				return "", fmt.Errorf("flow run %s already finished (%s)", flowRunID, run.Status)
 			}
 
@@ -429,6 +594,11 @@ func newFlowRunCancelCmd(deps *dependencies.Dependencies) *cobra.Command {
 	}
 
 	return cmd
+}
+
+// FlowRunShowInput is the raw command input for `render workflows flows runs show`.
+type FlowRunShowInput struct {
+	FlowRunID string `cli:"arg:0"`
 }
 
 func newFlowRunShowCmd(deps *dependencies.Dependencies) *cobra.Command {

@@ -102,3 +102,23 @@ func TestErrorDescription(t *testing.T) {
 		})
 	}
 }
+
+func TestIsFinished(t *testing.T) {
+	tests := []struct {
+		status workflows.FlowRunStatus
+		want   bool
+	}{
+		{workflows.FlowRunStatusPending, false},
+		{workflows.FlowRunStatusRunning, false},
+		{workflows.FlowRunStatusPaused, false},
+		{workflows.FlowRunStatusSucceeded, true},
+		{workflows.FlowRunStatusFailed, true},
+		{workflows.FlowRunStatusCanceled, true},
+	}
+
+	for _, tc := range tests {
+		t.Run(string(tc.status), func(t *testing.T) {
+			assert.Equal(t, tc.want, flowrun.IsFinished(tc.status))
+		})
+	}
+}
