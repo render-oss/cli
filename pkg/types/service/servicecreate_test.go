@@ -216,6 +216,62 @@ func TestServiceCreateCLIInputValidate(t *testing.T) {
 	})
 }
 
+func TestNormalizeServiceCloneCLIInput(t *testing.T) {
+	t.Run("keeps blank clearable settings as empty", func(t *testing.T) {
+		got := servicetypes.NormalizeServiceCloneCLIInput(servicetypes.ServiceCreateInput{
+			From:             pointers.From(" srv-source "),
+			RootDirectory:    pointers.From(""),
+			HealthCheckPath:  pointers.From(" \t "),
+			PreDeployCommand: pointers.From(""),
+		})
+		assert.Equal(t, "srv-source", *got.From)
+		require.NotNil(t, got.RootDirectory)
+		assert.Equal(t, "", *got.RootDirectory)
+		require.NotNil(t, got.HealthCheckPath)
+		assert.Equal(t, "", *got.HealthCheckPath)
+		require.NotNil(t, got.PreDeployCommand)
+		assert.Equal(t, "", *got.PreDeployCommand)
+
+		// The final create normalization still omits them.
+		final := servicetypes.NormalizeServiceCreateCLIInput(got)
+		assert.Nil(t, final.RootDirectory)
+		assert.Nil(t, final.HealthCheckPath)
+		assert.Nil(t, final.PreDeployCommand)
+	})
+
+	t.Run("normalizes set and unset clearable settings as for create", func(t *testing.T) {
+		got := servicetypes.NormalizeServiceCloneCLIInput(servicetypes.ServiceCreateInput{
+			RootDirectory:   pointers.From(" services/api "),
+			HealthCheckPath: pointers.From("/healthz"),
+		})
+		assert.Equal(t, "services/api", *got.RootDirectory)
+		assert.Equal(t, "/healthz", *got.HealthCheckPath)
+		assert.Nil(t, got.PreDeployCommand)
+	})
+
+	t.Run("other blank settings still count as unset", func(t *testing.T) {
+		blank := pointers.From(" ")
+		got := servicetypes.NormalizeServiceCloneCLIInput(servicetypes.ServiceCreateInput{
+			Type:               svcTypeRaw(" "),
+			Repo:               blank,
+			Branch:             blank,
+			Image:              blank,
+			Region:             svcRegion(" "),
+			Plan:               blank,
+			Runtime:            svcRuntime(" "),
+			BuildCommand:       blank,
+			StartCommand:       blank,
+			PublishDirectory:   blank,
+			CronCommand:        blank,
+			CronSchedule:       blank,
+			EnvironmentID:      blank,
+			RegistryCredential: blank,
+			MaintenanceModeURI: blank,
+		})
+		assert.Equal(t, servicetypes.NormalizeServiceCreateCLIInput(servicetypes.ServiceCreateInput{}), got)
+	})
+}
+
 func TestValidateFlagsForType(t *testing.T) {
 	t.Run("rejects --cron-command for web service", func(t *testing.T) {
 		input := servicetypes.ServiceCreateInput{
@@ -428,6 +484,36 @@ func TestNormalizeAndValidateCreateInput(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+}
+
+func TestNormalizeServiceCreateCLIInputCommandText(t *testing.T) {
+	t.Run("keeps command text exactly", func(t *testing.T) {
+		got := servicetypes.NormalizeServiceCreateCLIInput(servicetypes.ServiceCreateInput{
+			BuildCommand:     pointers.From(`printf '%s' tail\ `),
+			StartCommand:     pointers.From("printf '%s' tail\\\t"),
+			PreDeployCommand: pointers.From(" bin/migrate "),
+			CronCommand:      pointers.From(`printf '%s' 'tail '`),
+			CronSchedule:     pointers.From(" 0 * * * * "),
+		})
+		assert.Equal(t, `printf '%s' tail\ `, *got.BuildCommand)
+		assert.Equal(t, "printf '%s' tail\\\t", *got.StartCommand)
+		assert.Equal(t, " bin/migrate ", *got.PreDeployCommand)
+		assert.Equal(t, `printf '%s' 'tail '`, *got.CronCommand)
+		assert.Equal(t, "0 * * * *", *got.CronSchedule)
+	})
+
+	t.Run("whitespace-only commands are omitted", func(t *testing.T) {
+		got := servicetypes.NormalizeServiceCreateCLIInput(servicetypes.ServiceCreateInput{
+			BuildCommand:     pointers.From(" \t "),
+			StartCommand:     pointers.From(""),
+			PreDeployCommand: pointers.From("   "),
+			CronCommand:      pointers.From("\n"),
+		})
+		assert.Nil(t, got.BuildCommand)
+		assert.Nil(t, got.StartCommand)
+		assert.Nil(t, got.PreDeployCommand)
+		assert.Nil(t, got.CronCommand)
+	})
 }
 
 func svcType(value servicetypes.ServiceType) *servicetypes.ServiceType {
