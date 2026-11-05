@@ -203,7 +203,12 @@ func setupSandboxCommands(parent *cobra.Command, deps *dependencies.Dependencies
 func setupSandboxGroupsCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
 	images := newSandboxImagesCmd(newSandboxImagesImportCmd(deps), newSandboxImagesGetCmd(deps))
 	builds := newDeprecatedSandboxBuildsCmd(newSandboxImagesImportCmd(deps), newSandboxImagesGetCmd(deps))
-	parent.AddCommand(newSandboxGroupsCmd(images, builds, newSandboxGroupsListCmd(deps), newSandboxGroupsCreateCmd(deps)))
+	credentials := newSandboxCredentialsCmd(
+		newSandboxCredentialsCreateCmd(deps), newSandboxCredentialsGetCmd(deps), newSandboxCredentialsListCmd(deps),
+		newSandboxCredentialsUpdateCmd(deps), newSandboxCredentialsDeleteCmd(deps),
+		newSandboxCredentialsVersionsCmd(deps), newSandboxCredentialsRestoreCmd(deps),
+	)
+	parent.AddCommand(newSandboxGroupsCmd(images, builds, newSandboxGroupsListCmd(deps), newSandboxGroupsCreateCmd(deps), credentials))
 }
 
 func setupBlueprintCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {

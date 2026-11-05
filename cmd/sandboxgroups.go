@@ -20,6 +20,7 @@ Images that sandboxes start from belong to a sandbox group; see
 Examples:
   render sandbox-groups list
   render sandbox-groups list -o json
+  render sandbox-groups credentials list
   render sandbox-groups create --name agents
   render sandbox-groups images import python:3.13 --name python
 `,

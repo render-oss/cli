@@ -20,6 +20,7 @@ import (
 	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/resource"
 	"github.com/render-oss/cli/pkg/sandbox"
+	"github.com/render-oss/cli/pkg/sandboxcredential"
 	"github.com/render-oss/cli/pkg/sandboxgroup"
 	"github.com/render-oss/cli/pkg/sandboximage"
 	"github.com/render-oss/cli/pkg/sandboxsnapshot"
@@ -46,41 +47,43 @@ func (c *cache[T]) Get(fn func() T) T {
 }
 
 type cachedDependencies struct {
-	workflowLoader         cache[*workflowviews.WorkflowLoader]
-	workflowService        cache[*workflow.Service]
-	workflowRepo           cache[*workflow.Repo]
-	workflowVersionRepo    cache[*version.Repo]
-	taskRepo               cache[*tasks.Repo]
-	flowRunRepo            cache[*flowrun.Repo]
-	projectRepo            cache[*project.Repo]
-	environmentRepo        cache[*environment.Repo]
-	serviceRepo            cache[*service.Repo]
-	registryRepo           cache[*registry.Repo]
-	registryService        cache[*registry.Service]
-	postgresRepo           cache[*postgres.Repo]
-	blueprintRepo          cache[*blueprint.Repo]
-	blueprintService       cache[*blueprint.Service]
-	sandboxRepo            cache[*sandbox.Repo]
-	sandboxGroupRepo       cache[*sandboxgroup.Repo]
-	sandboxSnapshotRepo    cache[*sandboxsnapshot.Repo]
-	sandboxImageRepo       cache[*sandboximage.Repo]
-	keyValueRepo           cache[*keyvalue.Repo]
-	userRepo               cache[*user.Repo]
-	ownerRepo              cache[*owner.Repo]
-	deployRepo             cache[*deploy.Repo]
-	resolver               cache[*resolve.Resolver]
-	serviceService         cache[*service.Service]
-	postgresService        cache[*postgres.Service]
-	sandboxService         cache[*sandbox.Service]
-	sandboxGroupService    cache[*sandboxgroup.Service]
-	sandboxSnapshotService cache[*sandboxsnapshot.Service]
-	sandboxImageService    cache[*sandboximage.Service]
-	keyValueService        cache[*keyvalue.Service]
-	resourceService        cache[*resource.Service]
-	logRepo                cache[*logs.LogRepo]
-	logLoader              cache[*views.LogLoader]
-	resourceLoader         cache[*views.ResourceLoader]
-	apiConfig              cache[*config.APIConfig]
+	workflowLoader           cache[*workflowviews.WorkflowLoader]
+	workflowService          cache[*workflow.Service]
+	workflowRepo             cache[*workflow.Repo]
+	workflowVersionRepo      cache[*version.Repo]
+	taskRepo                 cache[*tasks.Repo]
+	flowRunRepo              cache[*flowrun.Repo]
+	projectRepo              cache[*project.Repo]
+	environmentRepo          cache[*environment.Repo]
+	serviceRepo              cache[*service.Repo]
+	registryRepo             cache[*registry.Repo]
+	registryService          cache[*registry.Service]
+	postgresRepo             cache[*postgres.Repo]
+	blueprintRepo            cache[*blueprint.Repo]
+	blueprintService         cache[*blueprint.Service]
+	sandboxRepo              cache[*sandbox.Repo]
+	sandboxCredentialRepo    cache[*sandboxcredential.Repo]
+	sandboxGroupRepo         cache[*sandboxgroup.Repo]
+	sandboxSnapshotRepo      cache[*sandboxsnapshot.Repo]
+	sandboxImageRepo         cache[*sandboximage.Repo]
+	keyValueRepo             cache[*keyvalue.Repo]
+	userRepo                 cache[*user.Repo]
+	ownerRepo                cache[*owner.Repo]
+	deployRepo               cache[*deploy.Repo]
+	resolver                 cache[*resolve.Resolver]
+	serviceService           cache[*service.Service]
+	postgresService          cache[*postgres.Service]
+	sandboxService           cache[*sandbox.Service]
+	sandboxCredentialService cache[*sandboxcredential.Service]
+	sandboxGroupService      cache[*sandboxgroup.Service]
+	sandboxSnapshotService   cache[*sandboxsnapshot.Service]
+	sandboxImageService      cache[*sandboximage.Service]
+	keyValueService          cache[*keyvalue.Service]
+	resourceService          cache[*resource.Service]
+	logRepo                  cache[*logs.LogRepo]
+	logLoader                cache[*views.LogLoader]
+	resourceLoader           cache[*views.ResourceLoader]
+	apiConfig                cache[*config.APIConfig]
 }
 
 type Dependencies struct {
@@ -192,6 +195,12 @@ func (d *Dependencies) SandboxRepo() *sandbox.Repo {
 	})
 }
 
+func (d *Dependencies) SandboxCredentialRepo() *sandboxcredential.Repo {
+	return d.cache.sandboxCredentialRepo.Get(func() *sandboxcredential.Repo {
+		return sandboxcredential.NewRepo(d.client)
+	})
+}
+
 func (d *Dependencies) SandboxGroupRepo() *sandboxgroup.Repo {
 	return d.cache.sandboxGroupRepo.Get(func() *sandboxgroup.Repo {
 		return sandboxgroup.NewRepo(d.client)
@@ -255,6 +264,12 @@ func (d *Dependencies) PostgresService() *postgres.Service {
 func (d *Dependencies) SandboxService() *sandbox.Service {
 	return d.cache.sandboxService.Get(func() *sandbox.Service {
 		return sandbox.NewService(d.SandboxRepo())
+	})
+}
+
+func (d *Dependencies) SandboxCredentialService() *sandboxcredential.Service {
+	return d.cache.sandboxCredentialService.Get(func() *sandboxcredential.Service {
+		return sandboxcredential.NewService(d.SandboxCredentialRepo(), d.SandboxGroupService())
 	})
 }
 

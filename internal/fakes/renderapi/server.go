@@ -295,28 +295,29 @@ func NewUser(u client.User) client.User {
 // Server is a fake Render API HTTP server for command-level tests.
 // All HTTP plumbing is internal — tests seed state via Add() methods and assert against resource Instances.
 type Server struct {
-	server           *httptest.Server
-	Requests         []RecordedRequest
-	CurrentUser      *client.User
-	Owners           *Resource[*client.Owner]
-	Projects         *Resource[*client.Project]
-	Environments     *Resource[*client.Environment]
-	KV               *KVResource
-	Postgres         *PostgresResource
-	Services         *ServiceResource
-	Deploys          *DeployResource
-	Blueprints       *BlueprintResource
-	SandboxGroups    *SandboxGroupResource
-	Sandboxes        *SandboxResource
-	SandboxSnapshots *SandboxSnapshotResource
-	SandboxBuilds    *SandboxBuildResource
-	CliTelemetry     *CliTelemetryResource
-	OAuth            *OAuthResource
-	Logs             *LogResource
-	Flows            *FlowResource
-	FlowRuns         *FlowRunResource
-	Workflows        *Resource[*wfclient.Workflow]
-	userErrorQueue   []int
+	server             *httptest.Server
+	Requests           []RecordedRequest
+	CurrentUser        *client.User
+	Owners             *Resource[*client.Owner]
+	Projects           *Resource[*client.Project]
+	Environments       *Resource[*client.Environment]
+	KV                 *KVResource
+	Postgres           *PostgresResource
+	Services           *ServiceResource
+	Deploys            *DeployResource
+	Blueprints         *BlueprintResource
+	SandboxGroups      *SandboxGroupResource
+	Sandboxes          *SandboxResource
+	SandboxSnapshots   *SandboxSnapshotResource
+	SandboxCredentials *SandboxCredentialResource
+	SandboxBuilds      *SandboxBuildResource
+	CliTelemetry       *CliTelemetryResource
+	OAuth              *OAuthResource
+	Logs               *LogResource
+	Flows              *FlowResource
+	FlowRuns           *FlowRunResource
+	Workflows          *Resource[*wfclient.Workflow]
+	userErrorQueue     []int
 }
 
 // ownerByID returns the Owner with the given ID from the seeded owners. The
@@ -419,24 +420,25 @@ func NewServer(t *testing.T) *Server {
 	t.Helper()
 
 	s := &Server{
-		Owners:           &Resource[*client.Owner]{},
-		Projects:         &Resource[*client.Project]{},
-		Environments:     &Resource[*client.Environment]{},
-		KV:               &KVResource{},
-		Postgres:         &PostgresResource{},
-		Services:         &ServiceResource{},
-		Deploys:          &DeployResource{},
-		Blueprints:       &BlueprintResource{},
-		SandboxGroups:    &SandboxGroupResource{},
-		Sandboxes:        &SandboxResource{},
-		SandboxSnapshots: &SandboxSnapshotResource{},
-		SandboxBuilds:    &SandboxBuildResource{},
-		CliTelemetry:     &CliTelemetryResource{},
-		OAuth:            &OAuthResource{},
-		Logs:             &LogResource{t: t},
-		Flows:            &FlowResource{},
-		FlowRuns:         &FlowRunResource{},
-		Workflows:        &Resource[*wfclient.Workflow]{},
+		Owners:             &Resource[*client.Owner]{},
+		Projects:           &Resource[*client.Project]{},
+		Environments:       &Resource[*client.Environment]{},
+		KV:                 &KVResource{},
+		Postgres:           &PostgresResource{},
+		Services:           &ServiceResource{},
+		Deploys:            &DeployResource{},
+		Blueprints:         &BlueprintResource{},
+		SandboxGroups:      &SandboxGroupResource{},
+		Sandboxes:          &SandboxResource{},
+		SandboxSnapshots:   &SandboxSnapshotResource{},
+		SandboxCredentials: &SandboxCredentialResource{},
+		SandboxBuilds:      &SandboxBuildResource{},
+		CliTelemetry:       &CliTelemetryResource{},
+		OAuth:              &OAuthResource{},
+		Logs:               &LogResource{t: t},
+		Flows:              &FlowResource{},
+		FlowRuns:           &FlowRunResource{},
+		Workflows:          &Resource[*wfclient.Workflow]{},
 	}
 
 	mux := http.NewServeMux()
@@ -1096,6 +1098,7 @@ func NewServer(t *testing.T) *Server {
 	registerSandboxGroupRoutes(mux, s, record)
 	registerSandboxRoutes(mux, s, record)
 	registerSandboxSnapshotRoutes(mux, s, record)
+	registerSandboxCredentialRoutes(mux, s, record)
 	registerSandboxBuildRoutes(mux, s, record)
 	registerCliTelemetryRoutes(mux, s, record)
 	registerOAuthRoutes(mux, s, record)
