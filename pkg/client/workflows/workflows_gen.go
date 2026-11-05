@@ -672,10 +672,13 @@ type Workflow struct {
 	AutoDeployTrigger *AutoDeployTrigger `json:"autoDeployTrigger,omitempty"`
 	BuildConfig       BuildConfig        `json:"buildConfig"`
 	CreatedAt         time.Time          `json:"createdAt"`
-	EnvironmentId     *string            `json:"environmentId,omitempty"`
-	Id                string             `json:"id"`
-	Name              string             `json:"name"`
-	OwnerId           string             `json:"ownerId"`
+
+	// DefaultVersionId ID of the workflow version that new task runs use by default. Omitted until a version has been registered.
+	DefaultVersionId *string `json:"defaultVersionId,omitempty"`
+	EnvironmentId    *string `json:"environmentId,omitempty"`
+	Id               string  `json:"id"`
+	Name             string  `json:"name"`
+	OwnerId          string  `json:"ownerId"`
 
 	// Region Defaults to "oregon"
 	Region Region `json:"region"`

@@ -27,9 +27,9 @@ import (
 	externalRef14 "github.com/render-oss/cli/pkg/client/notifications"
 	externalRef15 "github.com/render-oss/cli/pkg/client/postgres"
 	externalRef16 "github.com/render-oss/cli/pkg/client/sandboxes"
-	externalRef17 "github.com/render-oss/cli/pkg/client/storage"
-	externalRef18 "github.com/render-oss/cli/pkg/client/webhooks"
-	externalRef19 "github.com/render-oss/cli/pkg/client/workflows"
+	externalRef18 "github.com/render-oss/cli/pkg/client/storage"
+	externalRef19 "github.com/render-oss/cli/pkg/client/webhooks"
+	externalRef20 "github.com/render-oss/cli/pkg/client/workflows"
 )
 
 // Defines values for DeployMode.
@@ -132,6 +132,7 @@ const (
 	UpdateOrgPaymentMethodEvent        AuditLogEvent = "UpdateOrgPaymentMethodEvent"
 	UpdateOtelIntegrationEvent         AuditLogEvent = "UpdateOtelIntegrationEvent"
 	UpdateSSOConnectionEvent           AuditLogEvent = "UpdateSSOConnectionEvent"
+	UpdateServiceBuildSourceEvent      AuditLogEvent = "UpdateServiceBuildSourceEvent"
 	UpdateServiceNameEvent             AuditLogEvent = "UpdateServiceNameEvent"
 	UpdateWebhookEvent                 AuditLogEvent = "UpdateWebhookEvent"
 	UpdateWorkspacePaymentMethodEvent  AuditLogEvent = "UpdateWorkspacePaymentMethodEvent"
@@ -302,6 +303,8 @@ func (e AuditLogEvent) Valid() bool {
 	case UpdateOtelIntegrationEvent:
 		return true
 	case UpdateSSOConnectionEvent:
+		return true
+	case UpdateServiceBuildSourceEvent:
 		return true
 	case UpdateServiceNameEvent:
 		return true
@@ -2333,13 +2336,13 @@ type ExecutionWithCursor struct {
 // FlowRunWithCursor defines model for flowRunWithCursor.
 type FlowRunWithCursor struct {
 	Cursor  Cursor                `json:"cursor"`
-	FlowRun externalRef19.FlowRun `json:"flowRun"`
+	FlowRun externalRef20.FlowRun `json:"flowRun"`
 }
 
 // FlowWithCursor defines model for flowWithCursor.
 type FlowWithCursor struct {
 	Cursor Cursor             `json:"cursor"`
-	Flow   externalRef19.Flow `json:"flow"`
+	Flow   externalRef20.Flow `json:"flow"`
 }
 
 // Header defines model for header.
@@ -3530,13 +3533,13 @@ type SyncWithCursor struct {
 // TaskRunWithCursor defines model for taskRunWithCursor.
 type TaskRunWithCursor struct {
 	Cursor  Cursor                `json:"cursor"`
-	TaskRun externalRef19.TaskRun `json:"taskRun"`
+	TaskRun externalRef20.TaskRun `json:"taskRun"`
 }
 
 // TaskWithCursor defines model for taskWithCursor.
 type TaskWithCursor struct {
 	Cursor Cursor             `json:"cursor"`
-	Task   externalRef19.Task `json:"task"`
+	Task   externalRef20.Task `json:"task"`
 }
 
 // TeamMember defines model for teamMember.
@@ -3699,25 +3702,25 @@ type WebServiceDetailsPOST struct {
 // WebhookEventWithCursor defines model for webhookEventWithCursor.
 type WebhookEventWithCursor struct {
 	Cursor       Cursor                     `json:"cursor"`
-	WebhookEvent externalRef18.WebhookEvent `json:"webhookEvent"`
+	WebhookEvent externalRef19.WebhookEvent `json:"webhookEvent"`
 }
 
 // WebhookWithCursor defines model for webhookWithCursor.
 type WebhookWithCursor struct {
 	Cursor  Cursor                `json:"cursor"`
-	Webhook externalRef18.Webhook `json:"webhook"`
+	Webhook externalRef19.Webhook `json:"webhook"`
 }
 
 // WorkflowVersionWithCursor defines model for workflowVersionWithCursor.
 type WorkflowVersionWithCursor struct {
 	Cursor          Cursor                        `json:"cursor"`
-	WorkflowVersion externalRef19.WorkflowVersion `json:"workflowVersion"`
+	WorkflowVersion externalRef20.WorkflowVersion `json:"workflowVersion"`
 }
 
 // WorkflowWithCursor defines model for workflowWithCursor.
 type WorkflowWithCursor struct {
 	Cursor   Cursor                 `json:"cursor"`
-	Workflow externalRef19.Workflow `json:"workflow"`
+	Workflow externalRef20.Workflow `json:"workflow"`
 }
 
 // AuditLogLimitParam Defaults to 20
@@ -4093,22 +4096,22 @@ type ListFlowRunsParams struct {
 	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// FlowSlug An array of flow slugs in the format workflow-slug/flow-name. An optional version can be appended (workflow-slug/flow-name:version). If no version is provided, the latest version is used.
-	FlowSlug *externalRef19.FlowSlugFilterParam `form:"flowSlug,omitempty" json:"flowSlug,omitempty"`
+	FlowSlug *externalRef20.FlowSlugFilterParam `form:"flowSlug,omitempty" json:"flowSlug,omitempty"`
 
 	// FlowId An array of flow IDs
-	FlowId *externalRef19.FlowIDFilterParam `form:"flowId,omitempty" json:"flowId,omitempty"`
+	FlowId *externalRef20.FlowIDFilterParam `form:"flowId,omitempty" json:"flowId,omitempty"`
 
 	// Status An array of flow run statuses to filter on
-	Status *externalRef19.FlowRunStatusFilterParam `form:"status,omitempty" json:"status,omitempty"`
+	Status *externalRef20.FlowRunStatusFilterParam `form:"status,omitempty" json:"status,omitempty"`
 
 	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// WorkflowVersionId An array of workflow version IDs
-	WorkflowVersionId *externalRef19.WorkflowVersionIDFilterParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`
+	WorkflowVersionId *externalRef20.WorkflowVersionIDFilterParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`
 
 	// WorkflowId An array of workflow IDs
-	WorkflowId *externalRef19.WorkflowIDFilterParam `form:"workflowId,omitempty" json:"workflowId,omitempty"`
+	WorkflowId *externalRef20.WorkflowIDFilterParam `form:"workflowId,omitempty" json:"workflowId,omitempty"`
 }
 
 // ListFlowRunStepsParams defines parameters for ListFlowRunSteps.
@@ -4123,7 +4126,7 @@ type ListFlowRunStepsParams struct {
 // GetFlowRunStepParams defines parameters for GetFlowRunStep.
 type GetFlowRunStepParams struct {
 	// StepKey The SDK's key for the step, as `stepKey` reports it in the step listing. Steps that share a sequence number are told apart by it. Omit it for a step the SDK recorded without one.
-	StepKey *externalRef19.FlowRunStepKeyParam `form:"stepKey,omitempty" json:"stepKey,omitempty"`
+	StepKey *externalRef20.FlowRunStepKeyParam `form:"stepKey,omitempty" json:"stepKey,omitempty"`
 }
 
 // ListFlowsParams defines parameters for ListFlows.
@@ -4138,13 +4141,13 @@ type ListFlowsParams struct {
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// FlowSlug An array of flow slugs in the format workflow-slug/flow-name. An optional version can be appended (workflow-slug/flow-name:version). If no version is provided, the latest version is used.
-	FlowSlug *externalRef19.FlowSlugFilterParam `form:"flowSlug,omitempty" json:"flowSlug,omitempty"`
+	FlowSlug *externalRef20.FlowSlugFilterParam `form:"flowSlug,omitempty" json:"flowSlug,omitempty"`
 
 	// WorkflowVersionId An array of workflow version IDs
-	WorkflowVersionId *externalRef19.WorkflowVersionIDFilterParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`
+	WorkflowVersionId *externalRef20.WorkflowVersionIDFilterParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`
 
 	// WorkflowId An array of workflow IDs
-	WorkflowId *externalRef19.WorkflowIDFilterParam `form:"workflowId,omitempty" json:"workflowId,omitempty"`
+	WorkflowId *externalRef20.WorkflowIDFilterParam `form:"workflowId,omitempty" json:"workflowId,omitempty"`
 }
 
 // ListKeyValueParams defines parameters for ListKeyValue.
@@ -5139,7 +5142,7 @@ type ConnectSandboxFilesParams struct {
 	// determined from the sandbox ID, and this parameter is ignored when supplied.
 	OwnerId *externalRef16.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
-	// Path Path in the sandbox this token authorizes. A relative path resolves within the sandbox's home directory ("." is the home directory itself); an absolute path addresses the sandbox filesystem root. For an archive upload, the extraction root; for a download, the file or directory to fetch.
+	// Path Path in the sandbox this token authorizes. A relative path resolves within the sandbox's working directory, which is the image's WORKDIR or, when the image sets none, the home directory ("." is the working directory itself); an absolute path addresses the sandbox filesystem root. For an archive upload, the extraction root; for a download, the file or directory to fetch.
 	Path string `form:"path" json:"path"`
 }
 
@@ -5461,6 +5464,12 @@ type AddOrUpdateSecretFileJSONBody struct {
 	Content *string `json:"content,omitempty"`
 }
 
+// ListSharedFilesystemsParams defines parameters for ListSharedFilesystems.
+type ListSharedFilesystemsParams struct {
+	// OwnerId The ID of the workspace whose shared filesystems to return.
+	OwnerId string `form:"ownerId" json:"ownerId"`
+}
+
 // ListTaskRunsParams defines parameters for ListTaskRuns.
 type ListTaskRunsParams struct {
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
@@ -5470,19 +5479,19 @@ type ListTaskRunsParams struct {
 	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// TaskSlug An array of task slugs in the format workflow-slug/task-name. An optional version can be appended (workflow-slug/task-name:version). If no version is provided, the latest version is used.
-	TaskSlug *externalRef19.TaskSlugFilterParam `form:"taskSlug,omitempty" json:"taskSlug,omitempty"`
+	TaskSlug *externalRef20.TaskSlugFilterParam `form:"taskSlug,omitempty" json:"taskSlug,omitempty"`
 
 	// RootTaskRunId An array of root task run IDs to filter on
-	RootTaskRunId *externalRef19.RootTaskRunIDFilterParam `form:"rootTaskRunId,omitempty" json:"rootTaskRunId,omitempty"`
+	RootTaskRunId *externalRef20.RootTaskRunIDFilterParam `form:"rootTaskRunId,omitempty" json:"rootTaskRunId,omitempty"`
 
 	// OwnerId The ID of the workspaces to return resources for
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// WorkflowVersionId An array of workflow version IDs
-	WorkflowVersionId *externalRef19.WorkflowVersionIDFilterParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`
+	WorkflowVersionId *externalRef20.WorkflowVersionIDFilterParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`
 
 	// WorkflowId An array of workflow IDs
-	WorkflowId *externalRef19.WorkflowIDFilterParam `form:"workflowId,omitempty" json:"workflowId,omitempty"`
+	WorkflowId *externalRef20.WorkflowIDFilterParam `form:"workflowId,omitempty" json:"workflowId,omitempty"`
 }
 
 // StreamTaskRunsEventsParams defines parameters for StreamTaskRunsEvents.
@@ -5509,13 +5518,13 @@ type ListTasksParams struct {
 	OwnerId *OwnerIdParam `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// TaskSlug An array of task slugs in the format workflow-slug/task-name. An optional version can be appended (workflow-slug/task-name:version). If no version is provided, the latest version is used.
-	TaskSlug *externalRef19.TaskSlugFilterParam `form:"taskSlug,omitempty" json:"taskSlug,omitempty"`
+	TaskSlug *externalRef20.TaskSlugFilterParam `form:"taskSlug,omitempty" json:"taskSlug,omitempty"`
 
 	// WorkflowVersionId An array of workflow version IDs
-	WorkflowVersionId *externalRef19.WorkflowVersionIDFilterParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`
+	WorkflowVersionId *externalRef20.WorkflowVersionIDFilterParam `form:"workflowVersionId,omitempty" json:"workflowVersionId,omitempty"`
 
 	// WorkflowId An array of workflow IDs
-	WorkflowId *externalRef19.WorkflowIDFilterParam `form:"workflowId,omitempty" json:"workflowId,omitempty"`
+	WorkflowId *externalRef20.WorkflowIDFilterParam `form:"workflowId,omitempty" json:"workflowId,omitempty"`
 }
 
 // ListWebhooksParams defines parameters for ListWebhooks.
@@ -5533,10 +5542,10 @@ type ListWebhooksParams struct {
 // ListWebhookEventsParams defines parameters for ListWebhookEvents.
 type ListWebhookEventsParams struct {
 	// SentBefore Filter events sent before this time (specified as an ISO 8601 timestamp)
-	SentBefore *externalRef18.SentBeforeParam `form:"sentBefore,omitempty" json:"sentBefore,omitempty"`
+	SentBefore *externalRef19.SentBeforeParam `form:"sentBefore,omitempty" json:"sentBefore,omitempty"`
 
 	// SentAfter Filter for resources sent after a certain time (specified as an ISO 8601 timestamp)
-	SentAfter *externalRef18.SentAfterParam `form:"sentAfter,omitempty" json:"sentAfter,omitempty"`
+	SentAfter *externalRef19.SentAfterParam `form:"sentAfter,omitempty" json:"sentAfter,omitempty"`
 
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
@@ -5654,7 +5663,7 @@ type UpdateEnvironmentJSONRequestBody = EnvironmentPATCHInput
 type AddResourcesToEnvironmentJSONRequestBody = EnvironmentResourcesPOSTInput
 
 // StartFlowRunJSONRequestBody defines body for StartFlowRun for application/json ContentType.
-type StartFlowRunJSONRequestBody = externalRef19.StartFlowRun
+type StartFlowRunJSONRequestBody = externalRef20.StartFlowRun
 
 // CreateKeyValueJSONRequestBody defines body for CreateKeyValue for application/json ContentType.
 type CreateKeyValueJSONRequestBody = KeyValuePOSTInput
@@ -5681,7 +5690,7 @@ type PatchServiceNotificationOverridesJSONRequestBody = externalRef14.Notificati
 type PatchOwnerNotificationSettingsJSONRequestBody = externalRef14.NotificationSettingPATCH
 
 // PutObjectJSONRequestBody defines body for PutObject for application/json ContentType.
-type PutObjectJSONRequestBody = externalRef17.PutObjectInput
+type PutObjectJSONRequestBody = externalRef18.PutObjectInput
 
 // UpdateWorkspaceMemberJSONRequestBody defines body for UpdateWorkspaceMember for application/json ContentType.
 type UpdateWorkspaceMemberJSONRequestBody UpdateWorkspaceMemberJSONBody
@@ -5811,22 +5820,22 @@ type UpdateSecretFilesForServiceJSONRequestBody = UpdateSecretFilesForServiceJSO
 type AddOrUpdateSecretFileJSONRequestBody AddOrUpdateSecretFileJSONBody
 
 // CreateTaskJSONRequestBody defines body for CreateTask for application/json ContentType.
-type CreateTaskJSONRequestBody = externalRef19.RunTask
+type CreateTaskJSONRequestBody = externalRef20.RunTask
 
 // CreateWebhookJSONRequestBody defines body for CreateWebhook for application/json ContentType.
-type CreateWebhookJSONRequestBody = externalRef18.WebhookPOSTInput
+type CreateWebhookJSONRequestBody = externalRef19.WebhookPOSTInput
 
 // UpdateWebhookJSONRequestBody defines body for UpdateWebhook for application/json ContentType.
-type UpdateWebhookJSONRequestBody = externalRef18.WebhookPATCHInput
+type UpdateWebhookJSONRequestBody = externalRef19.WebhookPATCHInput
 
 // CreateWorkflowJSONRequestBody defines body for CreateWorkflow for application/json ContentType.
-type CreateWorkflowJSONRequestBody = externalRef19.WorkflowCreate
+type CreateWorkflowJSONRequestBody = externalRef20.WorkflowCreate
 
 // UpdateWorkflowJSONRequestBody defines body for UpdateWorkflow for application/json ContentType.
-type UpdateWorkflowJSONRequestBody = externalRef19.WorkflowUpdate
+type UpdateWorkflowJSONRequestBody = externalRef20.WorkflowUpdate
 
 // CreateWorkflowVersionJSONRequestBody defines body for CreateWorkflowVersion for application/json ContentType.
-type CreateWorkflowVersionJSONRequestBody = externalRef19.CreateVersion
+type CreateWorkflowVersionJSONRequestBody = externalRef20.CreateVersion
 
 // AsEnvVarValue returns the union data inside the AddUpdateEnvVarInput as a EnvVarValue
 func (t AddUpdateEnvVarInput) AsEnvVarValue() (EnvVarValue, error) {

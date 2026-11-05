@@ -305,7 +305,10 @@ type Sandbox struct {
 
 	// SandboxGroupId The sandbox group this sandbox belongs to.
 	SandboxGroupId *SandboxGroupId `json:"sandboxGroupId,omitempty"`
-	Status         SandboxStatus   `json:"status"`
+
+	// SharedFilesystems Shared filesystems mounted in the sandbox. Absent when there are none.
+	SharedFilesystems *[]SandboxSharedFilesystem `json:"sharedFilesystems,omitempty"`
+	Status            SandboxStatus              `json:"status"`
 
 	// TerminatedAt When the sandbox was terminated, or null.
 	TerminatedAt *time.Time `json:"terminatedAt,omitempty"`
@@ -706,6 +709,10 @@ type SandboxPOST struct {
 	// SandboxGroupId Group to create the sandbox in; defaults to the workspace's default group.
 	SandboxGroupId *SandboxGroupId `json:"sandboxGroupId,omitempty"`
 
+	// SharedFilesystems Shared filesystems to mount in the sandbox. At most one is
+	// supported.
+	SharedFilesystems *[]SandboxSharedFilesystem `json:"sharedFilesystems,omitempty"`
+
 	// SnapshotId Start from this snapshot instead of the base image. Must be `available`
 	// and in the same sandbox group. For a `runtime` snapshot, `plan` must
 	// match the snapshot's plan.
@@ -716,12 +723,31 @@ type SandboxPOST struct {
 	// `snapshotId`.
 	SnapshotName *SandboxSnapshotName `json:"snapshotName,omitempty"`
 
-	// TimeoutSeconds Maximum sandbox lifetime in seconds. Sandbox is terminated when reached. Use 0 for no timeout.
+	// TimeoutSeconds Maximum sandbox lifetime in seconds. Sandbox is terminated when reached. Use 0 for no timeout. Positive values must be at least 60.
 	TimeoutSeconds *int `json:"timeoutSeconds,omitempty"`
 }
 
 // SandboxPlan The compute plan to use. `starter`, `standard` and `pro` are deprecated.
 type SandboxPlan string
+
+// SandboxSharedFilesystem defines model for sandboxSharedFilesystem.
+type SandboxSharedFilesystem struct {
+	// MountPath Absolute path in the sandbox where the filesystem is mounted. Must
+	// not be `/` or inside a system directory such as `/proc`, `/etc`,
+	// or `/usr`.
+	//
+	//
+	// Example: /data
+	MountPath string `json:"mountPath"`
+
+	// Name Name of the shared filesystem in the workspace. The first sandbox
+	// that uses a name creates the filesystem; later sandboxes in the
+	// workspace that use the same name share it.
+	//
+	//
+	// Example: data
+	Name string `json:"name"`
+}
 
 // SandboxSnapshot defines model for sandboxSnapshot.
 type SandboxSnapshot struct {
