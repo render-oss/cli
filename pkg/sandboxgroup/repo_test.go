@@ -184,3 +184,43 @@ func TestRepoDelete_OtherConflictKeepsAPIError(t *testing.T) {
 	assert.NotErrorIs(t, err, sandboxgroup.ErrSuspendedGroupNotDeletable)
 	assert.Contains(t, err.Error(), "409")
 }
+
+func TestRepoSetDefault_MovesDefaultWithinWorkspace(t *testing.T) {
+	repo, server := newRepoWithServer(t)
+	defaultGroup, otherGroup := seedDefaultAndOtherGroup(server)
+	foreignGroup := server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxesclient.SandboxGroup{
+		OwnerId: testids.WorkspaceID("other"),
+	}))
+
+	got, err := repo.SetDefault(context.Background(), otherGroup.Id)
+	require.NoError(t, err)
+
+	assert.Equal(t, otherGroup.Id, got.Id)
+	assert.True(t, got.IsDefault)
+	assert.True(t, otherGroup.IsDefault)
+	assert.False(t, defaultGroup.IsDefault)
+	assert.True(t, foreignGroup.IsDefault, "another workspace's default is untouched")
+}
+
+func TestRepoSetDefault_SuspendedGroupMapsToSentinelError(t *testing.T) {
+	repo, server := newRepoWithServer(t)
+	defaultGroup, otherGroup := seedDefaultAndOtherGroup(server)
+	server.SandboxGroups.Suspend(otherGroup.Id)
+
+	_, err := repo.SetDefault(context.Background(), otherGroup.Id)
+
+	require.ErrorIs(t, err, sandboxgroup.ErrSuspendedGroupCannotBeDefault)
+	assert.True(t, defaultGroup.IsDefault)
+	assert.False(t, otherGroup.IsDefault)
+}
+
+func TestRepoSetDefault_UnknownGroupReturnsNotFound(t *testing.T) {
+	repo, server := newRepoWithServer(t)
+	defaultGroup, _ := seedDefaultAndOtherGroup(server)
+
+	_, err := repo.SetDefault(context.Background(), "sbg-doesnotexist000000")
+	require.Error(t, err)
+
+	assert.Contains(t, err.Error(), "404")
+	assert.True(t, defaultGroup.IsDefault)
+}

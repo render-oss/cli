@@ -25,9 +25,10 @@ func newSandboxGroupsDeleteCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Long: `Delete a sandbox group. This action is irreversible.
 
 Deleting a group terminates its sandboxes and deletes its snapshots and
-credentials shortly after. The workspace's default group and suspended groups
-cannot be deleted. Without --confirm, show the group that would be deleted
-without making changes.`,
+credentials shortly after. Suspended groups cannot be deleted. The workspace's
+default group cannot be deleted; make another group the default with
+"render sandbox-groups default set <sandboxGroupId>" first. Without --confirm,
+show the group that would be deleted without making changes.`,
 		Example: `  # Preview group deletion (no changes made)
   render sandbox-groups delete sbg-abc123
 

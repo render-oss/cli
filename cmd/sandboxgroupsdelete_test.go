@@ -125,6 +125,9 @@ func TestSandboxGroupsDelete_JSONOutputIncludesGroup(t *testing.T) {
 	}
 }
 
+const defaultGroupNotDeletableError = "default sandbox group cannot be deleted; make another group the default with " +
+	"`render sandbox-groups default set <sandboxGroupId>` first"
+
 func TestSandboxGroupsDelete_RejectedBeforeAnyDelete(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -137,13 +140,13 @@ func TestSandboxGroupsDelete_RejectedBeforeAnyDelete(t *testing.T) {
 		{
 			name:      "default group preview",
 			target:    "default",
-			wantError: "default sandbox group cannot be deleted; make another group the default first",
+			wantError: defaultGroupNotDeletableError,
 		},
 		{
 			name:      "default group confirmed",
 			target:    "default",
 			confirm:   true,
-			wantError: "default sandbox group cannot be deleted; make another group the default first",
+			wantError: defaultGroupNotDeletableError,
 		},
 	}
 	for _, tc := range tests {

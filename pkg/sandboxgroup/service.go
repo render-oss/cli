@@ -69,3 +69,7 @@ func (s *Service) Get(ctx context.Context, id string) (*sandboxesclient.SandboxG
 func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
 }
+
+func (s *Service) SetDefault(ctx context.Context, id string) (*sandboxesclient.SandboxGroup, error) {
+	return s.repo.SetDefault(ctx, id)
+}

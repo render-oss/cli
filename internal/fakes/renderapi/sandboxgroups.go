@@ -87,8 +87,9 @@ func (s *Server) sandboxGroupByID(id string) (*sandboxesclient.SandboxGroup, boo
 // contract: ownerId is required and accepts at most one value). POST creates a
 // group, 409 when the name is taken within the workspace, and makes the
 // workspace's first group its default. GET /sandbox-groups/{id} returns one
-// group. DELETE refuses a suspended group or the
-// workspace's default group with 409.
+// group. DELETE refuses a suspended group or the workspace's default group with
+// 409. set-default moves the default within the group's workspace and refuses a
+// suspended group with 409.
 func registerSandboxGroupRoutes(mux *http.ServeMux, s *Server, record func(*http.Request)) {
 	mux.HandleFunc("GET /sandbox-groups/{sandboxGroupId}", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
@@ -128,6 +129,30 @@ func registerSandboxGroupRoutes(mux *http.ServeMux, s *Server, record func(*http
 		s.SandboxGroups.Instances = slices.DeleteFunc(s.SandboxGroups.Instances,
 			func(g *sandboxesclient.SandboxGroup) bool { return g == group })
 		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("POST /sandbox-groups/{sandboxGroupId}/set-default", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.SandboxGroups.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		group, ok := s.sandboxGroupByID(r.PathValue("sandboxGroupId"))
+		if !ok {
+			writeAPIError(w, http.StatusNotFound, "sandbox group not found", "")
+			return
+		}
+		if slices.Contains(s.SandboxGroups.suspendedIDs, group.Id) {
+			writeAPIError(w, http.StatusConflict, "the sandbox group is suspended",
+				ErrorCodeSandboxGroupSuspended)
+			return
+		}
+		for _, g := range s.SandboxGroups.Instances {
+			if g.OwnerId == group.OwnerId {
+				g.IsDefault = g == group
+			}
+		}
+		writeJSON(w, http.StatusOK, *group)
 	})
 
 	mux.HandleFunc("POST /sandbox-groups", func(w http.ResponseWriter, r *http.Request) {

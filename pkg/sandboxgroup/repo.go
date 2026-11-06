@@ -69,9 +69,10 @@ const (
 )
 
 var (
-	ErrDefaultGroupNotDeletable = errors.New(
-		"the workspace's default sandbox group cannot be deleted; make another group the default first")
-	ErrSuspendedGroupNotDeletable = errors.New("the sandbox group is suspended and cannot be deleted")
+	ErrDefaultGroupNotDeletable = errors.New("the workspace's default sandbox group cannot be deleted; " +
+		"make another group the default with `render sandbox-groups default set <sandboxGroupId>` first")
+	ErrSuspendedGroupNotDeletable    = errors.New("the sandbox group is suspended and cannot be deleted")
+	ErrSuspendedGroupCannotBeDefault = errors.New("the sandbox group is suspended and cannot be made the default")
 )
 
 func (r *Repo) Get(ctx context.Context, id string) (*sandboxesclient.SandboxGroup, error) {
@@ -104,4 +105,21 @@ func (r *Repo) Delete(ctx context.Context, id string) error {
 	default:
 		return client.ErrorFromResponse(resp)
 	}
+}
+
+func (r *Repo) SetDefault(ctx context.Context, id string) (*sandboxesclient.SandboxGroup, error) {
+	resp, err := r.client.SetDefaultSandboxGroupWithResponse(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if resp.JSON409 != nil && pointers.StringValue(resp.JSON409.Code) == errorCodeSandboxGroupSuspended {
+		return nil, ErrSuspendedGroupCannotBeDefault
+	}
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("set default sandbox group: success response missing group body")
+	}
+	return resp.JSON200, nil
 }

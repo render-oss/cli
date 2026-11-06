@@ -12,7 +12,8 @@ func newSandboxGroupsCmd(children ...*cobra.Command) *cobra.Command {
 		Long: `Manage sandbox groups for your Render workspace.
 
 Sandbox groups scope a workspace's sandboxes to a region and (optionally) an
-environment. The workspace's first group is its default.
+environment. The workspace's first group is its default until you set
+another with "render sandbox-groups default set".
 
 Images that sandboxes start from belong to a sandbox group; see
 "render sandbox-groups images".
@@ -22,6 +23,7 @@ Examples:
   render sandbox-groups list -o json
   render sandbox-groups credentials list
   render sandbox-groups create --name agents
+  render sandbox-groups default set sbg-abc123
   render sandbox-groups delete sbg-abc123 --confirm
   render sandbox-groups images import python:3.13 --name python
 `,

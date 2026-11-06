@@ -208,9 +208,10 @@ func setupSandboxGroupsCommands(parent *cobra.Command, deps *dependencies.Depend
 		newSandboxCredentialsUpdateCmd(deps), newSandboxCredentialsDeleteCmd(deps),
 		newSandboxCredentialsVersionsCmd(deps), newSandboxCredentialsRestoreCmd(deps),
 	)
+	defaultGroup := newSandboxGroupsDefaultCmd(newSandboxGroupsDefaultSetCmd(deps))
 	parent.AddCommand(newSandboxGroupsCmd(
 		images, builds, newSandboxGroupsListCmd(deps), newSandboxGroupsCreateCmd(deps),
-		newSandboxGroupsDeleteCmd(deps), credentials,
+		newSandboxGroupsDeleteCmd(deps), defaultGroup, credentials,
 	))
 }
 
