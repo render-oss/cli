@@ -16,11 +16,64 @@ func getRemoteOrigin(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf(`cannot determine the repository from the local checkout; provide --repo, or check that this directory belongs to a Git repository with a remote named "origin": %w`, err)
 	}
-	originURL, err := normalizeGitRepoURL(origin)
+	originURL, err := normalizeGitRepoURL(resolveSSHHostAlias(ctx, origin))
 	if err != nil {
 		return "", fmt.Errorf("origin remote: %w", err)
 	}
 	return originURL, nil
+}
+
+// gitProviderSSHHosts maps the SSH hosts of supported Git providers, including
+// their SSH-over-443 hosts, to the host used in HTTPS repository URLs.
+var gitProviderSSHHosts = map[string]string{
+	"github.com":           "github.com",
+	"ssh.github.com":       "github.com",
+	"gitlab.com":           "gitlab.com",
+	"altssh.gitlab.com":    "gitlab.com",
+	"bitbucket.org":        "bitbucket.org",
+	"altssh.bitbucket.org": "bitbucket.org",
+}
+
+// resolveSSHHostAlias replaces the host of an SSH remote that is not a known
+// provider host with the HostName ssh would connect to, so a ~/.ssh/config
+// alias such as "github-work" (common when using more than one GitHub account)
+// becomes the provider host. Other remotes, and hosts ssh cannot resolve, are
+// returned unchanged.
+func resolveSSHHostAlias(ctx context.Context, remote string) string {
+	endpoint, err := transport.NewEndpoint(remote)
+	if err != nil || endpoint.Protocol != "ssh" || endpoint.Host == "" {
+		return remote
+	}
+	if _, ok := gitProviderSSHHosts[strings.ToLower(endpoint.Host)]; ok {
+		return remote
+	}
+	hostname, err := sshHostname(ctx, endpoint.Host)
+	if err != nil || hostname == "" {
+		return remote
+	}
+	if providerHost, ok := gitProviderSSHHosts[strings.ToLower(hostname)]; ok {
+		hostname = providerHost
+	}
+	endpoint.Host = hostname
+	return endpoint.String()
+}
+
+// sshHostname returns the "hostname" value from `ssh -G host`, which applies
+// ~/.ssh/config without connecting. It is a variable so tests can replace it.
+var sshHostname = func(ctx context.Context, host string) (string, error) {
+	if strings.HasPrefix(host, "-") {
+		return "", fmt.Errorf("invalid SSH host %q", host)
+	}
+	out, err := exec.CommandContext(ctx, "ssh", "-G", host).Output()
+	if err != nil {
+		return "", err
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		if value, ok := strings.CutPrefix(line, "hostname "); ok {
+			return strings.TrimSpace(value), nil
+		}
+	}
+	return "", errors.New("ssh -G printed no hostname")
 }
 
 // getLocalBranch returns the current checkout's branch, or an error for a detached HEAD.
