@@ -61,3 +61,11 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*sandboxesclie
 		Name:    input.Name,
 	})
 }
+
+func (s *Service) Get(ctx context.Context, id string) (*sandboxesclient.SandboxGroup, error) {
+	return s.repo.Get(ctx, id)
+}
+
+func (s *Service) Delete(ctx context.Context, id string) error {
+	return s.repo.Delete(ctx, id)
+}

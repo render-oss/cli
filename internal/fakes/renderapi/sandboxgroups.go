@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/render-oss/cli/internal/testids"
@@ -11,11 +12,23 @@ import (
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
 )
 
+const (
+	ErrorCodeDefaultSandboxGroupNotDeletable = "default_sandbox_group_not_deletable"
+	ErrorCodeSandboxGroupSuspended           = "sandbox_group_suspended"
+)
+
 // SandboxGroupResource holds sandbox-group state and error injection for the
 // fake server. Tests can assert against Instances.
 type SandboxGroupResource struct {
 	Resource[*sandboxesclient.SandboxGroup]
-	errorQueue []int
+	errorQueue   []int
+	suspendedIDs []string
+}
+
+// Suspend marks a group as suspended. The API's SandboxGroup schema has no
+// suspended field, so the fake tracks it alongside Instances.
+func (r *SandboxGroupResource) Suspend(id string) {
+	r.suspendedIDs = append(r.suspendedIDs, id)
 }
 
 // RespondWith queues an HTTP status code to return on the next sandbox-group
@@ -59,12 +72,64 @@ func NewSandboxGroup(g sandboxesclient.SandboxGroup) *sandboxesclient.SandboxGro
 	return &g
 }
 
-// registerSandboxGroupRoutes wires GET and POST /sandbox-groups on the shared
+func (s *Server) sandboxGroupByID(id string) (*sandboxesclient.SandboxGroup, bool) {
+	idx := slices.IndexFunc(s.SandboxGroups.Instances, func(g *sandboxesclient.SandboxGroup) bool {
+		return g.Id == id
+	})
+	if idx == -1 {
+		return nil, false
+	}
+	return s.SandboxGroups.Instances[idx], true
+}
+
+// registerSandboxGroupRoutes wires the /sandbox-groups routes on the shared
 // mux. GET returns groups filtered by ownerId (matches the API's server-side
 // contract: ownerId is required and accepts at most one value). POST creates a
 // group, 409 when the name is taken within the workspace, and makes the
-// workspace's first group its default.
+// workspace's first group its default. GET /sandbox-groups/{id} returns one
+// group. DELETE refuses a suspended group or the
+// workspace's default group with 409.
 func registerSandboxGroupRoutes(mux *http.ServeMux, s *Server, record func(*http.Request)) {
+	mux.HandleFunc("GET /sandbox-groups/{sandboxGroupId}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.SandboxGroups.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		group, ok := s.sandboxGroupByID(r.PathValue("sandboxGroupId"))
+		if !ok {
+			writeAPIError(w, http.StatusNotFound, "sandbox group not found", "")
+			return
+		}
+		writeJSON(w, http.StatusOK, *group)
+	})
+
+	mux.HandleFunc("DELETE /sandbox-groups/{sandboxGroupId}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.SandboxGroups.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		group, ok := s.sandboxGroupByID(r.PathValue("sandboxGroupId"))
+		if !ok {
+			writeAPIError(w, http.StatusNotFound, "sandbox group not found", "")
+			return
+		}
+		if slices.Contains(s.SandboxGroups.suspendedIDs, group.Id) {
+			writeAPIError(w, http.StatusConflict, "the sandbox group is suspended",
+				ErrorCodeSandboxGroupSuspended)
+			return
+		}
+		if group.IsDefault {
+			writeAPIError(w, http.StatusConflict, "the default sandbox group cannot be deleted",
+				ErrorCodeDefaultSandboxGroupNotDeletable)
+			return
+		}
+		s.SandboxGroups.Instances = slices.DeleteFunc(s.SandboxGroups.Instances,
+			func(g *sandboxesclient.SandboxGroup) bool { return g == group })
+		w.WriteHeader(http.StatusNoContent)
+	})
+
 	mux.HandleFunc("POST /sandbox-groups", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
 		if status, hasError := s.SandboxGroups.nextError(); hasError {

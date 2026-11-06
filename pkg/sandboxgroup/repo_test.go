@@ -2,6 +2,7 @@ package sandboxgroup_test
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -91,4 +92,95 @@ func TestRepoCreate_PropagatesAPIError(t *testing.T) {
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "sandbox group name is taken")
+}
+
+func seedDefaultAndOtherGroup(server *renderapi.Server) (*sandboxesclient.SandboxGroup, *sandboxesclient.SandboxGroup) {
+	ownerID := testids.WorkspaceID("active")
+	server.Owners.Add(renderapi.NewOwner(client.Owner{Id: ownerID}))
+	defaultGroup := server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxesclient.SandboxGroup{
+		OwnerId: ownerID,
+		Name:    "Default",
+	}))
+	otherGroup := server.SandboxGroups.Add(renderapi.NewSandboxGroup(sandboxesclient.SandboxGroup{
+		OwnerId: ownerID,
+		Name:    "agents",
+	}))
+	otherGroup.IsDefault = false
+	return defaultGroup, otherGroup
+}
+
+func TestRepoGet_ReturnsGroup(t *testing.T) {
+	repo, server := newRepoWithServer(t)
+	_, otherGroup := seedDefaultAndOtherGroup(server)
+
+	got, err := repo.Get(context.Background(), otherGroup.Id)
+	require.NoError(t, err)
+
+	assert.Equal(t, otherGroup.Id, got.Id)
+	assert.Equal(t, "agents", got.Name)
+	assert.False(t, got.IsDefault)
+}
+
+func TestRepoGet_UnknownGroupReturnsNotFound(t *testing.T) {
+	repo, server := newRepoWithServer(t)
+	seedDefaultAndOtherGroup(server)
+
+	_, err := repo.Get(context.Background(), "sbg-doesnotexist000000")
+	require.Error(t, err)
+
+	assert.Contains(t, err.Error(), "404")
+}
+
+func TestRepoDelete_RemovesGroup(t *testing.T) {
+	repo, server := newRepoWithServer(t)
+	defaultGroup, otherGroup := seedDefaultAndOtherGroup(server)
+
+	err := repo.Delete(context.Background(), otherGroup.Id)
+	require.NoError(t, err)
+
+	require.Len(t, server.SandboxGroups.Instances, 1)
+	assert.Equal(t, defaultGroup.Id, server.SandboxGroups.Instances[0].Id)
+}
+
+func TestRepoDelete_ConflictCodesMapToSentinelErrors(t *testing.T) {
+	tests := []struct {
+		name          string
+		deleteDefault bool
+		suspend       bool
+		wantErr       error
+	}{
+		{name: "default group", deleteDefault: true, wantErr: sandboxgroup.ErrDefaultGroupNotDeletable},
+		{name: "suspended group", suspend: true, wantErr: sandboxgroup.ErrSuspendedGroupNotDeletable},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, server := newRepoWithServer(t)
+			defaultGroup, otherGroup := seedDefaultAndOtherGroup(server)
+			target := otherGroup
+			if tc.deleteDefault {
+				target = defaultGroup
+			}
+			if tc.suspend {
+				server.SandboxGroups.Suspend(target.Id)
+			}
+
+			err := repo.Delete(context.Background(), target.Id)
+
+			require.ErrorIs(t, err, tc.wantErr)
+			assert.Len(t, server.SandboxGroups.Instances, 2)
+		})
+	}
+}
+
+func TestRepoDelete_OtherConflictKeepsAPIError(t *testing.T) {
+	repo, server := newRepoWithServer(t)
+	_, otherGroup := seedDefaultAndOtherGroup(server)
+	server.SandboxGroups.RespondWith(http.StatusConflict)
+
+	err := repo.Delete(context.Background(), otherGroup.Id)
+
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, sandboxgroup.ErrDefaultGroupNotDeletable)
+	assert.NotErrorIs(t, err, sandboxgroup.ErrSuspendedGroupNotDeletable)
+	assert.Contains(t, err.Error(), "409")
 }

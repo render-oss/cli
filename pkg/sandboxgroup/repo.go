@@ -2,10 +2,12 @@ package sandboxgroup
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/render-oss/cli/pkg/client"
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
+	"github.com/render-oss/cli/pkg/pointers"
 )
 
 // Repo wraps the generated OpenAPI client for sandbox-groups endpoints. Higher
@@ -59,4 +61,47 @@ func (r *Repo) Create(ctx context.Context, body sandboxesclient.SandboxGroupPOST
 		return nil, fmt.Errorf("create sandbox group: success response missing group body")
 	}
 	return resp.JSON201, nil
+}
+
+const (
+	errorCodeDefaultSandboxGroupNotDeletable = "default_sandbox_group_not_deletable"
+	errorCodeSandboxGroupSuspended           = "sandbox_group_suspended"
+)
+
+var (
+	ErrDefaultGroupNotDeletable = errors.New(
+		"the workspace's default sandbox group cannot be deleted; make another group the default first")
+	ErrSuspendedGroupNotDeletable = errors.New("the sandbox group is suspended and cannot be deleted")
+)
+
+func (r *Repo) Get(ctx context.Context, id string) (*sandboxesclient.SandboxGroup, error) {
+	resp, err := r.client.RetrieveSandboxGroupWithResponse(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("get sandbox group: success response missing group body")
+	}
+	return resp.JSON200, nil
+}
+
+func (r *Repo) Delete(ctx context.Context, id string) error {
+	resp, err := r.client.DeleteSandboxGroupWithResponse(ctx, id)
+	if err != nil {
+		return err
+	}
+	if resp.JSON409 == nil {
+		return client.ErrorFromResponse(resp)
+	}
+	switch pointers.StringValue(resp.JSON409.Code) {
+	case errorCodeDefaultSandboxGroupNotDeletable:
+		return ErrDefaultGroupNotDeletable
+	case errorCodeSandboxGroupSuspended:
+		return ErrSuspendedGroupNotDeletable
+	default:
+		return client.ErrorFromResponse(resp)
+	}
 }

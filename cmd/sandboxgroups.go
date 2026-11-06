@@ -22,6 +22,7 @@ Examples:
   render sandbox-groups list -o json
   render sandbox-groups credentials list
   render sandbox-groups create --name agents
+  render sandbox-groups delete sbg-abc123 --confirm
   render sandbox-groups images import python:3.13 --name python
 `,
 	}
