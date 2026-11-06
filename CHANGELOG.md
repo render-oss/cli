@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+## [2.36.0] - 2026-11-06
+
+### Added
+
+- `--name` on `render sandboxes create` to label a sandbox. `render sandboxes list` shows a NAME column, and `--name` filters by exact name
+- `render sandbox-groups delete` to delete a sandbox group. It previews by default; pass `--confirm` to delete
+- `render sandbox-groups default set` to make a sandbox group the workspace's default
+- `render sandbox-groups credentials` commands (alpha) to create, list, get, update, delete, and restore brokered credentials, list their versions, and write a new secret value. The gateway injects each secret into matching outbound requests
+- Selecting a workflow in `render workflows list` now offers its flows as well as its tasks
+
+### Changed
+
+- `render workflows flows list` and the interactive `render workflows tasks list` now show only each workflow's default version. Pass `--all-versions` to include every version
+- `render workflows flows list` now opens an interactive table in an interactive terminal. Select a flow to view its runs or start a run, and select a run to view its logs or results
+- `render sandboxes create --timeout` help no longer mentions a 24-hour cap for Hobby workspaces. Every workspace gets a 24-hour default, up to 30 days, and `0` for no timeout
+
+### Fixed
+
+- Commands on a terminated or errored sandbox now explain that it ended, and when
+- `render sandboxes create --from` with a malformed snapshot ID now explains the expected format
+- Paging back to a previous page in interactive tables now works
+- Canceled task runs now show a fixed log window in interactive mode instead of tailing forever
+
 ## [2.35.0] - 2026-11-02
 
 ### Added
