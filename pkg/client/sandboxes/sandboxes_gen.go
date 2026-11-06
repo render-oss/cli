@@ -697,7 +697,10 @@ type SandboxPOST struct {
 	// Env Inline environment variables injected into the sandbox at creation.
 	Env *map[string]string `json:"env,omitempty"`
 
-	// IdleTimeoutSeconds Seconds of inactivity before the sandbox is suspended. Use 0 to disable automatic idle suspension. Positive values must be at least 300.
+	// IdleTimeoutSeconds Seconds of inactivity before the sandbox is suspended. Use 0 to disable
+	// automatic idle suspension. Positive values must be at least 300. Defaults
+	// to 900, or to the source sandbox's idle timeout when starting from a
+	// snapshot.
 	IdleTimeoutSeconds *int `json:"idleTimeoutSeconds,omitempty"`
 
 	// Name A label for the sandbox, like `my-agent`. It isn't unique, so the
@@ -724,7 +727,8 @@ type SandboxPOST struct {
 	// SnapshotId Start from this snapshot instead of the base image. Must be `available`
 	// and in the same sandbox group. For a `runtime` snapshot, `plan` must
 	// match the snapshot's plan. The new sandbox uses the source sandbox's
-	// network policy. Include `networkPolicy` to set a different one.
+	// network policy, timeout and idle timeout. Include `networkPolicy`,
+	// `timeoutSeconds` or `idleTimeoutSeconds` to set a different one.
 	SnapshotId *SandboxSnapshotId `json:"snapshotId,omitempty"`
 
 	// SnapshotName Start from the snapshot this name currently resolves to in the sandbox
@@ -732,7 +736,9 @@ type SandboxPOST struct {
 	// `snapshotId`.
 	SnapshotName *SandboxSnapshotName `json:"snapshotName,omitempty"`
 
-	// TimeoutSeconds Maximum sandbox lifetime in seconds. Sandbox is terminated when reached. Use 0 for no timeout. Positive values must be at least 60.
+	// TimeoutSeconds Maximum sandbox lifetime in seconds. Sandbox is terminated when reached.
+	// Use 0 for no timeout. Positive values must be at least 60. Defaults to
+	// 86400, or to the source sandbox's timeout when starting from a snapshot.
 	TimeoutSeconds *int `json:"timeoutSeconds,omitempty"`
 }
 

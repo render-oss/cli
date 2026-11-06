@@ -3244,6 +3244,12 @@ type RouteWithCursor struct {
 	Route  Route  `json:"route"`
 }
 
+// SandboxBuildWithCursor A sandbox build with a cursor
+type SandboxBuildWithCursor struct {
+	Build  externalRef16.SandboxBuild `json:"build"`
+	Cursor Cursor                     `json:"cursor"`
+}
+
 // SandboxGroupWithCursor A sandbox group with a cursor
 type SandboxGroupWithCursor struct {
 	Cursor       Cursor                     `json:"cursor"`
@@ -5056,6 +5062,21 @@ type ListSandboxGroupsParams struct {
 
 	// Limit Maximum groups to return.
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListSandboxBuildsParams defines parameters for ListSandboxBuilds.
+type ListSandboxBuildsParams struct {
+	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Name Return only builds of the image with this name.
+	Name *string `form:"name,omitempty" json:"name,omitempty"`
+
+	// Status Filter by build status.
+	Status *[]externalRef16.SandboxBuildStatus `form:"status,omitempty" json:"status,omitempty"`
 }
 
 // ListSandboxSnapshotsParams defines parameters for ListSandboxSnapshots.
