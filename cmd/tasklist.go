@@ -20,13 +20,16 @@ func NewTaskListCmd(deps flows.WorkflowDeps) *cobra.Command {
 
 Tasks are user-defined functions registered with the Render Workflows SDK. Each time you release a workflow service, Render creates a new workflow version and registers all tasks it finds in that version.
 
-In interactive mode, you will be prompted to select a workflow if not provided.
+In interactive mode, you will be prompted to select a workflow if not provided. Only tasks from the workflow's default (latest released) version are listed. Pass --all-versions to include every version.
 
 Local Development:
 When using the --local flag, you don't need to provide a workflow version ID. Instead, the command connects to your local dev server (default port 8120) to list tasks from your running workflow service. Start the dev server first with:
   render workflows dev -- "<your command>"`,
 		Example: `  # List tasks for a workflow version
   render workflows tasks list wfv-1234
+
+  # Pick a workflow and list tasks from every version
+  render workflows tasks list --all-versions
 
   # List tasks from local workflow development server
   render workflows tasks list --local`,
@@ -58,6 +61,8 @@ When using the --local flag, you don't need to provide a workflow version ID. In
 			return nil
 		},
 	}
+
+	taskListCmd.Flags().Bool("all-versions", false, "Include tasks from every workflow version, not just the default version")
 
 	return taskListCmd
 }

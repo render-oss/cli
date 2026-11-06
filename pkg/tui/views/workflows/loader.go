@@ -37,6 +37,7 @@ type versionRepo interface {
 // workflowRepo defines the workflow operations the loader needs (unexported; used for testability).
 type workflowRepoIface interface {
 	GetWorkflow(ctx context.Context, id string) (*wfclient.Workflow, error)
+	ListAllWorkflows(ctx context.Context, params *client.ListWorkflowsParams) ([]*wfclient.Workflow, error)
 }
 
 const (
@@ -241,39 +242,71 @@ func (w *WorkflowLoader) ListWorkflows(ctx context.Context, in WorkflowInput) ([
 }
 
 func (w *WorkflowLoader) LoadTaskList(ctx context.Context, input TaskListInput, cur client.Cursor) (client.Cursor, []*wfclient.Task, error) {
-	params := &client.ListTasksParams{}
-
-	if input.WorkflowVersionID != "" {
-		params.WorkflowVersionId = pointers.From([]string{input.WorkflowVersionID})
-	} else if input.WorkflowID != "" {
-		if input.LatestVersionOnly {
-			versionID, err := w.latestVersionID(ctx, input.WorkflowID)
-			if err != nil {
-				return "", nil, err
-			}
-			params.WorkflowVersionId = pointers.From([]string{versionID})
-		} else {
-			params.WorkflowId = pointers.From([]string{input.WorkflowID})
-		}
+	params, ok, err := w.taskListParams(ctx, input)
+	if err != nil {
+		return "", nil, err
+	}
+	if !ok {
+		return "", []*wfclient.Task{}, nil
 	}
 
 	return w.taskRepo.ListTasks(ctx, params)
 }
 
-func (w *WorkflowLoader) latestVersionID(ctx context.Context, workflowID string) (string, error) {
-	limit := 1
-	params := &client.ListWorkflowVersionsParams{
-		Limit:      &limit,
-		WorkflowID: pointers.From([]string{workflowID}),
+// taskListParams builds the task filter for input. Unless input names a
+// version or asks for all versions, it filters to each workflow's default
+// version. ok is false when no workflow has a default version, so there are no
+// tasks to list.
+func (w *WorkflowLoader) taskListParams(ctx context.Context, input TaskListInput) (params *client.ListTasksParams, ok bool, err error) {
+	params = &client.ListTasksParams{}
+
+	switch {
+	case input.WorkflowVersionID != "":
+		params.WorkflowVersionId = pointers.From([]string{input.WorkflowVersionID})
+	case input.Local:
+		// The local dev server only runs one version.
+	case input.AllVersions:
+		if input.WorkflowID != "" {
+			params.WorkflowId = pointers.From([]string{input.WorkflowID})
+		}
+	default:
+		var workflowIDs []string
+		if input.WorkflowID != "" {
+			workflowIDs = []string{input.WorkflowID}
+		}
+		versionIDs, err := w.DefaultVersionIDs(ctx, workflowIDs)
+		if err != nil {
+			return nil, false, err
+		}
+		if len(versionIDs) == 0 {
+			return nil, false, nil
+		}
+		params.WorkflowVersionId = pointers.From(versionIDs)
 	}
-	_, versions, err := w.workflowVersionRepo.ListVersions(ctx, workflowID, params)
+
+	return params, true, nil
+}
+
+// DefaultVersionIDs returns the default version ID of each workflow, skipping
+// workflows that have none. With no workflow IDs, it covers every workflow in
+// the active workspace.
+func (w *WorkflowLoader) DefaultVersionIDs(ctx context.Context, workflowIDs []string) ([]string, error) {
+	params := &client.ListWorkflowsParams{}
+	if len(workflowIDs) > 0 {
+		params.WorkflowID = pointers.From(workflowIDs)
+	}
+	wfs, err := w.workflowRepo.ListAllWorkflows(ctx, params)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	if len(versions) == 0 {
-		return "", fmt.Errorf("no versions found for workflow %s", workflowID)
+
+	versionIDs := make([]string, 0, len(wfs))
+	for _, wf := range wfs {
+		if wf.DefaultVersionId != nil {
+			versionIDs = append(versionIDs, *wf.DefaultVersionId)
+		}
 	}
-	return versions[0].Id, nil
+	return versionIDs, nil
 }
 
 func (w *WorkflowLoader) GetTask(ctx context.Context, id string) (*wfclient.Task, error) {
@@ -297,20 +330,12 @@ func (w *WorkflowLoader) LoadTaskRunList(ctx context.Context, input TaskRunListI
 // The API default page size applies (typically 100 or less). The compact table
 // widget does not support progressive loading, so results are capped to one page.
 func (w *WorkflowLoader) LoadAllTasks(ctx context.Context, input TaskListInput) ([]*wfclient.Task, error) {
-	params := &client.ListTasksParams{}
-
-	if input.WorkflowVersionID != "" {
-		params.WorkflowVersionId = pointers.From([]string{input.WorkflowVersionID})
-	} else if input.WorkflowID != "" {
-		if input.LatestVersionOnly {
-			versionID, err := w.latestVersionID(ctx, input.WorkflowID)
-			if err != nil {
-				return nil, err
-			}
-			params.WorkflowVersionId = pointers.From([]string{versionID})
-		} else {
-			params.WorkflowId = pointers.From([]string{input.WorkflowID})
-		}
+	params, ok, err := w.taskListParams(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return []*wfclient.Task{}, nil
 	}
 
 	_, tasks, err := w.taskRepo.ListTasks(ctx, params)

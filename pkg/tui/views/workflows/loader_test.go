@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -69,6 +70,35 @@ func (m *mockVersionRepo) TriggerRelease(ctx context.Context, workflowID string,
 		return m.triggerReleaseFn(ctx, workflowID, input)
 	}
 	return nil
+}
+
+// mockWorkflowRepo implements workflowRepoIface for testing. ListAllWorkflows
+// returns every workflow whose ID matches the filter and records each filter.
+type mockWorkflowRepo struct {
+	workflows  []*wfclient.Workflow
+	err        error
+	listParams []*client.ListWorkflowsParams
+}
+
+func (m *mockWorkflowRepo) GetWorkflow(context.Context, string) (*wfclient.Workflow, error) {
+	return nil, nil
+}
+
+func (m *mockWorkflowRepo) ListAllWorkflows(_ context.Context, params *client.ListWorkflowsParams) ([]*wfclient.Workflow, error) {
+	m.listParams = append(m.listParams, params)
+	if m.err != nil {
+		return nil, m.err
+	}
+	if params.WorkflowID == nil {
+		return m.workflows, nil
+	}
+	var matched []*wfclient.Workflow
+	for _, wf := range m.workflows {
+		if slices.Contains(*params.WorkflowID, wf.Id) {
+			matched = append(matched, wf)
+		}
+	}
+	return matched, nil
 }
 
 func TestCreateTaskRunErrorGuidance(t *testing.T) {
@@ -189,7 +219,7 @@ func TestLoadTaskList(t *testing.T) {
 		assert.Contains(t, *capturedParams.WorkflowVersionId, "wfv-123")
 	})
 
-	t.Run("with WorkflowID and LatestVersionOnly false passes workflowId param", func(t *testing.T) {
+	t.Run("with WorkflowID and AllVersions passes workflowId param", func(t *testing.T) {
 		var capturedParams *client.ListTasksParams
 		taskRepo := &mockTaskRepo{
 			listTasksFn: func(_ context.Context, params *client.ListTasksParams) (client.Cursor, []*wfclient.Task, error) {
@@ -200,17 +230,34 @@ func TestLoadTaskList(t *testing.T) {
 
 		loader := &WorkflowLoader{taskRepo: taskRepo}
 		_, result, err := loader.LoadTaskList(context.Background(), TaskListInput{
-			WorkflowID:        "wf-1",
-			LatestVersionOnly: false,
+			WorkflowID:  "wf-1",
+			AllVersions: true,
 		}, "")
 
 		require.NoError(t, err)
 		require.Len(t, result, 1)
 		require.NotNil(t, capturedParams.WorkflowId)
-		assert.Contains(t, *capturedParams.WorkflowId, "wf-1")
+		assert.Equal(t, []string{"wf-1"}, *capturedParams.WorkflowId)
+		assert.Nil(t, capturedParams.WorkflowVersionId)
 	})
 
-	t.Run("with WorkflowID and LatestVersionOnly true resolves latest version", func(t *testing.T) {
+	t.Run("AllVersions without a workflow lists every task", func(t *testing.T) {
+		var capturedParams *client.ListTasksParams
+		taskRepo := &mockTaskRepo{
+			listTasksFn: func(_ context.Context, params *client.ListTasksParams) (client.Cursor, []*wfclient.Task, error) {
+				capturedParams = params
+				return "", []*wfclient.Task{task}, nil
+			},
+		}
+
+		loader := &WorkflowLoader{taskRepo: taskRepo}
+		_, _, err := loader.LoadTaskList(context.Background(), TaskListInput{AllVersions: true}, "")
+
+		require.NoError(t, err)
+		assert.Equal(t, &client.ListTasksParams{}, capturedParams)
+	})
+
+	t.Run("with WorkflowID filters to its default version", func(t *testing.T) {
 		var capturedParams *client.ListTasksParams
 		taskRepo := &mockTaskRepo{
 			listTasksFn: func(_ context.Context, params *client.ListTasksParams) (client.Cursor, []*wfclient.Task, error) {
@@ -218,39 +265,92 @@ func TestLoadTaskList(t *testing.T) {
 				return "c1", []*wfclient.Task{task}, nil
 			},
 		}
-		versionRepo := &mockVersionRepo{
-			listVersionsFn: func(_ context.Context, _ string, _ *client.ListWorkflowVersionsParams) (client.Cursor, []*wfclient.WorkflowVersion, error) {
-				return "c1", []*wfclient.WorkflowVersion{{Id: "wfv-latest"}}, nil
-			},
-		}
+		workflowRepo := &mockWorkflowRepo{workflows: []*wfclient.Workflow{
+			{Id: "wf-1", DefaultVersionId: pointers.From("wfv-default")},
+			{Id: "wf-2", DefaultVersionId: pointers.From("wfv-other")},
+		}}
 
-		loader := &WorkflowLoader{taskRepo: taskRepo, workflowVersionRepo: versionRepo}
-		_, result, err := loader.LoadTaskList(context.Background(), TaskListInput{
-			WorkflowID:        "wf-1",
-			LatestVersionOnly: true,
-		}, "")
+		loader := &WorkflowLoader{taskRepo: taskRepo, workflowRepo: workflowRepo}
+		_, result, err := loader.LoadTaskList(context.Background(), TaskListInput{WorkflowID: "wf-1"}, "")
 
 		require.NoError(t, err)
 		require.Len(t, result, 1)
+		require.Len(t, workflowRepo.listParams, 1)
+		assert.Equal(t, []string{"wf-1"}, *workflowRepo.listParams[0].WorkflowID)
 		require.NotNil(t, capturedParams.WorkflowVersionId)
-		assert.Contains(t, *capturedParams.WorkflowVersionId, "wfv-latest")
+		assert.Equal(t, []string{"wfv-default"}, *capturedParams.WorkflowVersionId)
+		assert.Nil(t, capturedParams.WorkflowId)
 	})
 
-	t.Run("LatestVersionOnly with no versions returns error", func(t *testing.T) {
-		versionRepo := &mockVersionRepo{
-			listVersionsFn: func(_ context.Context, _ string, _ *client.ListWorkflowVersionsParams) (client.Cursor, []*wfclient.WorkflowVersion, error) {
+	t.Run("without a workflow filters to every workflow's default version", func(t *testing.T) {
+		var capturedParams *client.ListTasksParams
+		taskRepo := &mockTaskRepo{
+			listTasksFn: func(_ context.Context, params *client.ListTasksParams) (client.Cursor, []*wfclient.Task, error) {
+				capturedParams = params
+				return "", []*wfclient.Task{task}, nil
+			},
+		}
+		workflowRepo := &mockWorkflowRepo{workflows: []*wfclient.Workflow{
+			{Id: "wf-1", DefaultVersionId: pointers.From("wfv-1")},
+			{Id: "wf-unreleased"},
+			{Id: "wf-2", DefaultVersionId: pointers.From("wfv-2")},
+		}}
+
+		loader := &WorkflowLoader{taskRepo: taskRepo, workflowRepo: workflowRepo}
+		_, _, err := loader.LoadTaskList(context.Background(), TaskListInput{}, "")
+
+		require.NoError(t, err)
+		require.Len(t, workflowRepo.listParams, 1)
+		assert.Nil(t, workflowRepo.listParams[0].WorkflowID)
+		require.NotNil(t, capturedParams.WorkflowVersionId)
+		assert.Equal(t, []string{"wfv-1", "wfv-2"}, *capturedParams.WorkflowVersionId)
+	})
+
+	t.Run("no default version returns no tasks without listing them", func(t *testing.T) {
+		taskRepo := &mockTaskRepo{
+			listTasksFn: func(context.Context, *client.ListTasksParams) (client.Cursor, []*wfclient.Task, error) {
+				t.Fatal("ListTasks should not be called: an empty filter would list every task")
 				return "", nil, nil
 			},
 		}
+		workflowRepo := &mockWorkflowRepo{workflows: []*wfclient.Workflow{{Id: "wf-1"}}}
 
-		loader := &WorkflowLoader{workflowVersionRepo: versionRepo}
-		_, _, err := loader.LoadTaskList(context.Background(), TaskListInput{
-			WorkflowID:        "wf-1",
-			LatestVersionOnly: true,
-		}, "")
+		loader := &WorkflowLoader{taskRepo: taskRepo, workflowRepo: workflowRepo}
+		_, result, err := loader.LoadTaskList(context.Background(), TaskListInput{WorkflowID: "wf-1"}, "")
+		require.NoError(t, err)
+		assert.Empty(t, result)
 
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "no versions found for workflow")
+		all, err := loader.LoadAllTasks(context.Background(), TaskListInput{WorkflowID: "wf-1"})
+		require.NoError(t, err)
+		assert.NotNil(t, all)
+		assert.Empty(t, all)
+	})
+
+	t.Run("Local lists every task without resolving versions", func(t *testing.T) {
+		var capturedParams *client.ListTasksParams
+		taskRepo := &mockTaskRepo{
+			listTasksFn: func(_ context.Context, params *client.ListTasksParams) (client.Cursor, []*wfclient.Task, error) {
+				capturedParams = params
+				return "", []*wfclient.Task{task}, nil
+			},
+		}
+
+		// The local loader has no version or workflow repo.
+		loader := &WorkflowLoader{taskRepo: taskRepo}
+		_, result, err := loader.LoadTaskList(context.Background(), TaskListInput{Local: true}, "")
+
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, &client.ListTasksParams{}, capturedParams)
+	})
+
+	t.Run("workflow lookup failure propagates error", func(t *testing.T) {
+		workflowRepo := &mockWorkflowRepo{err: errors.New("boom")}
+
+		loader := &WorkflowLoader{workflowRepo: workflowRepo}
+		_, _, err := loader.LoadTaskList(context.Background(), TaskListInput{WorkflowID: "wf-1"}, "")
+
+		require.ErrorContains(t, err, "boom")
 	})
 }
 

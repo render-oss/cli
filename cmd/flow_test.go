@@ -217,6 +217,7 @@ func TestFlowList_PaginationFlags(t *testing.T) {
 
 	result, err := executeFlowCommand(t, server,
 		"flows", "list",
+		"--all-versions",
 		"--limit", "2",
 		"--cursor", "c-prev",
 		"--output", "text",
@@ -248,6 +249,104 @@ func TestFlowList_Empty(t *testing.T) {
 	var decoded []any
 	require.NoError(t, json.Unmarshal([]byte(result.Stdout), &decoded))
 	assert.Empty(t, decoded)
+}
+
+// seedFlowVersions seeds a workflow released twice, with a third version
+// still building, and a workflow whose only version failed to build, with
+// one flow per version. It returns the workflow IDs by slug.
+func seedFlowVersions(server *renderapi.Server) map[string]string {
+	released := seedWorkflow(server, "released")
+	released.DefaultVersionId = pointers.From("wfv-v2")
+	unreleased := seedWorkflow(server, "unreleased")
+
+	for _, v := range []struct {
+		id         string
+		workflowID string
+	}{
+		{"wfv-v1", released.Id},
+		{"wfv-v2", released.Id},
+		{"wfv-v3", released.Id},
+		{"wfv-failed", unreleased.Id},
+	} {
+		flowID := "flw-" + strings.TrimPrefix(v.id, "wfv-")
+		server.Flows.Add(&renderapi.Flow{
+			Id: flowID,
+			Body: json.RawMessage(`{
+				"id": "` + flowID + `",
+				"name": "my-flow",
+				"workflowId": "` + v.workflowID + `",
+				"workflowVersionId": "` + v.id + `",
+				"createdAt": "2026-10-20T01:00:00Z"
+			}`),
+		})
+	}
+
+	return map[string]string{"released": released.Id, "unreleased": unreleased.Id}
+}
+
+func TestFlowList_Versions(t *testing.T) {
+	tests := []struct {
+		name  string
+		args  func(workflowIDs map[string]string) []string
+		want  []string
+		calls int
+	}{
+		{
+			name:  "default lists flows from each workflow's default version",
+			args:  func(map[string]string) []string { return nil },
+			want:  []string{"flw-v2"},
+			calls: 1,
+		},
+		{
+			name:  "all versions lists every flow",
+			args:  func(map[string]string) []string { return []string{"--all-versions"} },
+			want:  []string{"flw-v1", "flw-v2", "flw-v3", "flw-failed"},
+			calls: 1,
+		},
+		{
+			name: "workflow filter lists that workflow's default version",
+			args: func(ids map[string]string) []string {
+				return []string{"--workflow", ids["released"]}
+			},
+			want:  []string{"flw-v2"},
+			calls: 1,
+		},
+		{
+			name: "workflow with no default version lists nothing",
+			args: func(ids map[string]string) []string {
+				return []string{"--workflow", ids["unreleased"]}
+			},
+			want:  []string{},
+			calls: 0,
+		},
+		{
+			name:  "explicit version lists that version",
+			args:  func(map[string]string) []string { return []string{"--workflow-version", "wfv-v1"} },
+			want:  []string{"flw-v1"},
+			calls: 1,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			withFlowWorkspace(t)
+			server := renderapi.NewServer(t)
+			workflowIDs := seedFlowVersions(server)
+
+			args := append([]string{"flows", "list", "--output", "json"}, tc.args(workflowIDs)...)
+			result, err := executeFlowCommand(t, server, args...)
+			require.NoError(t, err)
+
+			var flows []wfclient.Flow
+			require.NoError(t, json.Unmarshal([]byte(result.Stdout), &flows))
+			got := make([]string, 0, len(flows))
+			for _, f := range flows {
+				got = append(got, f.Id)
+			}
+			assert.Equal(t, tc.want, got)
+			assert.Len(t, server.Flows.ListCalls, tc.calls)
+		})
+	}
 }
 
 func TestFlowGet(t *testing.T) {
@@ -799,6 +898,7 @@ func TestFlowList_ResolvesWorkflowSlug(t *testing.T) {
 	withFlowWorkspace(t)
 	server := renderapi.NewServer(t)
 	wf := seedWorkflow(server, "my-workflow")
+	wf.DefaultVersionId = pointers.From("wfv-default")
 
 	_, err := executeFlowCommand(t, server,
 		"flows", "list",

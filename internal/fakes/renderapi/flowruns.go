@@ -278,6 +278,9 @@ func registerFlowRoutes(mux *http.ServeMux, s *Server, record func(*http.Request
 
 		result := make([]map[string]json.RawMessage, 0, len(s.Flows.Instances))
 		for i, flow := range s.Flows.Instances {
+			if len(call.WorkflowVersionId) > 0 && !slices.Contains(call.WorkflowVersionId, flowWorkflowVersionID(flow)) {
+				continue
+			}
 			result = append(result, map[string]json.RawMessage{
 				"flow":   flow.Body,
 				"cursor": json.RawMessage(strconv.Quote("c" + strconv.Itoa(i))),
@@ -304,6 +307,15 @@ func registerFlowRoutes(mux *http.ServeMux, s *Server, record func(*http.Request
 // requestBodyBytes returns the request body as a byte slice, draining the
 // reader. Returns an empty slice when the body is empty. The caller doesn't
 // need to restore the body because the record wrapper already does so.
+// flowWorkflowVersionID reads the workflowVersionId from a flow's raw body.
+func flowWorkflowVersionID(flow *Flow) string {
+	var body struct {
+		WorkflowVersionID string `json:"workflowVersionId"`
+	}
+	_ = json.Unmarshal(flow.Body, &body)
+	return body.WorkflowVersionID
+}
+
 func requestBodyBytes(r *http.Request) ([]byte, error) {
 	if r.Body == nil {
 		return []byte{}, nil

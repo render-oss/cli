@@ -61,6 +61,7 @@ type FlowListInput struct {
 	FlowSlugs          []string `cli:"flow-slug"`
 	WorkflowIDs        []string `cli:"workflow"`
 	WorkflowVersionIDs []string `cli:"workflow-version"`
+	AllVersions        bool     `cli:"all-versions"`
 	Limit              int      `cli:"limit"`
 	Cursor             string   `cli:"cursor"`
 }
@@ -77,6 +78,9 @@ func newFlowListCmd(deps *dependencies.Dependencies, runListCmd, runStartCmd, ru
 Flows are filtered by the active workspace. Narrow further with --flow-slug,
 --workflow, or --workflow-version. The flag can be repeated.
 
+By default only flows from each workflow's default (latest released) version
+are listed. Pass --all-versions to include every version.
+
 In interactive mode, you will be prompted to select a workflow if no filter is
 provided. Select a flow to view its runs or start a new run, then view a
 run's logs or results.`,
@@ -89,6 +93,9 @@ run's logs or results.`,
   # Filter by workflow ID or slug
   render workflows flows list --workflow my-workflow
 
+  # Include flows from every workflow version
+  render workflows flows list --all-versions
+
   # JSON output
   render workflows flows list --output json`,
 	}
@@ -96,6 +103,7 @@ run's logs or results.`,
 	cmd.Flags().StringArray("flow-slug", nil, "Filter by flow slug (workflow-slug/flow-name[:version], repeatable)")
 	cmd.Flags().StringArray("workflow", nil, "Filter by workflow ID or slug (repeatable)")
 	cmd.Flags().StringArray("workflow-version", nil, "Filter by workflow version ID (repeatable)")
+	cmd.Flags().Bool("all-versions", false, "Include flows from every workflow version, not just the default version")
 	addPaginationFlags(cmd)
 	setAllFlagPlaceholders(cmd, map[string]string{
 		"flow-slug":        "SLUG",
@@ -144,7 +152,7 @@ run's logs or results.`,
 		nonInteractive, err := command.NonInteractive(cmd, func() ([]*workflows.Flow, error) {
 			var flows []*workflows.Flow
 			var err error
-			cursor, flows, err = deps.FlowRunRepo().ListFlows(cmd.Context(), params)
+			cursor, flows, err = listFlows(cmd.Context(), deps, &input, params)
 			return flows, err
 		}, text.FlowTable)
 		if err != nil {
@@ -161,6 +169,33 @@ run's logs or results.`,
 	}
 
 	return cmd
+}
+
+// listFlows lists the flows that match params. Unless input asks for every
+// version or names flows or versions explicitly, it lists only flows from each
+// workflow's default version. A flow slug without a version already resolves
+// to the default version.
+func listFlows(ctx context.Context, deps *dependencies.Dependencies, input *FlowListInput, params *client.ListFlowsParams) (client.Cursor, []*workflows.Flow, error) {
+	if input.AllVersions || len(input.FlowSlugs) > 0 || len(input.WorkflowVersionIDs) > 0 {
+		return deps.FlowRunRepo().ListFlows(ctx, params)
+	}
+
+	var workflowIDs []string
+	if params.WorkflowId != nil {
+		workflowIDs = *params.WorkflowId
+	}
+	versionIDs, err := deps.WorkflowLoader().DefaultVersionIDs(ctx, workflowIDs)
+	if err != nil {
+		return "", nil, err
+	}
+	// An empty version filter would list flows from every version.
+	if len(versionIDs) == 0 {
+		return "", []*workflows.Flow{}, nil
+	}
+
+	filtered := *params
+	filtered.WorkflowVersionId = &versionIDs
+	return deps.FlowRunRepo().ListFlows(ctx, &filtered)
 }
 
 // flowTUI opens the interactive flow screens. Each screen is pushed under the
@@ -219,7 +254,7 @@ func (s *flowTUI) flowList(ctx context.Context, input *FlowListInput, params *cl
 
 func (s *flowTUI) flowTable(ctx context.Context, breadcrumb string, input *FlowListInput, params *client.ListFlowsParams) tea.Cmd {
 	loadFlows := func(ctx context.Context, params *client.ListFlowsParams) ([]*workflows.Flow, error) {
-		_, flows, err := s.deps.FlowRunRepo().ListFlows(ctx, params)
+		_, flows, err := listFlows(ctx, s.deps, input, params)
 		return flows, err
 	}
 

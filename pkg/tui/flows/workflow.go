@@ -55,7 +55,7 @@ func (f *Workflow) TaskRunFlow(ctx context.Context, input *workflowviews.TaskRun
 
 func (f *Workflow) TaskListFlow(ctx context.Context, input *workflowviews.TaskListInput) tea.Cmd {
 	if input.WorkflowVersionID == "" && input.WorkflowID == "" {
-		return f.unspecifiedTask(ctx, func(t *workflows.Task) tea.Cmd {
+		return f.pickWorkflowTask(ctx, input.AllVersions, func(t *workflows.Task) tea.Cmd {
 			return f.taskListPalette(ctx, t)
 		})
 	}
@@ -172,12 +172,18 @@ func (f *Workflow) versionRelease(ctx context.Context, input *workflowviews.Vers
 }
 
 func (f *Workflow) unspecifiedTask(ctx context.Context, action func(t *workflows.Task) tea.Cmd) tea.Cmd {
+	return f.pickWorkflowTask(ctx, false, action)
+}
+
+// pickWorkflowTask prompts for a workflow, then lists its tasks. allVersions
+// lists tasks from every version instead of only the default version.
+func (f *Workflow) pickWorkflowTask(ctx context.Context, allVersions bool, action func(t *workflows.Task) tea.Cmd) tea.Cmd {
 	if f.local {
-		return f.taskList(ctx, &workflowviews.TaskListInput{}, action)
+		return f.taskList(ctx, &workflowviews.TaskListInput{Local: true}, action)
 	}
 
 	return f.workflowList(ctx, &workflowviews.WorkflowInput{}, func(ctx context.Context, r resource.Resource) tea.Cmd {
-		return f.taskList(ctx, &workflowviews.TaskListInput{WorkflowID: r.ID()}, action)
+		return f.taskList(ctx, &workflowviews.TaskListInput{WorkflowID: r.ID(), AllVersions: allVersions}, action)
 	})
 }
 
@@ -202,7 +208,7 @@ func (f *Workflow) workflowListPalette(ctx context.Context, r resource.Resource,
 				Name:        "tasks",
 				Description: "View tasks for this workflow",
 				Action: func(ctx context.Context, args []string) tea.Cmd {
-					return f.taskList(ctx, &workflowviews.TaskListInput{WorkflowID: r.ID(), LatestVersionOnly: true}, func(t *workflows.Task) tea.Cmd {
+					return f.taskList(ctx, &workflowviews.TaskListInput{WorkflowID: r.ID()}, func(t *workflows.Task) tea.Cmd {
 						return f.taskListPalette(ctx, t)
 					})
 				},

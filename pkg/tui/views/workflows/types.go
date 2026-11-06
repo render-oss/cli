@@ -13,7 +13,7 @@ import (
 type TaskListInput struct {
 	WorkflowVersionID string `cli:"arg:0"`
 	WorkflowID        string
-	LatestVersionOnly bool
+	AllVersions       bool `cli:"all-versions"`
 	Local             bool
 }
 
