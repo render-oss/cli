@@ -31,13 +31,13 @@ Changing a credential's domain or secret value requires an admin.
 A successful write saves the desired state; runtime reconciliation may still be
 pending.`,
 		Example: `  # Rotate a credential value from a file
-  render ea sandbox-groups credentials update inference-key --value-file ./secret.txt
+  render sandbox-groups credentials update inference-key --value-file ./secret.txt
 
   # Disable a credential
-  render ea sandbox-groups credentials update inference-key --enabled=false
+  render sandbox-groups credentials update inference-key --enabled=false
 
   # Clear request filters
-  render ea sandbox-groups credentials update inference-key --methods= --paths=`,
+  render sandbox-groups credentials update inference-key --methods= --paths=`,
 	}
 	addSandboxCredentialWriteFlags(cmd)
 

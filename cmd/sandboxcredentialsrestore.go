@@ -30,7 +30,7 @@ func newSandboxCredentialsRestoreCmd(deps *dependencies.Dependencies) *cobra.Com
 
 Uses the active workspace's default sandbox group unless --group is provided.`,
 		Example: `  # Restore version 2 as a new current revision
-  render ea sandbox-groups credentials restore inference-key --version 2`,
+  render sandbox-groups credentials restore inference-key --version 2`,
 	}
 	cmd.Flags().String("group", "", "Use this sandbox group (defaults to the active workspace's default group)")
 	setFlagPlaceholder(cmd.Flags(), "group", "SANDBOX_GROUP_ID")
