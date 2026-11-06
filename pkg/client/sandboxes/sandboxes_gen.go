@@ -292,8 +292,11 @@ type Sandbox struct {
 	// IdleTimeoutSeconds Seconds of inactivity before the sandbox is suspended. 0 disables automatic idle suspension.
 	//
 	// Example: 900
-	IdleTimeoutSeconds int                  `json:"idleTimeoutSeconds"`
-	NetworkPolicy      SandboxNetworkPolicy `json:"networkPolicy"`
+	IdleTimeoutSeconds int `json:"idleTimeoutSeconds"`
+
+	// Name The label set when the sandbox was created.
+	Name          *string              `json:"name,omitempty"`
+	NetworkPolicy SandboxNetworkPolicy `json:"networkPolicy"`
 
 	// Plan Compute plan. See `sandboxPlan` for known values.
 	Plan SandboxPlan `json:"plan"`
@@ -665,8 +668,9 @@ type SandboxNetworkPolicyPOST struct {
 
 	// Type How outbound traffic is handled. `allow-all`, `deny-all`, or
 	// `allow-list` (requires additional `rules`). Either `type` or `default`
-	// is required when `networkPolicy` is provided. Omitting
-	// `networkPolicy` defaults to `allow-all`.
+	// is required when `networkPolicy` is provided. Defaults to `allow-all`,
+	// or to the source sandbox's network policy when starting from a
+	// snapshot. Include `networkPolicy` to override.
 	Type *SandboxNetworkPolicyType `json:"type,omitempty"`
 }
 
@@ -696,6 +700,10 @@ type SandboxPOST struct {
 	// IdleTimeoutSeconds Seconds of inactivity before the sandbox is suspended. Use 0 to disable automatic idle suspension. Positive values must be at least 300.
 	IdleTimeoutSeconds *int `json:"idleTimeoutSeconds,omitempty"`
 
+	// Name A label for the sandbox, like `my-agent`. It isn't unique, so the
+	// sandbox ID stays the handle. It can't start with `sbx-`.
+	Name *string `json:"name,omitempty"`
+
 	// NetworkPolicy Set either `type` or its deprecated alias `default`. Sending both is
 	// only accepted when they name the same policy.
 	NetworkPolicy *SandboxNetworkPolicyPOST `json:"networkPolicy,omitempty"`
@@ -715,7 +723,8 @@ type SandboxPOST struct {
 
 	// SnapshotId Start from this snapshot instead of the base image. Must be `available`
 	// and in the same sandbox group. For a `runtime` snapshot, `plan` must
-	// match the snapshot's plan.
+	// match the snapshot's plan. The new sandbox uses the source sandbox's
+	// network policy. Include `networkPolicy` to set a different one.
 	SnapshotId *SandboxSnapshotId `json:"snapshotId,omitempty"`
 
 	// SnapshotName Start from the snapshot this name currently resolves to in the sandbox

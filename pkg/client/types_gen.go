@@ -5097,6 +5097,10 @@ type ListSandboxesParams struct {
 	// SandboxGroupId Return only sandboxes in this group. The group must belong to ownerId.
 	SandboxGroupId *externalRef16.SandboxGroupId `form:"sandboxGroupId,omitempty" json:"sandboxGroupId,omitempty"`
 
+	// Name Return only sandboxes with exactly this name. Names aren't unique, so
+	// this can match more than one sandbox.
+	Name *string `form:"name,omitempty" json:"name,omitempty"`
+
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
 

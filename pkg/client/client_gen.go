@@ -2380,6 +2380,9 @@ type ClientInterface interface {
 	// `code: snapshot_not_found` if no `available` snapshot in the group has the
 	// name. The 409 cases above apply to the resolved snapshot.
 	//
+	// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
+	// or starts with `sbx-`.
+	//
 	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
 	//
 	// 400 with `code: sandbox_group_limit_reached` if the owner has no default
@@ -2409,6 +2412,9 @@ type ClientInterface interface {
 	// malformed, 400 without a code if `snapshotId` is also set, and 404 with
 	// `code: snapshot_not_found` if no `available` snapshot in the group has the
 	// name. The 409 cases above apply to the resolved snapshot.
+	//
+	// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
+	// or starts with `sbx-`.
 	//
 	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
 	//
@@ -8145,6 +8151,9 @@ func (c *Client) ListSandboxes(ctx context.Context, params *ListSandboxesParams,
 // `code: snapshot_not_found` if no `available` snapshot in the group has the
 // name. The 409 cases above apply to the resolved snapshot.
 //
+// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
+// or starts with `sbx-`.
+//
 // 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
 //
 // 400 with `code: sandbox_group_limit_reached` if the owner has no default
@@ -8184,6 +8193,9 @@ func (c *Client) CreateSandboxWithBody(ctx context.Context, contentType string, 
 // malformed, 400 without a code if `snapshotId` is also set, and 404 with
 // `code: snapshot_not_found` if no `available` snapshot in the group has the
 // name. The 409 cases above apply to the resolved snapshot.
+//
+// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
+// or starts with `sbx-`.
 //
 // 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
 //
@@ -22141,6 +22153,18 @@ func NewListSandboxesRequest(server string, params *ListSandboxesParams) (*http.
 
 		}
 
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "name", *params.Name, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Cursor != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
@@ -29521,6 +29545,9 @@ type ClientWithResponsesInterface interface {
 	// `code: snapshot_not_found` if no `available` snapshot in the group has the
 	// name. The 409 cases above apply to the resolved snapshot.
 	//
+	// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
+	// or starts with `sbx-`.
+	//
 	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
 	//
 	// 400 with `code: sandbox_group_limit_reached` if the owner has no default
@@ -29550,6 +29577,9 @@ type ClientWithResponsesInterface interface {
 	// malformed, 400 without a code if `snapshotId` is also set, and 404 with
 	// `code: snapshot_not_found` if no `available` snapshot in the group has the
 	// name. The 409 cases above apply to the resolved snapshot.
+	//
+	// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
+	// or starts with `sbx-`.
 	//
 	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
 	//
@@ -61375,6 +61405,9 @@ func (c *ClientWithResponses) ListSandboxesWithResponse(ctx context.Context, par
 // `code: snapshot_not_found` if no `available` snapshot in the group has the
 // name. The 409 cases above apply to the resolved snapshot.
 //
+// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
+// or starts with `sbx-`.
+//
 // 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
 //
 // 400 with `code: sandbox_group_limit_reached` if the owner has no default
@@ -61410,6 +61443,9 @@ func (c *ClientWithResponses) CreateSandboxWithBodyWithResponse(ctx context.Cont
 // malformed, 400 without a code if `snapshotId` is also set, and 404 with
 // `code: snapshot_not_found` if no `available` snapshot in the group has the
 // name. The 409 cases above apply to the resolved snapshot.
+//
+// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
+// or starts with `sbx-`.
 //
 // 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
 //
