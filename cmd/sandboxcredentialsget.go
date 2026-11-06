@@ -28,10 +28,10 @@ func newSandboxCredentialsGetCmd(deps *dependencies.Dependencies) *cobra.Command
 
 Uses the active workspace's default sandbox group unless --group is provided.`,
 		Example: `  # Get a sandbox group credential
-  render sandbox-groups credentials get inference-key
+  render ea sandbox-groups credentials get inference-key
 
   # Output as JSON for a specific group
-  render sandbox-groups credentials get inference-key --group sbg-abc123 --output json`,
+  render ea sandbox-groups credentials get inference-key --group sbg-abc123 --output json`,
 	}
 	cmd.Flags().String("group", "", "Use this sandbox group (defaults to the active workspace's default group)")
 	setFlagPlaceholder(cmd.Flags(), "group", "SANDBOX_GROUP_ID")

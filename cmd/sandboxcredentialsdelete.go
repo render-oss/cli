@@ -30,10 +30,10 @@ func newSandboxCredentialsDeleteCmd(deps *dependencies.Dependencies) *cobra.Comm
 Uses the active workspace's default sandbox group unless --group is provided.
 Without --confirm, preview the deletion without making changes.`,
 		Example: `  # Preview credential deletion
-  render sandbox-groups credentials delete inference-key
+  render ea sandbox-groups credentials delete inference-key
 
   # Delete the credential
-  render sandbox-groups credentials delete inference-key --confirm`,
+  render ea sandbox-groups credentials delete inference-key --confirm`,
 	}
 	cmd.Flags().String("group", "", "Use this sandbox group (defaults to the active workspace's default group)")
 	setFlagPlaceholder(cmd.Flags(), "group", "SANDBOX_GROUP_ID")

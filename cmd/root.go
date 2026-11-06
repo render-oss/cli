@@ -203,16 +203,20 @@ func setupSandboxCommands(parent *cobra.Command, deps *dependencies.Dependencies
 func setupSandboxGroupsCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
 	images := newSandboxImagesCmd(newSandboxImagesImportCmd(deps), newSandboxImagesGetCmd(deps))
 	builds := newDeprecatedSandboxBuildsCmd(newSandboxImagesImportCmd(deps), newSandboxImagesGetCmd(deps))
+	defaultGroup := newSandboxGroupsDefaultCmd(newSandboxGroupsDefaultSetCmd(deps))
+	parent.AddCommand(newSandboxGroupsCmd(
+		images, builds, newSandboxGroupsListCmd(deps), newSandboxGroupsCreateCmd(deps),
+		newSandboxGroupsDeleteCmd(deps), defaultGroup,
+	))
+}
+
+func setupEarlyAccessSandboxGroupsCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
 	credentials := newSandboxCredentialsCmd(
 		newSandboxCredentialsCreateCmd(deps), newSandboxCredentialsGetCmd(deps), newSandboxCredentialsListCmd(deps),
 		newSandboxCredentialsUpdateCmd(deps), newSandboxCredentialsDeleteCmd(deps),
 		newSandboxCredentialsVersionsCmd(deps), newSandboxCredentialsRestoreCmd(deps),
 	)
-	defaultGroup := newSandboxGroupsDefaultCmd(newSandboxGroupsDefaultSetCmd(deps))
-	parent.AddCommand(newSandboxGroupsCmd(
-		images, builds, newSandboxGroupsListCmd(deps), newSandboxGroupsCreateCmd(deps),
-		newSandboxGroupsDeleteCmd(deps), defaultGroup, credentials,
-	))
+	earlyAccess.AddCommand(newEarlyAccessSandboxGroupsCmd(credentials))
 }
 
 func setupBlueprintCommands(earlyAccess *cobra.Command, deps *dependencies.Dependencies) {
@@ -255,6 +259,7 @@ func setupCommands() (*dependencies.Dependencies, error) {
 	setupPGCommands(rootCmd, deps)
 	setupSandboxCommands(rootCmd, deps)
 	setupSandboxGroupsCommands(rootCmd, deps)
+	setupEarlyAccessSandboxGroupsCommands(EarlyAccessCmd, deps)
 	setupBlueprintCommands(EarlyAccessCmd, deps)
 	setupRootCmdPersistentRun(rootCmd, deps)
 

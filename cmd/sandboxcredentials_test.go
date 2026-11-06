@@ -19,6 +19,7 @@ import (
 	"github.com/render-oss/cli/pkg/client"
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
 	"github.com/render-oss/cli/pkg/command"
+	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/sandboxcredential"
 )
@@ -46,7 +47,28 @@ func (h *sandboxCredentialsHarness) execute(args ...string) (CommandResult, erro
 
 func (h *sandboxCredentialsHarness) executeWithStdin(stdin string, args ...string) (CommandResult, error) {
 	h.t.Helper()
-	return executeSandboxGroupsCommandWithStdin(h.t, h.server, stdin, append([]string{"sandbox-groups", "credentials"}, args...)...)
+	fullArgs := append([]string{"ea", "sandbox-groups", "credentials"}, args...)
+	return executeSandboxGroupsCommandWithStdin(h.t, h.server, stdin, fullArgs...)
+}
+
+func TestSandboxCredentials_OnlyUnderEarlyAccess(t *testing.T) {
+	// arrange
+	root := newRootCmd()
+	ea := newEarlyAccessCmd()
+	root.AddCommand(ea)
+	deps := dependencies.New(nil)
+	setupSandboxGroupsCommands(root, deps)
+	setupEarlyAccessSandboxGroupsCommands(ea, deps)
+
+	// act
+	gaCmd, _, gaErr := root.Find([]string{"sandbox-groups", "credentials", "list"})
+	eaCmd, _, eaErr := root.Find([]string{"ea", "sandbox-groups", "credentials", "list"})
+
+	// assert
+	require.NoError(t, gaErr)
+	require.NoError(t, eaErr)
+	assert.Equal(t, []string{"render sandbox-groups", "render ea sandbox-groups credentials list"},
+		[]string{gaCmd.CommandPath(), eaCmd.CommandPath()})
 }
 
 func (h *sandboxCredentialsHarness) credentialPath(id string) string {

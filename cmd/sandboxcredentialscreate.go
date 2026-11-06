@@ -33,13 +33,13 @@ newlines. Secret values are never printed.
 A successful create saves the desired state; runtime reconciliation may still
 be pending.`,
 		Example: `  # Create a credential injected into an Authorization header
-  render sandbox-groups credentials create inference-key \
+  render ea sandbox-groups credentials create inference-key \
     --domain api.example.com --value-file ./secret.txt \
     --injection-type header --injection-name Authorization \
     --injection-template 'Bearer ${SECRET}'
 
   # Read a secret from stdin
-  printf '%s' "$API_TOKEN" | render sandbox-groups credentials create inference-key \
+  printf '%s' "$API_TOKEN" | render ea sandbox-groups credentials create inference-key \
     --domain api.example.com --value-file - \
     --injection-type header --injection-name X-API-Key`,
 	}
