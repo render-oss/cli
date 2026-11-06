@@ -21,13 +21,20 @@ const (
 
 type SandboxResource struct {
 	Resource[*sandboxesclient.Sandbox]
-	getErrorQueue []int
+	getErrorQueue     []int
+	connectErrorQueue []int
 }
 
 // RespondToGetWith queues an HTTP error status for the next
 // GET /sandboxes/{sandboxId}.
 func (r *SandboxResource) RespondToGetWith(status int) {
 	r.getErrorQueue = append(r.getErrorQueue, status)
+}
+
+// RespondWithErrorForConnect queues an HTTP error status for the next connect
+// token request (exec or file transfer), regardless of the sandbox's status.
+func (r *SandboxResource) RespondWithErrorForConnect(status int) {
+	r.connectErrorQueue = append(r.connectErrorQueue, status)
 }
 
 func NewSandbox(sb sandboxesclient.Sandbox) *sandboxesclient.Sandbox {
@@ -155,6 +162,36 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 		}
 		writeJSON(w, http.StatusOK, sb)
 	})
+
+	// Connect token routes for exec (runs) and file transfer (files). Only the
+	// mint is faked; the returned uri points nowhere.
+	connectToken := func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if q := s.Sandboxes.connectErrorQueue; len(q) > 0 {
+			s.Sandboxes.connectErrorQueue = q[1:]
+			http.Error(w, http.StatusText(q[0]), q[0])
+			return
+		}
+		sb, found := s.sandboxByID(r.PathValue("sandboxId"))
+		if !found {
+			writeAPIError(w, http.StatusNotFound, "sandbox not found", "")
+			return
+		}
+		if sb.Status == sandboxesclient.SandboxStatusTerminated || sb.Status == sandboxesclient.SandboxStatusErrored {
+			// The API sends this 409 as plain text, not a JSON error.
+			http.Error(w, "sandbox has ended", http.StatusConflict)
+			return
+		}
+		writeJSON(w, http.StatusCreated, sandboxesclient.SandboxConnectResponse{
+			ExecutionId: "exe-fake",
+			ExpiresAt:   time.Now().Add(time.Minute),
+			Method:      http.MethodPost,
+			Token:       "fake-connect-token",
+			Uri:         "http://127.0.0.1:0/fake-sandbox-proxy",
+		})
+	}
+	mux.HandleFunc("POST /sandboxes/{sandboxId}/runs/{operation}/token", connectToken)
+	mux.HandleFunc("POST /sandboxes/{sandboxId}/files/{operation}/token", connectToken)
 
 	mux.HandleFunc("POST /sandboxes", func(w http.ResponseWriter, r *http.Request) {
 		record(r)

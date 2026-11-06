@@ -8,10 +8,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/pkg/client"
 	sandboxclient "github.com/render-oss/cli/pkg/client/sandboxes"
 	"github.com/stretchr/testify/assert"
@@ -474,4 +477,83 @@ func TestExecSandboxStreamMintError(t *testing.T) {
 	_, err := repo.ExecSandboxStream(context.Background(), sandboxID, "echo hello", nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "sandbox not found")
+}
+
+// The connect token endpoints return 409 for a terminated or errored sandbox.
+// Exec, upload, and download look the sandbox up and say it ended, with its
+// status and time, instead of surfacing a bare status code.
+func TestConnectToEndedSandboxNamesStatus(t *testing.T) {
+	terminatedAt := time.Date(2026, 11, 5, 12, 30, 0, 0, time.UTC)
+	localFile := filepath.Join(t.TempDir(), "f")
+	require.NoError(t, os.WriteFile(localFile, []byte("x"), 0o600))
+
+	exec := func(s *Service, id string) error {
+		_, err := s.ExecStream(context.Background(), id, "echo hi", nil)
+		return err
+	}
+	upload := func(s *Service, id string) error {
+		return s.Upload(context.Background(), id, localFile, "/f")
+	}
+	download := func(s *Service, id string) error {
+		_, err := s.Download(context.Background(), id, "/f", t.TempDir())
+		return err
+	}
+
+	tests := []struct {
+		name   string
+		call   func(*Service, string) error
+		status sandboxclient.SandboxStatus
+		want   string
+	}{
+		{"exec", exec, sandboxclient.SandboxStatusTerminated, "was terminated at 2026-11-05T12:30:00Z"},
+		{"upload", upload, sandboxclient.SandboxStatusTerminated, "was terminated at 2026-11-05T12:30:00Z"},
+		{"download", download, sandboxclient.SandboxStatusTerminated, "was terminated at 2026-11-05T12:30:00Z"},
+		{"errored", exec, sandboxclient.SandboxStatusErrored, "errored at 2026-11-05T12:30:00Z"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := renderapi.NewServer(t)
+			sb := server.Sandboxes.Add(renderapi.NewSandbox(sandboxclient.Sandbox{Status: tt.status, TerminatedAt: &terminatedAt}))
+			t.Setenv("RENDER_WORKSPACE", "tea-workspace")
+
+			c, err := client.NewClientWithResponses(server.URL())
+			require.NoError(t, err)
+
+			err = tt.call(NewService(NewRepo(c)), sb.Id)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "sandbox "+sb.Id+" "+tt.want)
+		})
+	}
+}
+
+// When the 409 can't be explained, by a sandbox that hasn't ended or a failed
+// lookup, the original error comes back unchanged.
+func TestConnectConflictFallsBackToOriginalError(t *testing.T) {
+	t.Run("sandbox not ended", func(t *testing.T) {
+		server := renderapi.NewServer(t)
+		sb := server.Sandboxes.Add(renderapi.NewSandbox(sandboxclient.Sandbox{Status: sandboxclient.SandboxStatusSuspended}))
+		server.Sandboxes.RespondWithErrorForConnect(http.StatusConflict)
+		t.Setenv("RENDER_WORKSPACE", "tea-workspace")
+
+		c, err := client.NewClientWithResponses(server.URL())
+		require.NoError(t, err)
+
+		_, err = NewService(NewRepo(c)).ExecStream(context.Background(), sb.Id, "echo hi", nil)
+		require.EqualError(t, err, "received response code 409: Conflict\n")
+	})
+
+	t.Run("lookup fails", func(t *testing.T) {
+		server := renderapi.NewServer(t)
+		sb := server.Sandboxes.Add(renderapi.NewSandbox(sandboxclient.Sandbox{Status: sandboxclient.SandboxStatusTerminated}))
+		server.Sandboxes.RespondWithErrorForConnect(http.StatusConflict)
+		server.Sandboxes.RespondToGetWith(http.StatusInternalServerError)
+		t.Setenv("RENDER_WORKSPACE", "tea-workspace")
+
+		c, err := client.NewClientWithResponses(server.URL())
+		require.NoError(t, err)
+
+		_, err = NewService(NewRepo(c)).ExecStream(context.Background(), sb.Id, "echo hi", nil)
+		require.EqualError(t, err, "received response code 409: Conflict\n")
+	})
 }

@@ -10,6 +10,7 @@ import (
 	"mime"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/render-oss/cli/pkg/client"
 	sandboxclient "github.com/render-oss/cli/pkg/client/sandboxes"
@@ -313,7 +314,7 @@ func (r *Repo) connect(ctx context.Context, id, command string) (*sandboxclient.
 	}
 
 	if err := client.ErrorFromResponse(resp); err != nil {
-		return nil, err
+		return nil, r.explainConflict(ctx, id, resp.StatusCode(), err)
 	}
 
 	if resp.JSON201 == nil {
@@ -340,7 +341,7 @@ func (r *Repo) connectFile(ctx context.Context, id, operation, remotePath string
 	}
 
 	if err := client.ErrorFromResponse(resp); err != nil {
-		return nil, err
+		return nil, r.explainConflict(ctx, id, resp.StatusCode(), err)
 	}
 
 	if resp.JSON201 == nil {
@@ -348,6 +349,33 @@ func (r *Repo) connectFile(ctx context.Context, id, operation, remotePath string
 	}
 
 	return resp.JSON201, nil
+}
+
+// explainConflict handles a 409 from a connect token endpoint, which the API
+// returns for a terminated or errored sandbox. It looks the sandbox up and
+// says it ended, with its status and time. Any other status, or a failed
+// lookup, returns err unchanged.
+func (r *Repo) explainConflict(ctx context.Context, id string, statusCode int, err error) error {
+	if statusCode != http.StatusConflict {
+		return err
+	}
+	sb, getErr := r.GetSandbox(ctx, id)
+	if getErr != nil || sb == nil {
+		return err
+	}
+	var ended string
+	switch sb.Status {
+	case sandboxclient.SandboxStatusTerminated:
+		ended = "was terminated"
+	case sandboxclient.SandboxStatusErrored:
+		ended = "errored"
+	default:
+		return err
+	}
+	if sb.TerminatedAt != nil {
+		ended += " at " + sb.TerminatedAt.UTC().Format(time.RFC3339)
+	}
+	return fmt.Errorf("sandbox %s %s", id, ended)
 }
 
 func isSuccess(statusCode int) bool { return statusCode >= 200 && statusCode < 300 }
