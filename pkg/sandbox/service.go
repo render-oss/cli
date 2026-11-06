@@ -23,6 +23,8 @@ func NewService(repo *Repo) *Service {
 // CreateInput describes the parameters for creating a sandbox. Empty/zero
 // fields fall back to the API defaults.
 type CreateInput struct {
+	// Name labels the sandbox. Names aren't unique, so the ID stays the handle.
+	Name           *string
 	SandboxGroupID string
 	Plan           string
 	Region         string
@@ -59,23 +61,36 @@ func AllStatuses() []sandboxclient.SandboxStatus {
 	return slices.Clone(allSandboxStatuses)
 }
 
-// List returns sandboxes in the active workspace. When statuses is non-empty it
+// ListInput filters a sandbox list. Empty fields don't filter.
+type ListInput struct {
+	SandboxGroupID string
+	// Name matches exactly. Names aren't unique, so it can match many sandboxes.
+	Name     string
+	Statuses []string
+	// All includes terminated sandboxes when Statuses is empty.
+	All bool
+}
+
+// List returns sandboxes in the active workspace. When Statuses is non-empty it
 // filters by those statuses. Otherwise it sends no status filter, so the server
-// applies its default (exclude terminated) — unless all is true, which requests
+// applies its default (exclude terminated) — unless All is true, which requests
 // every status to include terminated sandboxes too.
-func (s *Service) List(ctx context.Context, statuses []string, all bool, groupID string) ([]*sandboxclient.Sandbox, error) {
+func (s *Service) List(ctx context.Context, input ListInput) ([]*sandboxclient.Sandbox, error) {
 	params := &client.ListSandboxesParams{}
-	if groupID != "" {
-		params.SandboxGroupId = &groupID
+	if input.SandboxGroupID != "" {
+		params.SandboxGroupId = &input.SandboxGroupID
+	}
+	if input.Name != "" {
+		params.Name = &input.Name
 	}
 
-	if len(statuses) > 0 {
-		filtered := make([]sandboxclient.SandboxStatus, len(statuses))
-		for i, status := range statuses {
+	if len(input.Statuses) > 0 {
+		filtered := make([]sandboxclient.SandboxStatus, len(input.Statuses))
+		for i, status := range input.Statuses {
 			filtered[i] = sandboxclient.SandboxStatus(status)
 		}
 		params.Status = &filtered
-	} else if all {
+	} else if input.All {
 		params.Status = &allSandboxStatuses
 	}
 
@@ -91,7 +106,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*s
 		return nil, err
 	}
 
-	body := client.CreateSandboxJSONRequestBody{OwnerId: workspace}
+	body := client.CreateSandboxJSONRequestBody{OwnerId: workspace, Name: input.Name}
 	if input.SandboxGroupID != "" {
 		body.SandboxGroupId = &input.SandboxGroupID
 	}

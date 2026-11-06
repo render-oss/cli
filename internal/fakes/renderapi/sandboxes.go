@@ -130,6 +130,9 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 			if groupID := q.Get("sandboxGroupId"); groupID != "" && *sb.SandboxGroupId != groupID {
 				continue
 			}
+			if name := q.Get("name"); name != "" && (sb.Name == nil || *sb.Name != name) {
+				continue
+			}
 			if !pastCursor {
 				pastCursor = sb.Id == q.Get("cursor")
 				continue
@@ -208,6 +211,10 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 				return
 			}
 		}
+		if body.Name != nil && invalidSandboxName(*body.Name) {
+			writeAPIError(w, http.StatusBadRequest, "invalid sandbox name", ErrorCodeInvalidSandboxName)
+			return
+		}
 		if body.SnapshotId != nil && body.SnapshotName != nil {
 			writeAPIError(w, http.StatusBadRequest, "snapshotId and snapshotName are mutually exclusive", "")
 			return
@@ -273,6 +280,9 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 			}
 		}
 		sb := sandboxesclient.Sandbox{SandboxGroupId: &groupID}
+		if body.Name != nil && *body.Name != "" {
+			sb.Name = body.Name
+		}
 		if body.Plan != nil {
 			sb.Plan = *body.Plan
 		}

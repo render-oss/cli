@@ -14,6 +14,7 @@ import (
 
 type SandboxListInput struct {
 	SandboxGroupID string   `cli:"group"`
+	Name           string   `cli:"name"`
 	Status         []string `cli:"status"`
 	All            bool     `cli:"all"`
 }
@@ -29,6 +30,7 @@ By default, terminated sandboxes are excluded. Use --all to include them, or --s
 Examples:
   render sandboxes list
   render sandboxes list --all
+  render sandboxes list --name=my-agent
   render sandboxes list --status=running
   render sandboxes list --status=running --status=creating
   render sandboxes list -o json
@@ -37,6 +39,8 @@ Examples:
 
 	cmd.Flags().StringArray("status", nil, "Filter by status (repeatable: "+strings.Join(sandboxStatusNames(), ", ")+")")
 	cmd.Flags().Bool("all", false, "Include terminated sandboxes")
+	cmd.Flags().String("name", "", "Filter by exact sandbox name. Names aren't unique, so this can match more than one sandbox")
+	setFlagPlaceholder(cmd.Flags(), "name", "NAME")
 	cmd.Flags().String("group", "", "Filter by sandbox group ID")
 	setFlagPlaceholder(cmd.Flags(), "group", "SANDBOX_GROUP_ID")
 	setFlagAlias(cmd.Flags(), "sandbox-group", "group")
@@ -50,7 +54,12 @@ Examples:
 		}
 
 		_, err := command.NonInteractive(cmd, func() ([]*sandboxclient.Sandbox, error) {
-			return deps.SandboxService().List(cmd.Context(), input.Status, input.All, input.SandboxGroupID)
+			return deps.SandboxService().List(cmd.Context(), sandbox.ListInput{
+				SandboxGroupID: input.SandboxGroupID,
+				Name:           input.Name,
+				Statuses:       input.Status,
+				All:            input.All,
+			})
 		}, text.SandboxTable)
 		return err
 	}

@@ -77,6 +77,40 @@ func TestSandboxTable_NetworkPolicyColumns(t *testing.T) {
 	}
 }
 
+func TestSandboxTable_NameColumn(t *testing.T) {
+	tests := []struct {
+		name     string
+		sbxName  *string
+		wantCell string
+	}{
+		{name: "named", sbxName: pointers.From("my-agent"), wantCell: "my-agent"},
+		{name: "unnamed", sbxName: nil, wantCell: "-"},
+		{name: "empty", sbxName: pointers.From(""), wantCell: "-"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := text.SandboxTable([]*sandboxesclient.Sandbox{{
+				Id:        "sbx-abc",
+				Name:      tt.sbxName,
+				Status:    sandboxesclient.SandboxStatusRunning,
+				CreatedAt: time.Now(),
+			}})
+
+			assert.Equal(t, tt.wantCell, tableCell(t, out, "NAME"))
+			assert.Less(t, strings.Index(out, "ID"), strings.Index(out, "NAME"), "ID stays the first column")
+		})
+	}
+}
+
+func TestSandboxDetail_Name(t *testing.T) {
+	named := text.SandboxDetail(&sandboxesclient.Sandbox{Id: "sbx-abc", Name: pointers.From("my-agent")})
+	assert.Contains(t, named, "Name:    my-agent")
+
+	unnamed := text.SandboxDetail(&sandboxesclient.Sandbox{Id: "sbx-abc"})
+	assert.NotContains(t, unnamed, "Name:")
+}
+
 func TestSandboxDetail_Timeouts(t *testing.T) {
 	tests := []struct {
 		name               string

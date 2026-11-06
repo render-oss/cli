@@ -69,11 +69,12 @@ func TestServiceList_StatusQuery(t *testing.T) {
 				_ = json.NewEncoder(w).Encode([]client.SandboxWithCursor{})
 			})
 
-			_, err := svc.List(context.Background(), tt.statuses, tt.all, "")
+			_, err := svc.List(context.Background(), ListInput{Statuses: tt.statuses, All: tt.all})
 			require.NoError(t, err)
 
 			assert.Equal(t, listTestWorkspace, gotQuery.Get("ownerId"))
 			assert.Equal(t, "100", gotQuery.Get("limit"))
+			assert.NotContains(t, gotQuery, "name")
 			if tt.wantNoStat {
 				assert.NotContains(t, gotQuery, "status")
 			} else {
@@ -110,7 +111,7 @@ func TestServiceList_FollowsCursorsAcrossPages(t *testing.T) {
 		})
 	})
 
-	got, err := svc.List(context.Background(), nil, false, "")
+	got, err := svc.List(context.Background(), ListInput{})
 	require.NoError(t, err)
 
 	assert.Len(t, got, firstPageSize+1)

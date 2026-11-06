@@ -21,6 +21,7 @@ const (
 	ErrorCodeSandboxNotRunning   = "sandbox_not_running"
 	ErrorCodeSnapshotCreating    = "snapshot_creating"
 	ErrorCodeInvalidSnapshotName = "invalid_snapshot_name"
+	ErrorCodeInvalidSandboxName  = "invalid_sandbox_name"
 )
 
 type SandboxSnapshotResource struct {
@@ -74,6 +75,11 @@ func NewSandboxSnapshot(s sandboxesclient.SandboxSnapshot) *sandboxesclient.Sand
 		s.ExpiresAt = s.RequestedAt.Add(7 * 24 * time.Hour)
 	}
 	return &s
+}
+
+// invalidSandboxName mirrors the API: an empty name means no name.
+func invalidSandboxName(name string) bool {
+	return utf8.RuneCountInString(name) > 64 || strings.HasPrefix(name, "sbx-")
 }
 
 func invalidSnapshotName(name string) bool {

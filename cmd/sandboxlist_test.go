@@ -41,6 +41,33 @@ func TestSandboxList_GroupSelection(t *testing.T) {
 	assert.Equal(t, groupID, u.Query().Get("sandboxGroupId"))
 }
 
+func TestSandboxList_Name(t *testing.T) {
+	server := newSandboxCreateServer(t)
+	groupID := sandboxCreateDefaultGroup(t, server).Id
+	agent := "my-agent"
+	other := "other"
+	server.Sandboxes.Add(renderapi.NewSandbox(sandboxes.Sandbox{Id: "sbx-first", Name: &agent, SandboxGroupId: &groupID}))
+	server.Sandboxes.Add(renderapi.NewSandbox(sandboxes.Sandbox{Id: "sbx-second", Name: &agent, SandboxGroupId: &groupID}))
+	server.Sandboxes.Add(renderapi.NewSandbox(sandboxes.Sandbox{Id: "sbx-other", Name: &other, SandboxGroupId: &groupID}))
+	server.Sandboxes.Add(renderapi.NewSandbox(sandboxes.Sandbox{Id: "sbx-unnamed", SandboxGroupId: &groupID}))
+
+	result, err := executeSandboxCommand(t, server, "sandboxes", "list", "--name", agent, "--output", "json")
+	require.NoError(t, err)
+
+	req, ok := server.LastRequest("GET", "/sandboxes")
+	require.True(t, ok)
+	u, err := url.Parse(req.URI)
+	require.NoError(t, err)
+	assert.Equal(t, agent, u.Query().Get("name"))
+
+	// Names aren't unique, so every match comes back.
+	assert.Contains(t, result.Stdout, "sbx-first")
+	assert.Contains(t, result.Stdout, "sbx-second")
+	assert.NotContains(t, result.Stdout, "sbx-other")
+	assert.NotContains(t, result.Stdout, "sbx-unnamed")
+	assert.Contains(t, result.Stdout, `"name": "my-agent"`)
+}
+
 func TestSandboxGroupFlagAlias(t *testing.T) {
 	groupID := "sbg-cph1rs3idesc73a2b2mg"
 	for _, command := range []string{"create", "list"} {

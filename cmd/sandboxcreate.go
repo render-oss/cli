@@ -18,6 +18,7 @@ import (
 )
 
 type SandboxCreateInput struct {
+	Name             string   `cli:"name"`
 	SandboxGroupID   string   `cli:"group"`
 	Plan             string   `cli:"plan"`
 	Region           string   `cli:"region"`
@@ -162,6 +163,7 @@ func newSandboxCreateCmd(deps *dependencies.Dependencies) *cobra.Command {
 
 Examples:
   render sandboxes create
+  render sandboxes create --name=my-agent
   render sandboxes create --plan=2c-4g
   render sandboxes create --group=sbg-cph1rs3idesc73a2b2mg
   render sandboxes create --timeout=3600
@@ -180,6 +182,8 @@ Examples:
 `,
 	}
 
+	cmd.Flags().String("name", "", "Label the sandbox, e.g. my-agent. Names aren't unique; use the ID to address the sandbox. Up to 64 characters, and can't start with sbx-")
+	setFlagPlaceholder(cmd.Flags(), "name", "NAME")
 	cmd.Flags().String("plan", "", "Compute plan: "+strings.Join(sandboxPlanNames(), ", "))
 	cmd.Flags().String("region", "", "Accepted for compatibility; placement uses the sandbox group region")
 	cmd.Flags().String("group", "", "Sandbox group ID. Omit to use the workspace default group")
@@ -239,6 +243,10 @@ Examples:
 			return err
 		}
 		imageID, imageName := resolveSandboxImage(input.Image, cmd.Flags().Changed("image"))
+		var name *string
+		if cmd.Flags().Changed("name") {
+			name = &input.Name
+		}
 		var timeout *int
 		if cmd.Flags().Changed("timeout") {
 			timeout = &input.Timeout
@@ -252,6 +260,7 @@ Examples:
 		var waitErr error
 		_, err = command.NonInteractive(cmd, func() (*sandboxclient.Sandbox, error) {
 			sb, err := deps.SandboxService().Create(cmd.Context(), sandbox.CreateInput{
+				Name:           name,
 				SandboxGroupID: input.SandboxGroupID,
 				Plan:           input.Plan,
 				Region:         input.Region,

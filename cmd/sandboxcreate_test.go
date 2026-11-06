@@ -373,6 +373,45 @@ func TestSandboxCreate_FromAndSnapshotIDAreMutuallyExclusive(t *testing.T) {
 	assert.False(t, server.HasRequest("POST", "/sandboxes"))
 }
 
+func TestSandboxCreate_Name(t *testing.T) {
+	tests := []struct {
+		name      string
+		args      []string
+		wantSent  bool
+		wantValue string
+		wantError string
+	}{
+		{name: "omitted", args: nil},
+		{name: "sent and returned", args: []string{"--name", "my-agent"}, wantSent: true, wantValue: "my-agent"},
+		{name: "rejected by the API", args: []string{"--name", "sbx-agent"}, wantSent: true, wantValue: "sbx-agent", wantError: "400 (invalid_sandbox_name)"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			server := newSandboxCreateServer(t)
+
+			args := append([]string{"sandboxes", "create", "--output", "json"}, tc.args...)
+			result, err := executeSandboxCommand(t, server, args...)
+
+			req, ok := server.LastRequest("POST", "/sandboxes")
+			require.True(t, ok, "expected a create request")
+			body := testrequire.ParseJSONMap(t, string(req.Body))
+			if !tc.wantSent {
+				require.NoError(t, err)
+				assert.NotContains(t, body, "name")
+				return
+			}
+			assert.Equal(t, tc.wantValue, body["name"])
+			if tc.wantError != "" {
+				require.ErrorContains(t, err, tc.wantError)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantValue, testrequire.ParseJSONMap(t, result.Stdout)["name"])
+		})
+	}
+}
+
 func TestSandboxCreate_WithoutSnapshotIDOmitsIt(t *testing.T) {
 	server := newSandboxCreateServer(t)
 

@@ -12,10 +12,11 @@ import (
 
 func SandboxTable(sandboxes []*sandboxclient.Sandbox) string {
 	t := newTable()
-	t.AppendHeader(table.Row{"ID", "Status", "Plan", "Region", "Network", "Allowed", "Age"})
+	t.AppendHeader(table.Row{"ID", "Name", "Status", "Plan", "Region", "Network", "Allowed", "Age"})
 	for _, s := range sandboxes {
 		t.AppendRow(table.Row{
 			s.Id,
+			sandboxName(s),
 			s.Status,
 			s.Plan,
 			s.Region,
@@ -25,6 +26,14 @@ func SandboxTable(sandboxes []*sandboxclient.Sandbox) string {
 		})
 	}
 	return FormatString(t.Render())
+}
+
+// sandboxName returns the sandbox's name, or "-" when it has none.
+func sandboxName(s *sandboxclient.Sandbox) string {
+	if s.Name == nil || *s.Name == "" {
+		return "-"
+	}
+	return *s.Name
 }
 
 // allowedDestinations summarizes an allow-list policy's rules in a single
@@ -43,6 +52,9 @@ func allowedDestinations(policy sandboxclient.SandboxNetworkPolicy) string {
 func SandboxDetail(sandbox *sandboxclient.Sandbox) string {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("ID:      %s", sandbox.Id))
+	if sandbox.Name != nil && *sandbox.Name != "" {
+		lines = append(lines, fmt.Sprintf("Name:    %s", *sandbox.Name))
+	}
 	lines = append(lines, fmt.Sprintf("Status:  %s", sandbox.Status))
 	lines = append(lines, fmt.Sprintf("Plan:    %s", sandbox.Plan))
 	lines = append(lines, fmt.Sprintf("Region:  %s", sandbox.Region))
