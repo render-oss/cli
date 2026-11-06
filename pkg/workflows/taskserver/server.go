@@ -2,6 +2,7 @@ package taskserver
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -31,13 +32,24 @@ func NewTaskServerFactory() *TaskServerFactory {
 
 type GetSubtaskResultFunc func(taskRunID string) (PostGetSubtaskResultResponseObject, error)
 
-type StartSubtaskFunc func(taskName string, input []byte) (PostRunSubtaskResponseObject, error)
+type StartSubtaskFunc func(req RunSubtaskRequest) (PostRunSubtaskResponseObject, error)
 
+// DurableBackend serves the step routes of a workflow run's attempt.
+type DurableBackend interface {
+	StepInlineStart(ctx context.Context, req StepStartRequest) (PostStepInlineStartResponseObject, error)
+	StepInlineAttempt(ctx context.Context, req StepAttemptRequest) (PostStepInlineAttemptResponseObject, error)
+	StepInlineComplete(ctx context.Context, req StepCompleteRequest) (PostStepInlineCompleteResponseObject, error)
+	StepWait(ctx context.Context, req WaitRequest) (PostStepWaitResponseObject, error)
+}
+
+// NewHandler builds the socket handler for one process. durable is nil for
+// plain task runs and registration; the step routes then answer 400.
 func (f *TaskServerFactory) NewHandler(
 	socket net.Listener,
 	input GetInput200JSONResponse,
 	getSubtaskResultFunc GetSubtaskResultFunc,
 	startSubtaskFunc StartSubtaskFunc,
+	durable DurableBackend,
 ) *ServerHandler {
 	channels := ServerChannels{
 		PostCallback: make(chan PostCallbackRequestObject),
@@ -50,6 +62,7 @@ func (f *TaskServerFactory) NewHandler(
 		Channels:             channels,
 		GetSubtaskResultFunc: getSubtaskResultFunc,
 		StartSubtaskFunc:     startSubtaskFunc,
+		Durable:              durable,
 	}
 }
 
@@ -90,6 +103,7 @@ type ServerHandler struct {
 	StartSubtaskFunc     StartSubtaskFunc
 	Input                GetInput200JSONResponse
 	Channels             ServerChannels
+	Durable              DurableBackend
 }
 
 func (h *ServerHandler) PostCallback(ctx context.Context, params PostCallbackRequestObject) (PostCallbackResponseObject, error) {
@@ -103,6 +117,11 @@ func (h *ServerHandler) GetInput(ctx context.Context, params GetInputRequestObje
 }
 
 func (h *ServerHandler) PostRegisterTasks(ctx context.Context, params PostRegisterTasksRequestObject) (PostRegisterTasksResponseObject, error) {
+	if err := validateTasks(params.Body.Tasks); err != nil {
+		log.Println(err)
+		return PostRegisterTasks400Response{}, nil
+	}
+
 	h.Channels.PostTasks <- params
 
 	return PostRegisterTasks200Response{}, nil
@@ -113,5 +132,47 @@ func (h *ServerHandler) PostGetSubtaskResult(ctx context.Context, params PostGet
 }
 
 func (h *ServerHandler) PostRunSubtask(ctx context.Context, params PostRunSubtaskRequestObject) (PostRunSubtaskResponseObject, error) {
-	return h.StartSubtaskFunc(params.Body.TaskName, *params.Body.Input)
+	return h.StartSubtaskFunc(*params.Body)
+}
+
+func (h *ServerHandler) PostStepInlineStart(ctx context.Context, params PostStepInlineStartRequestObject) (PostStepInlineStartResponseObject, error) {
+	if h.Durable == nil {
+		return PostStepInlineStart400Response{}, nil
+	}
+	return h.Durable.StepInlineStart(ctx, *params.Body)
+}
+
+func (h *ServerHandler) PostStepInlineAttempt(ctx context.Context, params PostStepInlineAttemptRequestObject) (PostStepInlineAttemptResponseObject, error) {
+	if h.Durable == nil {
+		return PostStepInlineAttempt400Response{}, nil
+	}
+	return h.Durable.StepInlineAttempt(ctx, *params.Body)
+}
+
+func (h *ServerHandler) PostStepInlineComplete(ctx context.Context, params PostStepInlineCompleteRequestObject) (PostStepInlineCompleteResponseObject, error) {
+	if h.Durable == nil {
+		return PostStepInlineComplete400Response{}, nil
+	}
+	return h.Durable.StepInlineComplete(ctx, *params.Body)
+}
+
+// PostStepSleep answers 400 until local dev supports ctx.sleep.
+func (h *ServerHandler) PostStepSleep(ctx context.Context, params PostStepSleepRequestObject) (PostStepSleepResponseObject, error) {
+	return PostStepSleep400Response{}, nil
+}
+
+func (h *ServerHandler) PostStepWait(ctx context.Context, params PostStepWaitRequestObject) (PostStepWaitResponseObject, error) {
+	if h.Durable == nil {
+		return PostStepWait400Response{}, nil
+	}
+	return h.Durable.StepWait(ctx, *params.Body)
+}
+
+func validateTasks(tasks []Task) error {
+	for _, task := range tasks {
+		if task.Workflow != nil && *task.Workflow && task.Options != nil && task.Options.Retry != nil {
+			return fmt.Errorf("task %s: retry policy is not allowed on a workflow", task.Name)
+		}
+	}
+	return nil
 }

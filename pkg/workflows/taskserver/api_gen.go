@@ -15,7 +15,48 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
+)
+
+// Defines values for DeterminismDetailsKind.
+const (
+	InputHash   DeterminismDetailsKind = "input_hash"
+	Type        DeterminismDetailsKind = "type"
+	UnknownType DeterminismDetailsKind = "unknown_type"
+)
+
+// Defines values for LimitErrorCode.
+const (
+	WorkflowPayloadTooLarge   LimitErrorCode = "workflow_payload_too_large"
+	WorkflowStepLimitExceeded LimitErrorCode = "workflow_step_limit_exceeded"
+)
+
+// Defines values for SleepResponseAction.
+const (
+	SleepResponseActionProceed    SleepResponseAction = "proceed"
+	SleepResponseActionSuspending SleepResponseAction = "suspending"
+)
+
+// Defines values for StepConflictErrorCode.
+const (
+	MissingStart StepConflictErrorCode = "missing_start"
+	RunCancelled StepConflictErrorCode = "run_cancelled"
+)
+
+// Defines values for TaskErrorReason.
+const (
+	TaskErrorReasonDeterminismError          TaskErrorReason = "DeterminismError"
+	TaskErrorReasonSystemError               TaskErrorReason = "system_error"
+	TaskErrorReasonWorkflowHistoryTooLarge   TaskErrorReason = "workflow_history_too_large"
+	TaskErrorReasonWorkflowPayloadTooLarge   TaskErrorReason = "workflow_payload_too_large"
+	TaskErrorReasonWorkflowStepLimitExceeded TaskErrorReason = "workflow_step_limit_exceeded"
+)
+
+// Defines values for WaitResponseAction.
+const (
+	WaitResponseActionDone       WaitResponseAction = "done"
+	WaitResponseActionSuspending WaitResponseAction = "suspending"
 )
 
 // CallbackRequest defines model for CallbackRequest.
@@ -24,9 +65,43 @@ type CallbackRequest struct {
 	Error    *TaskError    `json:"error,omitempty"`
 }
 
+// DeterminismDetails Where a workflow replay diverged from its recorded history.
+type DeterminismDetails struct {
+	// Actual What this replay did.
+	Actual *string `json:"actual,omitempty"`
+
+	// Expected What the history recorded.
+	Expected *string                `json:"expected,omitempty"`
+	Kind     DeterminismDetailsKind `json:"kind"`
+
+	// StepKey Identifies a step within its run.
+	StepKey         StepKey `json:"step_key"`
+	WorkflowAttempt *int    `json:"workflow_attempt,omitempty"`
+}
+
+// DeterminismDetailsKind defines model for DeterminismDetails.Kind.
+type DeterminismDetailsKind string
+
+// History Workflows only. Empty when attempt is 0.
+type History struct {
+	// StepAttempts Failed inline attempts from the lowest seq with no outcome, in (seq, attempt) order.
+	StepAttempts *[]StepAttemptRecord `json:"step_attempts,omitempty"`
+
+	// Steps Every step recorded for the run, in seq order.
+	Steps *[]StepRecord `json:"steps,omitempty"`
+}
+
 // InputResponse defines model for InputResponse.
 type InputResponse struct {
-	Input []byte `json:"input"`
+	// Attempt Workflows only. The workflow attempt number. 0 is the first attempt, which has no history.
+	Attempt *int `json:"attempt,omitempty"`
+
+	// History Workflows only. Empty when attempt is 0.
+	History *History `json:"history,omitempty"`
+	Input   []byte   `json:"input"`
+
+	// IsWorkflow True when the run is a workflow. Absent or false for a plain task, which gets none of the workflow fields.
+	IsWorkflow *bool `json:"is_workflow,omitempty"`
 
 	// ParentTaskRunId Run ID of the task run that started this one. Omitted for a root run.
 	ParentTaskRunId *string `json:"parent_task_run_id,omitempty"`
@@ -35,6 +110,24 @@ type InputResponse struct {
 	RootTaskRunId *string `json:"root_task_run_id,omitempty"`
 	TaskName      string  `json:"task_name"`
 	TaskRunId     *string `json:"task_run_id,omitempty"`
+}
+
+// LimitError defines model for LimitError.
+type LimitError struct {
+	Code    LimitErrorCode `json:"code"`
+	Limit   *int64         `json:"limit,omitempty"`
+	Message string         `json:"message"`
+	Value   *int64         `json:"value,omitempty"`
+}
+
+// LimitErrorCode defines model for LimitError.Code.
+type LimitErrorCode string
+
+// Payload An encoded value, matching the step-history proto. Serializer 1 is JSON.
+type Payload struct {
+	Data       *[]byte `json:"data,omitempty"`
+	Serializer int32   `json:"serializer"`
+	Url        *string `json:"url,omitempty"`
 }
 
 // RetryConfig defines model for RetryConfig.
@@ -57,18 +150,199 @@ type RunSubtaskError struct {
 
 // RunSubtaskRequest defines model for RunSubtaskRequest.
 type RunSubtaskRequest struct {
-	// CreatedAt Caller-pinned creation time, as an RFC 3339 timestamp. Must be stable across retries: the scheduler deduplicates on (idempotency_key, created_at).
+	// CreatedAt Caller-pinned creation time, as an RFC 3339 timestamp, recording when the caller created the subtask.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 
 	// IdempotencyKey Deduplicates subtask creation across retries. The SDK generates this once per logical subtask call and resends the same value on every retry, so a retried submission resolves to the original subtask instead of creating a duplicate.
 	IdempotencyKey *string `json:"idempotency_key,omitempty"`
 	Input          *[]byte `json:"input,omitempty"`
-	TaskName       string  `json:"task_name"`
+
+	// StepKey Identifies a step within its run.
+	StepKey  *StepKey `json:"step_key,omitempty"`
+	TaskName string   `json:"task_name"`
 }
 
 // RunSubtaskResponse defines model for RunSubtaskResponse.
 type RunSubtaskResponse struct {
 	TaskRunId string `json:"task_run_id"`
+}
+
+// SleepRequest defines model for SleepRequest.
+type SleepRequest struct {
+	// DurationMs The requested duration. Recorded as the step's input.
+	DurationMs int64 `json:"duration_ms"`
+
+	// StepKey Identifies a step within its run.
+	StepKey StepKey `json:"step_key"`
+}
+
+// SleepResponse defines model for SleepResponse.
+type SleepResponse struct {
+	// Action proceed: the wake time has passed and the sleep is recorded complete; continue. suspending: the attempt is being suspended and the process will be stopped; stop and wait.
+	Action SleepResponseAction `json:"action"`
+}
+
+// SleepResponseAction proceed: the wake time has passed and the sleep is recorded complete; continue. suspending: the attempt is being suspended and the process will be stopped; stop and wait.
+type SleepResponseAction string
+
+// StepAttempt A failed attempt of an inline step, matching the step-history proto.
+type StepAttempt struct {
+	Attempt int              `json:"attempt"`
+	Data    *StepAttemptData `json:"data,omitempty"`
+	EndedAt time.Time        `json:"ended_at"`
+
+	// Error An encoded value, matching the step-history proto. Serializer 1 is JSON.
+	Error Payload `json:"error"`
+
+	// Key Identifies a step within its run.
+	Key       StepKey   `json:"key"`
+	SessionId string    `json:"session_id"`
+	StartedAt time.Time `json:"started_at"`
+}
+
+// StepAttemptData defines model for StepAttemptData.
+type StepAttemptData struct {
+	WorkflowAttempt int `json:"workflow_attempt"`
+}
+
+// StepAttemptRecord defines model for StepAttemptRecord.
+type StepAttemptRecord struct {
+	// Attempt The inline step's attempt number. Continues across workflow attempts.
+	Attempt   int        `json:"attempt"`
+	EndedAt   time.Time  `json:"ended_at"`
+	Error     StepError  `json:"error"`
+	StartedAt *time.Time `json:"started_at,omitempty"`
+
+	// StepKey Identifies a step within its run.
+	StepKey         StepKey `json:"step_key"`
+	WorkflowAttempt int     `json:"workflow_attempt"`
+}
+
+// StepAttemptRequest defines model for StepAttemptRequest.
+type StepAttemptRequest struct {
+	// Attempt The inline step's attempt number.
+	Attempt   int        `json:"attempt"`
+	Error     StepError  `json:"error"`
+	StartedAt *time.Time `json:"started_at,omitempty"`
+
+	// StepKey Identifies a step within its run.
+	StepKey StepKey `json:"step_key"`
+}
+
+// StepAttemptResponse defines model for StepAttemptResponse.
+type StepAttemptResponse struct {
+	// Applied False when the attempt was already recorded.
+	Applied bool `json:"applied"`
+}
+
+// StepCompleteRequest defines model for StepCompleteRequest.
+type StepCompleteRequest struct {
+	// Key Identifies a step within its run.
+	Key StepKey `json:"key"`
+
+	// Outcome Set output for success or final_attempt for an error, not both.
+	Outcome   StepOutcome `json:"outcome"`
+	SessionId string      `json:"session_id"`
+}
+
+// StepCompleteResponse defines model for StepCompleteResponse.
+type StepCompleteResponse struct {
+	// Applied False when the step already had an outcome.
+	Applied bool `json:"applied"`
+
+	// Outcome A step's output, or the error it failed with.
+	Outcome *StepResult `json:"outcome,omitempty"`
+}
+
+// StepConflictError defines model for StepConflictError.
+type StepConflictError struct {
+	Code    StepConflictErrorCode `json:"code"`
+	Message string                `json:"message"`
+}
+
+// StepConflictErrorCode defines model for StepConflictError.Code.
+type StepConflictErrorCode string
+
+// StepError defines model for StepError.
+type StepError struct {
+	// Data JSON the SDK chooses to round-trip.
+	Data    *string `json:"data,omitempty"`
+	Message string  `json:"message"`
+	Name    string  `json:"name"`
+	Stack   *string `json:"stack,omitempty"`
+}
+
+// StepKey Identifies a step within its run.
+type StepKey struct {
+	Seq int `json:"seq"`
+
+	// SubKey The SDK's name for the step within its seq.
+	SubKey *string `json:"sub_key,omitempty"`
+}
+
+// StepOutcome Set output for success or final_attempt for an error, not both.
+type StepOutcome struct {
+	CompletedAt time.Time `json:"completed_at"`
+
+	// FinalAttempt A failed attempt of an inline step, matching the step-history proto.
+	FinalAttempt *StepAttempt `json:"final_attempt,omitempty"`
+
+	// Output An encoded value, matching the step-history proto. Serializer 1 is JSON.
+	Output *Payload `json:"output,omitempty"`
+}
+
+// StepRecord defines model for StepRecord.
+type StepRecord struct {
+	// ChildRunId Detached steps only.
+	ChildRunId *string `json:"child_run_id,omitempty"`
+
+	// CompletedAt Absent while the step is open. A step is finished exactly when this is set.
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	Error       *StepError `json:"error,omitempty"`
+
+	// Input The step's arguments.
+	Input     *[]byte   `json:"input,omitempty"`
+	Output    *[]byte   `json:"output,omitempty"`
+	StartedAt time.Time `json:"started_at"`
+
+	// StepKey Identifies a step within its run.
+	StepKey StepKey `json:"step_key"`
+
+	// TaskName Empty for a sleep.
+	TaskName *string `json:"task_name,omitempty"`
+
+	// Type inline | detached | sleep. An unknown value is a determinism error.
+	Type string `json:"type"`
+
+	// WakeAt Sleep steps only.
+	WakeAt *time.Time `json:"wake_at,omitempty"`
+
+	// WorkflowAttempt The workflow attempt that completed the step, 0 until then. A hint to how many workflow attempts the step took.
+	WorkflowAttempt int `json:"workflow_attempt"`
+}
+
+// StepResult A step's output, or the error it failed with.
+type StepResult struct {
+	Error  *StepError `json:"error,omitempty"`
+	Output *[]byte    `json:"output,omitempty"`
+}
+
+// StepStartRequest defines model for StepStartRequest.
+type StepStartRequest struct {
+	// Input The step's arguments.
+	Input     *[]byte    `json:"input,omitempty"`
+	StartedAt *time.Time `json:"started_at,omitempty"`
+
+	// StepKey Identifies a step within its run.
+	StepKey  StepKey `json:"step_key"`
+	TaskName string  `json:"task_name"`
+}
+
+// StepStartResponse defines model for StepStartResponse.
+type StepStartResponse struct {
+	// Applied False when the step was already recorded.
+	Applied bool        `json:"applied"`
+	Step    *StepRecord `json:"step,omitempty"`
 }
 
 // SubtaskResultRequest defines model for SubtaskResultRequest.
@@ -90,6 +364,9 @@ type Task struct {
 
 	// Parameters Parameter schema extracted from the task function signature
 	Parameters *[]TaskParameter `json:"parameters,omitempty"`
+
+	// Workflow Registered with workflow(). A workflow may not set options.retry.
+	Workflow *bool `json:"workflow,omitempty"`
 }
 
 // TaskComplete defines model for TaskComplete.
@@ -99,9 +376,20 @@ type TaskComplete struct {
 
 // TaskError defines model for TaskError.
 type TaskError struct {
-	Details    string  `json:"details"`
-	StackTrace *string `json:"stack_trace,omitempty"`
+	Details string `json:"details"`
+
+	// Determinism Where a workflow replay diverged from its recorded history.
+	Determinism *DeterminismDetails `json:"determinism,omitempty"`
+	Limit       *int64              `json:"limit,omitempty"`
+
+	// Reason Absent for an ordinary task error. system_error means Render caused the failure, such as the SDK being unable to reach a Render service, so Render retries the run as a system failure.
+	Reason     *TaskErrorReason `json:"reason,omitempty"`
+	StackTrace *string          `json:"stack_trace,omitempty"`
+	Value      *int64           `json:"value,omitempty"`
 }
+
+// TaskErrorReason Absent for an ordinary task error. system_error means Render caused the failure, such as the SDK being unable to reach a Render service, so Render retries the run as a system failure.
+type TaskErrorReason string
 
 // TaskOptions defines model for TaskOptions.
 type TaskOptions struct {
@@ -133,6 +421,35 @@ type Tasks struct {
 	Tasks []Task `json:"tasks"`
 }
 
+// WaitRequest defines model for WaitRequest.
+type WaitRequest struct {
+	ChildRunId string `json:"child_run_id"`
+	Seq        int    `json:"seq"`
+}
+
+// WaitResponse defines model for WaitResponse.
+type WaitResponse struct {
+	// Action done: the child finished and its result is set. suspending: stop and wait.
+	Action   WaitResponseAction `json:"action"`
+	Complete *TaskComplete      `json:"complete,omitempty"`
+	Error    *TaskError         `json:"error,omitempty"`
+}
+
+// WaitResponseAction done: the child finished and its result is set. suspending: stop and wait.
+type WaitResponseAction string
+
+// GetInputParams defines parameters for GetInput.
+type GetInputParams struct {
+	// SdkImportStartedAt When the SDK began importing. Unix time in nanoseconds, as a decimal string. Startup telemetry only. Renderd ignores a missing or malformed value.
+	SdkImportStartedAt *string `form:"sdk_import_started_at,omitempty" json:"sdk_import_started_at,omitempty"`
+
+	// SdkImportFinishedAt When the SDK finished importing. Unix time in nanoseconds, as a decimal string. Startup telemetry only. Renderd ignores a missing or malformed value.
+	SdkImportFinishedAt *string `form:"sdk_import_finished_at,omitempty" json:"sdk_import_finished_at,omitempty"`
+
+	// SdkStartedAt When the SDK took over to run the task. Unix time in nanoseconds, as a decimal string. Startup telemetry only. Renderd ignores a missing or malformed value.
+	SdkStartedAt *string `form:"sdk_started_at,omitempty" json:"sdk_started_at,omitempty"`
+}
+
 // PostCallbackJSONRequestBody defines body for PostCallback for application/json ContentType.
 type PostCallbackJSONRequestBody = CallbackRequest
 
@@ -144,6 +461,21 @@ type PostRegisterTasksJSONRequestBody = Tasks
 
 // PostRunSubtaskJSONRequestBody defines body for PostRunSubtask for application/json ContentType.
 type PostRunSubtaskJSONRequestBody = RunSubtaskRequest
+
+// PostStepInlineAttemptJSONRequestBody defines body for PostStepInlineAttempt for application/json ContentType.
+type PostStepInlineAttemptJSONRequestBody = StepAttemptRequest
+
+// PostStepInlineCompleteJSONRequestBody defines body for PostStepInlineComplete for application/json ContentType.
+type PostStepInlineCompleteJSONRequestBody = StepCompleteRequest
+
+// PostStepInlineStartJSONRequestBody defines body for PostStepInlineStart for application/json ContentType.
+type PostStepInlineStartJSONRequestBody = StepStartRequest
+
+// PostStepSleepJSONRequestBody defines body for PostStepSleep for application/json ContentType.
+type PostStepSleepJSONRequestBody = SleepRequest
+
+// PostStepWaitJSONRequestBody defines body for PostStepWait for application/json ContentType.
+type PostStepWaitJSONRequestBody = WaitRequest
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -229,7 +561,7 @@ type ClientInterface interface {
 	PostGetSubtaskResult(ctx context.Context, body PostGetSubtaskResultJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetInput request
-	GetInput(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetInput(ctx context.Context, params *GetInputParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostRegisterTasksWithBody request with any body
 	PostRegisterTasksWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -240,6 +572,31 @@ type ClientInterface interface {
 	PostRunSubtaskWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PostRunSubtask(ctx context.Context, body PostRunSubtaskJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostStepInlineAttemptWithBody request with any body
+	PostStepInlineAttemptWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostStepInlineAttempt(ctx context.Context, body PostStepInlineAttemptJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostStepInlineCompleteWithBody request with any body
+	PostStepInlineCompleteWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostStepInlineComplete(ctx context.Context, body PostStepInlineCompleteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostStepInlineStartWithBody request with any body
+	PostStepInlineStartWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostStepInlineStart(ctx context.Context, body PostStepInlineStartJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostStepSleepWithBody request with any body
+	PostStepSleepWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostStepSleep(ctx context.Context, body PostStepSleepJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostStepWaitWithBody request with any body
+	PostStepWaitWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostStepWait(ctx context.Context, body PostStepWaitJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) PostCallbackWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -290,8 +647,8 @@ func (c *Client) PostGetSubtaskResult(ctx context.Context, body PostGetSubtaskRe
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetInput(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetInputRequest(c.Server)
+func (c *Client) GetInput(ctx context.Context, params *GetInputParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetInputRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -340,6 +697,126 @@ func (c *Client) PostRunSubtaskWithBody(ctx context.Context, contentType string,
 
 func (c *Client) PostRunSubtask(ctx context.Context, body PostRunSubtaskJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostRunSubtaskRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostStepInlineAttemptWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostStepInlineAttemptRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostStepInlineAttempt(ctx context.Context, body PostStepInlineAttemptJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostStepInlineAttemptRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostStepInlineCompleteWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostStepInlineCompleteRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostStepInlineComplete(ctx context.Context, body PostStepInlineCompleteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostStepInlineCompleteRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostStepInlineStartWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostStepInlineStartRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostStepInlineStart(ctx context.Context, body PostStepInlineStartJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostStepInlineStartRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostStepSleepWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostStepSleepRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostStepSleep(ctx context.Context, body PostStepSleepJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostStepSleepRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostStepWaitWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostStepWaitRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostStepWait(ctx context.Context, body PostStepWaitJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostStepWaitRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -431,7 +908,7 @@ func NewPostGetSubtaskResultRequestWithBody(server string, contentType string, b
 }
 
 // NewGetInputRequest generates requests for GetInput
-func NewGetInputRequest(server string) (*http.Request, error) {
+func NewGetInputRequest(server string, params *GetInputParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -447,6 +924,60 @@ func NewGetInputRequest(server string) (*http.Request, error) {
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.SdkImportStartedAt != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sdk_import_started_at", runtime.ParamLocationQuery, *params.SdkImportStartedAt); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.SdkImportFinishedAt != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sdk_import_finished_at", runtime.ParamLocationQuery, *params.SdkImportFinishedAt); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.SdkStartedAt != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "sdk_started_at", runtime.ParamLocationQuery, *params.SdkStartedAt); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -537,6 +1068,206 @@ func NewPostRunSubtaskRequestWithBody(server string, contentType string, body io
 	return req, nil
 }
 
+// NewPostStepInlineAttemptRequest calls the generic PostStepInlineAttempt builder with application/json body
+func NewPostStepInlineAttemptRequest(server string, body PostStepInlineAttemptJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostStepInlineAttemptRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostStepInlineAttemptRequestWithBody generates requests for PostStepInlineAttempt with any type of body
+func NewPostStepInlineAttemptRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/step-inline/attempt")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostStepInlineCompleteRequest calls the generic PostStepInlineComplete builder with application/json body
+func NewPostStepInlineCompleteRequest(server string, body PostStepInlineCompleteJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostStepInlineCompleteRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostStepInlineCompleteRequestWithBody generates requests for PostStepInlineComplete with any type of body
+func NewPostStepInlineCompleteRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/step-inline/complete")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostStepInlineStartRequest calls the generic PostStepInlineStart builder with application/json body
+func NewPostStepInlineStartRequest(server string, body PostStepInlineStartJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostStepInlineStartRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostStepInlineStartRequestWithBody generates requests for PostStepInlineStart with any type of body
+func NewPostStepInlineStartRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/step-inline/start")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostStepSleepRequest calls the generic PostStepSleep builder with application/json body
+func NewPostStepSleepRequest(server string, body PostStepSleepJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostStepSleepRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostStepSleepRequestWithBody generates requests for PostStepSleep with any type of body
+func NewPostStepSleepRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/step-sleep")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostStepWaitRequest calls the generic PostStepWait builder with application/json body
+func NewPostStepWaitRequest(server string, body PostStepWaitJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostStepWaitRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostStepWaitRequestWithBody generates requests for PostStepWait with any type of body
+func NewPostStepWaitRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/step-wait")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -591,7 +1322,7 @@ type ClientWithResponsesInterface interface {
 	PostGetSubtaskResultWithResponse(ctx context.Context, body PostGetSubtaskResultJSONRequestBody, reqEditors ...RequestEditorFn) (*PostGetSubtaskResultResponse, error)
 
 	// GetInputWithResponse request
-	GetInputWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetInputResponse, error)
+	GetInputWithResponse(ctx context.Context, params *GetInputParams, reqEditors ...RequestEditorFn) (*GetInputResponse, error)
 
 	// PostRegisterTasksWithBodyWithResponse request with any body
 	PostRegisterTasksWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRegisterTasksResponse, error)
@@ -602,6 +1333,31 @@ type ClientWithResponsesInterface interface {
 	PostRunSubtaskWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRunSubtaskResponse, error)
 
 	PostRunSubtaskWithResponse(ctx context.Context, body PostRunSubtaskJSONRequestBody, reqEditors ...RequestEditorFn) (*PostRunSubtaskResponse, error)
+
+	// PostStepInlineAttemptWithBodyWithResponse request with any body
+	PostStepInlineAttemptWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostStepInlineAttemptResponse, error)
+
+	PostStepInlineAttemptWithResponse(ctx context.Context, body PostStepInlineAttemptJSONRequestBody, reqEditors ...RequestEditorFn) (*PostStepInlineAttemptResponse, error)
+
+	// PostStepInlineCompleteWithBodyWithResponse request with any body
+	PostStepInlineCompleteWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostStepInlineCompleteResponse, error)
+
+	PostStepInlineCompleteWithResponse(ctx context.Context, body PostStepInlineCompleteJSONRequestBody, reqEditors ...RequestEditorFn) (*PostStepInlineCompleteResponse, error)
+
+	// PostStepInlineStartWithBodyWithResponse request with any body
+	PostStepInlineStartWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostStepInlineStartResponse, error)
+
+	PostStepInlineStartWithResponse(ctx context.Context, body PostStepInlineStartJSONRequestBody, reqEditors ...RequestEditorFn) (*PostStepInlineStartResponse, error)
+
+	// PostStepSleepWithBodyWithResponse request with any body
+	PostStepSleepWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostStepSleepResponse, error)
+
+	PostStepSleepWithResponse(ctx context.Context, body PostStepSleepJSONRequestBody, reqEditors ...RequestEditorFn) (*PostStepSleepResponse, error)
+
+	// PostStepWaitWithBodyWithResponse request with any body
+	PostStepWaitWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostStepWaitResponse, error)
+
+	PostStepWaitWithResponse(ctx context.Context, body PostStepWaitJSONRequestBody, reqEditors ...RequestEditorFn) (*PostStepWaitResponse, error)
 }
 
 type PostCallbackResponse struct {
@@ -697,6 +1453,7 @@ type PostRunSubtaskResponse struct {
 	JSON400      *RunSubtaskError
 	JSON404      *RunSubtaskError
 	JSON409      *RunSubtaskError
+	JSON422      *LimitError
 }
 
 // Status returns HTTPResponse.Status
@@ -709,6 +1466,125 @@ func (r PostRunSubtaskResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r PostRunSubtaskResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostStepInlineAttemptResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *StepAttemptResponse
+	JSON409      *StepConflictError
+	JSON422      *LimitError
+}
+
+// Status returns HTTPResponse.Status
+func (r PostStepInlineAttemptResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostStepInlineAttemptResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostStepInlineCompleteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *StepCompleteResponse
+	JSON409      *StepConflictError
+	JSON422      *LimitError
+}
+
+// Status returns HTTPResponse.Status
+func (r PostStepInlineCompleteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostStepInlineCompleteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostStepInlineStartResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *StepStartResponse
+	JSON409      *StepConflictError
+	JSON422      *LimitError
+}
+
+// Status returns HTTPResponse.Status
+func (r PostStepInlineStartResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostStepInlineStartResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostStepSleepResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *SleepResponse
+	JSON409      *StepConflictError
+	JSON422      *LimitError
+}
+
+// Status returns HTTPResponse.Status
+func (r PostStepSleepResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostStepSleepResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostStepWaitResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WaitResponse
+	JSON409      *StepConflictError
+}
+
+// Status returns HTTPResponse.Status
+func (r PostStepWaitResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostStepWaitResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -750,8 +1626,8 @@ func (c *ClientWithResponses) PostGetSubtaskResultWithResponse(ctx context.Conte
 }
 
 // GetInputWithResponse request returning *GetInputResponse
-func (c *ClientWithResponses) GetInputWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetInputResponse, error) {
-	rsp, err := c.GetInput(ctx, reqEditors...)
+func (c *ClientWithResponses) GetInputWithResponse(ctx context.Context, params *GetInputParams, reqEditors ...RequestEditorFn) (*GetInputResponse, error) {
+	rsp, err := c.GetInput(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -790,6 +1666,91 @@ func (c *ClientWithResponses) PostRunSubtaskWithResponse(ctx context.Context, bo
 		return nil, err
 	}
 	return ParsePostRunSubtaskResponse(rsp)
+}
+
+// PostStepInlineAttemptWithBodyWithResponse request with arbitrary body returning *PostStepInlineAttemptResponse
+func (c *ClientWithResponses) PostStepInlineAttemptWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostStepInlineAttemptResponse, error) {
+	rsp, err := c.PostStepInlineAttemptWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostStepInlineAttemptResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostStepInlineAttemptWithResponse(ctx context.Context, body PostStepInlineAttemptJSONRequestBody, reqEditors ...RequestEditorFn) (*PostStepInlineAttemptResponse, error) {
+	rsp, err := c.PostStepInlineAttempt(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostStepInlineAttemptResponse(rsp)
+}
+
+// PostStepInlineCompleteWithBodyWithResponse request with arbitrary body returning *PostStepInlineCompleteResponse
+func (c *ClientWithResponses) PostStepInlineCompleteWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostStepInlineCompleteResponse, error) {
+	rsp, err := c.PostStepInlineCompleteWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostStepInlineCompleteResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostStepInlineCompleteWithResponse(ctx context.Context, body PostStepInlineCompleteJSONRequestBody, reqEditors ...RequestEditorFn) (*PostStepInlineCompleteResponse, error) {
+	rsp, err := c.PostStepInlineComplete(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostStepInlineCompleteResponse(rsp)
+}
+
+// PostStepInlineStartWithBodyWithResponse request with arbitrary body returning *PostStepInlineStartResponse
+func (c *ClientWithResponses) PostStepInlineStartWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostStepInlineStartResponse, error) {
+	rsp, err := c.PostStepInlineStartWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostStepInlineStartResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostStepInlineStartWithResponse(ctx context.Context, body PostStepInlineStartJSONRequestBody, reqEditors ...RequestEditorFn) (*PostStepInlineStartResponse, error) {
+	rsp, err := c.PostStepInlineStart(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostStepInlineStartResponse(rsp)
+}
+
+// PostStepSleepWithBodyWithResponse request with arbitrary body returning *PostStepSleepResponse
+func (c *ClientWithResponses) PostStepSleepWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostStepSleepResponse, error) {
+	rsp, err := c.PostStepSleepWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostStepSleepResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostStepSleepWithResponse(ctx context.Context, body PostStepSleepJSONRequestBody, reqEditors ...RequestEditorFn) (*PostStepSleepResponse, error) {
+	rsp, err := c.PostStepSleep(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostStepSleepResponse(rsp)
+}
+
+// PostStepWaitWithBodyWithResponse request with arbitrary body returning *PostStepWaitResponse
+func (c *ClientWithResponses) PostStepWaitWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostStepWaitResponse, error) {
+	rsp, err := c.PostStepWaitWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostStepWaitResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostStepWaitWithResponse(ctx context.Context, body PostStepWaitJSONRequestBody, reqEditors ...RequestEditorFn) (*PostStepWaitResponse, error) {
+	rsp, err := c.PostStepWait(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostStepWaitResponse(rsp)
 }
 
 // ParsePostCallbackResponse parses an HTTP response from a PostCallbackWithResponse call
@@ -918,6 +1879,206 @@ func ParsePostRunSubtaskResponse(rsp *http.Response) (*PostRunSubtaskResponse, e
 		}
 		response.JSON409 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest LimitError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostStepInlineAttemptResponse parses an HTTP response from a PostStepInlineAttemptWithResponse call
+func ParsePostStepInlineAttemptResponse(rsp *http.Response) (*PostStepInlineAttemptResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostStepInlineAttemptResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest StepAttemptResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest StepConflictError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest LimitError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostStepInlineCompleteResponse parses an HTTP response from a PostStepInlineCompleteWithResponse call
+func ParsePostStepInlineCompleteResponse(rsp *http.Response) (*PostStepInlineCompleteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostStepInlineCompleteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest StepCompleteResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest StepConflictError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest LimitError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostStepInlineStartResponse parses an HTTP response from a PostStepInlineStartWithResponse call
+func ParsePostStepInlineStartResponse(rsp *http.Response) (*PostStepInlineStartResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostStepInlineStartResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest StepStartResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest StepConflictError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest LimitError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostStepSleepResponse parses an HTTP response from a PostStepSleepWithResponse call
+func ParsePostStepSleepResponse(rsp *http.Response) (*PostStepSleepResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostStepSleepResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SleepResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest StepConflictError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest LimitError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostStepWaitResponse parses an HTTP response from a PostStepWaitWithResponse call
+func ParsePostStepWaitResponse(rsp *http.Response) (*PostStepWaitResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostStepWaitResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WaitResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest StepConflictError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
 	}
 
 	return response, nil
@@ -933,13 +2094,28 @@ type ServerInterface interface {
 	PostGetSubtaskResult(w http.ResponseWriter, r *http.Request)
 	// Get the task name and input for a task run
 	// (GET /input)
-	GetInput(w http.ResponseWriter, r *http.Request)
+	GetInput(w http.ResponseWriter, r *http.Request, params GetInputParams)
 	// Publish registered tasks
 	// (POST /register-tasks)
 	PostRegisterTasks(w http.ResponseWriter, r *http.Request)
 	// Trigger a subtask
 	// (POST /run-subtask)
 	PostRunSubtask(w http.ResponseWriter, r *http.Request)
+	// Record a failed attempt of an inline step that the SDK will retry
+	// (POST /step-inline/attempt)
+	PostStepInlineAttempt(w http.ResponseWriter, r *http.Request)
+	// Record an inline step's outcome
+	// (POST /step-inline/complete)
+	PostStepInlineComplete(w http.ResponseWriter, r *http.Request)
+	// Record an inline step's start, before its first attempt runs
+	// (POST /step-inline/start)
+	PostStepInlineStart(w http.ResponseWriter, r *http.Request)
+	// Sleep a workflow for a duration
+	// (POST /step-sleep)
+	PostStepSleep(w http.ResponseWriter, r *http.Request)
+	// Wait for a detached subtask to finish
+	// (POST /step-wait)
+	PostStepWait(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -960,7 +2136,7 @@ func (_ Unimplemented) PostGetSubtaskResult(w http.ResponseWriter, r *http.Reque
 
 // Get the task name and input for a task run
 // (GET /input)
-func (_ Unimplemented) GetInput(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) GetInput(w http.ResponseWriter, r *http.Request, params GetInputParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -973,6 +2149,36 @@ func (_ Unimplemented) PostRegisterTasks(w http.ResponseWriter, r *http.Request)
 // Trigger a subtask
 // (POST /run-subtask)
 func (_ Unimplemented) PostRunSubtask(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Record a failed attempt of an inline step that the SDK will retry
+// (POST /step-inline/attempt)
+func (_ Unimplemented) PostStepInlineAttempt(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Record an inline step's outcome
+// (POST /step-inline/complete)
+func (_ Unimplemented) PostStepInlineComplete(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Record an inline step's start, before its first attempt runs
+// (POST /step-inline/start)
+func (_ Unimplemented) PostStepInlineStart(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Sleep a workflow for a duration
+// (POST /step-sleep)
+func (_ Unimplemented) PostStepSleep(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Wait for a detached subtask to finish
+// (POST /step-wait)
+func (_ Unimplemented) PostStepWait(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1016,8 +2222,37 @@ func (siw *ServerInterfaceWrapper) PostGetSubtaskResult(w http.ResponseWriter, r
 // GetInput operation middleware
 func (siw *ServerInterfaceWrapper) GetInput(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetInputParams
+
+	// ------------- Optional query parameter "sdk_import_started_at" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sdk_import_started_at", r.URL.Query(), &params.SdkImportStartedAt)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sdk_import_started_at", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sdk_import_finished_at" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sdk_import_finished_at", r.URL.Query(), &params.SdkImportFinishedAt)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sdk_import_finished_at", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sdk_started_at" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sdk_started_at", r.URL.Query(), &params.SdkStartedAt)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sdk_started_at", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetInput(w, r)
+		siw.Handler.GetInput(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1046,6 +2281,76 @@ func (siw *ServerInterfaceWrapper) PostRunSubtask(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostRunSubtask(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostStepInlineAttempt operation middleware
+func (siw *ServerInterfaceWrapper) PostStepInlineAttempt(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostStepInlineAttempt(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostStepInlineComplete operation middleware
+func (siw *ServerInterfaceWrapper) PostStepInlineComplete(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostStepInlineComplete(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostStepInlineStart operation middleware
+func (siw *ServerInterfaceWrapper) PostStepInlineStart(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostStepInlineStart(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostStepSleep operation middleware
+func (siw *ServerInterfaceWrapper) PostStepSleep(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostStepSleep(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostStepWait operation middleware
+func (siw *ServerInterfaceWrapper) PostStepWait(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostStepWait(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1183,6 +2488,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/run-subtask", wrapper.PostRunSubtask)
 	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/step-inline/attempt", wrapper.PostStepInlineAttempt)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/step-inline/complete", wrapper.PostStepInlineComplete)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/step-inline/start", wrapper.PostStepInlineStart)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/step-sleep", wrapper.PostStepSleep)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/step-wait", wrapper.PostStepWait)
+	})
 
 	return r
 }
@@ -1261,6 +2581,7 @@ func (response PostGetSubtaskResult500Response) VisitPostGetSubtaskResultRespons
 }
 
 type GetInputRequestObject struct {
+	Params GetInputParams
 }
 
 type GetInputResponseObject interface {
@@ -1360,11 +2681,314 @@ func (response PostRunSubtask409JSONResponse) VisitPostRunSubtaskResponse(w http
 	return json.NewEncoder(w).Encode(response)
 }
 
+type PostRunSubtask422JSONResponse LimitError
+
+func (response PostRunSubtask422JSONResponse) VisitPostRunSubtaskResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type PostRunSubtask500Response struct {
 }
 
 func (response PostRunSubtask500Response) VisitPostRunSubtaskResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
+	return nil
+}
+
+type PostRunSubtask503Response struct {
+}
+
+func (response PostRunSubtask503Response) VisitPostRunSubtaskResponse(w http.ResponseWriter) error {
+	w.WriteHeader(503)
+	return nil
+}
+
+type PostStepInlineAttemptRequestObject struct {
+	Body *PostStepInlineAttemptJSONRequestBody
+}
+
+type PostStepInlineAttemptResponseObject interface {
+	VisitPostStepInlineAttemptResponse(w http.ResponseWriter) error
+}
+
+type PostStepInlineAttempt200JSONResponse StepAttemptResponse
+
+func (response PostStepInlineAttempt200JSONResponse) VisitPostStepInlineAttemptResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepInlineAttempt400Response struct {
+}
+
+func (response PostStepInlineAttempt400Response) VisitPostStepInlineAttemptResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type PostStepInlineAttempt409JSONResponse StepConflictError
+
+func (response PostStepInlineAttempt409JSONResponse) VisitPostStepInlineAttemptResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepInlineAttempt422JSONResponse LimitError
+
+func (response PostStepInlineAttempt422JSONResponse) VisitPostStepInlineAttemptResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepInlineAttempt500Response struct {
+}
+
+func (response PostStepInlineAttempt500Response) VisitPostStepInlineAttemptResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PostStepInlineAttempt503Response struct {
+}
+
+func (response PostStepInlineAttempt503Response) VisitPostStepInlineAttemptResponse(w http.ResponseWriter) error {
+	w.WriteHeader(503)
+	return nil
+}
+
+type PostStepInlineCompleteRequestObject struct {
+	Body *PostStepInlineCompleteJSONRequestBody
+}
+
+type PostStepInlineCompleteResponseObject interface {
+	VisitPostStepInlineCompleteResponse(w http.ResponseWriter) error
+}
+
+type PostStepInlineComplete200JSONResponse StepCompleteResponse
+
+func (response PostStepInlineComplete200JSONResponse) VisitPostStepInlineCompleteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepInlineComplete400Response struct {
+}
+
+func (response PostStepInlineComplete400Response) VisitPostStepInlineCompleteResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type PostStepInlineComplete409JSONResponse StepConflictError
+
+func (response PostStepInlineComplete409JSONResponse) VisitPostStepInlineCompleteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepInlineComplete422JSONResponse LimitError
+
+func (response PostStepInlineComplete422JSONResponse) VisitPostStepInlineCompleteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepInlineComplete500Response struct {
+}
+
+func (response PostStepInlineComplete500Response) VisitPostStepInlineCompleteResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PostStepInlineComplete503Response struct {
+}
+
+func (response PostStepInlineComplete503Response) VisitPostStepInlineCompleteResponse(w http.ResponseWriter) error {
+	w.WriteHeader(503)
+	return nil
+}
+
+type PostStepInlineStartRequestObject struct {
+	Body *PostStepInlineStartJSONRequestBody
+}
+
+type PostStepInlineStartResponseObject interface {
+	VisitPostStepInlineStartResponse(w http.ResponseWriter) error
+}
+
+type PostStepInlineStart200JSONResponse StepStartResponse
+
+func (response PostStepInlineStart200JSONResponse) VisitPostStepInlineStartResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepInlineStart400Response struct {
+}
+
+func (response PostStepInlineStart400Response) VisitPostStepInlineStartResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type PostStepInlineStart409JSONResponse StepConflictError
+
+func (response PostStepInlineStart409JSONResponse) VisitPostStepInlineStartResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepInlineStart422JSONResponse LimitError
+
+func (response PostStepInlineStart422JSONResponse) VisitPostStepInlineStartResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepInlineStart500Response struct {
+}
+
+func (response PostStepInlineStart500Response) VisitPostStepInlineStartResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PostStepInlineStart503Response struct {
+}
+
+func (response PostStepInlineStart503Response) VisitPostStepInlineStartResponse(w http.ResponseWriter) error {
+	w.WriteHeader(503)
+	return nil
+}
+
+type PostStepSleepRequestObject struct {
+	Body *PostStepSleepJSONRequestBody
+}
+
+type PostStepSleepResponseObject interface {
+	VisitPostStepSleepResponse(w http.ResponseWriter) error
+}
+
+type PostStepSleep200JSONResponse SleepResponse
+
+func (response PostStepSleep200JSONResponse) VisitPostStepSleepResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepSleep400Response struct {
+}
+
+func (response PostStepSleep400Response) VisitPostStepSleepResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type PostStepSleep409JSONResponse StepConflictError
+
+func (response PostStepSleep409JSONResponse) VisitPostStepSleepResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepSleep422JSONResponse LimitError
+
+func (response PostStepSleep422JSONResponse) VisitPostStepSleepResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepSleep500Response struct {
+}
+
+func (response PostStepSleep500Response) VisitPostStepSleepResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PostStepSleep503Response struct {
+}
+
+func (response PostStepSleep503Response) VisitPostStepSleepResponse(w http.ResponseWriter) error {
+	w.WriteHeader(503)
+	return nil
+}
+
+type PostStepWaitRequestObject struct {
+	Body *PostStepWaitJSONRequestBody
+}
+
+type PostStepWaitResponseObject interface {
+	VisitPostStepWaitResponse(w http.ResponseWriter) error
+}
+
+type PostStepWait200JSONResponse WaitResponse
+
+func (response PostStepWait200JSONResponse) VisitPostStepWaitResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepWait400Response struct {
+}
+
+func (response PostStepWait400Response) VisitPostStepWaitResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type PostStepWait409JSONResponse StepConflictError
+
+func (response PostStepWait409JSONResponse) VisitPostStepWaitResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostStepWait500Response struct {
+}
+
+func (response PostStepWait500Response) VisitPostStepWaitResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PostStepWait503Response struct {
+}
+
+func (response PostStepWait503Response) VisitPostStepWaitResponse(w http.ResponseWriter) error {
+	w.WriteHeader(503)
 	return nil
 }
 
@@ -1385,6 +3009,21 @@ type StrictServerInterface interface {
 	// Trigger a subtask
 	// (POST /run-subtask)
 	PostRunSubtask(ctx context.Context, request PostRunSubtaskRequestObject) (PostRunSubtaskResponseObject, error)
+	// Record a failed attempt of an inline step that the SDK will retry
+	// (POST /step-inline/attempt)
+	PostStepInlineAttempt(ctx context.Context, request PostStepInlineAttemptRequestObject) (PostStepInlineAttemptResponseObject, error)
+	// Record an inline step's outcome
+	// (POST /step-inline/complete)
+	PostStepInlineComplete(ctx context.Context, request PostStepInlineCompleteRequestObject) (PostStepInlineCompleteResponseObject, error)
+	// Record an inline step's start, before its first attempt runs
+	// (POST /step-inline/start)
+	PostStepInlineStart(ctx context.Context, request PostStepInlineStartRequestObject) (PostStepInlineStartResponseObject, error)
+	// Sleep a workflow for a duration
+	// (POST /step-sleep)
+	PostStepSleep(ctx context.Context, request PostStepSleepRequestObject) (PostStepSleepResponseObject, error)
+	// Wait for a detached subtask to finish
+	// (POST /step-wait)
+	PostStepWait(ctx context.Context, request PostStepWaitRequestObject) (PostStepWaitResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -1479,8 +3118,10 @@ func (sh *strictHandler) PostGetSubtaskResult(w http.ResponseWriter, r *http.Req
 }
 
 // GetInput operation middleware
-func (sh *strictHandler) GetInput(w http.ResponseWriter, r *http.Request) {
+func (sh *strictHandler) GetInput(w http.ResponseWriter, r *http.Request, params GetInputParams) {
 	var request GetInputRequestObject
+
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetInput(ctx, request.(GetInputRequestObject))
@@ -1557,6 +3198,161 @@ func (sh *strictHandler) PostRunSubtask(w http.ResponseWriter, r *http.Request) 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(PostRunSubtaskResponseObject); ok {
 		if err := validResponse.VisitPostRunSubtaskResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PostStepInlineAttempt operation middleware
+func (sh *strictHandler) PostStepInlineAttempt(w http.ResponseWriter, r *http.Request) {
+	var request PostStepInlineAttemptRequestObject
+
+	var body PostStepInlineAttemptJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PostStepInlineAttempt(ctx, request.(PostStepInlineAttemptRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostStepInlineAttempt")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PostStepInlineAttemptResponseObject); ok {
+		if err := validResponse.VisitPostStepInlineAttemptResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PostStepInlineComplete operation middleware
+func (sh *strictHandler) PostStepInlineComplete(w http.ResponseWriter, r *http.Request) {
+	var request PostStepInlineCompleteRequestObject
+
+	var body PostStepInlineCompleteJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PostStepInlineComplete(ctx, request.(PostStepInlineCompleteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostStepInlineComplete")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PostStepInlineCompleteResponseObject); ok {
+		if err := validResponse.VisitPostStepInlineCompleteResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PostStepInlineStart operation middleware
+func (sh *strictHandler) PostStepInlineStart(w http.ResponseWriter, r *http.Request) {
+	var request PostStepInlineStartRequestObject
+
+	var body PostStepInlineStartJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PostStepInlineStart(ctx, request.(PostStepInlineStartRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostStepInlineStart")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PostStepInlineStartResponseObject); ok {
+		if err := validResponse.VisitPostStepInlineStartResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PostStepSleep operation middleware
+func (sh *strictHandler) PostStepSleep(w http.ResponseWriter, r *http.Request) {
+	var request PostStepSleepRequestObject
+
+	var body PostStepSleepJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PostStepSleep(ctx, request.(PostStepSleepRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostStepSleep")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PostStepSleepResponseObject); ok {
+		if err := validResponse.VisitPostStepSleepResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PostStepWait operation middleware
+func (sh *strictHandler) PostStepWait(w http.ResponseWriter, r *http.Request) {
+	var request PostStepWaitRequestObject
+
+	var body PostStepWaitJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PostStepWait(ctx, request.(PostStepWaitRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostStepWait")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PostStepWaitResponseObject); ok {
+		if err := validResponse.VisitPostStepWaitResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

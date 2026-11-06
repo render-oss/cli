@@ -17,6 +17,9 @@ type Task struct {
 	Name        string
 	CreatedAt   time.Time
 	RetryConfig *taskserver.RetryConfig
+	// IsWorkflow is true for tasks registered with workflow(); their runs are
+	// durable and replay from step history.
+	IsWorkflow bool
 }
 
 type TaskAttempt struct {
@@ -83,15 +86,18 @@ func (s *TaskStore) SetTasks(tasks []taskserver.Task) {
 		if task.Options != nil {
 			retryConfig = task.Options.Retry
 		}
+		isWorkflow := task.Workflow != nil && *task.Workflow
 		if existing, ok := s.tasks[task.Name]; !ok {
 			newTasks[task.Name] = &Task{
 				ID:          NewTaskID(),
 				Name:        task.Name,
 				CreatedAt:   time.Now(),
 				RetryConfig: retryConfig,
+				IsWorkflow:  isWorkflow,
 			}
 		} else {
 			existing.RetryConfig = retryConfig
+			existing.IsWorkflow = isWorkflow
 			newTasks[task.Name] = existing
 		}
 	}

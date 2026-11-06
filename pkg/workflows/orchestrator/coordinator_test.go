@@ -54,8 +54,10 @@ func (noopStatusReporter) TaskFailed(taskRun *store.TaskRun)    {}
 func (noopStatusReporter) TaskCancelled(taskRun *store.TaskRun) {}
 func (noopStatusReporter) TaskNotFound(taskSlug string)         {}
 
-func (f *fakeServerFactory) NewHandler(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
-	return f.newHandler(socket, input, getSubtaskResultFunc, startSubtaskFunc)
+func (f *fakeServerFactory) NewHandler(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc, durable taskserver.DurableBackend) *taskserver.ServerHandler {
+	h := f.newHandler(socket, input, getSubtaskResultFunc, startSubtaskFunc)
+	h.Durable = durable
+	return h
 }
 
 type recordingStatusReporter struct {
@@ -133,7 +135,7 @@ func TestTaskInputRunIDs(t *testing.T) {
 	exec, _ := controllableSdkExec()
 	coordinator := orchestrator.NewCoordinator(ctx, s, exec, sockets, &fakeServerFactory{
 		newHandler: func(socket net.Listener, input taskserver.GetInput200JSONResponse, getResult taskserver.GetSubtaskResultFunc, startSubtask taskserver.StartSubtaskFunc) *taskserver.ServerHandler {
-			h := factory.NewHandler(socket, input, getResult, startSubtask)
+			h := factory.NewHandler(socket, input, getResult, startSubtask, nil)
 			if input.TaskName == "" {
 				h.Channels.PostTasks = make(chan taskserver.PostRegisterTasksRequestObject, 1)
 				h.Channels.PostTasks <- taskserver.PostRegisterTasksRequestObject{
@@ -335,7 +337,7 @@ func TestSubtaskRetryKeepsParentAlive(t *testing.T) {
 
 	subtaskRunIDCh := make(chan string, 1)
 	go func() {
-		taskRun, err := startSubtaskFunc("test-subtask", []byte{})
+		taskRun, err := startSubtaskFunc(taskserver.RunSubtaskRequest{TaskName: "test-subtask", Input: pointers.From([]byte{})})
 		require.NoError(t, err)
 		subtaskRunIDCh <- taskRun.(taskserver.PostRunSubtask200JSONResponse).TaskRunId
 	}()
@@ -625,7 +627,7 @@ func startTaskWithSubtask(t *testing.T) *taskWithSubtaskHarness {
 	// Start the subtask & wait for it to start
 	subtaskRunIDCh := make(chan string, 1)
 	go func() {
-		taskRun, err := startSubtaskFunc("test-subtask", []byte("test-subtask-input"))
+		taskRun, err := startSubtaskFunc(taskserver.RunSubtaskRequest{TaskName: "test-subtask", Input: pointers.From([]byte("test-subtask-input"))})
 		require.NoError(t, err)
 		subtaskRunIDCh <- taskRun.(taskserver.PostRunSubtask200JSONResponse).TaskRunId
 	}()

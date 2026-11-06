@@ -64,6 +64,7 @@ type serverFactory interface {
 		input taskserver.GetInput200JSONResponse,
 		getSubtaskResultFunc taskserver.GetSubtaskResultFunc,
 		startSubtaskFunc taskserver.StartSubtaskFunc,
+		durable taskserver.DurableBackend,
 	) *taskserver.ServerHandler
 }
 
@@ -123,7 +124,12 @@ func (c *Coordinator) GetSubtaskResult(taskRunID string) (taskserver.PostGetSubt
 // parent is the TaskRun doing the spawning; pass nil when no subtasks are
 // expected (e.g. during task registration).
 func (c *Coordinator) StartSubtaskFunc(parent *store.TaskRun) taskserver.StartSubtaskFunc {
-	return func(taskName string, input []byte) (taskserver.PostRunSubtaskResponseObject, error) {
+	return func(req taskserver.RunSubtaskRequest) (taskserver.PostRunSubtaskResponseObject, error) {
+		taskName := req.TaskName
+		var input []byte
+		if req.Input != nil {
+			input = *req.Input
+		}
 		task := c.store.GetTaskByName(taskName)
 		if task == nil {
 			return taskserver.PostRunSubtask500Response{}, fmt.Errorf("subtask \"%s\" not found", taskName)
@@ -192,7 +198,7 @@ func (c *Coordinator) launchTask(taskRun *store.TaskRun) (*store.TaskRun, error)
 		TaskRunId:       pointers.From(taskRun.ID),
 		RootTaskRunId:   pointers.From(taskRun.RootTaskRunID),
 		ParentTaskRunId: taskRun.ParentTaskRunID,
-	}, c.GetSubtaskResult, c.StartSubtaskFunc(taskRun))
+	}, c.GetSubtaskResult, c.StartSubtaskFunc(taskRun), nil)
 
 	server.Start()
 
@@ -301,7 +307,7 @@ func (c *Coordinator) PopulateTasks(ctx context.Context) ([]*store.Task, error) 
 		return nil, err
 	}
 
-	server := c.serverFactory.NewHandler(socket, taskserver.GetInput200JSONResponse{}, c.GetSubtaskResult, c.StartSubtaskFunc(nil))
+	server := c.serverFactory.NewHandler(socket, taskserver.GetInput200JSONResponse{}, c.GetSubtaskResult, c.StartSubtaskFunc(nil), nil)
 
 	server.Start()
 
