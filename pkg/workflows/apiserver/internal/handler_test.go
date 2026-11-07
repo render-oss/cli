@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/render-oss/cli/pkg/client"
 	workflowclient "github.com/render-oss/cli/pkg/client/workflows"
+	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/workflows/apiserver/internal"
 	"github.com/render-oss/cli/pkg/workflows/store"
 	"github.com/render-oss/cli/pkg/workflows/taskserver"
@@ -25,6 +27,20 @@ func TestListTasks(t *testing.T) {
 
 	require.Equal(t, 1, len(got))
 	require.Equal(t, "test", got[0].Task.Name)
+}
+
+func TestListTasksExcludesFlows(t *testing.T) {
+	store := store.NewTaskStore()
+
+	store.SetTasks([]taskserver.Task{
+		{Name: "plain-task"},
+		{Name: "my-flow", Workflow: pointers.From(true)},
+	})
+
+	got := internal.ListTasks(store)
+
+	require.Len(t, got, 1)
+	require.Equal(t, "plain-task", got[0].Task.Name)
 }
 
 func TestGetTask(t *testing.T) {
@@ -234,5 +250,46 @@ func TestGetTaskRunEvents(t *testing.T) {
 		require.NotNil(t, result.Data.StartedAt)
 		require.NotNil(t, result.Data.CompletedAt)
 		require.Equal(t, []interface{}{"result"}, result.Data.Results)
+	})
+}
+
+func TestListFlows(t *testing.T) {
+	s := store.NewTaskStore()
+	s.SetTasks([]taskserver.Task{
+		{Name: "plain-task"},
+		{Name: "flow-a", Workflow: pointers.From(true)},
+		{Name: "flow-b", Workflow: pointers.From(true)},
+	})
+
+	names := func(flows []*client.FlowWithCursor) []string {
+		got := make([]string, 0, len(flows))
+		for _, f := range flows {
+			got = append(got, f.Flow.Name)
+		}
+		return got
+	}
+
+	t.Run("lists only workflow tasks", func(t *testing.T) {
+		got := internal.ListFlows(s, nil, 0, "")
+		require.ElementsMatch(t, []string{"flow-a", "flow-b"}, names(got))
+		for _, f := range got {
+			require.Equal(t, f.Flow.Id, f.Cursor)
+		}
+	})
+
+	t.Run("matches slugs on the flow name", func(t *testing.T) {
+		got := internal.ListFlows(s, []string{"my-workflow/flow-a:3", "plain-task"}, 0, "")
+		require.Equal(t, []string{"flow-a"}, names(got))
+	})
+
+	t.Run("pages by limit and cursor", func(t *testing.T) {
+		first := internal.ListFlows(s, nil, 1, "")
+		require.Len(t, first, 1)
+
+		second := internal.ListFlows(s, nil, 1, string(first[0].Cursor))
+		require.Len(t, second, 1)
+		require.NotEqual(t, first[0].Flow.Id, second[0].Flow.Id)
+
+		require.Empty(t, internal.ListFlows(s, nil, 1, string(second[0].Cursor)))
 	})
 }

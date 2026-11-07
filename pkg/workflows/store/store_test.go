@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/render-oss/cli/pkg/pointers"
@@ -68,6 +69,33 @@ func TestSetTasks(t *testing.T) {
 		tasks = store.GetTasks()
 		require.Equal(t, "test", tasks[0].Name)
 		require.Equal(t, originalTaskID, tasks[0].ID)
+	})
+
+	t.Run("id prefix follows the task kind", func(t *testing.T) {
+		s := store.NewTaskStore()
+
+		s.SetTasks([]taskserver.Task{
+			{Name: "plain-task"},
+			{Name: "my-flow", Workflow: pointers.From(true)},
+		})
+
+		require.True(t, strings.HasPrefix(s.GetTaskByName("plain-task").ID, "tsk-"))
+		require.True(t, strings.HasPrefix(s.GetTaskByName("my-flow").ID, "flw-"))
+	})
+
+	t.Run("id changes when a task is re-registered as a flow", func(t *testing.T) {
+		s := store.NewTaskStore()
+
+		s.SetTasks([]taskserver.Task{{Name: "test"}})
+		taskID := s.GetTaskByName("test").ID
+
+		s.SetTasks([]taskserver.Task{{Name: "test", Workflow: pointers.From(true)}})
+		flowID := s.GetTaskByName("test").ID
+		require.NotEqual(t, taskID, flowID)
+		require.True(t, strings.HasPrefix(flowID, "flw-"))
+
+		s.SetTasks([]taskserver.Task{{Name: "test", Workflow: pointers.From(true)}})
+		require.Equal(t, flowID, s.GetTaskByName("test").ID)
 	})
 }
 

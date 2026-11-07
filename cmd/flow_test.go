@@ -5,9 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
@@ -22,6 +27,7 @@ import (
 	"github.com/render-oss/cli/pkg/flowrun"
 	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/tui"
+	tuiflows "github.com/render-oss/cli/pkg/tui/flows"
 	workflowviews "github.com/render-oss/cli/pkg/tui/views/workflows"
 )
 
@@ -345,6 +351,72 @@ func TestFlowList_Versions(t *testing.T) {
 			}
 			assert.Equal(t, tc.want, got)
 			assert.Len(t, server.Flows.ListCalls, tc.calls)
+		})
+	}
+}
+
+// startLocalFlowServer serves GET /v1/flows like the `workflows dev` server
+// and returns its port and the query of each request.
+func startLocalFlowServer(t *testing.T, body string) (string, *[]url.Values) {
+	t.Helper()
+	var queries []url.Values
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/flows" {
+			http.NotFound(w, r)
+			return
+		}
+		queries = append(queries, r.URL.Query())
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(server.Close)
+
+	serverURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+	return serverURL.Port(), &queries
+}
+
+func TestFlowList_Local(t *testing.T) {
+	t.Setenv("RENDER_WORKSPACE", "")
+	server := renderapi.NewServer(t)
+	port, queries := startLocalFlowServer(t, `[{
+		"cursor": "flw-1",
+		"flow": {"id": "flw-1", "name": "my-flow", "createdAt": "2026-10-20T01:00:00Z"}
+	}]`)
+
+	result, err := executeFlowCommand(t, server,
+		"flows", "list",
+		"--local", "--port", port,
+		"--flow-slug", "my-flow",
+		"--output", "text",
+	)
+	require.NoError(t, err)
+	assert.Contains(t, result.Stdout, "flw-1")
+	assert.Contains(t, result.Stdout, "my-flow")
+	assert.Empty(t, result.Stderr)
+
+	assert.Empty(t, server.Flows.ListCalls, "--local must not call the Render API")
+	require.Len(t, *queries, 1)
+	query := (*queries)[0]
+	assert.Equal(t, []string{"my-flow"}, query["flowSlug"])
+	assert.Equal(t, "100", query.Get("limit"))
+	assert.False(t, query.Has("ownerId"))
+}
+
+func TestFlowList_LocalRejectsWorkflowFilters(t *testing.T) {
+	for _, filter := range [][]string{
+		{"--workflow", "x"},
+		{"--workflow-version", "x"},
+		{"--all-versions"},
+	} {
+		t.Run(filter[0], func(t *testing.T) {
+			server := renderapi.NewServer(t)
+
+			args := append([]string{"flows", "list", "--local", "--output", "text"}, filter...)
+			_, err := executeFlowCommand(t, server, args...)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "none of the others can be")
+			assert.Empty(t, server.Flows.ListCalls)
 		})
 	}
 }
@@ -719,6 +791,7 @@ func newTestFlowTUI(t *testing.T, server *renderapi.Server) *flowTUI {
 
 	return &flowTUI{
 		deps:        deps,
+		repo:        deps.FlowRunRepo(),
 		listCmd:     find("flows", "list"),
 		runListCmd:  find("flows", "runs", "list"),
 		runStartCmd: find("flows", "runs", "start"),
@@ -771,6 +844,66 @@ func TestFlowList_WorkflowMenuShowsFlowsForWorkflow(t *testing.T) {
 	assert.Equal(t, "Flows", pushed.Breadcrumb)
 	assert.Equal(t, "render flows list --workflow=wfl-1", strings.TrimSpace(pushed.Cmd))
 	assert.Empty(t, server.Flows.ListCalls)
+
+	_, _, err := screens.listFlows(context.Background(), &FlowListInput{AllVersions: true}, &client.ListFlowsParams{})
+	require.NoError(t, err)
+	assert.Len(t, server.Flows.ListCalls, 1)
+}
+
+// newTestLocalFlowTUI builds the interactive flow screens against a local dev
+// server on port.
+func newTestLocalFlowTUI(t *testing.T, port string) *flowTUI {
+	t.Helper()
+	screens := newTestFlowTUI(t, renderapi.NewServer(t))
+	screens.deps.Commands.Workflow.RunListCmd = NewRunListCmd(screens.deps)
+
+	portNum, err := strconv.Atoi(port)
+	require.NoError(t, err)
+	localDeps, err := newLocalDeps(screens.deps, portNum)
+	require.NoError(t, err)
+	screens.repo = flowrun.NewRepo(localDeps.client)
+	screens.local = tuiflows.NewWorkflow(localDeps, tuiflows.NewLogFlow(localDeps, tuiflows.WithLocal(true)), true)
+	return screens
+}
+
+func TestFlowList_InteractiveLocalSkipsWorkflowPrompt(t *testing.T) {
+	port, queries := startLocalFlowServer(t, `[]`)
+	screens := newTestLocalFlowTUI(t, port)
+
+	input := &FlowListInput{Local: true}
+	screens.flowList(context.Background(), input, &client.ListFlowsParams{})
+
+	pushed := popOnly(t, screens.deps.Stack())
+	assert.Equal(t, "Flows", pushed.Breadcrumb)
+	assert.Contains(t, pushed.Cmd, "--local")
+
+	// The dev server has no workflow versions, so local flows aren't narrowed
+	// to a default version.
+	_, _, err := screens.listFlows(context.Background(), input, &client.ListFlowsParams{})
+	require.NoError(t, err)
+	require.Len(t, *queries, 1)
+	assert.False(t, (*queries)[0].Has("workflowVersionId"))
+}
+
+// The dev server runs flows as tasks, so a local flow's runs open the task
+// run screens.
+func TestFlowList_InteractiveLocalFlowRuns(t *testing.T) {
+	port, _ := startLocalFlowServer(t, `[]`)
+	screens := newTestLocalFlowTUI(t, port)
+
+	screens.flowPalette(context.Background(), &wfclient.Flow{Id: "flw-1", Name: "my-flow"})
+	palette := popOnly(t, screens.deps.Stack()).Model
+	for _, load := range palette.Init()().(tea.BatchMsg) {
+		if load != nil {
+			palette.Update(load())
+		}
+	}
+	palette.Update(tea.KeyMsg{Type: tea.KeyEnter})
+
+	pushed := popOnly(t, screens.deps.Stack())
+	assert.Equal(t, "Runs", pushed.Breadcrumb)
+	// The task run list takes the flow as its task argument, not --flow.
+	assert.Equal(t, "list flw-1", strings.TrimSpace(pushed.Cmd))
 }
 
 func TestFlowList_InteractiveFlowMenu(t *testing.T) {

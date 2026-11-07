@@ -24,6 +24,14 @@ func mapTask(task *store.Task) *workflowClient.Task {
 	}
 }
 
+func mapFlow(task *store.Task) *workflowClient.Flow {
+	return &workflowClient.Flow{
+		Id:        task.ID,
+		Name:      task.Name,
+		CreatedAt: task.CreatedAt,
+	}
+}
+
 func mapTaskRunStatus(status store.TaskRunStatus) workflowClient.TaskRunStatus {
 	switch status {
 	case store.TaskRunStatusRunning:

@@ -9,6 +9,7 @@ import (
 const (
 	TaskIDPrefix    = "tsk"
 	TaskRunIDPrefix = "trn"
+	FlowIDPrefix    = "flw"
 )
 
 func NewObjectID(prefix string) string {
@@ -17,6 +18,10 @@ func NewObjectID(prefix string) string {
 
 func NewTaskID() string {
 	return NewObjectID(TaskIDPrefix)
+}
+
+func NewFlowID() string {
+	return NewObjectID(FlowIDPrefix)
 }
 
 func NewTaskRunID() string {

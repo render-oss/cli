@@ -64,6 +64,8 @@ type FlowListInput struct {
 	AllVersions        bool     `cli:"all-versions"`
 	Limit              int      `cli:"limit"`
 	Cursor             string   `cli:"cursor"`
+	Local              bool     `cli:"local"`
+	Port               int      `cli:"port"`
 }
 
 func newFlowListCmd(deps *dependencies.Dependencies, runListCmd, runStartCmd, runShowCmd *cobra.Command) *cobra.Command {
@@ -83,7 +85,15 @@ are listed. Pass --all-versions to include every version.
 
 In interactive mode, you will be prompted to select a workflow if no filter is
 provided. Select a flow to view its runs or start a new run, then view a
-run's logs or results.`,
+run's logs or results.
+
+Local Development:
+With --local, the command lists flows from your local dev server (default port
+8120) instead of the active workspace. --flow-slug matches on the flow name;
+--workflow, --workflow-version, and --all-versions aren't supported. In
+interactive mode, select a flow to view its local runs or start a new run.
+Start the dev server first with:
+  render workflows dev -- "<your command>"`,
 		Example: `  # List all flows in the active workspace
   render workflows flows list
 
@@ -97,7 +107,10 @@ run's logs or results.`,
   render workflows flows list --all-versions
 
   # JSON output
-  render workflows flows list --output json`,
+  render workflows flows list --output json
+
+  # List flows from the local workflow development server
+  render workflows flows list --local`,
 	}
 
 	cmd.Flags().StringArray("flow-slug", nil, "Filter by flow slug (workflow-slug/flow-name[:version], repeatable)")
@@ -105,12 +118,17 @@ run's logs or results.`,
 	cmd.Flags().StringArray("workflow-version", nil, "Filter by workflow version ID (repeatable)")
 	cmd.Flags().Bool("all-versions", false, "Include flows from every workflow version, not just the default version")
 	addPaginationFlags(cmd)
+	addLocalServerFlags(cmd)
+	cmd.MarkFlagsMutuallyExclusive("local", "workflow")
+	cmd.MarkFlagsMutuallyExclusive("local", "workflow-version")
+	cmd.MarkFlagsMutuallyExclusive("local", "all-versions")
 	setAllFlagPlaceholders(cmd, map[string]string{
 		"flow-slug":        "SLUG",
 		"workflow":         "WORKFLOW",
 		"workflow-version": "VERSION_ID",
 		"limit":            "COUNT",
 		"cursor":           "CURSOR",
+		"port":             "PORT",
 	})
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -122,14 +140,21 @@ run's logs or results.`,
 			return err
 		}
 
-		workspaceID, err := config.WorkspaceID()
-		if err != nil {
-			return err
-		}
-
-		params := &client.ListFlowsParams{
-			OwnerId: pointers.From([]string{workspaceID}),
-			Limit:   pointers.From(input.Limit),
+		screens := &flowTUI{deps: deps, repo: deps.FlowRunRepo(), listCmd: cmd, runListCmd: runListCmd, runStartCmd: runStartCmd, runShowCmd: runShowCmd}
+		params := &client.ListFlowsParams{Limit: pointers.From(input.Limit)}
+		if input.Local {
+			localDeps, err := newLocalDeps(deps, input.Port)
+			if err != nil {
+				return fmt.Errorf("failed to create local deps: %w", err)
+			}
+			screens.repo = flowrun.NewRepo(localDeps.client)
+			screens.local = tuiflows.NewWorkflow(localDeps, tuiflows.NewLogFlow(localDeps, tuiflows.WithLocal(true)), true)
+		} else {
+			workspaceID, err := config.WorkspaceID()
+			if err != nil {
+				return err
+			}
+			params.OwnerId = pointers.From([]string{workspaceID})
 		}
 		if input.Cursor != "" {
 			params.Cursor = &input.Cursor
@@ -152,7 +177,7 @@ run's logs or results.`,
 		nonInteractive, err := command.NonInteractive(cmd, func() ([]*workflows.Flow, error) {
 			var flows []*workflows.Flow
 			var err error
-			cursor, flows, err = listFlows(cmd.Context(), deps, &input, params)
+			cursor, flows, err = screens.listFlows(cmd.Context(), &input, params)
 			return flows, err
 		}, text.FlowTable)
 		if err != nil {
@@ -163,7 +188,6 @@ run's logs or results.`,
 			return nil
 		}
 
-		screens := &flowTUI{deps: deps, listCmd: cmd, runListCmd: runListCmd, runStartCmd: runStartCmd, runShowCmd: runShowCmd}
 		screens.flowList(cmd.Context(), &input, params)
 		return nil
 	}
@@ -174,17 +198,18 @@ run's logs or results.`,
 // listFlows lists the flows that match params. Unless input asks for every
 // version or names flows or versions explicitly, it lists only flows from each
 // workflow's default version. A flow slug without a version already resolves
-// to the default version.
-func listFlows(ctx context.Context, deps *dependencies.Dependencies, input *FlowListInput, params *client.ListFlowsParams) (client.Cursor, []*workflows.Flow, error) {
-	if input.AllVersions || len(input.FlowSlugs) > 0 || len(input.WorkflowVersionIDs) > 0 {
-		return deps.FlowRunRepo().ListFlows(ctx, params)
+// to the default version. The local dev server has no workflow versions, so
+// local flows aren't filtered.
+func (s *flowTUI) listFlows(ctx context.Context, input *FlowListInput, params *client.ListFlowsParams) (client.Cursor, []*workflows.Flow, error) {
+	if s.local != nil || input.AllVersions || len(input.FlowSlugs) > 0 || len(input.WorkflowVersionIDs) > 0 {
+		return s.repo.ListFlows(ctx, params)
 	}
 
 	var workflowIDs []string
 	if params.WorkflowId != nil {
 		workflowIDs = *params.WorkflowId
 	}
-	versionIDs, err := deps.WorkflowLoader().DefaultVersionIDs(ctx, workflowIDs)
+	versionIDs, err := s.deps.WorkflowLoader().DefaultVersionIDs(ctx, workflowIDs)
 	if err != nil {
 		return "", nil, err
 	}
@@ -195,17 +220,21 @@ func listFlows(ctx context.Context, deps *dependencies.Dependencies, input *Flow
 
 	filtered := *params
 	filtered.WorkflowVersionId = &versionIDs
-	return deps.FlowRunRepo().ListFlows(ctx, &filtered)
+	return s.repo.ListFlows(ctx, &filtered)
 }
 
 // flowTUI opens the interactive flow screens. Each screen is pushed under the
 // command that prints the same data, so the stack shows the equivalent command.
 type flowTUI struct {
 	deps        *dependencies.Dependencies
+	repo        *flowrun.Repo
 	listCmd     *cobra.Command
 	runListCmd  *cobra.Command
 	runStartCmd *cobra.Command
 	runShowCmd  *cobra.Command
+	// local opens a local dev server's flows. The dev server runs flows as
+	// tasks, so their runs use the task run screens.
+	local *tuiflows.Workflow
 }
 
 // newFlowTUI opens the flow screens under the commands setupFlowCommands
@@ -214,6 +243,7 @@ func newFlowTUI(deps *dependencies.Dependencies) *flowTUI {
 	cmds := deps.Commands.Workflow
 	return &flowTUI{
 		deps:        deps,
+		repo:        deps.FlowRunRepo(),
 		listCmd:     cmds.FlowListCmd,
 		runListCmd:  cmds.FlowRunListCmd,
 		runStartCmd: cmds.FlowRunStartCmd,
@@ -237,9 +267,9 @@ func (s *flowTUI) workflowFlows(ctx context.Context, workflowID string) tea.Cmd 
 }
 
 // flowList prompts for a workflow when no filter narrows the list, then shows
-// the matching flows.
+// the matching flows. Local dev has a single workflow, so it skips the prompt.
 func (s *flowTUI) flowList(ctx context.Context, input *FlowListInput, params *client.ListFlowsParams) tea.Cmd {
-	if len(input.FlowSlugs) == 0 && len(input.WorkflowIDs) == 0 && len(input.WorkflowVersionIDs) == 0 {
+	if s.local == nil && len(input.FlowSlugs) == 0 && len(input.WorkflowIDs) == 0 && len(input.WorkflowVersionIDs) == 0 {
 		return command.AddToStack(s.deps.Stack(), s.listCmd, "Workflows", input,
 			workflowviews.NewWorkflowList(ctx, s.deps.WorkflowLoader(), workflowviews.WorkflowInput{}, func(ctx context.Context, r resource.Resource) tea.Cmd {
 				input.WorkflowIDs = []string{r.ID()}
@@ -254,7 +284,7 @@ func (s *flowTUI) flowList(ctx context.Context, input *FlowListInput, params *cl
 
 func (s *flowTUI) flowTable(ctx context.Context, breadcrumb string, input *FlowListInput, params *client.ListFlowsParams) tea.Cmd {
 	loadFlows := func(ctx context.Context, params *client.ListFlowsParams) ([]*workflows.Flow, error) {
-		_, flows, err := listFlows(ctx, s.deps, input, params)
+		_, flows, err := s.listFlows(ctx, input, params)
 		return flows, err
 	}
 
@@ -266,6 +296,10 @@ func (s *flowTUI) flowTable(ctx context.Context, breadcrumb string, input *FlowL
 }
 
 func (s *flowTUI) flowPalette(ctx context.Context, f *workflows.Flow) tea.Cmd {
+	if s.local != nil {
+		return s.localFlowPalette(ctx, f)
+	}
+
 	return command.AddToStack(s.deps.Stack(), s.listCmd, f.Name, &views.PaletteCommand{},
 		views.NewPaletteView(ctx, []views.PaletteCommand{
 			{
@@ -280,6 +314,27 @@ func (s *flowTUI) flowPalette(ctx context.Context, f *workflows.Flow) tea.Cmd {
 				Description: "Start a new flow run with inputs",
 				Action: func(ctx context.Context, args []string) tea.Cmd {
 					return s.runStart(ctx, f)
+				},
+			},
+		}),
+	)
+}
+
+func (s *flowTUI) localFlowPalette(ctx context.Context, f *workflows.Flow) tea.Cmd {
+	return command.AddToStack(s.deps.Stack(), s.listCmd, f.Name, &views.PaletteCommand{},
+		views.NewPaletteView(ctx, []views.PaletteCommand{
+			{
+				Name:        "runs",
+				Description: "View all runs for this flow",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return s.local.RunListFlow(ctx, &workflowviews.TaskRunListInput{TaskSlug: f.Id, Local: true})
+				},
+			},
+			{
+				Name:        "run",
+				Description: "Start a new flow run with inputs",
+				Action: func(ctx context.Context, args []string) tea.Cmd {
+					return s.local.TaskRunFlow(ctx, &workflowviews.TaskRunInput{TaskSlug: f.Id})
 				},
 			},
 		}),

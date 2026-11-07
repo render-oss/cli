@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -50,6 +51,7 @@ func Start(handler *ServerHandler, port int) (*http.Server, error) {
 				r.Get("/", handler.GetTask)
 			})
 		})
+		r.Get("/flows", handler.ListFlows)
 		r.Route("/task-runs", func(r chi.Router) {
 			r.Post("/", handler.RunTask)
 			r.Route("/{taskRunID}", func(r chi.Router) {
@@ -102,6 +104,28 @@ func (h *ServerHandler) ListTasks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(internal.ListTasks(h.taskStore))
+}
+
+func (h *ServerHandler) ListFlows(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query()
+	var limit int
+	if v := query.Get("limit"); v != "" {
+		var err error
+		if limit, err = strconv.Atoi(v); err != nil || limit < 0 {
+			handleError(w, fmt.Errorf("invalid limit %q", v), http.StatusBadRequest)
+			return
+		}
+	}
+
+	_, err := h.coordinator.PopulateTasks(r.Context())
+	if err != nil {
+		handleError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(internal.ListFlows(h.taskStore, query["flowSlug"], limit, query.Get("cursor")))
 }
 
 func (h *ServerHandler) GetTask(w http.ResponseWriter, r *http.Request) {

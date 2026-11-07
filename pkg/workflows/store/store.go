@@ -134,9 +134,15 @@ func (s *TaskStore) SetTasks(tasks []taskserver.Task) {
 			retryConfig = task.Options.Retry
 		}
 		isWorkflow := task.Workflow != nil && *task.Workflow
-		if existing, ok := s.tasks[task.Name]; !ok {
+		// A task's ID prefix follows its kind, so a task re-registered as a
+		// flow (or back) gets a new ID.
+		if existing, ok := s.tasks[task.Name]; !ok || existing.IsWorkflow != isWorkflow {
+			id := NewTaskID()
+			if isWorkflow {
+				id = NewFlowID()
+			}
 			newTasks[task.Name] = &Task{
-				ID:          NewTaskID(),
+				ID:          id,
 				Name:        task.Name,
 				CreatedAt:   s.now(),
 				RetryConfig: retryConfig,
@@ -144,7 +150,6 @@ func (s *TaskStore) SetTasks(tasks []taskserver.Task) {
 			}
 		} else {
 			existing.RetryConfig = retryConfig
-			existing.IsWorkflow = isWorkflow
 			newTasks[task.Name] = existing
 		}
 	}
