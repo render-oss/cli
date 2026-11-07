@@ -52,6 +52,7 @@ func (noopStatusReporter) TaskRunning(taskRun *store.TaskRun)   {}
 func (noopStatusReporter) TaskCompleted(taskRun *store.TaskRun) {}
 func (noopStatusReporter) TaskFailed(taskRun *store.TaskRun)    {}
 func (noopStatusReporter) TaskCancelled(taskRun *store.TaskRun) {}
+func (noopStatusReporter) TaskReplaying(*store.TaskRun)         {}
 func (noopStatusReporter) TaskNotFound(taskSlug string)         {}
 
 func (f *fakeServerFactory) NewHandler(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc, durable taskserver.DurableBackend) *taskserver.ServerHandler {

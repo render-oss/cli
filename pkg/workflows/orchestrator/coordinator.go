@@ -30,6 +30,7 @@ type StatusReporter interface {
 	TaskCompleted(taskRun *store.TaskRun)
 	TaskFailed(taskRun *store.TaskRun)
 	TaskCancelled(taskRun *store.TaskRun)
+	TaskReplaying(taskRun *store.TaskRun)
 	TaskNotFound(taskSlug string)
 }
 
@@ -47,6 +48,19 @@ type Coordinator struct {
 
 	activeRuns   map[string]*activeRunEntry
 	activeRunsMu sync.Mutex
+
+	// recoveryDelay is the pause before replaying a crashed workflow attempt.
+	recoveryDelay time.Duration
+}
+
+type CoordinatorOption func(*Coordinator)
+
+// WithRecoveryDelay overrides the pause before a crashed workflow attempt is
+// replayed.
+func WithRecoveryDelay(d time.Duration) CoordinatorOption {
+	return func(c *Coordinator) {
+		c.recoveryDelay = d
+	}
 }
 
 type activeRunEntry struct {
@@ -68,7 +82,7 @@ type serverFactory interface {
 	) *taskserver.ServerHandler
 }
 
-func NewCoordinator(ctx context.Context, store *store.TaskStore, sdkExec sdkExec, socketTracker *SocketTracker, serverFactory serverFactory, statusReporter StatusReporter) *Coordinator {
+func NewCoordinator(ctx context.Context, store *store.TaskStore, sdkExec sdkExec, socketTracker *SocketTracker, serverFactory serverFactory, statusReporter StatusReporter, opts ...CoordinatorOption) *Coordinator {
 	coordinator := &Coordinator{
 		store:           store,
 		sdkExec:         sdkExec,
@@ -77,6 +91,10 @@ func NewCoordinator(ctx context.Context, store *store.TaskStore, sdkExec sdkExec
 		statusReporter:  statusReporter,
 		topLevelContext: ctx,
 		activeRuns:      make(map[string]*activeRunEntry),
+		recoveryDelay:   defaultRecoveryDelay,
+	}
+	for _, opt := range opts {
+		opt(coordinator)
 	}
 
 	return coordinator
@@ -176,36 +194,53 @@ func (c *Coordinator) launchTask(taskRun *store.TaskRun) (*store.TaskRun, error)
 
 	runCtx, cancelRun := context.WithCancel(context.Background())
 
+	// Marking the run running under activeRunsMu keeps it atomic with
+	// CancelTaskRun, which holds the same lock.
 	c.activeRunsMu.Lock()
-	if taskRun.ParentTaskRunID != nil {
-		if _, ok := c.activeRuns[taskRun.RootTaskRunID]; !ok {
-			c.activeRunsMu.Unlock()
-			cancelRun()
-			return nil, fmt.Errorf("root task run %s is not active (canceled or completed)", taskRun.RootTaskRunID)
-		}
+	if taskRun.ParentTaskRunID != nil && !c.isTaskActive(taskRun.RootTaskRunID) {
+		c.activeRunsMu.Unlock()
+		cancelRun()
+		return nil, fmt.Errorf("root task run %s is not active (canceled or completed)", taskRun.RootTaskRunID)
 	}
-	c.activeRuns[taskRun.ID] = &activeRunEntry{
+	if _, err := c.store.MarkRunningTaskRun(taskRun.ID); err != nil {
+		c.activeRunsMu.Unlock()
+		cancelRun()
+		return nil, err
+	}
+	entry := &activeRunEntry{
 		cancel:        cancelRun,
 		rootTaskRunID: taskRun.RootTaskRunID,
 	}
+	c.activeRuns[taskRun.ID] = entry
 	c.activeRunsMu.Unlock()
 
 	c.statusReporter.TaskEnqueued(taskRun)
 
-	server := c.serverFactory.NewHandler(socket, taskserver.GetInput200JSONResponse{
+	input := taskserver.GetInput200JSONResponse{
 		TaskName:        taskRun.TaskName,
 		Input:           taskRun.Input,
 		TaskRunId:       pointers.From(taskRun.ID),
 		RootTaskRunId:   pointers.From(taskRun.RootTaskRunID),
 		ParentTaskRunId: taskRun.ParentTaskRunID,
-	}, c.GetSubtaskResult, c.StartSubtaskFunc(taskRun), nil)
+	}
+	startSubtask := c.StartSubtaskFunc(taskRun)
+	var attempt *workflowAttempt
+	var durable taskserver.DurableBackend
+	if taskRun.IsWorkflow {
+		attempt = newWorkflowAttempt(c, taskRun)
+		durable = attempt
+		input.IsWorkflow = pointers.From(true)
+		input.Attempt = pointers.From(attempt.attempt)
+		history := taskserver.History{}
+		if attempt.attempt > 0 {
+			history = c.store.History(taskRun.ID)
+		}
+		input.History = &history
+	}
+
+	server := c.serverFactory.NewHandler(socket, input, c.GetSubtaskResult, startSubtask, durable)
 
 	server.Start()
-
-	if _, err := c.store.MarkRunningTaskRun(taskRun.ID); err != nil {
-		fmt.Println("error marking task running", err)
-		return nil, err
-	}
 
 	cleanupFunc, processDone, err := c.sdkExec.StartService(runCtx, taskRun.ID, socket.Addr().String(), ModeRun)
 	if err != nil {
@@ -216,31 +251,46 @@ func (c *Coordinator) launchTask(taskRun *store.TaskRun) (*store.TaskRun, error)
 		} else {
 			c.statusReporter.TaskFailed(updated)
 		}
-		c.activeRunsMu.Lock()
-		delete(c.activeRuns, taskRun.ID)
-		c.activeRunsMu.Unlock()
+		c.removeActiveRun(taskRun.ID, entry)
 		return nil, err
 	}
 
 	c.statusReporter.TaskRunning(taskRun)
-	go c.watchAttempt(cancelRun, taskRun, server, processDone, cleanupFunc)
+	go c.watchAttempt(entry, taskRun, server, processDone, cleanupFunc)
 	return taskRun, nil
+}
+
+// isTaskActive reports whether a run can still start subtasks: it has a live
+// attempt, or it's a workflow between attempts. Callers hold activeRunsMu.
+func (c *Coordinator) isTaskActive(taskRunID string) bool {
+	if _, ok := c.activeRuns[taskRunID]; ok {
+		return true
+	}
+	taskRun := c.store.GetTaskRun(taskRunID)
+	return taskRun != nil && taskRun.IsWorkflow && !taskRun.Status.IsTerminal()
+}
+
+// removeActiveRun deletes the run's entry unless a newer attempt replaced it.
+func (c *Coordinator) removeActiveRun(taskRunID string, entry *activeRunEntry) {
+	c.activeRunsMu.Lock()
+	defer c.activeRunsMu.Unlock()
+	if c.activeRuns[taskRunID] == entry {
+		delete(c.activeRuns, taskRunID)
+	}
 }
 
 // watchAttempt monitors a single attempt. Caller must run it in a goroutine.
 func (c *Coordinator) watchAttempt(
-	cancelRun context.CancelFunc,
+	entry *activeRunEntry,
 	taskRun *store.TaskRun,
 	server *taskserver.ServerHandler,
 	processDone <-chan error,
 	cleanupFunc CleanupFunc,
 ) {
-	defer cleanupFunc()
 	defer func() {
-		c.activeRunsMu.Lock()
-		delete(c.activeRuns, taskRun.ID)
-		c.activeRunsMu.Unlock()
-		cancelRun()
+		c.removeActiveRun(taskRun.ID, entry)
+		entry.cancel()
+		_ = cleanupFunc()
 	}()
 
 	select {
@@ -254,6 +304,10 @@ func (c *Coordinator) watchAttempt(
 		// Cancelling runCtx kills the underlying process, which fires
 		// processDone in addition to runCtx.Done().
 		if tr := c.store.GetTaskRun(taskRun.ID); tr != nil && tr.Status != store.TaskRunStatusRunning {
+			return
+		}
+		if taskRun.IsWorkflow {
+			c.recoverWorkflow(taskRun, err)
 			return
 		}
 		errMsg := "start command exited before completing the task"
@@ -340,9 +394,10 @@ func (c *Coordinator) PopulateTasks(ctx context.Context) ([]*store.Task, error) 
 //
 // A root task run sitting in TaskRunStatusPending between retries has no
 // activeRuns entry (the previous attempt's entry was removed when it failed
-// and the next attempt hasn't launched yet). In that case we mark the run
-// canceled directly; scheduleRetry's post-sleep status check will see this
-// and skip the relaunch.
+// and the next attempt hasn't launched yet). The same holds for a workflow
+// between a crash and its replay. In those cases we mark the run
+// canceled directly; scheduleRetry's post-sleep status check and
+// launchTask's MarkRunningTaskRun will see this and skip the relaunch.
 func (c *Coordinator) CancelTaskRun(taskRunID string) error {
 	taskRun := c.store.GetTaskRun(taskRunID)
 	if taskRun == nil {
@@ -402,11 +457,20 @@ func (c *Coordinator) completeTask(completeBody *taskserver.CallbackRequest, tas
 		}
 		c.statusReporter.TaskCompleted(updated)
 	} else if completeBody.Error != nil {
-		updated, err := c.store.FailTaskRun(taskRun.ID, completeBody.Error.Details)
+		// A system_error means Render caused the failure, so the workflow
+		// replays like a crashed attempt. A task falls through to its retry
+		// policy.
+		if taskRun.IsWorkflow && isSystemError(completeBody.Error) {
+			c.recoverWorkflow(taskRun, fmt.Errorf("system error: %s", completeBody.Error.Details))
+			return nil
+		}
+		updated, err := c.store.FailTaskRun(taskRun.ID, failureDetails(completeBody.Error))
 		if err != nil {
 			return err
 		}
 		c.statusReporter.TaskFailed(updated)
+		// A workflow's failure callback ends the run: workflows have no retry
+		// policy.
 		go c.scheduleRetry(updated)
 	}
 

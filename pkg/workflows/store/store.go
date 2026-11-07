@@ -51,6 +51,15 @@ type TaskRun struct {
 	// Attempts holds the history of previous (failed) attempts for this task
 	// run. The current attempt's state is represented by the top-level fields.
 	Attempts []TaskAttempt
+
+	// IsWorkflow marks a durable workflow run.
+	IsWorkflow bool
+	// WorkflowAttempt is the current workflow attempt (0 is the first). It
+	// increments on every recovery.
+	WorkflowAttempt int
+	// Recoveries counts attempts started after a crash. The platform doesn't
+	// track this; local dev uses it to cap replays of a crash-looping SDK.
+	Recoveries int
 }
 
 type TaskRunStatus string
@@ -63,16 +72,50 @@ const (
 	TaskRunStatusCanceled TaskRunStatus = "canceled"
 )
 
+// IsTerminal reports whether the status is final.
+func (s TaskRunStatus) IsTerminal() bool {
+	return s == TaskRunStatusComplete || s == TaskRunStatusFailed || s == TaskRunStatusCanceled
+}
+
 type TaskStore struct {
 	tasks        map[string]*Task
 	taskRuns     []*TaskRun
 	taskRunChans []chan *TaskRun
 
+	// steps holds workflow step rows keyed by run ID, then seq.
+	steps map[string]map[int]*taskserver.StepRecord
+	// stepAttempts holds failed inline step attempts keyed by run ID.
+	stepAttempts map[string][]taskserver.StepAttemptRecord
+
+	now func() time.Time
+
 	mu sync.Mutex
 }
 
-func NewTaskStore() *TaskStore {
-	return &TaskStore{}
+type Option func(*TaskStore)
+
+// WithNow overrides the store's clock.
+func WithNow(now func() time.Time) Option {
+	return func(s *TaskStore) {
+		s.now = now
+	}
+}
+
+func NewTaskStore(opts ...Option) *TaskStore {
+	s := &TaskStore{
+		steps:        make(map[string]map[int]*taskserver.StepRecord),
+		stepAttempts: make(map[string][]taskserver.StepAttemptRecord),
+		now:          time.Now,
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
+}
+
+// Now returns the current time on the store's clock.
+func (s *TaskStore) Now() time.Time {
+	return s.now()
 }
 
 func (s *TaskStore) SetTasks(tasks []taskserver.Task) {
@@ -91,7 +134,7 @@ func (s *TaskStore) SetTasks(tasks []taskserver.Task) {
 			newTasks[task.Name] = &Task{
 				ID:          NewTaskID(),
 				Name:        task.Name,
-				CreatedAt:   time.Now(),
+				CreatedAt:   s.now(),
 				RetryConfig: retryConfig,
 				IsWorkflow:  isWorkflow,
 			}
@@ -120,7 +163,12 @@ func (s *TaskStore) StartTaskRun(taskName string, input []byte, parentTaskRunID 
 		}
 	}
 
-	now := time.Now()
+	isWorkflow := false
+	if task, ok := s.tasks[taskName]; ok {
+		isWorkflow = task.IsWorkflow
+	}
+
+	now := s.now()
 	taskRun := &TaskRun{
 		ID:       id,
 		TaskName: taskName,
@@ -132,6 +180,8 @@ func (s *TaskStore) StartTaskRun(taskName string, input []byte, parentTaskRunID 
 
 		ParentTaskRunID: parentTaskRunID,
 		RootTaskRunID:   rootTaskRunID,
+
+		IsWorkflow: isWorkflow,
 	}
 
 	s.taskRuns = append(s.taskRuns, taskRun)
@@ -148,7 +198,7 @@ func (s *TaskStore) updateTaskRun(taskRunID string, output []byte, errString *st
 			taskRun.Output = output
 			taskRun.Status = status
 			taskRun.Error = errString
-			taskRun.CompletedAt = pointers.From(time.Now())
+			taskRun.CompletedAt = pointers.From(s.now())
 
 			return taskRun, nil
 		}
@@ -220,11 +270,34 @@ func (s *TaskStore) MarkRunningTaskRun(taskRunID string) (*TaskRun, error) {
 	if taskRun == nil {
 		return nil, fmt.Errorf("task run not found")
 	}
+	if taskRun.Status.IsTerminal() {
+		return nil, fmt.Errorf("cannot run task run in status %q", taskRun.Status)
+	}
 
-	now := time.Now()
+	now := s.now()
 	taskRun.Status = TaskRunStatusRunning
 	taskRun.AttemptStartedAt = &now
 
+	return taskRun, nil
+}
+
+// RecoverTaskRun prepares a new workflow attempt after the previous one
+// crashed. It counts against the recovery budget.
+func (s *TaskStore) RecoverTaskRun(taskRunID string) (*TaskRun, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	taskRun := s.getTaskRun(taskRunID)
+	if taskRun == nil {
+		return nil, fmt.Errorf("task run not found")
+	}
+	if taskRun.Status != TaskRunStatusRunning {
+		return nil, fmt.Errorf("cannot recover task run in status %q", taskRun.Status)
+	}
+
+	taskRun.WorkflowAttempt++
+	taskRun.Recoveries++
+	taskRun.Status = TaskRunStatusPending
 	return taskRun, nil
 }
 
@@ -248,11 +321,19 @@ func (s *TaskStore) getTaskRun(taskRunID string) *TaskRun {
 	return nil
 }
 
+// GetTaskRun returns a snapshot of the task run, safe to read while the run
+// keeps changing.
 func (s *TaskStore) GetTaskRun(taskRunID string) *TaskRun {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return s.getTaskRun(taskRunID)
+	taskRun := s.getTaskRun(taskRunID)
+	if taskRun == nil {
+		return nil
+	}
+	snapshot := *taskRun
+	snapshot.Attempts = slices.Clone(taskRun.Attempts)
+	return &snapshot
 }
 
 func (s *TaskStore) GetTasks() []*Task {
