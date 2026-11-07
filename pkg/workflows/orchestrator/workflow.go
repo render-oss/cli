@@ -14,18 +14,26 @@ import (
 
 const (
 	// maxRecoveries is how many crashed attempts a workflow run may replay.
-	// It's a local-only guard so a crash-looping SDK eventually fails the run
-	// instead of spinning; the platform replays without limit.
+	// Wakes after a child finishes don't count. It's a local-only guard so a
+	// crash-looping SDK eventually fails the run instead of spinning; the
+	// platform replays without limit.
 	maxRecoveries = 100
 	// defaultRecoveryDelay keeps a crash-looping SDK from spinning.
 	defaultRecoveryDelay = 500 * time.Millisecond
 )
+
+// suspendSignal tells watchAttempt that the attempt answered "suspending":
+// the attempt ends and the run pauses until childRunID finishes.
+type suspendSignal struct {
+	childRunID string
+}
 
 // workflowAttempt serves the step routes for one attempt of a workflow run.
 type workflowAttempt struct {
 	coordinator *Coordinator
 	runID       string
 	attempt     int
+	suspend     chan suspendSignal
 }
 
 func newWorkflowAttempt(c *Coordinator, taskRun *store.TaskRun) *workflowAttempt {
@@ -33,12 +41,20 @@ func newWorkflowAttempt(c *Coordinator, taskRun *store.TaskRun) *workflowAttempt
 		coordinator: c,
 		runID:       taskRun.ID,
 		attempt:     taskRun.WorkflowAttempt,
+		suspend:     make(chan suspendSignal, 1),
 	}
 }
 
 func (a *workflowAttempt) cancelled() bool {
 	taskRun := a.coordinator.store.GetTaskRun(a.runID)
 	return taskRun == nil || taskRun.Status == store.TaskRunStatusCanceled
+}
+
+func (a *workflowAttempt) signalSuspend(sig suspendSignal) {
+	select {
+	case a.suspend <- sig:
+	default:
+	}
 }
 
 func runCancelled() taskserver.StepConflictError {
@@ -216,9 +232,143 @@ func missingStart(seq int) taskserver.StepConflictError {
 	}
 }
 
-// StepWait answers 400 until local dev supports detached tasks.
-func (a *workflowAttempt) StepWait(_ context.Context, _ taskserver.WaitRequest) (taskserver.PostStepWaitResponseObject, error) {
-	return taskserver.PostStepWait400Response{}, nil
+func (a *workflowAttempt) StepWait(_ context.Context, req taskserver.WaitRequest) (taskserver.PostStepWaitResponseObject, error) {
+	if a.cancelled() {
+		return taskserver.PostStepWait409JSONResponse(runCancelled()), nil
+	}
+
+	step, ok := a.coordinator.store.GetStep(a.runID, req.Seq)
+	if !ok || step.Type != store.StepTypeInvoke || pointers.StringValue(step.ChildRunId) != req.ChildRunId {
+		return taskserver.PostStepWait400Response{}, nil
+	}
+
+	if step.CompletedAt == nil {
+		child := a.coordinator.store.GetTaskRun(req.ChildRunId)
+		if child == nil {
+			return taskserver.PostStepWait400Response{}, nil
+		}
+		complete, taskErr, done := a.coordinator.subtaskOutcome(child)
+		if !done {
+			a.signalSuspend(suspendSignal{childRunID: req.ChildRunId})
+			return taskserver.PostStepWait200JSONResponse{Action: taskserver.WaitResponseActionSuspending}, nil
+		}
+		// Complete the row before answering, so a replay sees the outcome.
+		step, _ = a.completeInvokeStep(req.Seq, complete, taskErr)
+	}
+
+	return waitDone(step), nil
+}
+
+func (a *workflowAttempt) completeInvokeStep(seq int, complete *taskserver.TaskComplete, taskErr *taskserver.TaskError) (taskserver.StepRecord, error) {
+	completion := store.StepCompletion{WorkflowAttempt: a.attempt}
+	if taskErr != nil {
+		completion.Error = &taskserver.StepError{Name: "TaskError", Message: taskErr.Details, Stack: taskErr.StackTrace}
+	} else if complete != nil {
+		completion.Output = pointers.From(complete.Output)
+	}
+	step, _, err := a.coordinator.store.CompleteStep(a.runID, seq, completion)
+	return step, err
+}
+
+// waitDone answers /step-wait from a completed invoke step row.
+func waitDone(step taskserver.StepRecord) taskserver.PostStepWait200JSONResponse {
+	resp := taskserver.PostStepWait200JSONResponse{Action: taskserver.WaitResponseActionDone}
+	if step.Error != nil {
+		resp.Error = &taskserver.TaskError{Details: step.Error.Message, StackTrace: step.Error.Stack}
+		return resp
+	}
+	resp.Complete = &taskserver.TaskComplete{Output: pointers.ValueOrDefault(step.Output, []byte{})}
+	return resp
+}
+
+// RunSubtask dispatches an invoked task and records its start row. It backs
+// ctx.invoke in the SDK. A retry
+// for the same seq gets the child that was already started.
+func (a *workflowAttempt) RunSubtask(req taskserver.RunSubtaskRequest) (taskserver.PostRunSubtaskResponseObject, error) {
+	parent := a.coordinator.store.GetTaskRun(a.runID)
+	if parent == nil || parent.Status == store.TaskRunStatusCanceled {
+		return taskserver.PostRunSubtask409JSONResponse{Message: "workflow run was canceled"}, nil
+	}
+	if req.StepKey == nil {
+		return taskserver.PostRunSubtask400JSONResponse{Message: "step_key is required for a workflow's invoked task"}, nil
+	}
+	seq := req.StepKey.Seq
+
+	if step, ok := a.coordinator.store.GetStep(a.runID, seq); ok {
+		if step.Type != store.StepTypeInvoke || step.ChildRunId == nil {
+			return taskserver.PostRunSubtask400JSONResponse{Message: fmt.Sprintf("step %d is not an invoked task", seq)}, nil
+		}
+		return taskserver.PostRunSubtask200JSONResponse{TaskRunId: *step.ChildRunId}, nil
+	}
+
+	task := a.coordinator.store.GetTaskByName(req.TaskName)
+	if task == nil {
+		return taskserver.PostRunSubtask404JSONResponse{Message: fmt.Sprintf("task %q not found", req.TaskName)}, nil
+	}
+	var input []byte
+	if req.Input != nil {
+		input = *req.Input
+	}
+	child, err := a.coordinator.StartTask(a.coordinator.topLevelContext, task.ID, input, parent)
+	if err != nil {
+		return taskserver.PostRunSubtask500Response{}, fmt.Errorf("error running subtask: %w", err)
+	}
+
+	step, _ := a.coordinator.store.StartStep(a.runID, taskserver.StepRecord{
+		StepKey:    *req.StepKey,
+		Type:       store.StepTypeInvoke,
+		TaskName:   pointers.From(req.TaskName),
+		Input:      req.Input,
+		ChildRunId: pointers.From(child.ID),
+		StartedAt:  a.coordinator.store.Now(),
+	})
+	return taskserver.PostRunSubtask200JSONResponse{TaskRunId: *step.ChildRunId}, nil
+}
+
+// pauseWorkflow pauses a run whose attempt suspended, and wakes it if its
+// child already finished. The attempt's process is already stopped.
+func (c *Coordinator) pauseWorkflow(taskRun *store.TaskRun, sig suspendSignal) {
+	updated, err := c.store.PauseTaskRun(taskRun.ID)
+	if err != nil {
+		// Canceled while the attempt was suspending.
+		return
+	}
+
+	c.statusReporter.TaskPaused(updated, fmt.Sprintf("waiting on %s", sig.childRunID))
+	// The child may have finished before the run was paused, in which case
+	// wakeWaitingParent saw a running parent and did nothing.
+	if child := c.store.GetTaskRun(sig.childRunID); child != nil {
+		if _, _, done := c.subtaskOutcome(child); done {
+			c.wake(taskRun.ID)
+		}
+	}
+}
+
+// wake starts the next attempt of a paused workflow run. It's a no-op if
+// the run was canceled or another wake got there first.
+func (c *Coordinator) wake(taskRunID string) {
+	taskRun, err := c.store.WakeTaskRun(taskRunID)
+	if err != nil {
+		return
+	}
+	if _, err := c.launchTask(taskRun); err != nil {
+		fmt.Printf("failed to wake workflow run %s: %s\n", taskRunID, err)
+	}
+}
+
+// wakeWaitingParent wakes the workflow run paused on child, if any. Call it
+// after the child reaches its final state.
+func (c *Coordinator) wakeWaitingParent(child *store.TaskRun) {
+	if child.ParentTaskRunID == nil {
+		return
+	}
+	parentID, _, ok := c.store.FindInvokeStep(child.ID)
+	if !ok {
+		return
+	}
+	if parent := c.store.GetTaskRun(parentID); parent != nil && parent.Status == store.TaskRunStatusPaused {
+		c.wake(parentID)
+	}
 }
 
 // recoverWorkflow replays a workflow run whose attempt crashed without a
@@ -235,6 +385,7 @@ func (c *Coordinator) recoverWorkflow(taskRun *store.TaskRun, exitErr error) {
 			return
 		}
 		c.statusReporter.TaskFailed(updated)
+		c.wakeWaitingParent(updated)
 		return
 	}
 

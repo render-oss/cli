@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/render-oss/cli/pkg/pointers"
 	"github.com/render-oss/cli/pkg/workflows/store"
 	"github.com/render-oss/cli/pkg/workflows/taskserver"
 	"github.com/stretchr/testify/require"
@@ -219,4 +220,102 @@ func TestGetTask(t *testing.T) {
 		task := s.GetTask("my-workflow/nonexistent")
 		require.Nil(t, task)
 	})
+}
+
+// workflowRunIn starts a workflow run and moves it to status.
+func workflowRunIn(t *testing.T, s *store.TaskStore, status store.TaskRunStatus) *store.TaskRun {
+	t.Helper()
+	s.SetTasks([]taskserver.Task{{Name: "wf", Workflow: pointers.From(true)}})
+	run := s.StartTaskRun("wf", nil, nil)
+	var err error
+	switch status {
+	case store.TaskRunStatusRunning:
+	case store.TaskRunStatusPending:
+		_, err = s.RecoverTaskRun(run.ID)
+	case store.TaskRunStatusPaused:
+		_, err = s.PauseTaskRun(run.ID)
+	case store.TaskRunStatusComplete:
+		_, err = s.CompleteTaskRun(run.ID, nil)
+	case store.TaskRunStatusFailed:
+		_, err = s.FailTaskRun(run.ID, "boom")
+	case store.TaskRunStatusCanceled:
+		_, err = s.CancelTaskRun(run.ID)
+	default:
+		t.Fatalf("unsupported status %q", status)
+	}
+	require.NoError(t, err)
+	require.Equal(t, status, s.GetTaskRun(run.ID).Status)
+	return run
+}
+
+func TestPauseTaskRun(t *testing.T) {
+	tests := []struct {
+		from    store.TaskRunStatus
+		wantErr bool
+	}{
+		{from: store.TaskRunStatusRunning},
+		{from: store.TaskRunStatusPending, wantErr: true},
+		{from: store.TaskRunStatusPaused, wantErr: true},
+		{from: store.TaskRunStatusComplete, wantErr: true},
+		{from: store.TaskRunStatusFailed, wantErr: true},
+		{from: store.TaskRunStatusCanceled, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.from), func(t *testing.T) {
+			s := store.NewTaskStore()
+			run := workflowRunIn(t, s, tt.from)
+
+			paused, err := s.PauseTaskRun(run.ID)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Equal(t, tt.from, s.GetTaskRun(run.ID).Status)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, store.TaskRunStatusPaused, paused.Status)
+			require.Equal(t, 0, paused.WorkflowAttempt, "pausing doesn't start an attempt")
+		})
+	}
+
+	t.Run("unknown run", func(t *testing.T) {
+		_, err := store.NewTaskStore().PauseTaskRun("trn-unknown")
+		require.Error(t, err)
+	})
+}
+
+func TestWakeTaskRun(t *testing.T) {
+	tests := []struct {
+		from    store.TaskRunStatus
+		wantErr bool
+	}{
+		{from: store.TaskRunStatusPaused},
+		{from: store.TaskRunStatusRunning, wantErr: true},
+		{from: store.TaskRunStatusPending, wantErr: true},
+		{from: store.TaskRunStatusComplete, wantErr: true},
+		{from: store.TaskRunStatusFailed, wantErr: true},
+		{from: store.TaskRunStatusCanceled, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.from), func(t *testing.T) {
+			s := store.NewTaskStore()
+			run := workflowRunIn(t, s, tt.from)
+			before := s.GetTaskRun(run.ID)
+
+			woken, err := s.WakeTaskRun(run.ID)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Equal(t, tt.from, s.GetTaskRun(run.ID).Status)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, store.TaskRunStatusPending, woken.Status)
+			require.Equal(t, before.WorkflowAttempt+1, woken.WorkflowAttempt)
+			require.Equal(t, before.Recoveries, woken.Recoveries, "a wake doesn't count against the recovery budget")
+
+			_, err = s.WakeTaskRun(run.ID)
+			require.Error(t, err, "a second wake is a no-op")
+		})
+	}
 }

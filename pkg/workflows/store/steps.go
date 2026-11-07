@@ -12,6 +12,9 @@ import (
 // Step types recorded in a workflow's history.
 const (
 	StepTypeInline = "inline"
+	// StepTypeInvoke is a ctx.invoke call. The socket API still sends
+	// "detached", a placeholder name from before the SDK settled on invoke.
+	StepTypeInvoke = "detached"
 )
 
 var (
@@ -162,4 +165,19 @@ func (s *TaskStore) History(taskRunID string) taskserver.History {
 	slices.SortFunc(attempts, func(a, b taskserver.StepAttemptRecord) int { return a.Attempt - b.Attempt })
 
 	return taskserver.History{Steps: &steps, StepAttempts: &attempts}
+}
+
+// FindInvokeStep returns the invoke step that started childRunID.
+func (s *TaskStore) FindInvokeStep(childRunID string) (string, taskserver.StepRecord, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for runID, runSteps := range s.steps {
+		for _, row := range runSteps {
+			if row.Type == StepTypeInvoke && row.ChildRunId != nil && *row.ChildRunId == childRunID {
+				return runID, *row, true
+			}
+		}
+	}
+	return "", taskserver.StepRecord{}, false
 }

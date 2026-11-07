@@ -90,6 +90,13 @@ func (r *PrintStatusReporter) TaskCancelled(taskRun *store.TaskRun) {
 	r.print(r.formatWithDuration("%s %s: %s", taskRun), r.taskLabel(taskRun), status, r.describeTaskRun(taskRun))
 }
 
+// TaskPaused reports a workflow run whose attempt suspended to wait on a
+// child it invoked. reason says what it's waiting for.
+func (r *PrintStatusReporter) TaskPaused(taskRun *store.TaskRun, reason string) {
+	status := renderstyle.Status.Foreground(renderstyle.ColorWarning).Render("Paused")
+	r.print("%s %s: %s %s", r.taskLabel(taskRun), status, r.describeTaskRun(taskRun), reason)
+}
+
 // TaskReplaying reports a workflow attempt that crashed and is being replayed.
 // It's a log line, not a status: the run is pending until the next attempt
 // starts, as on the platform.

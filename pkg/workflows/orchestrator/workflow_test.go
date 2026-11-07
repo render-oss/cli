@@ -408,6 +408,54 @@ func TestWorkflowStepInlineCompleteValidation(t *testing.T) {
 	}
 }
 
+func TestWorkflowInvokedTask(t *testing.T) {
+	h := newWorkflowHarness(t, workflowTasks)
+	run := h.start(t, "wf")
+	first := h.next(t, run.ID)
+
+	runSubtask := func(attempt *sdkAttempt) string {
+		resp, err := attempt.client.PostRunSubtaskWithResponse(context.Background(), taskserver.RunSubtaskRequest{
+			TaskName: "invoice", Input: pointers.From([]byte(`["o-1"]`)),
+			StepKey: pointers.From(key(0)),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resp.JSON200, "status %d", resp.StatusCode())
+		return resp.JSON200.TaskRunId
+	}
+	stepWait := func(attempt *sdkAttempt, childID string) *taskserver.PostStepWaitResponse {
+		resp, err := attempt.client.PostStepWaitWithResponse(context.Background(), taskserver.WaitRequest{Seq: 0, ChildRunId: childID})
+		require.NoError(t, err)
+		return resp
+	}
+
+	childID := runSubtask(first)
+	require.Equal(t, childID, runSubtask(first), "a retry for the same seq gets the same child")
+	child := h.next(t, childID)
+
+	wrongChild := stepWait(first, "trn-other")
+	require.Equal(t, http.StatusBadRequest, wrongChild.StatusCode())
+
+	wait := stepWait(first, childID)
+	require.Equal(t, taskserver.WaitResponseActionSuspending, wait.JSON200.Action)
+	requireKilled(t, first)
+	h.requireStatus(t, run.ID, store.TaskRunStatusPaused)
+	h.requireNoAttempt(t, run.ID)
+
+	callback(t, child, taskserver.CallbackRequest{Complete: &taskserver.TaskComplete{Output: []byte(`["inv-1"]`)}})
+
+	second := h.next(t, run.ID)
+	input := getInput(t, second)
+	require.Equal(t, 1, *input.Attempt)
+	require.Equal(t, childID, *(*input.History.Steps)[0].ChildRunId)
+
+	wait = stepWait(second, childID)
+	require.Equal(t, taskserver.WaitResponseActionDone, wait.JSON200.Action)
+	require.Equal(t, []byte(`["inv-1"]`), wait.JSON200.Complete.Output)
+	step, _ := h.store.GetStep(run.ID, 0)
+	require.NotNil(t, step.CompletedAt)
+	require.Equal(t, []byte(`["inv-1"]`), *step.Output)
+}
+
 func TestWorkflowDeterminismErrorEndsRun(t *testing.T) {
 	h := newWorkflowHarness(t, workflowTasks)
 	run := h.start(t, "wf")
@@ -512,5 +560,28 @@ func TestWorkflowCancel(t *testing.T) {
 		resp := startStep(t, attempt, 0, []byte(`[]`))
 		require.NotNil(t, resp.JSON409)
 		require.Equal(t, taskserver.RunCancelled, resp.JSON409.Code)
+	})
+
+	t.Run("a paused run and its child are canceled", func(t *testing.T) {
+		h := newWorkflowHarness(t, workflowTasks)
+		run := h.start(t, "wf")
+		attempt := h.next(t, run.ID)
+
+		sub, err := attempt.client.PostRunSubtaskWithResponse(context.Background(), taskserver.RunSubtaskRequest{
+			TaskName: "invoice", StepKey: pointers.From(key(0)),
+		})
+		require.NoError(t, err)
+		childID := sub.JSON200.TaskRunId
+		child := h.next(t, childID)
+		_, err = attempt.client.PostStepWaitWithResponse(context.Background(), taskserver.WaitRequest{Seq: 0, ChildRunId: childID})
+		require.NoError(t, err)
+		h.requireStatus(t, run.ID, store.TaskRunStatusPaused)
+
+		require.NoError(t, h.coordinator.CancelTaskRun(run.ID))
+
+		h.requireStatus(t, run.ID, store.TaskRunStatusCanceled)
+		h.requireStatus(t, childID, store.TaskRunStatusCanceled)
+		requireKilled(t, child)
+		h.requireNoAttempt(t, run.ID)
 	})
 }

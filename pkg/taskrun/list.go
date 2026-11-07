@@ -13,7 +13,7 @@ func statusWithStyle(status wfclient.TaskRunStatus) lipgloss.Style {
 	switch status {
 	case wfclient.Failed:
 		return style.Status.Foreground(style.ColorError)
-	case wfclient.Pending, wfclient.Running:
+	case wfclient.Pending, wfclient.Running, wfclient.Paused:
 		return style.Status.Foreground(style.ColorWarning)
 	}
 	return style.Status.Foreground(style.ColorOK)

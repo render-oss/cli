@@ -30,6 +30,7 @@ type StatusReporter interface {
 	TaskCompleted(taskRun *store.TaskRun)
 	TaskFailed(taskRun *store.TaskRun)
 	TaskCancelled(taskRun *store.TaskRun)
+	TaskPaused(taskRun *store.TaskRun, reason string)
 	TaskReplaying(taskRun *store.TaskRun)
 	TaskNotFound(taskSlug string)
 }
@@ -106,35 +107,33 @@ func (c *Coordinator) GetSubtaskResult(taskRunID string) (taskserver.PostGetSubt
 		return taskserver.PostGetSubtaskResult500Response{}, nil
 	}
 
-	var complete *taskserver.TaskComplete
-	var taskError *taskserver.TaskError
+	complete, taskError, done := c.subtaskOutcome(taskRun)
+	return taskserver.PostGetSubtaskResult200JSONResponse{
+		Complete:     complete,
+		StillRunning: !done,
+		Error:        taskError,
+	}, nil
+}
 
+// subtaskOutcome reports a subtask's result as its parent sees it. done is
+// false while the subtask runs, waits for a retry, or is a paused workflow.
+func (c *Coordinator) subtaskOutcome(taskRun *store.TaskRun) (*taskserver.TaskComplete, *taskserver.TaskError, bool) {
 	switch taskRun.Status {
 	case store.TaskRunStatusComplete:
-		complete = &taskserver.TaskComplete{
-			Output: taskRun.Output,
-		}
+		return &taskserver.TaskComplete{Output: taskRun.Output}, nil, true
 	case store.TaskRunStatusFailed:
 		// If retries remain, the subtask hasn't truly finished from the parent's
 		// perspective — scheduleRetry will relaunch it. Tell the parent to keep
 		// waiting so it doesn't fail before the retry has a chance to run.
 		task := c.store.GetTaskByName(taskRun.TaskName)
 		if task != nil && task.RetryConfig.ShouldRetry(len(taskRun.Attempts)) {
-			return taskserver.PostGetSubtaskResult200JSONResponse{StillRunning: true}, nil
+			return nil, nil, false
 		}
-		taskError = &taskserver.TaskError{
-			Details: *taskRun.Error,
-		}
+		return nil, &taskserver.TaskError{Details: pointers.StringValue(taskRun.Error)}, true
+	case store.TaskRunStatusCanceled:
+		return nil, &taskserver.TaskError{Details: "task run was canceled"}, true
 	}
-
-	return taskserver.PostGetSubtaskResult200JSONResponse{
-		Complete: complete,
-		// Pending means the run is between retries (RetryTaskRun has been called
-		// but launchTask hasn't fired yet); still running from the parent's view.
-		StillRunning: taskRun.Status == store.TaskRunStatusRunning ||
-			taskRun.Status == store.TaskRunStatusPending,
-		Error: taskError,
-	}, nil
+	return nil, nil, false
 }
 
 // StartSubtaskFunc builds the taskserver.StartSubtaskFunc callback that
@@ -229,6 +228,7 @@ func (c *Coordinator) launchTask(taskRun *store.TaskRun) (*store.TaskRun, error)
 	if taskRun.IsWorkflow {
 		attempt = newWorkflowAttempt(c, taskRun)
 		durable = attempt
+		startSubtask = attempt.RunSubtask
 		input.IsWorkflow = pointers.From(true)
 		input.Attempt = pointers.From(attempt.attempt)
 		history := taskserver.History{}
@@ -252,11 +252,12 @@ func (c *Coordinator) launchTask(taskRun *store.TaskRun) (*store.TaskRun, error)
 			c.statusReporter.TaskFailed(updated)
 		}
 		c.removeActiveRun(taskRun.ID, entry)
+		c.wakeWaitingParent(taskRun)
 		return nil, err
 	}
 
 	c.statusReporter.TaskRunning(taskRun)
-	go c.watchAttempt(entry, taskRun, server, processDone, cleanupFunc)
+	go c.watchAttempt(entry, taskRun, server, attempt, processDone, cleanupFunc)
 	return taskRun, nil
 }
 
@@ -284,20 +285,34 @@ func (c *Coordinator) watchAttempt(
 	entry *activeRunEntry,
 	taskRun *store.TaskRun,
 	server *taskserver.ServerHandler,
+	attempt *workflowAttempt,
 	processDone <-chan error,
 	cleanupFunc CleanupFunc,
 ) {
-	defer func() {
+	// stop kills this attempt's process and releases its entry. It's safe to
+	// call more than once.
+	stop := func() {
 		c.removeActiveRun(taskRun.ID, entry)
 		entry.cancel()
 		_ = cleanupFunc()
-	}()
+	}
+	defer stop()
+
+	// suspend stays nil (blocks forever) for plain task runs.
+	var suspend <-chan suspendSignal
+	if attempt != nil {
+		suspend = attempt.suspend
+	}
+
+	var suspended *suspendSignal
 
 	select {
 	case callback := <-server.Channels.PostCallback:
 		if err := c.completeTask(callback.Body, taskRun.ID); err != nil {
 			fmt.Println("error completing task", err)
 		}
+	case sig := <-suspend:
+		suspended = &sig
 	case err := <-processDone:
 		// If a cancellation callsite has already transitioned this task
 		// run to a terminal state, don't overwrite it with a failure.
@@ -322,6 +337,15 @@ func (c *Coordinator) watchAttempt(
 		c.statusReporter.TaskFailed(updated)
 		go c.scheduleRetry(updated)
 	}
+
+	if suspended != nil {
+		// An attempt that answered "suspending" stays alive without a
+		// callback, as on the platform: the orchestrator stops it. Pausing can
+		// wake the run straight away when its child already finished, so the
+		// old process must be stopped first.
+		stop()
+		c.pauseWorkflow(taskRun, *suspended)
+	}
 }
 
 // scheduleRetry checks whether the task's RetryConfig permits another attempt,
@@ -332,6 +356,7 @@ func (c *Coordinator) scheduleRetry(failedTaskRun *store.TaskRun) {
 	attemptCount := len(failedTaskRun.Attempts)
 
 	if task == nil || !task.RetryConfig.ShouldRetry(attemptCount) {
+		c.wakeWaitingParent(failedTaskRun)
 		return
 	}
 
@@ -395,7 +420,7 @@ func (c *Coordinator) PopulateTasks(ctx context.Context) ([]*store.Task, error) 
 // A root task run sitting in TaskRunStatusPending between retries has no
 // activeRuns entry (the previous attempt's entry was removed when it failed
 // and the next attempt hasn't launched yet). The same holds for a workflow
-// between a crash and its replay. In those cases we mark the run
+// that is paused on a child. In those cases we mark the run
 // canceled directly; scheduleRetry's post-sleep status check and
 // launchTask's MarkRunningTaskRun will see this and skip the relaunch.
 func (c *Coordinator) CancelTaskRun(taskRunID string) error {
@@ -422,17 +447,22 @@ func (c *Coordinator) CancelTaskRun(taskRunID string) error {
 		delete(c.activeRuns, id)
 		canceled++
 	}
+
+	// No live attempt for the root; if it's between attempts, mark it
+	// canceled so the next attempt never launches.
+	if tr := c.store.GetTaskRun(rootID); tr != nil && betweenAttempts(tr.Status) {
+		c.markCancelled(rootID)
+		canceled++
+	}
 	if canceled > 0 {
 		return nil
 	}
-
-	// No live attempt; if the root is awaiting a retry, mark it canceled
-	// in the store so scheduleRetry's post-sleep check aborts the relaunch.
-	if tr := c.store.GetTaskRun(rootID); tr != nil && tr.Status == store.TaskRunStatusPending {
-		c.markCancelled(rootID)
-		return nil
-	}
 	return fmt.Errorf("task run %s is not active", taskRunID)
+}
+
+func betweenAttempts(status store.TaskRunStatus) bool {
+	return status == store.TaskRunStatusPending ||
+		status == store.TaskRunStatusPaused
 }
 
 func (c *Coordinator) markCancelled(taskRunID string) {
@@ -456,6 +486,7 @@ func (c *Coordinator) completeTask(completeBody *taskserver.CallbackRequest, tas
 			return err
 		}
 		c.statusReporter.TaskCompleted(updated)
+		c.wakeWaitingParent(updated)
 	} else if completeBody.Error != nil {
 		// A system_error means Render caused the failure, so the workflow
 		// replays like a crashed attempt. A task falls through to its retry
@@ -470,7 +501,7 @@ func (c *Coordinator) completeTask(completeBody *taskserver.CallbackRequest, tas
 		}
 		c.statusReporter.TaskFailed(updated)
 		// A workflow's failure callback ends the run: workflows have no retry
-		// policy.
+		// policy, so scheduleRetry only wakes a paused parent.
 		go c.scheduleRetry(updated)
 	}
 

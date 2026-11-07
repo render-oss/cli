@@ -36,6 +36,8 @@ func mapTaskRunStatus(status store.TaskRunStatus) workflowClient.TaskRunStatus {
 		return workflowClient.Failed
 	case store.TaskRunStatusCanceled:
 		return workflowClient.Canceled
+	case store.TaskRunStatusPaused:
+		return workflowClient.Paused
 	default:
 		fmt.Printf("unknown task run status %q; defaulting to Running", status)
 		return workflowClient.Running

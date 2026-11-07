@@ -55,10 +55,11 @@ type TaskRun struct {
 	// IsWorkflow marks a durable workflow run.
 	IsWorkflow bool
 	// WorkflowAttempt is the current workflow attempt (0 is the first). It
-	// increments on every recovery.
+	// increments on every wake and recovery.
 	WorkflowAttempt int
-	// Recoveries counts attempts started after a crash. The platform doesn't
-	// track this; local dev uses it to cap replays of a crash-looping SDK.
+	// Recoveries counts attempts started after a crash; wakes don't count.
+	// The platform doesn't track this; local dev uses it to cap replays of a
+	// crash-looping SDK.
 	Recoveries int
 }
 
@@ -70,6 +71,9 @@ const (
 	TaskRunStatusComplete TaskRunStatus = "complete"
 	TaskRunStatusFailed   TaskRunStatus = "failed"
 	TaskRunStatusCanceled TaskRunStatus = "canceled"
+	// TaskRunStatusPaused is a workflow run whose attempt suspended to wait on
+	// a child it invoked, as the platform reports it.
+	TaskRunStatusPaused TaskRunStatus = "paused"
 )
 
 // IsTerminal reports whether the status is final.
@@ -281,8 +285,44 @@ func (s *TaskStore) MarkRunningTaskRun(taskRunID string) (*TaskRun, error) {
 	return taskRun, nil
 }
 
+// PauseTaskRun moves a running workflow run to paused after its attempt
+// suspended. It doesn't notify subscribers: the run isn't finished.
+func (s *TaskStore) PauseTaskRun(taskRunID string) (*TaskRun, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	taskRun := s.getTaskRun(taskRunID)
+	if taskRun == nil {
+		return nil, fmt.Errorf("task run not found")
+	}
+	if taskRun.Status != TaskRunStatusRunning {
+		return nil, fmt.Errorf("cannot pause task run in status %q", taskRun.Status)
+	}
+
+	taskRun.Status = TaskRunStatusPaused
+	return taskRun, nil
+}
+
+// WakeTaskRun prepares the next workflow attempt of a paused run.
+func (s *TaskStore) WakeTaskRun(taskRunID string) (*TaskRun, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	taskRun := s.getTaskRun(taskRunID)
+	if taskRun == nil {
+		return nil, fmt.Errorf("task run not found")
+	}
+	if taskRun.Status != TaskRunStatusPaused {
+		return nil, fmt.Errorf("cannot wake task run in status %q", taskRun.Status)
+	}
+
+	taskRun.WorkflowAttempt++
+	taskRun.Status = TaskRunStatusPending
+	return taskRun, nil
+}
+
 // RecoverTaskRun prepares a new workflow attempt after the previous one
-// crashed. It counts against the recovery budget.
+// crashed. Unlike a wake, it counts against the recovery budget.
 func (s *TaskStore) RecoverTaskRun(taskRunID string) (*TaskRun, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

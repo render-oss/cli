@@ -52,6 +52,7 @@ func (noopStatusReporter) TaskRunning(taskRun *store.TaskRun)   {}
 func (noopStatusReporter) TaskCompleted(taskRun *store.TaskRun) {}
 func (noopStatusReporter) TaskFailed(taskRun *store.TaskRun)    {}
 func (noopStatusReporter) TaskCancelled(taskRun *store.TaskRun) {}
+func (noopStatusReporter) TaskPaused(*store.TaskRun, string)    {}
 func (noopStatusReporter) TaskReplaying(*store.TaskRun)         {}
 func (noopStatusReporter) TaskNotFound(taskSlug string)         {}
 
