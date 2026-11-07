@@ -32,6 +32,9 @@ type StatusReporter interface {
 	TaskCancelled(taskRun *store.TaskRun)
 	TaskPaused(taskRun *store.TaskRun, reason string)
 	TaskReplaying(taskRun *store.TaskRun)
+	StepStarted(taskRun *store.TaskRun, step taskserver.StepRecord)
+	StepRetrying(taskRun *store.TaskRun, step taskserver.StepRecord, attempt taskserver.StepAttemptRecord)
+	StepCompleted(taskRun *store.TaskRun, step taskserver.StepRecord)
 	TaskNotFound(taskSlug string)
 }
 

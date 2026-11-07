@@ -45,16 +45,20 @@ type fakeServerFactory struct {
 
 type noopStatusReporter struct{}
 
-func (noopStatusReporter) Ready()                               {}
-func (noopStatusReporter) TasksRegistered(taskNames []string)   {}
-func (noopStatusReporter) TaskEnqueued(taskRun *store.TaskRun)  {}
-func (noopStatusReporter) TaskRunning(taskRun *store.TaskRun)   {}
-func (noopStatusReporter) TaskCompleted(taskRun *store.TaskRun) {}
-func (noopStatusReporter) TaskFailed(taskRun *store.TaskRun)    {}
-func (noopStatusReporter) TaskCancelled(taskRun *store.TaskRun) {}
-func (noopStatusReporter) TaskPaused(*store.TaskRun, string)    {}
-func (noopStatusReporter) TaskReplaying(*store.TaskRun)         {}
-func (noopStatusReporter) TaskNotFound(taskSlug string)         {}
+func (noopStatusReporter) Ready()                                            {}
+func (noopStatusReporter) TasksRegistered(taskNames []string)                {}
+func (noopStatusReporter) TaskEnqueued(taskRun *store.TaskRun)               {}
+func (noopStatusReporter) TaskRunning(taskRun *store.TaskRun)                {}
+func (noopStatusReporter) TaskCompleted(taskRun *store.TaskRun)              {}
+func (noopStatusReporter) TaskFailed(taskRun *store.TaskRun)                 {}
+func (noopStatusReporter) TaskCancelled(taskRun *store.TaskRun)              {}
+func (noopStatusReporter) TaskPaused(*store.TaskRun, string)                 {}
+func (noopStatusReporter) TaskReplaying(*store.TaskRun)                      {}
+func (noopStatusReporter) TaskNotFound(taskSlug string)                      {}
+func (noopStatusReporter) StepStarted(*store.TaskRun, taskserver.StepRecord) {}
+func (noopStatusReporter) StepRetrying(*store.TaskRun, taskserver.StepRecord, taskserver.StepAttemptRecord) {
+}
+func (noopStatusReporter) StepCompleted(*store.TaskRun, taskserver.StepRecord) {}
 
 func (f *fakeServerFactory) NewHandler(socket net.Listener, input taskserver.GetInput200JSONResponse, getSubtaskResultFunc taskserver.GetSubtaskResultFunc, startSubtaskFunc taskserver.StartSubtaskFunc, durable taskserver.DurableBackend) *taskserver.ServerHandler {
 	h := f.newHandler(socket, input, getSubtaskResultFunc, startSubtaskFunc)

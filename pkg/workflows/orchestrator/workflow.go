@@ -76,6 +76,8 @@ func (a *workflowAttempt) StepInlineStart(_ context.Context, req taskserver.Step
 	resp := taskserver.PostStepInlineStart200JSONResponse{Applied: applied}
 	if !applied {
 		resp.Step = &step
+	} else {
+		a.coordinator.statusReporter.StepStarted(a.coordinator.store.GetTaskRun(a.runID), step)
 	}
 	return resp, nil
 }
@@ -84,17 +86,21 @@ func (a *workflowAttempt) StepInlineAttempt(_ context.Context, req taskserver.St
 	if a.cancelled() {
 		return taskserver.PostStepInlineAttempt409JSONResponse(runCancelled()), nil
 	}
-	if _, ok := a.coordinator.store.GetStep(a.runID, req.StepKey.Seq); !ok {
+	step, ok := a.coordinator.store.GetStep(a.runID, req.StepKey.Seq)
+	if !ok {
 		return taskserver.PostStepInlineAttempt409JSONResponse(missingStart(req.StepKey.Seq)), nil
 	}
 
-	_, applied := a.coordinator.store.RecordStepAttempt(a.runID, taskserver.StepAttemptRecord{
+	attempt, applied := a.coordinator.store.RecordStepAttempt(a.runID, taskserver.StepAttemptRecord{
 		StepKey:         req.StepKey,
 		Attempt:         req.Attempt,
 		WorkflowAttempt: a.attempt,
 		Error:           req.Error,
 		StartedAt:       req.StartedAt,
 	})
+	if applied {
+		a.coordinator.statusReporter.StepRetrying(a.coordinator.store.GetTaskRun(a.runID), step, attempt)
+	}
 	return taskserver.PostStepInlineAttempt200JSONResponse{Applied: applied}, nil
 }
 
@@ -119,6 +125,8 @@ func (a *workflowAttempt) StepInlineComplete(_ context.Context, req taskserver.S
 	resp := taskserver.PostStepInlineComplete200JSONResponse{Applied: applied}
 	if !applied {
 		resp.Outcome = &taskserver.StepResult{Output: step.Output, Error: step.Error}
+	} else {
+		a.coordinator.statusReporter.StepCompleted(a.coordinator.store.GetTaskRun(a.runID), step)
 	}
 	return resp, nil
 }

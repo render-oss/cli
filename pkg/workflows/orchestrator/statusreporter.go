@@ -8,8 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/render-oss/cli/pkg/pointers"
 	renderstyle "github.com/render-oss/cli/pkg/style"
 	"github.com/render-oss/cli/pkg/workflows/store"
+	"github.com/render-oss/cli/pkg/workflows/taskserver"
 )
 
 type PrintFunc func(format string, args ...any)
@@ -105,6 +107,41 @@ func (r *PrintStatusReporter) TaskReplaying(taskRun *store.TaskRun) {
 	r.print("%s %s: %s attempt=%d", r.taskLabel(taskRun), status, r.describeTaskRun(taskRun), taskRun.WorkflowAttempt)
 }
 
+// Step lines share one shape so they're easy to scan:
+//
+//	↳ Step <Action> [<seq> (<name>) <attempt>]: <input, output, or error>
+
+// StepStarted reports an inline step of a workflow run starting.
+func (r *PrintStatusReporter) StepStarted(taskRun *store.TaskRun, step taskserver.StepRecord) {
+	detail := ""
+	if r.includeInputs {
+		detail = fmt.Sprintf(": input=%s", formatPayload(step.Input))
+	}
+	r.print("%s Running [%s]%s", r.stepLabel(taskRun), formatStepDescriptor(step), detail)
+}
+
+// StepRetrying reports a failed attempt of an inline step that the SDK will
+// retry.
+func (r *PrintStatusReporter) StepRetrying(taskRun *store.TaskRun, step taskserver.StepRecord, attempt taskserver.StepAttemptRecord) {
+	status := renderstyle.Status.Foreground(renderstyle.ColorWarning).Render("Retrying")
+	r.print("%s %s [%s attempt=%d]: %s", r.stepLabel(taskRun), status, formatStepDescriptor(step), attempt.Attempt, formatStepError(&attempt.Error))
+}
+
+// StepCompleted reports an inline step finishing with an output or an error.
+func (r *PrintStatusReporter) StepCompleted(taskRun *store.TaskRun, step taskserver.StepRecord) {
+	duration := ""
+	if d := formatDuration(&step.StartedAt, step.CompletedAt); d != "" {
+		duration = fmt.Sprintf(" duration=%s", d)
+	}
+	if step.Error != nil {
+		status := renderstyle.Status.Foreground(renderstyle.ColorError).Render("Failed")
+		r.print("%s %s [%s]: %s%s", r.stepLabel(taskRun), status, formatStepDescriptor(step), formatStepError(step.Error), duration)
+		return
+	}
+	status := renderstyle.Status.Foreground(renderstyle.ColorOK).Render("Completed")
+	r.print("%s %s [%s]: output=%s%s", r.stepLabel(taskRun), status, formatStepDescriptor(step), formatPayload(step.Output), duration)
+}
+
 func (r *PrintStatusReporter) TaskNotFound(taskSlug string) {
 	status := renderstyle.Status.Foreground(renderstyle.ColorError).Render("Not found")
 	r.print("Task %s: %s", status, taskSlug)
@@ -134,12 +171,20 @@ func (r *PrintStatusReporter) taskLabel(taskRun *store.TaskRun) string {
 	depth := r.depthFor(taskRun)
 	indent := strings.Repeat("  ", depth)
 	if depth == 0 {
+		if taskRun != nil && taskRun.IsWorkflow {
+			return fmt.Sprintf("%sFlow", indent)
+		}
 		return fmt.Sprintf("%sTask", indent)
 	}
 	if parentName := r.parentNameFor(taskRun); parentName != "" {
 		return fmt.Sprintf("%s↳ Subtask (parent: %s)", indent, parentName)
 	}
 	return fmt.Sprintf("%s↳ Subtask", indent)
+}
+
+// stepLabel labels a step one level below its workflow run.
+func (r *PrintStatusReporter) stepLabel(taskRun *store.TaskRun) string {
+	return fmt.Sprintf("%s↳ Step", strings.Repeat("  ", r.depthFor(taskRun)+1))
 }
 
 func (r *PrintStatusReporter) depthFor(taskRun *store.TaskRun) int {
@@ -198,6 +243,25 @@ func formatTaskRunDescriptor(taskRun *store.TaskRun) string {
 	return fmt.Sprintf("%s (%s)", taskRun.ID, taskRun.TaskName)
 }
 
+func formatStepDescriptor(step taskserver.StepRecord) string {
+	name := pointers.StringValue(step.TaskName)
+	if name == "" {
+		return formatStepKey(step.StepKey)
+	}
+	return fmt.Sprintf("%s (%s)", formatStepKey(step.StepKey), name)
+}
+
+func formatStepError(stepErr *taskserver.StepError) string {
+	if stepErr == nil {
+		return ""
+	}
+	message := strings.TrimSpace(stepErr.Message)
+	if stepErr.Name != "" {
+		message = fmt.Sprintf("%s: %s", stepErr.Name, message)
+	}
+	return message
+}
+
 func formatTaskRunInput(taskRun *store.TaskRun) string {
 	if taskRun == nil || len(taskRun.Input) == 0 {
 		return "[]"
@@ -213,14 +277,22 @@ func formatTaskRunInput(taskRun *store.TaskRun) string {
 const maxOutputDisplayLen = 500
 
 func formatTaskRunOutput(taskRun *store.TaskRun) string {
-	if taskRun == nil || len(taskRun.Output) == 0 {
+	if taskRun == nil {
+		return "null"
+	}
+	return formatPayload(pointers.From([]byte(taskRun.Output)))
+}
+
+// formatPayload compacts JSON for display, truncating long values.
+func formatPayload(data *[]byte) string {
+	if data == nil || len(*data) == 0 {
 		return "null"
 	}
 
 	var buf bytes.Buffer
-	if err := json.Compact(&buf, taskRun.Output); err != nil {
+	if err := json.Compact(&buf, *data); err != nil {
 		buf.Reset()
-		buf.Write(taskRun.Output)
+		buf.Write(*data)
 	}
 
 	s := buf.String()
@@ -238,15 +310,24 @@ func (r *PrintStatusReporter) formatWithDuration(format string, taskRun *store.T
 }
 
 func formatTaskRunDuration(taskRun *store.TaskRun) string {
-	if taskRun == nil || taskRun.StartedAt == nil {
+	if taskRun == nil {
+		return ""
+	}
+	return formatDuration(taskRun.StartedAt, taskRun.CompletedAt)
+}
+
+// formatDuration formats the time from start to end, or to now while end is
+// unset.
+func formatDuration(start, end *time.Time) string {
+	if start == nil {
 		return ""
 	}
 
-	end := time.Now()
-	if taskRun.CompletedAt != nil {
-		end = *taskRun.CompletedAt
+	stop := time.Now()
+	if end != nil {
+		stop = *end
 	}
-	duration := end.Sub(*taskRun.StartedAt)
+	duration := stop.Sub(*start)
 	if duration < 0 {
 		return ""
 	}

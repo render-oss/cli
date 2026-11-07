@@ -38,6 +38,11 @@ type workflowHarness struct {
 
 func newWorkflowHarness(t *testing.T, tasks []taskserver.Task) *workflowHarness {
 	t.Helper()
+	return newWorkflowHarnessWithReporter(t, tasks, &noopStatusReporter{})
+}
+
+func newWorkflowHarnessWithReporter(t *testing.T, tasks []taskserver.Task, reporter orchestrator.StatusReporter) *workflowHarness {
+	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
@@ -82,7 +87,7 @@ func newWorkflowHarness(t *testing.T, tasks []taskserver.Task) *workflowHarness 
 			}
 			return handler
 		},
-	}, &noopStatusReporter{}, orchestrator.WithRecoveryDelay(0))
+	}, reporter, orchestrator.WithRecoveryDelay(0))
 
 	return h
 }
@@ -286,6 +291,72 @@ func TestWorkflowCrashRecoveryReplaysHistory(t *testing.T) {
 
 	callback(t, second, taskserver.CallbackRequest{Complete: &taskserver.TaskComplete{Output: []byte(`["done"]`)}})
 	h.requireStatus(t, run.ID, store.TaskRunStatusComplete)
+}
+
+// stepEventReporter records the step events a run reports.
+type stepEventReporter struct {
+	noopStatusReporter
+	mu     sync.Mutex
+	events []string
+}
+
+func (r *stepEventReporter) record(event string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.events = append(r.events, event)
+}
+
+func (r *stepEventReporter) StepStarted(run *store.TaskRun, step taskserver.StepRecord) {
+	r.record(fmt.Sprintf("%s started %d", run.ID, step.StepKey.Seq))
+}
+
+func (r *stepEventReporter) StepRetrying(run *store.TaskRun, step taskserver.StepRecord, attempt taskserver.StepAttemptRecord) {
+	r.record(fmt.Sprintf("%s retrying %d attempt %d: %s", run.ID, step.StepKey.Seq, attempt.Attempt, attempt.Error.Message))
+}
+
+func (r *stepEventReporter) StepCompleted(run *store.TaskRun, step taskserver.StepRecord) {
+	if step.Error != nil {
+		r.record(fmt.Sprintf("%s failed %d: %s", run.ID, step.StepKey.Seq, step.Error.Message))
+		return
+	}
+	r.record(fmt.Sprintf("%s completed %d: %s", run.ID, step.StepKey.Seq, *step.Output))
+}
+
+func (r *stepEventReporter) Events() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.events...)
+}
+
+// Only applied step writes are reported, so a replayed attempt doesn't log
+// its steps again.
+func TestWorkflowReportsSteps(t *testing.T) {
+	reporter := &stepEventReporter{}
+	h := newWorkflowHarnessWithReporter(t, workflowTasks, reporter)
+	run := h.start(t, "wf")
+
+	first := h.next(t, run.ID)
+	getInput(t, first)
+	startStep(t, first, 0, []byte(`["a"]`))
+	completeStep(t, first, run.ID, 0, []byte(`["ok"]`))
+	startStep(t, first, 1, []byte(`[]`))
+	failAttempt(t, first, 1, 0, "timeout")
+	failAttempt(t, first, 1, 0, "timeout")
+	postComplete(t, first, failedCompletion(run.ID, 1, 1, "card declined"))
+
+	first.done <- fmt.Errorf("exit status 1")
+	second := h.next(t, run.ID)
+	getInput(t, second)
+	startStep(t, second, 0, []byte(`["a"]`))
+	completeStep(t, second, run.ID, 0, []byte(`["ok"]`))
+
+	require.Equal(t, []string{
+		run.ID + " started 0",
+		run.ID + ` completed 0: ["ok"]`,
+		run.ID + " started 1",
+		run.ID + " retrying 1 attempt 0: timeout",
+		run.ID + " failed 1: card declined",
+	}, reporter.Events())
 }
 
 func TestWorkflowStepInlineMissingStart(t *testing.T) {
