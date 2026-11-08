@@ -362,6 +362,54 @@ func TestValidateFlagsForType(t *testing.T) {
 	})
 }
 
+// Whatever the destination's type and runtime, the settings left after
+// WithoutFieldsUnsupportedBy pass the validation that refuses them all.
+func TestWithoutFieldsUnsupportedBy(t *testing.T) {
+	everySetting := servicetypes.ServiceCreateInput{
+		Region:             svcRegion(types.RegionOregon),
+		Plan:               pointers.From("starter"),
+		BuildCommand:       pointers.From("npm ci"),
+		StartCommand:       pointers.From("npm start"),
+		PreDeployCommand:   pointers.From("npm run migrate"),
+		HealthCheckPath:    pointers.From("/healthz"),
+		PublishDirectory:   pointers.From("dist"),
+		CronCommand:        pointers.From("npm run job"),
+		CronSchedule:       pointers.From("0 * * * *"),
+		NumInstances:       pointers.From(2),
+		MaxShutdownDelay:   pointers.From(30),
+		Previews:           pointers.From(servicetypes.PreviewsGenerationManual),
+		MaintenanceMode:    pointers.From(true),
+		MaintenanceModeURI: pointers.From("/maintenance.html"),
+		IPAllowList:        []string{"cidr=10.0.0.0/8"},
+	}
+	withDestination := func(s servicetypes.ServiceCreateInput, destination servicetypes.ServiceCreateInput) servicetypes.ServiceCreateInput {
+		s.Name, s.Type, s.Repo, s.Image, s.Runtime = "clone", destination.Type, destination.Repo, destination.Image, destination.Runtime
+		return s
+	}
+
+	for _, value := range servicetypes.ServiceTypeValues() {
+		serviceType := servicetypes.ServiceType(value)
+		destinations := map[string]servicetypes.ServiceCreateInput{
+			"native": {Type: svcType(serviceType), Repo: pointers.From("https://github.com/org/repo"), Runtime: svcRuntime(servicetypes.ServiceRuntimeNode)},
+			"image":  {Type: svcType(serviceType), Image: pointers.From("docker.io/org/app:latest")},
+		}
+		if serviceType == servicetypes.ServiceTypeStaticSite {
+			destinations = map[string]servicetypes.ServiceCreateInput{
+				"repo": {Type: svcType(serviceType), Repo: pointers.From("https://github.com/org/repo")},
+			}
+		}
+		for name, destination := range destinations {
+			t.Run(string(serviceType)+"/"+name, func(t *testing.T) {
+				require.Error(t, withDestination(everySetting, destination).Validate(false))
+
+				filtered := everySetting.WithoutFieldsUnsupportedBy(destination)
+
+				require.NoError(t, withDestination(filtered, destination).Validate(false))
+			})
+		}
+	}
+}
+
 func TestNormalizeAndValidateCreateInput(t *testing.T) {
 	t.Run("normalizes and validates", func(t *testing.T) {
 		input := servicetypes.ServiceCreateInput{

@@ -196,7 +196,7 @@ func (s ServiceCreateInput) SupportsRegistryCredentials() bool {
 }
 
 func usesNativeCommandFlags(s ServiceCreateInput) bool {
-	return s.BuildCommand != nil || s.StartCommand != nil
+	return slices.ContainsFunc(s.restrictedFields(), func(f restrictedField) bool { return f.set && f.nativeOnly })
 }
 
 func resolvesToImageRuntime(s ServiceCreateInput) bool {
@@ -256,91 +256,79 @@ func validateSecretFileFlags(secretFiles []string) error {
 	return nil
 }
 
-func validateFlagsForType(serviceType ServiceType, s ServiceCreateInput) error {
-	reject := func(flag string, allowedTypes ...ServiceType) error {
-		if slices.Contains(allowedTypes, serviceType) {
-			return nil
-		}
-		return fmt.Errorf("--%s is not supported for %s", flag, serviceType)
-	}
+// Service types that accept each type-specific flag.
+var (
+	cronJobTypes        = []ServiceType{ServiceTypeCronJob}
+	webServiceTypes     = []ServiceType{ServiceTypeWebService}
+	staticSiteTypes     = []ServiceType{ServiceTypeStaticSite}
+	longRunningTypes    = []ServiceType{ServiceTypeWebService, ServiceTypePrivateService, ServiceTypeBackgroundWorker}
+	previewTypes        = []ServiceType{ServiceTypeWebService, ServiceTypePrivateService, ServiceTypeBackgroundWorker, ServiceTypeStaticSite}
+	ipAllowListTypes    = []ServiceType{ServiceTypeWebService, ServiceTypeStaticSite}
+	computeServiceTypes = []ServiceType{ServiceTypeWebService, ServiceTypePrivateService, ServiceTypeBackgroundWorker, ServiceTypeCronJob}
+)
 
-	if s.CronCommand != nil {
-		if err := reject("cron-command", ServiceTypeCronJob); err != nil {
-			return err
-		}
-	}
-	if s.CronSchedule != nil {
-		if err := reject("cron-schedule", ServiceTypeCronJob); err != nil {
-			return err
-		}
-	}
-	if s.HealthCheckPath != nil {
-		if err := reject("health-check-path", ServiceTypeWebService); err != nil {
-			return err
-		}
-	}
-	if s.PublishDirectory != nil {
-		if err := reject("publish-directory", ServiceTypeStaticSite); err != nil {
-			return err
-		}
-	}
-	if s.StartCommand != nil {
-		if err := reject("start-command", ServiceTypeWebService, ServiceTypePrivateService, ServiceTypeBackgroundWorker); err != nil {
-			return err
-		}
-	}
-	if s.PreDeployCommand != nil {
-		if err := reject("pre-deploy-command", ServiceTypeWebService, ServiceTypePrivateService, ServiceTypeBackgroundWorker); err != nil {
-			return err
-		}
-	}
-	if s.NumInstances != nil {
-		if err := reject("num-instances", ServiceTypeWebService, ServiceTypePrivateService, ServiceTypeBackgroundWorker); err != nil {
-			return err
-		}
-	}
-	if s.MaxShutdownDelay != nil {
-		if err := reject("max-shutdown-delay", ServiceTypeWebService, ServiceTypePrivateService, ServiceTypeBackgroundWorker); err != nil {
-			return err
-		}
-	}
-	if s.Previews != nil {
-		if err := reject("previews", ServiceTypeWebService, ServiceTypePrivateService, ServiceTypeBackgroundWorker, ServiceTypeStaticSite); err != nil {
-			return err
-		}
-	}
-	if s.MaintenanceMode != nil {
-		if err := reject("maintenance-mode", ServiceTypeWebService); err != nil {
-			return err
-		}
-	}
-	if s.MaintenanceModeURI != nil {
-		if err := reject("maintenance-mode-uri", ServiceTypeWebService); err != nil {
-			return err
-		}
-	}
-	if len(s.IPAllowList) > 0 {
-		if err := reject("ip-allow-list", ServiceTypeWebService, ServiceTypeStaticSite); err != nil {
-			return err
-		}
-	}
+// restrictedField is a flag that only some service types or runtimes accept.
+type restrictedField struct {
+	flag string
+	// types lists the service types that accept the flag; nil means all of them.
+	types []ServiceType
+	// nativeOnly marks a flag that a service on the image runtime refuses.
+	nativeOnly bool
+	set        bool
+	clear      func(*ServiceCreateInput)
+}
 
+func (f restrictedField) supportedBy(serviceType ServiceType) bool {
+	return f.types == nil || slices.Contains(f.types, serviceType)
+}
+
+// restrictedFields lists the flags that only some service types or runtimes
+// accept, in the order validateFlagsForType checks them. Validation refuses
+// such a flag when it is set; WithoutFieldsUnsupportedBy clears it instead.
+func (s ServiceCreateInput) restrictedFields() []restrictedField {
 	parsedRuntime, _ := s.OptionalServiceRuntime()
-	if parsedRuntime != nil {
-		if err := reject("runtime", ServiceTypeWebService, ServiceTypePrivateService, ServiceTypeBackgroundWorker, ServiceTypeCronJob); err != nil {
-			return err
-		}
+	return []restrictedField{
+		{flag: "cron-command", types: cronJobTypes, set: s.CronCommand != nil, clear: func(s *ServiceCreateInput) { s.CronCommand = nil }},
+		{flag: "cron-schedule", types: cronJobTypes, set: s.CronSchedule != nil, clear: func(s *ServiceCreateInput) { s.CronSchedule = nil }},
+		{flag: "health-check-path", types: webServiceTypes, set: s.HealthCheckPath != nil, clear: func(s *ServiceCreateInput) { s.HealthCheckPath = nil }},
+		{flag: "publish-directory", types: staticSiteTypes, set: s.PublishDirectory != nil, clear: func(s *ServiceCreateInput) { s.PublishDirectory = nil }},
+		{flag: "build-command", nativeOnly: true, set: s.BuildCommand != nil, clear: func(s *ServiceCreateInput) { s.BuildCommand = nil }},
+		{flag: "start-command", types: longRunningTypes, nativeOnly: true, set: s.StartCommand != nil, clear: func(s *ServiceCreateInput) { s.StartCommand = nil }},
+		{flag: "pre-deploy-command", types: longRunningTypes, set: s.PreDeployCommand != nil, clear: func(s *ServiceCreateInput) { s.PreDeployCommand = nil }},
+		{flag: "num-instances", types: longRunningTypes, set: s.NumInstances != nil, clear: func(s *ServiceCreateInput) { s.NumInstances = nil }},
+		{flag: "max-shutdown-delay", types: longRunningTypes, set: s.MaxShutdownDelay != nil, clear: func(s *ServiceCreateInput) { s.MaxShutdownDelay = nil }},
+		{flag: "previews", types: previewTypes, set: s.Previews != nil, clear: func(s *ServiceCreateInput) { s.Previews = nil }},
+		{flag: "maintenance-mode", types: webServiceTypes, set: s.MaintenanceMode != nil, clear: func(s *ServiceCreateInput) { s.MaintenanceMode = nil }},
+		{flag: "maintenance-mode-uri", types: webServiceTypes, set: s.MaintenanceModeURI != nil, clear: func(s *ServiceCreateInput) { s.MaintenanceModeURI = nil }},
+		{flag: "ip-allow-list", types: ipAllowListTypes, set: len(s.IPAllowList) > 0, clear: func(s *ServiceCreateInput) { s.IPAllowList = nil }},
+		{flag: "runtime", types: computeServiceTypes, set: parsedRuntime != nil, clear: func(s *ServiceCreateInput) { s.Runtime = nil }},
+		{flag: "region", types: computeServiceTypes, set: s.Region != nil, clear: func(s *ServiceCreateInput) { s.Region = nil }},
+		{flag: "plan", types: computeServiceTypes, set: s.Plan != nil, clear: func(s *ServiceCreateInput) { s.Plan = nil }},
 	}
-	if s.Region != nil {
-		if err := reject("region", ServiceTypeWebService, ServiceTypePrivateService, ServiceTypeBackgroundWorker, ServiceTypeCronJob); err != nil {
-			return err
-		}
-	}
-	if s.Plan != nil {
-		if err := reject("plan", ServiceTypeWebService, ServiceTypePrivateService, ServiceTypeBackgroundWorker, ServiceTypeCronJob); err != nil {
-			return err
-		}
-	}
+}
 
+func validateFlagsForType(serviceType ServiceType, s ServiceCreateInput) error {
+	for _, f := range s.restrictedFields() {
+		if f.set && !f.supportedBy(serviceType) {
+			return fmt.Errorf("--%s is not supported for %s", f.flag, serviceType)
+		}
+	}
 	return nil
+}
+
+// WithoutFieldsUnsupportedBy returns s with every field cleared that
+// destination would refuse, given its service type and runtime. Cloning
+// applies it to the source service's settings, so a clone of another type or
+// runtime inherits only the settings it accepts; flags the caller sets are not
+// filtered and still fail validation.
+func (s ServiceCreateInput) WithoutFieldsUnsupportedBy(destination ServiceCreateInput) ServiceCreateInput {
+	// Validation refuses an unknown type, which leaves nothing to filter by.
+	serviceType, _ := destination.OptionalServiceType()
+	imageRuntime := resolvesToImageRuntime(destination)
+	for _, f := range s.restrictedFields() {
+		if (serviceType != nil && !f.supportedBy(*serviceType)) || (imageRuntime && f.nativeOnly) {
+			f.clear(&s)
+		}
+	}
+	return s
 }
