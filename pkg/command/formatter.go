@@ -38,7 +38,7 @@ func StringToOutput(s string) (Output, error) {
 }
 
 func CommandName(cmd *cobra.Command, v any) (string, error) {
-	inputString, err := InputToString(v)
+	inputString, err := inputToString(v, cmd.Flags())
 	if err != nil {
 		return "", err
 	}
