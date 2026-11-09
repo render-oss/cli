@@ -42,7 +42,12 @@ type PSQLResult struct {
 	Output string `json:"output"`
 }
 
-func ExecutePSQLNonInteractive(ctx context.Context, input *PSQLInput) (*PSQLResult, error) {
+// ExecutePSQLNonInteractive runs input.Command and returns the tool's stdout.
+// The tool reads stdin, so data the caller pipes in reaches commands that
+// consume it, such as \copy ... FROM pstdin. Diagnostics the tool writes to
+// stderr on success (WARNING/NOTICE) are forwarded to diagnostics unchanged,
+// so they are not lost while the structured result stays stdout only.
+func ExecutePSQLNonInteractive(ctx context.Context, input *PSQLInput, stdin io.Reader, diagnostics io.Writer) (*PSQLResult, error) {
 	c, err := client.NewDefaultClient()
 	if err != nil {
 		return nil, err
@@ -77,13 +82,16 @@ func ExecutePSQLNonInteractive(ctx context.Context, input *PSQLInput) (*PSQLResu
 		args = append(args, arg)
 	}
 
-	cmd := exec.CommandContext(ctx, string(input.Tool), args...)
+	return runPSQLCommand(exec.CommandContext(ctx, string(input.Tool), args...), stdin, diagnostics)
+}
 
+func runPSQLCommand(cmd *exec.Cmd, stdin io.Reader, diagnostics io.Writer) (*PSQLResult, error) {
 	var stdout, stderr bytes.Buffer
+	cmd.Stdin = stdin
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		errMsg := stderr.String()
 		if errMsg != "" {
@@ -92,6 +100,11 @@ func ExecutePSQLNonInteractive(ctx context.Context, input *PSQLInput) (*PSQLResu
 		return nil, err
 	}
 
+	if stderr.Len() > 0 && diagnostics != nil {
+		if _, err := diagnostics.Write(stderr.Bytes()); err != nil {
+			return nil, err
+		}
+	}
 	return &PSQLResult{Output: stdout.String()}, nil
 }
 
