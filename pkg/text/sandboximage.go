@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jedib0t/go-pretty/table"
+
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
 )
 
@@ -23,6 +25,22 @@ func SandboxImageDetail(b *sandboxesclient.SandboxBuild) string {
 		lines = append(lines, fmt.Sprintf("Failure reason: %s", *b.FailureReason))
 	}
 	return FormatString(strings.Join(lines, "\n"))
+}
+
+func SandboxImageTable(images []*sandboxesclient.SandboxBuild) string {
+	t := newTable()
+	t.AppendHeader(table.Row{"ID", "Name", "Status", "Source", "Created", "Finished"})
+	for _, b := range images {
+		t.AppendRow(table.Row{
+			b.Id,
+			b.Name,
+			b.Status,
+			imageSourceString(b),
+			b.CreatedAt.UTC().Format(time.RFC3339),
+			optionalTime(b.FinishedAt),
+		})
+	}
+	return FormatString(t.Render())
 }
 
 func imageSourceString(b *sandboxesclient.SandboxBuild) string {

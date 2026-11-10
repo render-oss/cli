@@ -148,13 +148,13 @@ func (s *Server) snapshotList(r *http.Request, keep func(*sandboxesclient.Sandbo
 			Snapshot: *snap,
 		})
 	}
-	return pageOf(result, r)
+	return pageOf(result, r, func(item client.SandboxSnapshotWithCursor) client.Cursor { return item.Cursor })
 }
 
-func pageOf(all []client.SandboxSnapshotWithCursor, r *http.Request) []client.SandboxSnapshotWithCursor {
+func pageOf[T any](all []T, r *http.Request, cursorOf func(T) client.Cursor) []T {
 	start := 0
 	if cursor := r.URL.Query().Get("cursor"); cursor != "" {
-		start = slices.IndexFunc(all, func(item client.SandboxSnapshotWithCursor) bool { return string(item.Cursor) == cursor }) + 1
+		start = slices.IndexFunc(all, func(item T) bool { return string(cursorOf(item)) == cursor }) + 1
 	}
 	end := len(all)
 	if limit, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil && limit > 0 && start+limit < end {

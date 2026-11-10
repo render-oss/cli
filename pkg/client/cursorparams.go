@@ -91,6 +91,13 @@ func (p *ListSecretFilesForServiceParams) SetLimit(l int) {
 	p.Limit = &l
 }
 
+func (p *ListSandboxBuildsParams) SetCursor(c *Cursor) {
+	p.Cursor = c
+}
+func (p *ListSandboxBuildsParams) SetLimit(l int) {
+	p.Limit = &l
+}
+
 func (p *ListSandboxSnapshotsParams) SetCursor(c *Cursor) {
 	p.Cursor = c
 }

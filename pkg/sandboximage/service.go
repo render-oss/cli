@@ -47,3 +47,28 @@ func (s *Service) Get(ctx context.Context, sandboxGroupID, imageID string) (*san
 	}
 	return s.repo.Get(ctx, sandboxGroupID, imageID)
 }
+
+type ListInput struct {
+	SandboxGroupID string
+	Name           string
+	Statuses       []string
+}
+
+func (s *Service) List(ctx context.Context, input ListInput) ([]*sandboxesclient.SandboxBuild, error) {
+	sandboxGroupID, err := s.groups.IDOrDefault(ctx, input.SandboxGroupID)
+	if err != nil {
+		return nil, err
+	}
+	params := &client.ListSandboxBuildsParams{}
+	if input.Name != "" {
+		params.Name = &input.Name
+	}
+	if len(input.Statuses) > 0 {
+		statuses := make([]sandboxesclient.SandboxBuildStatus, len(input.Statuses))
+		for i, status := range input.Statuses {
+			statuses[i] = sandboxesclient.SandboxBuildStatus(status)
+		}
+		params.Status = &statuses
+	}
+	return s.repo.ListForGroup(ctx, sandboxGroupID, params)
+}

@@ -45,3 +45,35 @@ func (r *Repo) Get(ctx context.Context, sandboxGroupID, imageID string) (*sandbo
 	}
 	return resp.JSON200, nil
 }
+
+// ListForGroup returns every image in the group matching the filters, newest
+// first, following cursors until the last page.
+func (r *Repo) ListForGroup(ctx context.Context, sandboxGroupID string, params *client.ListSandboxBuildsParams) ([]*sandboxesclient.SandboxBuild, error) {
+	images, err := client.ListAll(ctx, params, func(ctx context.Context, params *client.ListSandboxBuildsParams) ([]*sandboxesclient.SandboxBuild, *client.Cursor, error) {
+		resp, err := r.client.ListSandboxBuildsWithResponse(ctx, sandboxGroupID, params)
+		if err != nil {
+			return nil, nil, err
+		}
+		if err := client.ErrorFromResponse(resp); err != nil {
+			return nil, nil, err
+		}
+		if resp.JSON200 == nil || len(*resp.JSON200) == 0 {
+			return nil, nil, nil
+		}
+		items := *resp.JSON200
+		page := make([]*sandboxesclient.SandboxBuild, 0, len(items))
+		for _, item := range items {
+			image := item.Build
+			page = append(page, &image)
+		}
+		return page, &items[len(items)-1].Cursor, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	// encoding/json writes a nil slice as null; an empty list must print as [].
+	if images == nil {
+		return []*sandboxesclient.SandboxBuild{}, nil
+	}
+	return images, nil
+}

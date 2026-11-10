@@ -2,12 +2,14 @@ package renderapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/render-oss/cli/internal/testids"
+	"github.com/render-oss/cli/pkg/client"
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
 )
 
@@ -108,7 +110,46 @@ func (s *Server) latestBuildByName(groupID, name string) (*sandboxesclient.Sandb
 	return latest, latest != nil
 }
 
+// buildList returns the group's builds matching the name and status filters,
+// newest first, paged by the request's cursor and limit.
+func (s *Server) buildList(r *http.Request, groupID string) []client.SandboxBuildWithCursor {
+	name := r.URL.Query().Get("name")
+	statuses := queryListValues(r, "status")
+	var matched []*sandboxesclient.SandboxBuild
+	for _, b := range s.SandboxBuilds.Instances {
+		if b.SandboxGroupId != groupID || (name != "" && b.Name != name) {
+			continue
+		}
+		if len(statuses) > 0 && !slices.Contains(statuses, string(b.Status)) {
+			continue
+		}
+		matched = append(matched, b)
+	}
+	slices.SortStableFunc(matched, func(a, b *sandboxesclient.SandboxBuild) int {
+		return b.CreatedAt.Compare(a.CreatedAt)
+	})
+	result := make([]client.SandboxBuildWithCursor, 0, len(matched))
+	for i, b := range matched {
+		result = append(result, client.SandboxBuildWithCursor{Cursor: client.Cursor(fmt.Sprintf("c%d", i)), Build: *b})
+	}
+	return pageOf(result, r, func(item client.SandboxBuildWithCursor) client.Cursor { return item.Cursor })
+}
+
 func registerSandboxBuildRoutes(mux *http.ServeMux, s *Server, record func(*http.Request)) {
+	mux.HandleFunc("GET /sandbox-groups/{groupId}/builds", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.SandboxBuilds.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		groupID := r.PathValue("groupId")
+		if s.sandboxGroupOwner(groupID) == "" {
+			writeAPIError(w, http.StatusNotFound, "not found: sandbox group", "")
+			return
+		}
+		writeJSON(w, http.StatusOK, s.buildList(r, groupID))
+	})
+
 	mux.HandleFunc("POST /sandbox-groups/{groupId}/builds", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
 		if status, hasError := s.SandboxBuilds.nextError(); hasError {

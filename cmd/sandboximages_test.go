@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,7 +66,7 @@ func TestSandboxImages_HelpListsSubcommands(t *testing.T) {
 
 	result, err := h.execute("--help")
 	require.NoError(t, err)
-	for _, sub := range []string{"import", "get"} {
+	for _, sub := range []string{"import", "get", "list"} {
 		assert.Contains(t, result.Stdout, sub, "expected subcommand %q in help output", sub)
 	}
 }
@@ -370,4 +372,134 @@ func TestSandboxGroupsBuilds_DeprecatedAliasesStillWork(t *testing.T) {
 	assert.Contains(t, result.Stdout, imported.Id)
 	assert.Contains(t, result.Stdout+result.Stderr, "use `render sandbox-groups images get` instead")
 	assert.True(t, h.server.HasRequest("GET", "/sandbox-groups/"+h.group.Id+"/builds/"+imported.Id))
+}
+
+func TestSandboxImagesList_TextOutput(t *testing.T) {
+	h := newSandboxImagesHarness(t)
+	image := h.seedImage(sandboxesclient.SandboxBuild{Name: "python"})
+
+	result, err := h.execute("list", "--output", "text")
+	require.NoError(t, err)
+	for _, want := range []string{"ID", "NAME", "STATUS", "SOURCE", image.Id, "python", "succeeded", "docker.io/library/python:3.13"} {
+		assert.Contains(t, result.Stdout, want)
+	}
+}
+
+func TestSandboxImagesList_JSONOutput(t *testing.T) {
+	h := newSandboxImagesHarness(t)
+	base := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+	older := h.seedImage(sandboxesclient.SandboxBuild{Name: "python", CreatedAt: base})
+	newer := h.seedImage(sandboxesclient.SandboxBuild{Name: "node", CreatedAt: base.Add(time.Hour)})
+	h.seedImage(sandboxesclient.SandboxBuild{SandboxGroupId: testids.SandboxGroupID("other")})
+
+	result, err := h.execute("list", "--output", "json")
+	require.NoError(t, err)
+	items := unmarshalJSONArray(t, result.Stdout)
+	require.Len(t, items, 2, "images in other groups are not listed")
+	assert.Equal(t, newer.Id, items[0]["id"], "newest first")
+	assert.Equal(t, older.Id, items[1]["id"])
+}
+
+func TestSandboxImagesList_EmptyJSONIsArray(t *testing.T) {
+	h := newSandboxImagesHarness(t)
+
+	result, err := h.execute("list", "--output", "json")
+	require.NoError(t, err)
+	assert.JSONEq(t, "[]", result.Stdout)
+}
+
+func TestSandboxImagesList_Filters(t *testing.T) {
+	tests := []struct {
+		name      string
+		args      []string
+		wantNames []string
+		wantQuery string
+	}{
+		{name: "no filters", wantNames: []string{"python-failed", "python", "node"}},
+		{name: "name", args: []string{"--name", "node"}, wantNames: []string{"node"}, wantQuery: "name=node"},
+		{name: "one status", args: []string{"--status", "failed"}, wantNames: []string{"python-failed"}, wantQuery: "status=failed"},
+		{name: "repeated status", args: []string{"--status", "succeeded", "--status", "failed"}, wantNames: []string{"python-failed", "python", "node"}, wantQuery: "status=succeeded"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newSandboxImagesHarness(t)
+			base := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+			h.seedImage(sandboxesclient.SandboxBuild{Name: "node", CreatedAt: base})
+			h.seedImage(sandboxesclient.SandboxBuild{Name: "python", CreatedAt: base.Add(time.Hour)})
+			h.seedImage(sandboxesclient.SandboxBuild{Name: "python-failed", Status: sandboxesclient.SandboxBuildStatusFailed, CreatedAt: base.Add(2 * time.Hour)})
+
+			result, err := h.execute(append([]string{"list", "--output", "json"}, tc.args...)...)
+			require.NoError(t, err)
+			var names []string
+			for _, item := range unmarshalJSONArray(t, result.Stdout) {
+				names = append(names, item["name"].(string))
+			}
+			assert.Equal(t, tc.wantNames, names)
+
+			req, ok := h.server.LastRequest("GET", "/sandbox-groups/"+h.group.Id+"/builds?")
+			require.True(t, ok, "expected a list request")
+			assert.Contains(t, req.URI, tc.wantQuery)
+			assert.NotContains(t, req.URI, "ownerId")
+		})
+	}
+}
+
+func TestSandboxImagesList_InvalidStatus(t *testing.T) {
+	h := newSandboxImagesHarness(t)
+
+	_, err := h.execute("list", "--status", "done", "--output", "json")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `invalid status "done"`)
+	assert.False(t, h.server.HasRequest("GET", "/sandbox-groups/"+h.group.Id+"/builds"), "an invalid status is rejected before any request")
+}
+
+func TestSandboxImagesList_FollowsCursors(t *testing.T) {
+	h := newSandboxImagesHarness(t)
+	base := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+	for i := range 150 {
+		h.seedImage(sandboxesclient.SandboxBuild{Name: fmt.Sprintf("image-%d", i), CreatedAt: base.Add(time.Duration(i) * time.Minute)})
+	}
+
+	result, err := h.execute("list", "--output", "json")
+	require.NoError(t, err)
+	assert.Len(t, unmarshalJSONArray(t, result.Stdout), 150)
+	assert.True(t, h.server.HasRequest("GET", "/sandbox-groups/"+h.group.Id+"/builds?cursor="), "the second page is fetched by cursor")
+}
+
+func TestSandboxImagesList_UnknownGroup(t *testing.T) {
+	h := newSandboxImagesHarness(t)
+
+	_, err := h.execute("list", "--group", testids.SandboxGroupID("missing"), "--output", "json")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "404")
+}
+
+func TestSandboxImagesList_GroupResolution(t *testing.T) {
+	tests := []struct {
+		name     string
+		explicit bool
+	}{
+		{name: "default group"},
+		{name: "explicit group", explicit: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newSandboxImagesHarness(t)
+			image := h.seedImage(sandboxesclient.SandboxBuild{})
+			args := []string{"list", "--output", "json"}
+			if tc.explicit {
+				args = append(args, "--group", h.group.Id)
+				h.server.SandboxGroups.RespondWith(http.StatusForbidden)
+			}
+
+			result, err := h.execute(args...)
+			require.NoError(t, err)
+			items := unmarshalJSONArray(t, result.Stdout)
+			require.Len(t, items, 1)
+			assert.Equal(t, image.Id, items[0]["id"])
+			assert.Equal(t, !tc.explicit, h.server.HasRequest("GET", "/sandbox-groups?"), "the group lookup runs only without --group")
+		})
+	}
 }
