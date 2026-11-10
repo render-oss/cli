@@ -87,7 +87,9 @@ const (
 	FlowRunStatusPaused    FlowRunStatus = "paused"
 	FlowRunStatusPending   FlowRunStatus = "pending"
 	FlowRunStatusRunning   FlowRunStatus = "running"
+	FlowRunStatusSleeping  FlowRunStatus = "sleeping"
 	FlowRunStatusSucceeded FlowRunStatus = "succeeded"
+	FlowRunStatusSuspended FlowRunStatus = "suspended"
 )
 
 // Valid indicates whether the value is a known member of the FlowRunStatus enum.
@@ -103,7 +105,11 @@ func (e FlowRunStatus) Valid() bool {
 		return true
 	case FlowRunStatusRunning:
 		return true
+	case FlowRunStatusSleeping:
+		return true
 	case FlowRunStatusSucceeded:
+		return true
+	case FlowRunStatusSuspended:
 		return true
 	default:
 		return false
@@ -214,7 +220,9 @@ const (
 	Paused    TaskRunStatus = "paused"
 	Pending   TaskRunStatus = "pending"
 	Running   TaskRunStatus = "running"
+	Sleeping  TaskRunStatus = "sleeping"
 	Succeeded TaskRunStatus = "succeeded"
+	Suspended TaskRunStatus = "suspended"
 )
 
 // Valid indicates whether the value is a known member of the TaskRunStatus enum.
@@ -232,7 +240,11 @@ func (e TaskRunStatus) Valid() bool {
 		return true
 	case Running:
 		return true
+	case Sleeping:
+		return true
 	case Succeeded:
+		return true
+	case Suspended:
 		return true
 	default:
 		return false

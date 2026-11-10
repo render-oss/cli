@@ -16,7 +16,7 @@ import (
 	externalRef5 "github.com/render-oss/cli/pkg/client/disks"
 	externalRef8 "github.com/render-oss/cli/pkg/client/eventstatuses"
 	externalRef9 "github.com/render-oss/cli/pkg/client/eventtypes"
-	externalRef10 "github.com/render-oss/cli/pkg/client/jobs"
+	externalRef11 "github.com/render-oss/cli/pkg/client/jobs"
 )
 
 // ArtifactFetchFailedEvent defines model for artifactFetchFailedEvent.
@@ -315,9 +315,9 @@ type InstanceId = string
 // JobRunEndedEvent defines model for jobRunEndedEvent.
 type JobRunEndedEvent struct {
 	// JobId Example: job-cph1rs3idesc73a2b2mg
-	JobId  externalRef10.JobId     `json:"jobId"`
+	JobId  externalRef11.JobId     `json:"jobId"`
 	Reason *FailureReason          `json:"reason,omitempty"`
-	Status externalRef10.JobStatus `json:"status"`
+	Status externalRef11.JobStatus `json:"status"`
 }
 
 // KeyValueAvailableEvent defines model for keyValueAvailableEvent.

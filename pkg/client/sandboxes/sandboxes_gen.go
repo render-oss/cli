@@ -386,6 +386,7 @@ type SandboxBuildStatus string
 // to the sandbox proxy when executing.
 type SandboxConnectRequest struct {
 	// Command Command text for the sandbox event timeline.
+	// Deprecated: Ignored. The sandbox timeline records the command sent in the run request.
 	Command *string `json:"command,omitempty"`
 }
 
@@ -440,8 +441,13 @@ type SandboxCredential struct {
 	// An empty list matches any method.
 	Methods []string `json:"methods"`
 
-	// Paths Exact absolute request paths, without query strings, fragments,
-	// escaping, or patterns. An empty list matches any path.
+	// Paths Absolute request path patterns. The entire path must match.
+	// Use * for one nonempty path segment or ** for one or more.
+	// Wildcards must occupy whole segments. For example, /a/* matches
+	// /a/b, while /a/** also matches /a/b/c. Neither matches /a.
+	// Query strings, fragments, and escaping are not supported in patterns.
+	// Request query strings do not affect path matching.
+	// An empty list matches any path.
 	Paths   []string                  `json:"paths"`
 	Version *SandboxCredentialVersion `json:"version,omitempty"`
 }
@@ -465,8 +471,13 @@ type SandboxCredentialCreate struct {
 	// Omitted or empty matches any method.
 	Methods *[]string `json:"methods,omitempty"`
 
-	// Paths Exact absolute request paths, without query strings, fragments,
-	// escaping, or patterns. Omitted or empty matches any path.
+	// Paths Absolute request path patterns. The entire path must match.
+	// Use * for one nonempty path segment or ** for one or more.
+	// Wildcards must occupy whole segments. For example, /a/* matches
+	// /a/b, while /a/** also matches /a/b/c. Neither matches /a.
+	// Query strings, fragments, and escaping are not supported in patterns.
+	// Request query strings do not affect path matching.
+	// Omitted or empty matches any path.
 	Paths *[]string `json:"paths,omitempty"`
 
 	// Value Secret value to store for this credential ID. The largest supported secret
@@ -521,7 +532,15 @@ type SandboxCredentialUpdate struct {
 	Enabled   *bool                       `json:"enabled,omitempty"`
 	Injection *SandboxCredentialInjection `json:"injection,omitempty"`
 	Methods   *[]string                   `json:"methods,omitempty"`
-	Paths     *[]string                   `json:"paths,omitempty"`
+
+	// Paths Absolute request path patterns. The entire path must match.
+	// Use * for one nonempty path segment or ** for one or more.
+	// Wildcards must occupy whole segments. For example, /a/* matches
+	// /a/b, while /a/** also matches /a/b/c. Neither matches /a.
+	// Query strings, fragments, and escaping are not supported in patterns.
+	// Request query strings do not affect path matching.
+	// An empty list matches any path. Omit to preserve the current filter.
+	Paths *[]string `json:"paths,omitempty"`
 
 	// Value Admin-only. At most 5 KiB (5120 UTF-8 bytes). Omit to preserve the
 	// current value.
