@@ -104,7 +104,7 @@ func (r *Repo) GetSandbox(ctx context.Context, id string) (*sandboxclient.Sandbo
 }
 
 func (r *Repo) ExecSandboxStream(ctx context.Context, id string, command string, onOutput func(*ExecOutputEvent) error) (int, error) {
-	conn, err := r.connect(ctx, id, command)
+	conn, err := r.connect(ctx, id)
 	if err != nil {
 		return 0, err
 	}
@@ -294,21 +294,15 @@ type execCommand struct {
 	Command string `json:"command"`
 }
 
-// connect mints a run connect token, recording command in the request body so
-// the API can store a sanitized copy for the sandbox execution audit trail.
-func (r *Repo) connect(ctx context.Context, id, command string) (*sandboxclient.SandboxConnectResponse, error) {
+// connect mints a run connect token.
+func (r *Repo) connect(ctx context.Context, id string) (*sandboxclient.SandboxConnectResponse, error) {
 	workspace, err := config.WorkspaceID()
 	if err != nil {
 		return nil, err
 	}
 
-	body := client.ConnectSandboxRunJSONRequestBody{}
-	if command != "" {
-		body.Command = &command
-	}
-
 	resp, err := r.client.ConnectSandboxRunWithResponse(ctx, id, "stream",
-		&client.ConnectSandboxRunParams{OwnerId: &workspace}, body)
+		&client.ConnectSandboxRunParams{OwnerId: &workspace}, client.ConnectSandboxRunJSONRequestBody{})
 	if err != nil {
 		return nil, err
 	}

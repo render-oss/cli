@@ -60,6 +60,7 @@ func TestExecSandboxStream(t *testing.T) {
 	var (
 		mintAuth    string
 		mintOwnerID string
+		mintBody    string
 		streamAuth  string
 		streamBody  string
 	)
@@ -69,6 +70,8 @@ func TestExecSandboxStream(t *testing.T) {
 	mux.HandleFunc("/v1/sandboxes/"+sandboxID+"/runs/stream/token", func(w http.ResponseWriter, r *http.Request) {
 		mintAuth = r.Header.Get("Authorization")
 		mintOwnerID = r.URL.Query().Get("ownerId")
+		b, _ := io.ReadAll(r.Body)
+		mintBody = string(b)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(sandboxclient.SandboxConnectResponse{
@@ -105,6 +108,7 @@ func TestExecSandboxStream(t *testing.T) {
 	assert.Equal(t, 0, exitCode)
 	assert.Equal(t, "Bearer "+apiKey, mintAuth)
 	assert.Equal(t, workspace, mintOwnerID)
+	assert.JSONEq(t, `{}`, mintBody)
 	assert.Equal(t, "Bearer "+runToken, streamAuth)
 	assert.JSONEq(t, `{"command":"echo hello"}`, streamBody)
 	require.Len(t, outputs, 1)
