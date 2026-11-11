@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Updated Go to 1.27.4
+
 ## [2.36.0] - 2026-11-06
 
 ### Added
