@@ -36,6 +36,31 @@ func (r *Repo) ListSandboxes(ctx context.Context, params *client.ListSandboxesPa
 	return client.ListAll(ctx, params, r.listSandboxesPage)
 }
 
+// ListSandboxesPage returns up to limit sandboxes starting at cursor (empty for
+// the first page), and the cursor for the next page. The next cursor is empty
+// when the page is short, so it's the last one.
+func (r *Repo) ListSandboxesPage(ctx context.Context, params *client.ListSandboxesParams, cursor client.Cursor, limit int) (client.Cursor, []*sandboxclient.Sandbox, error) {
+	workspace, err := config.WorkspaceID()
+	if err != nil {
+		return "", nil, err
+	}
+
+	params.OwnerId = workspace
+	params.SetLimit(limit)
+	if cursor != "" {
+		params.SetCursor(&cursor)
+	}
+
+	sandboxes, next, err := r.listSandboxesPage(ctx, params)
+	if err != nil {
+		return "", nil, err
+	}
+	if len(sandboxes) < limit {
+		return "", sandboxes, nil
+	}
+	return *next, sandboxes, nil
+}
+
 func (r *Repo) listSandboxesPage(ctx context.Context, params *client.ListSandboxesParams) ([]*sandboxclient.Sandbox, *client.Cursor, error) {
 	resp, err := r.client.ListSandboxesWithResponse(ctx, params)
 	if err != nil {

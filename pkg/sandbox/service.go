@@ -61,6 +61,9 @@ func AllStatuses() []sandboxclient.SandboxStatus {
 	return slices.Clone(allSandboxStatuses)
 }
 
+// ListPageSize is how many sandboxes ListPage requests at a time.
+const ListPageSize = 20
+
 // ListInput filters a sandbox list. Empty fields don't filter.
 type ListInput struct {
 	SandboxGroupID string
@@ -71,11 +74,24 @@ type ListInput struct {
 	All bool
 }
 
-// List returns sandboxes in the active workspace. When Statuses is non-empty it
-// filters by those statuses. Otherwise it sends no status filter, so the server
-// applies its default (exclude terminated) — unless All is true, which requests
-// every status to include terminated sandboxes too.
+// List returns every sandbox in the active workspace matching the filters,
+// following cursors across pages.
 func (s *Service) List(ctx context.Context, input ListInput) ([]*sandboxclient.Sandbox, error) {
+	return s.repo.ListSandboxes(ctx, listParams(input))
+}
+
+// ListPage returns the page of sandboxes starting at cursor (empty for the
+// first page), and the cursor for the next page, which is empty on the last
+// page.
+func (s *Service) ListPage(ctx context.Context, input ListInput, cursor client.Cursor) (client.Cursor, []*sandboxclient.Sandbox, error) {
+	return s.repo.ListSandboxesPage(ctx, listParams(input), cursor, ListPageSize)
+}
+
+// listParams builds the request filters. When Statuses is non-empty it filters
+// by those statuses. Otherwise it sends no status filter, so the server applies
+// its default (exclude terminated) — unless All is true, which requests every
+// status to include terminated sandboxes too.
+func listParams(input ListInput) *client.ListSandboxesParams {
 	params := &client.ListSandboxesParams{}
 	if input.SandboxGroupID != "" {
 		params.SandboxGroupId = &input.SandboxGroupID
@@ -94,7 +110,7 @@ func (s *Service) List(ctx context.Context, input ListInput) ([]*sandboxclient.S
 		params.Status = &allSandboxStatuses
 	}
 
-	return s.repo.ListSandboxes(ctx, params)
+	return params
 }
 
 // Create resolves the active workspace, builds the request body from input, and

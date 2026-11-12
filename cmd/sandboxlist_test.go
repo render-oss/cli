@@ -24,6 +24,16 @@ func TestSandboxList_StatusHelpListsEveryStatus(t *testing.T) {
 	}
 }
 
+func TestSandboxList_HelpDescribesInteractiveAndTextOutput(t *testing.T) {
+	server := renderapi.NewServer(t)
+
+	result, err := executeSandboxCommand(t, server, "sandboxes", "list", "--help")
+	require.NoError(t, err)
+
+	assert.Contains(t, result.Stdout, "interactive list")
+	assert.Contains(t, result.Stdout, "render sandboxes list -o text")
+}
+
 func TestSandboxList_GroupSelection(t *testing.T) {
 	server := newSandboxCreateServer(t)
 	groupID := "sbg-cph1rs3idesc73a2b2mg"

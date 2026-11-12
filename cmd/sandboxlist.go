@@ -10,6 +10,7 @@ import (
 	"github.com/render-oss/cli/pkg/dependencies"
 	"github.com/render-oss/cli/pkg/sandbox"
 	"github.com/render-oss/cli/pkg/text"
+	"github.com/render-oss/cli/pkg/tui"
 )
 
 type SandboxListInput struct {
@@ -25,6 +26,8 @@ func newSandboxListCmd(deps *dependencies.Dependencies) *cobra.Command {
 		Short: "List sandboxes",
 		Long: `List sandboxes in your workspace.
 
+In a terminal, this opens an interactive list. Use -o text for a plain table.
+
 By default, terminated sandboxes are excluded. Use --all to include them, or --status to filter by specific statuses.
 
 Examples:
@@ -33,6 +36,7 @@ Examples:
   render sandboxes list --name=my-agent
   render sandboxes list --status=running
   render sandboxes list --status=running --status=creating
+  render sandboxes list -o text
   render sandboxes list -o json
 `,
 	}
@@ -46,22 +50,31 @@ Examples:
 	setFlagAlias(cmd.Flags(), "sandbox-group", "group")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		command.DefaultFormatNonInteractive(cmd)
-
 		var input SandboxListInput
 		if err := command.ParseCommand(cmd, args, &input); err != nil {
 			return err
 		}
 
-		_, err := command.NonInteractive(cmd, func() ([]*sandboxclient.Sandbox, error) {
-			return deps.SandboxService().List(cmd.Context(), sandbox.ListInput{
-				SandboxGroupID: input.SandboxGroupID,
-				Name:           input.Name,
-				Statuses:       input.Status,
-				All:            input.All,
-			})
+		listInput := sandbox.ListInput{
+			SandboxGroupID: input.SandboxGroupID,
+			Name:           input.Name,
+			Statuses:       input.Status,
+			All:            input.All,
+		}
+		nonInteractive, err := command.NonInteractive(cmd, func() ([]*sandboxclient.Sandbox, error) {
+			return deps.SandboxService().List(cmd.Context(), listInput)
 		}, text.SandboxTable)
-		return err
+		if err != nil || nonInteractive {
+			return err
+		}
+
+		ctx := cmd.Context()
+		command.AddToStackFunc(ctx, cmd, "Sandboxes", &input, tui.NewList(
+			"",
+			command.PaginatedLoadCmd(ctx, deps.SandboxService().ListPage, listInput),
+			func(s *sandboxclient.Sandbox) tui.ListItem { return sandbox.NewListItem(s) },
+		))
+		return nil
 	}
 
 	return cmd
