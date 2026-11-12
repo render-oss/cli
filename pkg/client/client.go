@@ -17,6 +17,7 @@ import (
 
 var ErrUnauthorized = errors.New("unauthorized")
 var ErrForbidden = errors.New("forbidden")
+var ErrNotFound = errors.New("not found")
 var ErrTooManyRequests = errors.New("too many requests")
 
 const (
@@ -119,16 +120,34 @@ func ErrorFromResponse(v any) error {
 
 	message := pointers.StringValue(responseErr.Message)
 	errorCode := pointers.StringValue(responseErr.Error.Code)
+	var err error
 	switch {
 	case message != "" && errorCode != "":
-		return fmt.Errorf("received response code %d (%s): %s", responseErr.Code, errorCode, message)
+		err = fmt.Errorf("received response code %d (%s): %s", responseErr.Code, errorCode, message)
 	case message != "":
-		return fmt.Errorf("received response code %d: %s", responseErr.Code, message)
+		err = fmt.Errorf("received response code %d: %s", responseErr.Code, message)
 	case errorCode != "":
-		return fmt.Errorf("received response code %d (%s)", responseErr.Code, errorCode)
+		err = fmt.Errorf("received response code %d (%s)", responseErr.Code, errorCode)
 	default:
-		return fmt.Errorf("received response code %d", responseErr.Code)
+		err = fmt.Errorf("received response code %d", responseErr.Code)
 	}
+	if responseErr.Code == http.StatusNotFound {
+		return &notFoundError{message: err.Error()}
+	}
+	return err
+}
+
+// notFoundError preserves the API's error details while supporting errors.Is.
+type notFoundError struct {
+	message string
+}
+
+func (e *notFoundError) Error() string {
+	return e.message
+}
+
+func (e *notFoundError) Unwrap() error {
+	return ErrNotFound
 }
 
 type ErrorWithCode struct {

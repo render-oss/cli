@@ -25,6 +25,10 @@ func (e *Repo) GetEnvironment(ctx context.Context, id string) (*client.Environme
 		return nil, err
 	}
 
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+
 	if resp.JSON200 == nil {
 		return nil, fmt.Errorf("unexpected response: %v", resp.Status())
 	}

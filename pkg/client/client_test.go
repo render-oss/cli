@@ -26,6 +26,15 @@ func TestErrorFromResponse(t *testing.T) {
 
 		require.ErrorIs(t, err, client.ErrForbidden)
 	})
+	t.Run("status code 404", func(t *testing.T) {
+		err := client.ErrorFromResponse(&client.ListSnapshotsResponse{
+			Body:         []byte(`{"message":"resource not found"}`),
+			HTTPResponse: &http.Response{StatusCode: http.StatusNotFound},
+		})
+
+		require.ErrorIs(t, err, client.ErrNotFound)
+		require.EqualError(t, err, "received response code 404: resource not found")
+	})
 	t.Run("status code 429", func(t *testing.T) {
 		// the API usually declares that errors have a `message` and `detail` field.
 		// however, the rate-limit error response does not conform to this standard.

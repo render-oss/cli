@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/render-oss/cli/pkg/client"
 	"github.com/render-oss/cli/pkg/environment"
@@ -59,32 +60,36 @@ func (s *Service) GetService(ctx context.Context, id string) (*Model, error) {
 		return nil, err
 	}
 
-	// TODO(GROW-2652): This hydrates one service by listing every project in the workspace
-	// and then that project's environments. Resolve the service's project and
-	// environment more directly (get each by ID).
-	projects, err := s.projectRepo.ListProjects(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.hydrateServiceModel(ctx, service, projects)
+	return s.hydrateServiceModel(ctx, service)
 }
 
 func (s *Service) RestartService(ctx context.Context, id string) error {
 	return s.repo.RestartService(ctx, id)
 }
 
-func (s *Service) hydrateServiceModel(ctx context.Context, service *client.Service, projects []*client.Project) (*Model, error) {
+func (s *Service) hydrateServiceModel(ctx context.Context, service *client.Service) (*Model, error) {
 	model := &Model{Service: service}
+	if service.EnvironmentId == nil {
+		return model, nil
+	}
 
-	model.Project = s.projectForService(service, projects)
+	// An api token might have access to a service but not it's project or environment.
+	// In that case, we still want to return the service model, but without the project and environment.
+	env, err := s.environmentRepo.GetEnvironment(ctx, *service.EnvironmentId)
+	if errors.Is(err, client.ErrForbidden) || errors.Is(err, client.ErrNotFound) {
+		return model, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	model.Environment = env
 
-	if model.Project != nil {
-		envs, err := s.allEnvironments(ctx, []*client.Project{model.Project})
-		if err != nil {
-			return nil, err
-		}
-		model.Environment = s.environmentForService(service, envs)
+	model.Project, err = s.projectRepo.GetProject(ctx, model.Environment.ProjectId)
+	if errors.Is(err, client.ErrForbidden) || errors.Is(err, client.ErrNotFound) {
+		return model, nil
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	return model, nil

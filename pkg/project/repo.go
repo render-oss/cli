@@ -87,6 +87,10 @@ func (p *Repo) GetProject(ctx context.Context, id string) (*client.Project, erro
 		return nil, err
 	}
 
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+
 	if resp.JSON200 == nil {
 		return nil, fmt.Errorf("unexpected response: %v", resp.Status())
 	}

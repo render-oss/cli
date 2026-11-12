@@ -299,8 +299,8 @@ type Server struct {
 	Requests           []RecordedRequest
 	CurrentUser        *client.User
 	Owners             *Resource[*client.Owner]
-	Projects           *Resource[*client.Project]
-	Environments       *Resource[*client.Environment]
+	Projects           *ProjectResource
+	Environments       *EnvironmentResource
 	KV                 *KVResource
 	Postgres           *PostgresResource
 	Services           *ServiceResource
@@ -421,8 +421,8 @@ func NewServer(t *testing.T) *Server {
 
 	s := &Server{
 		Owners:             &Resource[*client.Owner]{},
-		Projects:           &Resource[*client.Project]{},
-		Environments:       &Resource[*client.Environment]{},
+		Projects:           &ProjectResource{},
+		Environments:       &EnvironmentResource{},
 		KV:                 &KVResource{},
 		Postgres:           &PostgresResource{},
 		Services:           &ServiceResource{},
@@ -534,6 +534,12 @@ func NewServer(t *testing.T) *Server {
 	// GET /projects — list projects (supports ?ownerId= and ?name= filters)
 	mux.HandleFunc("GET /projects", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
+		if len(s.Projects.listErrors) > 0 {
+			status := s.Projects.listErrors[0]
+			s.Projects.listErrors = s.Projects.listErrors[1:]
+			w.WriteHeader(status)
+			return
+		}
 		result := s.Projects.Instances
 		if ownerIDs := queryListValues(r, "ownerId"); len(ownerIDs) > 0 {
 			var filtered []*client.Project
@@ -571,6 +577,12 @@ func NewServer(t *testing.T) *Server {
 	// GET /projects/{id} — retrieve project by ID
 	mux.HandleFunc("GET /projects/{id}", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
+		if len(s.Projects.getErrors) > 0 {
+			status := s.Projects.getErrors[0]
+			s.Projects.getErrors = s.Projects.getErrors[1:]
+			w.WriteHeader(status)
+			return
+		}
 		id := r.PathValue("id")
 		for _, stored := range s.Projects.Instances {
 			if stored.Id == id {
@@ -592,6 +604,12 @@ func NewServer(t *testing.T) *Server {
 	// GET /environments — list environments (supports ?projectId= and ?name= filters)
 	mux.HandleFunc("GET /environments", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
+		if len(s.Environments.listErrors) > 0 {
+			status := s.Environments.listErrors[0]
+			s.Environments.listErrors = s.Environments.listErrors[1:]
+			w.WriteHeader(status)
+			return
+		}
 		result := s.Environments.Instances
 		if projectIDs := queryListValues(r, "projectId"); len(projectIDs) > 0 {
 			var filtered []*client.Environment
@@ -621,6 +639,12 @@ func NewServer(t *testing.T) *Server {
 	// GET /environments/{id} — retrieve environment by ID
 	mux.HandleFunc("GET /environments/{id}", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
+		if len(s.Environments.getErrors) > 0 {
+			status := s.Environments.getErrors[0]
+			s.Environments.getErrors = s.Environments.getErrors[1:]
+			w.WriteHeader(status)
+			return
+		}
 		id := r.PathValue("id")
 		for _, e := range s.Environments.Instances {
 			if e.Id == id {

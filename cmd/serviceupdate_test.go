@@ -440,6 +440,53 @@ func TestServiceUpdate_DefaultTextOutput(t *testing.T) {
 	assert.Contains(t, result.Stdout, "text-service-renamed")
 }
 
+func TestServiceUpdate_IPAllowListWithoutMetadata(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		output string
+		status int
+	}{
+		{name: "forbidden text", output: "text", status: http.StatusForbidden},
+		{name: "forbidden json", output: "json", status: http.StatusForbidden},
+		{name: "not found text", output: "text", status: http.StatusNotFound},
+		{name: "not found json", output: "json", status: http.StatusNotFound},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			harness := newServiceUpdateHarness(t)
+			svc := harness.addWebService("scoped-service")
+			// Optional metadata may be inaccessible or missing even when the
+			// service update succeeds.
+			harness.server.Projects.RespondWithErrorForGet(tc.status)
+			harness.server.Projects.RespondWithErrorForList(tc.status)
+			harness.server.Environments.RespondWithErrorForGet(tc.status)
+			harness.server.Environments.RespondWithErrorForList(tc.status)
+
+			result, err := harness.execute(svc.Id,
+				"--ip-allow-list", "cidr=203.0.113.5/32,description=office",
+				"--output", tc.output,
+			)
+
+			request, ok := harness.server.LastRequest("PATCH", "/services/"+svc.Id)
+			require.True(t, ok, "the IP allow-list update must reach the API")
+			assert.JSONEq(t, `{"serviceDetails":{"ipAllowList":[{"cidrBlock":"203.0.113.5/32","description":"office"}]}}`, string(request.Body))
+			require.NoError(t, err, "unavailable display metadata must not turn a successful update into a command failure")
+			if tc.output == "json" {
+				body := testrequire.ParseJSONMap(t, result.Stdout)
+				testassert.MapContains(t, body, map[string]any{
+					"data": map[string]any{
+						"id": svc.Id, "environmentId": *svc.EnvironmentId, "projectId": nil,
+					},
+				})
+			} else {
+				assert.Contains(t, result.Stdout, "Updated this service:")
+				assert.Contains(t, result.Stdout, "scoped-service")
+				assert.Contains(t, result.Stdout, "Environment: "+*svc.EnvironmentId)
+				assert.NotContains(t, result.Stdout, "Project:")
+			}
+		})
+	}
+}
+
 func TestServiceUpdate_ServiceDetailsPatchReachesAPI(t *testing.T) {
 	harness := newServiceUpdateHarness(t)
 	svc := harness.addWebService("plan-service")
