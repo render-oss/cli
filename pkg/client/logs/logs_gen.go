@@ -31,6 +31,7 @@ func (e LogDirection) Valid() bool {
 // Defines values for LogLabelName.
 const (
 	LogLabelNameBlocked          LogLabelName = "blocked"
+	LogLabelNameBuild            LogLabelName = "build"
 	LogLabelNameHost             LogLabelName = "host"
 	LogLabelNameInstance         LogLabelName = "instance"
 	LogLabelNameLevel            LogLabelName = "level"
@@ -51,6 +52,8 @@ const (
 func (e LogLabelName) Valid() bool {
 	switch e {
 	case LogLabelNameBlocked:
+		return true
+	case LogLabelNameBuild:
 		return true
 	case LogLabelNameHost:
 		return true
@@ -240,6 +243,9 @@ type ResourceLogStreamSetting struct {
 
 // DirectionParam defines model for directionParam.
 type DirectionParam = LogDirection
+
+// LogFilterBuild defines model for logFilterBuild.
+type LogFilterBuild = []string
 
 // LogFilterHost defines model for logFilterHost.
 type LogFilterHost = []string

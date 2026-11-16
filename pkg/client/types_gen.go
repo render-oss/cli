@@ -2322,14 +2322,11 @@ type Error struct {
 	Message *string `json:"message,omitempty"`
 }
 
-// ExecutionWithCursor A sandbox execution with a cursor
+// ExecutionWithCursor A sandbox execution with a cursor for fetching the next page of results.
 type ExecutionWithCursor struct {
 	Cursor Cursor `json:"cursor"`
 
-	// Execution One recorded sandbox execution (a command run or file transfer).
-	// `startedAt` is the token provisioning time. `command` may be present
-	// while the execution is in flight (recorded at token mint). `stoppedAt`
-	// and `exitCode` are absent until a status report or sandbox finalization.
+	// Execution A record of a command run or file transfer in a sandbox. `startedAt` records when the connect token was created. The command can appear while the execution is running. `stoppedAt` and `exitCode` are omitted until Render receives the result or finalizes the execution when the sandbox stops.
 	Execution externalRef17.Execution `json:"execution"`
 }
 
@@ -3244,27 +3241,34 @@ type RouteWithCursor struct {
 	Route  Route  `json:"route"`
 }
 
-// SandboxBuildWithCursor A sandbox build with a cursor
+// SandboxBuildWithCursor A sandbox build with a cursor for fetching the next page of results.
 type SandboxBuildWithCursor struct {
+	// Build A build that converts a container image into an image that sandboxes can use.
 	Build  externalRef17.SandboxBuild `json:"build"`
 	Cursor Cursor                     `json:"cursor"`
 }
 
-// SandboxGroupWithCursor A sandbox group with a cursor
+// SandboxGroupWithCursor A sandbox group with a cursor for fetching the next page of results.
 type SandboxGroupWithCursor struct {
-	Cursor       Cursor                     `json:"cursor"`
+	Cursor Cursor `json:"cursor"`
+
+	// SandboxGroup A group of sandboxes in a workspace that share a region, concurrency limit, and credentials.
 	SandboxGroup externalRef17.SandboxGroup `json:"sandboxGroup"`
 }
 
-// SandboxSnapshotWithCursor A sandbox snapshot with a cursor
+// SandboxSnapshotWithCursor A sandbox snapshot with a cursor for fetching the next page of results.
 type SandboxSnapshotWithCursor struct {
-	Cursor   Cursor                        `json:"cursor"`
+	Cursor Cursor `json:"cursor"`
+
+	// Snapshot A saved filesystem or runtime state that can be used to create another sandbox.
 	Snapshot externalRef17.SandboxSnapshot `json:"snapshot"`
 }
 
-// SandboxWithCursor A sandbox with a cursor
+// SandboxWithCursor A sandbox with a cursor for fetching the next page of results.
 type SandboxWithCursor struct {
-	Cursor  Cursor                `json:"cursor"`
+	Cursor Cursor `json:"cursor"`
+
+	// Sandbox An isolated compute environment for running code, executing commands, and transferring files.
 	Sandbox externalRef17.Sandbox `json:"sandbox"`
 }
 
@@ -3836,6 +3840,15 @@ type WorkflowVersionIdParam = []string
 // N400BadRequest defines model for 400BadRequest.
 type N400BadRequest = Error
 
+// N400SandboxBuildBadRequest defines model for 400SandboxBuildBadRequest.
+type N400SandboxBuildBadRequest = Error
+
+// N400SandboxGroupBadRequest defines model for 400SandboxGroupBadRequest.
+type N400SandboxGroupBadRequest = Error
+
+// N400SandboxSnapshotBadRequest defines model for 400SandboxSnapshotBadRequest.
+type N400SandboxSnapshotBadRequest = Error
+
 // N401Unauthorized defines model for 401Unauthorized.
 type N401Unauthorized = Error
 
@@ -3848,11 +3861,20 @@ type N403Forbidden = Error
 // N404NotFound defines model for 404NotFound.
 type N404NotFound = Error
 
+// N404SandboxBuildNotFound defines model for 404SandboxBuildNotFound.
+type N404SandboxBuildNotFound = Error
+
 // N406NotAcceptable defines model for 406NotAcceptable.
 type N406NotAcceptable = Error
 
 // N409Conflict defines model for 409Conflict.
 type N409Conflict = Error
+
+// N409SandboxConnectConflict defines model for 409SandboxConnectConflict.
+type N409SandboxConnectConflict = Error
+
+// N409SandboxGroupSuspended defines model for 409SandboxGroupSuspended.
+type N409SandboxGroupSuspended = Error
 
 // N410Gone defines model for 410Gone.
 type N410Gone = Error
@@ -3862,6 +3884,9 @@ type N413RequestEntityTooLarge = Error
 
 // N429RateLimit defines model for 429RateLimit.
 type N429RateLimit = Error
+
+// N429SandboxCredentialRateLimitOrConflict defines model for 429SandboxCredentialRateLimitOrConflict.
+type N429SandboxCredentialRateLimitOrConflict = Error
 
 // N500InternalServerError defines model for 500InternalServerError.
 type N500InternalServerError = Error
@@ -3948,6 +3973,12 @@ type ListBuildsInBuildSourceParams struct {
 
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// TriggerBuildSourceBuildJSONBody defines parameters for TriggerBuildSourceBuild.
+type TriggerBuildSourceBuildJSONBody struct {
+	// ClearCache If `clear`, Render clears the build source's build cache before building. This can be useful if you're experiencing issues with your build.
+	ClearCache *externalRef3.BuildClearCache `json:"clearCache,omitempty"`
 }
 
 // GetEnvVarsForBuildSourceParams defines parameters for GetEnvVarsForBuildSource.
@@ -4228,6 +4259,9 @@ type ListLogsParams struct {
 	// Sandbox Filter logs by sandbox ID.
 	Sandbox *externalRef12.LogFilterSandbox `form:"sandbox,omitempty" json:"sandbox,omitempty"`
 
+	// Build Filter logs by build ID, such as a service build or a sandbox image build.
+	Build *externalRef12.LogFilterBuild `form:"build,omitempty" json:"build,omitempty"`
+
 	// Level Filter logs by their severity level. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Level *externalRef12.LogFilterLevel `form:"level,omitempty" json:"level,omitempty"`
 
@@ -4304,6 +4338,9 @@ type SubscribeLogsParams struct {
 	// Sandbox Filter logs by sandbox ID.
 	Sandbox *externalRef12.LogFilterSandbox `form:"sandbox,omitempty" json:"sandbox,omitempty"`
 
+	// Build Filter logs by build ID, such as a service build or a sandbox image build.
+	Build *externalRef12.LogFilterBuild `form:"build,omitempty" json:"build,omitempty"`
+
 	// Level Filter logs by their severity level. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Level *externalRef12.LogFilterLevel `form:"level,omitempty" json:"level,omitempty"`
 
@@ -4361,6 +4398,9 @@ type ListLogsValuesParams struct {
 
 	// Sandbox Filter logs by sandbox ID.
 	Sandbox *externalRef12.LogFilterSandbox `form:"sandbox,omitempty" json:"sandbox,omitempty"`
+
+	// Build Filter logs by build ID, such as a service build or a sandbox image build.
+	Build *externalRef12.LogFilterBuild `form:"build,omitempty" json:"build,omitempty"`
 
 	// Level Filter logs by their severity level. [Wildcards and regex](https://render.com/docs/logging#wildcards-and-regular-expressions) are supported.
 	Level *externalRef12.LogFilterLevel `form:"level,omitempty" json:"level,omitempty"`
@@ -5060,7 +5100,7 @@ type ListSandboxGroupsParams struct {
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
 
-	// Limit Maximum groups to return.
+	// Limit The maximum number of sandbox groups to return, between 1 and 100. Defaults to 20.
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
@@ -5072,10 +5112,10 @@ type ListSandboxBuildsParams struct {
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Name Return only builds of the image with this name.
+	// Name Filter for builds with exactly this image name.
 	Name *string `form:"name,omitempty" json:"name,omitempty"`
 
-	// Status Filter by build status.
+	// Status Filter for builds with the specified statuses.
 	Status *[]externalRef17.SandboxBuildStatus `form:"status,omitempty" json:"status,omitempty"`
 }
 
@@ -5084,10 +5124,7 @@ type ListSandboxSnapshotsParams struct {
 	// OwnerId The ID of the workspace whose snapshots to return.
 	OwnerId string `form:"ownerId" json:"ownerId"`
 
-	// Name Return only snapshots with exactly this name. Each snapshot taken
-	// with a name is a new version, so this lists every version, newest
-	// first. The first `available` one is the version `snapshotName`
-	// boots on sandbox create.
+	// Name Filter for snapshots with exactly this name. Multiple snapshots can share a name; results include each version, newest first. When creating a sandbox with `snapshotName`, Render uses the most recently created snapshot with that name that is `available` and unexpired.
 	Name *string `form:"name,omitempty" json:"name,omitempty"`
 
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
@@ -5096,23 +5133,19 @@ type ListSandboxSnapshotsParams struct {
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Status Filter by snapshot status.
+	// Status Filter for snapshots with the specified statuses.
 	Status *[]externalRef17.SandboxSnapshotStatus `form:"status,omitempty" json:"status,omitempty"`
 }
 
 // DeleteSandboxSnapshotParams defines parameters for DeleteSandboxSnapshot.
 type DeleteSandboxSnapshotParams struct {
-	// OwnerId The ID of the workspace the sandbox group belongs to. Optional: the workspace
-	// is determined from the sandbox group ID, and this parameter is ignored when
-	// supplied.
+	// OwnerId The ID of the workspace the sandbox group belongs to.
 	OwnerId *externalRef17.OwnerIdGroupScoped `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 }
 
 // RetrieveSandboxSnapshotParams defines parameters for RetrieveSandboxSnapshot.
 type RetrieveSandboxSnapshotParams struct {
-	// OwnerId The ID of the workspace the sandbox group belongs to. Optional: the workspace
-	// is determined from the sandbox group ID, and this parameter is ignored when
-	// supplied.
+	// OwnerId The ID of the workspace the sandbox group belongs to.
 	OwnerId *externalRef17.OwnerIdGroupScoped `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 }
 
@@ -5121,11 +5154,10 @@ type ListSandboxesParams struct {
 	// OwnerId The ID of the workspace whose sandboxes to return.
 	OwnerId string `form:"ownerId" json:"ownerId"`
 
-	// SandboxGroupId Return only sandboxes in this group. The group must belong to ownerId.
+	// SandboxGroupId Filter for sandboxes in this group. The group must belong to the workspace specified by `ownerId`.
 	SandboxGroupId *externalRef17.SandboxGroupId `form:"sandboxGroupId,omitempty" json:"sandboxGroupId,omitempty"`
 
-	// Name Return only sandboxes with exactly this name. Names aren't unique, so
-	// this can match more than one sandbox.
+	// Name Filter for sandboxes with exactly this name. Names are not unique, so multiple sandboxes can match.
 	Name *string `form:"name,omitempty" json:"name,omitempty"`
 
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
@@ -5134,23 +5166,19 @@ type ListSandboxesParams struct {
 	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
 	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Status Filter by sandbox status. If omitted, returns sandboxes in every status
-	// except `terminated`. To include terminated sandboxes, list `terminated`
-	// explicitly.
+	// Status Filter for sandboxes with the specified statuses. By default, returns all statuses except `terminated`. Include `terminated` explicitly to return terminated sandboxes.
 	Status *[]externalRef17.SandboxStatus `form:"status,omitempty" json:"status,omitempty"`
 }
 
 // RetrieveSandboxParams defines parameters for RetrieveSandbox.
 type RetrieveSandboxParams struct {
-	// OwnerId The ID of the workspace the sandbox belongs to. Optional: the workspace is
-	// determined from the sandbox ID, and this parameter is ignored when supplied.
+	// OwnerId The ID of the workspace the sandbox belongs to. If provided, it must match the sandbox's workspace. If omitted, Render determines the workspace from the sandbox ID.
 	OwnerId *externalRef17.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 }
 
 // ListSandboxExecutionsParams defines parameters for ListSandboxExecutions.
 type ListSandboxExecutionsParams struct {
-	// OwnerId The ID of the workspace the sandbox belongs to. Optional: the workspace is
-	// determined from the sandbox ID, and this parameter is ignored when supplied.
+	// OwnerId The ID of the workspace the sandbox belongs to. If provided, it must match the sandbox's workspace. If omitted, Render determines the workspace from the sandbox ID.
 	OwnerId *externalRef17.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
 	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
@@ -5162,39 +5190,36 @@ type ListSandboxExecutionsParams struct {
 
 // RetrieveSandboxExecutionParams defines parameters for RetrieveSandboxExecution.
 type RetrieveSandboxExecutionParams struct {
-	// OwnerId The ID of the workspace the sandbox belongs to. Optional: the workspace is
-	// determined from the sandbox ID, and this parameter is ignored when supplied.
+	// OwnerId The ID of the workspace the sandbox belongs to. If provided, it must match the sandbox's workspace. If omitted, Render determines the workspace from the sandbox ID.
 	OwnerId *externalRef17.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 }
 
 // ConnectSandboxFilesParams defines parameters for ConnectSandboxFiles.
 type ConnectSandboxFilesParams struct {
-	// OwnerId The ID of the workspace the sandbox belongs to. Optional: the workspace is
-	// determined from the sandbox ID, and this parameter is ignored when supplied.
+	// OwnerId The ID of the workspace the sandbox belongs to. If provided, it must match the sandbox's workspace. If omitted, Render determines the workspace from the sandbox ID.
 	OwnerId *externalRef17.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 
-	// Path Path in the sandbox this token authorizes. A relative path resolves within the sandbox's working directory, which is the image's WORKDIR or, when the image sets none, the home directory ("." is the working directory itself); an absolute path addresses the sandbox filesystem root. For an archive upload, the extraction root; for a download, the file or directory to fetch.
+	// Path The file or directory path the token authorizes. For archive uploads, this is the directory to extract into. For downloads, it is the file or directory to retrieve.
+	//
+	// Relative paths are resolved from the image's `WORKDIR`, or the home directory if no `WORKDIR` is set. Use `.` for that working directory. Absolute paths are resolved from the sandbox filesystem root.
 	Path string `form:"path" json:"path"`
 }
 
 // ConnectSandboxRunParams defines parameters for ConnectSandboxRun.
 type ConnectSandboxRunParams struct {
-	// OwnerId The ID of the workspace the sandbox belongs to. Optional: the workspace is
-	// determined from the sandbox ID, and this parameter is ignored when supplied.
+	// OwnerId The ID of the workspace the sandbox belongs to. If provided, it must match the sandbox's workspace. If omitted, Render determines the workspace from the sandbox ID.
 	OwnerId *externalRef17.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 }
 
 // CreateSandboxSnapshotParams defines parameters for CreateSandboxSnapshot.
 type CreateSandboxSnapshotParams struct {
-	// OwnerId The ID of the workspace the sandbox belongs to. Optional: the workspace is
-	// determined from the sandbox ID, and this parameter is ignored when supplied.
+	// OwnerId The ID of the workspace the sandbox belongs to. If provided, it must match the sandbox's workspace. If omitted, Render determines the workspace from the sandbox ID.
 	OwnerId *externalRef17.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 }
 
 // TerminateSandboxParams defines parameters for TerminateSandbox.
 type TerminateSandboxParams struct {
-	// OwnerId The ID of the workspace the sandbox belongs to. Optional: the workspace is
-	// determined from the sandbox ID, and this parameter is ignored when supplied.
+	// OwnerId The ID of the workspace the sandbox belongs to. If provided, it must match the sandbox's workspace. If omitted, Render determines the workspace from the sandbox ID.
 	OwnerId *externalRef17.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 }
 
@@ -5641,6 +5666,9 @@ type CreateBuildSourceJSONRequestBody = externalRef3.BuildSourcePOSTInput
 
 // UpdateBuildSourceJSONRequestBody defines body for UpdateBuildSource for application/json ContentType.
 type UpdateBuildSourceJSONRequestBody = externalRef3.BuildSourcePATCHInput
+
+// TriggerBuildSourceBuildJSONRequestBody defines body for TriggerBuildSourceBuild for application/json ContentType.
+type TriggerBuildSourceBuildJSONRequestBody TriggerBuildSourceBuildJSONBody
 
 // UpdateEnvVarsForBuildSourceJSONRequestBody defines body for UpdateEnvVarsForBuildSource for application/json ContentType.
 type UpdateEnvVarsForBuildSourceJSONRequestBody = externalRef6.EnvVarInputArray

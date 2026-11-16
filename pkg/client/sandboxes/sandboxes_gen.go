@@ -52,6 +52,42 @@ func (e ExecutionType) Valid() bool {
 	}
 }
 
+// Defines values for SandboxBuildFailureCode.
+const (
+	SandboxBuildFailureCodeDeadlineExceeded    SandboxBuildFailureCode = "deadline_exceeded"
+	SandboxBuildFailureCodeImageAccessDenied   SandboxBuildFailureCode = "image_access_denied"
+	SandboxBuildFailureCodeImageNotFound       SandboxBuildFailureCode = "image_not_found"
+	SandboxBuildFailureCodeImagePullFailed     SandboxBuildFailureCode = "image_pull_failed"
+	SandboxBuildFailureCodeInternalError       SandboxBuildFailureCode = "internal_error"
+	SandboxBuildFailureCodeInvalidImage        SandboxBuildFailureCode = "invalid_image"
+	SandboxBuildFailureCodeMissingBootTools    SandboxBuildFailureCode = "missing_boot_tools"
+	SandboxBuildFailureCodeUnsupportedPlatform SandboxBuildFailureCode = "unsupported_platform"
+)
+
+// Valid indicates whether the value is a known member of the SandboxBuildFailureCode enum.
+func (e SandboxBuildFailureCode) Valid() bool {
+	switch e {
+	case SandboxBuildFailureCodeDeadlineExceeded:
+		return true
+	case SandboxBuildFailureCodeImageAccessDenied:
+		return true
+	case SandboxBuildFailureCodeImageNotFound:
+		return true
+	case SandboxBuildFailureCodeImagePullFailed:
+		return true
+	case SandboxBuildFailureCodeInternalError:
+		return true
+	case SandboxBuildFailureCodeInvalidImage:
+		return true
+	case SandboxBuildFailureCodeMissingBootTools:
+		return true
+	case SandboxBuildFailureCodeUnsupportedPlatform:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SandboxBuildStatus.
 const (
 	SandboxBuildStatusFailed    SandboxBuildStatus = "failed"
@@ -241,369 +277,394 @@ func (e SandboxStatus) Valid() bool {
 	}
 }
 
-// Execution One recorded sandbox execution (a command run or file transfer).
-// `startedAt` is the token provisioning time. `command` may be present
-// while the execution is in flight (recorded at token mint). `stoppedAt`
-// and `exitCode` are absent until a status report or sandbox finalization.
+// Execution A record of a command run or file transfer in a sandbox. `startedAt` records when the connect token was created. The command can appear while the execution is running. `stoppedAt` and `exitCode` are omitted until Render receives the result or finalizes the execution when the sandbox stops.
 type Execution struct {
-	// Command The execution target. For runs, the truncated command; for file transfers, the target file path.
+	// Command The command run in the sandbox, or the target path for a file transfer. Command text may be redacted or truncated. Omitted if you do not have permission to view execution commands.
 	Command *string `json:"command,omitempty"`
 
-	// ExitCode Example: 0
+	// ExitCode The execution exit code. Omitted until a result is available.
+	//
+	// Example: 0
 	ExitCode *int `json:"exitCode,omitempty"`
 
-	// Id Example: exe-cph1rs3idesc73a2b2mg
-	Id        ExecutionId        `json:"id"`
+	// Id The ID of the sandbox execution.
+	//
+	// Example: exe-cph1rs3idesc73a2b2mg
+	Id ExecutionId `json:"id"`
+
+	// Operation The command run or file transfer operation authorized by the connect token.
 	Operation ExecutionOperation `json:"operation"`
 
-	// SandboxId Example: sbx-1cd4gcph1rs3idesc73a2b2mg
+	// SandboxId The ID of the sandbox.
+	//
+	// Example: sbx-1cd4gcph1rs3idesc73a2b2mg
 	SandboxId SandboxId `json:"sandboxId"`
 
-	// StartedAt Example: 2026-08-01T10:00:00Z
+	// StartedAt The timestamp when the execution token was created, in ISO 8601 format.
+	//
+	// Example: 2026-08-01T10:00:00Z
 	StartedAt time.Time `json:"startedAt"`
 
-	// StoppedAt Example: 2026-08-01T10:05:00Z
-	StoppedAt *time.Time    `json:"stoppedAt,omitempty"`
-	Type      ExecutionType `json:"type"`
+	// StoppedAt The timestamp when the execution stopped, in ISO 8601 format. Omitted until a result is available.
+	//
+	// Example: 2026-08-01T10:05:00Z
+	StoppedAt *time.Time `json:"stoppedAt,omitempty"`
 
-	// UserId The ID of the user the execution token was minted for.
+	// Type Whether the execution is a command run or a file transfer.
+	Type ExecutionType `json:"type"`
+
+	// UserId The ID of the user the execution token was created for.
 	//
 	// Example: usr-cph1rs3idesc73a2b2mg
 	UserId string `json:"userId"`
 }
 
-// ExecutionOperation defines model for Execution.Operation.
+// ExecutionOperation The command run or file transfer operation authorized by the connect token.
 type ExecutionOperation string
 
-// ExecutionType defines model for Execution.Type.
+// ExecutionType Whether the execution is a command run or a file transfer.
 type ExecutionType string
 
-// ExecutionId Example: exe-cph1rs3idesc73a2b2mg
+// ExecutionId The ID of the sandbox execution.
+//
+// Example: exe-cph1rs3idesc73a2b2mg
 type ExecutionId = string
 
-// Sandbox defines model for sandbox.
+// Sandbox An isolated compute environment for running code, executing commands, and transferring files.
 type Sandbox struct {
-	// CreatedAt Example: 2026-04-01T18:30:00Z
+	// CreatedAt The timestamp when the sandbox was created, in ISO 8601 format.
+	//
+	// Example: 2026-04-01T18:30:00Z
 	CreatedAt time.Time `json:"createdAt"`
 
-	// Id Example: sbx-1cd4gcph1rs3idesc73a2b2mg
+	// Id The ID of the sandbox.
+	//
+	// Example: sbx-1cd4gcph1rs3idesc73a2b2mg
 	Id SandboxId `json:"id"`
 
-	// IdleTimeoutSeconds Seconds of inactivity before the sandbox is suspended. 0 disables automatic idle suspension.
+	// IdleTimeoutSeconds The number of seconds of inactivity before Render suspends the sandbox. A value of 0 disables automatic idle suspension.
 	//
 	// Example: 900
 	IdleTimeoutSeconds int `json:"idleTimeoutSeconds"`
 
 	// Name The label set when the sandbox was created.
-	Name          *string              `json:"name,omitempty"`
+	Name *string `json:"name,omitempty"`
+
+	// NetworkPolicy The policy that controls outbound traffic from the sandbox.
 	NetworkPolicy SandboxNetworkPolicy `json:"networkPolicy"`
 
-	// Plan Compute plan. See `sandboxPlan` for known values.
+	// Plan The sandbox's compute plan. See `sandboxPlan` for known values.
 	Plan SandboxPlan `json:"plan"`
 
-	// Region Region the sandbox is running in.
+	// Region The Render region where the sandbox runs.
 	//
 	// Example: oregon
 	Region string `json:"region"`
 
-	// SandboxGroupId The sandbox group this sandbox belongs to.
+	// SandboxGroupId The ID of the sandbox group this sandbox belongs to.
 	SandboxGroupId *SandboxGroupId `json:"sandboxGroupId,omitempty"`
 
 	// SharedFilesystems Shared filesystems mounted in the sandbox. Absent when there are none.
 	SharedFilesystems *[]SandboxSharedFilesystem `json:"sharedFilesystems,omitempty"`
-	Status            SandboxStatus              `json:"status"`
 
-	// TerminatedAt When the sandbox was terminated, or null.
+	// Status The sandbox's current status.
+	Status SandboxStatus `json:"status"`
+
+	// TerminatedAt The timestamp when the sandbox was terminated, in ISO 8601 format. Null if the sandbox has not been terminated.
 	TerminatedAt *time.Time `json:"terminatedAt,omitempty"`
 
-	// TimeoutSeconds Maximum sandbox lifetime in seconds. 0 means the sandbox has no timeout.
+	// TimeoutSeconds The maximum time the sandbox can run continuously, in seconds. The sandbox terminates when this time elapses. If the sandbox is suspended and later resumed, this timeout restarts. A value of 0 disables the runtime timeout.
+	//
 	//
 	// Example: 86400
 	TimeoutSeconds int `json:"timeoutSeconds"`
 }
 
-// SandboxBuild defines model for sandboxBuild.
+// SandboxBuild A build that converts a container image into an image that sandboxes can use.
 type SandboxBuild struct {
+	// CreatedAt The timestamp when the sandbox build was created, in ISO 8601 format.
 	CreatedAt time.Time `json:"createdAt"`
 
-	// FailureReason Why the build failed. Null unless `failed`.
+	// FailureCode A machine-readable reason the build failed. Null unless the status is `failed`. See `sandboxBuildFailureCode` for known codes. Treat unrecognized codes as `internal_error`.
+	//
+	//
+	// Example: image_pull_failed
+	FailureCode *string `json:"failureCode,omitempty"`
+
+	// FailureReason A description of why the build failed. Null unless the status is `failed`. May include error text from the image registry. When displaying errors, use `failureCode` to select the main message and show this value as additional detail.
 	FailureReason *string `json:"failureReason,omitempty"`
 
-	// FinishedAt When the build succeeded or failed.
+	// FinishedAt The timestamp when the build succeeded or failed, in ISO 8601 format. Null while the build is pending or running.
 	FinishedAt *time.Time `json:"finishedAt,omitempty"`
 
-	// Id Example: sbb-cph1rs3idesc73a2b2mg
+	// Id The ID of the sandbox build.
+	//
+	// Example: sbb-cph1rs3idesc73a2b2mg
 	Id SandboxBuildId `json:"id"`
 
-	// Name Names the image. Every build of an image shares it.
+	// Name The name used to select this image when creating a sandbox. Multiple builds can share a name.
 	Name string `json:"name"`
 
-	// SandboxGroupId Example: sbg-cph1rs3idesc73a2b2mg
+	// SandboxGroupId The ID of the sandbox group.
+	//
+	// Example: sbg-cph1rs3idesc73a2b2mg
 	SandboxGroupId SandboxGroupId `json:"sandboxGroupId"`
-	Source         struct {
-		// Image Example: python
+
+	// Source The source container image used for this build.
+	Source struct {
+		// Image The name of the source image.
+		//
+		// Example: python
 		Image string `json:"image"`
 
-		// Reference Example: 3.13
+		// Reference The tag or digest identifying the source image version.
+		//
+		// Example: 3.13
 		Reference string `json:"reference"`
 
-		// Repository Example: docker.io/library
+		// Repository The registry and repository path containing the source image.
+		//
+		// Example: docker.io/library
 		Repository string `json:"repository"`
 	} `json:"source"`
 
-	// SourceDigest The image digest the build converts.
+	// SourceDigest The digest of the source image converted by this build.
 	//
 	// Example: sha256:c19d4a1...
-	SourceDigest string             `json:"sourceDigest"`
-	Status       SandboxBuildStatus `json:"status"`
+	SourceDigest string `json:"sourceDigest"`
+
+	// Status The sandbox build's current status.
+	Status SandboxBuildStatus `json:"status"`
 }
 
-// SandboxBuildId Example: sbb-cph1rs3idesc73a2b2mg
+// SandboxBuildFailureCode A machine-readable reason a sandbox build failed. New codes may be added over time.
+type SandboxBuildFailureCode string
+
+// SandboxBuildId The ID of the sandbox build.
+//
+// Example: sbb-cph1rs3idesc73a2b2mg
 type SandboxBuildId = string
 
-// SandboxBuildPOST defines model for sandboxBuildPOST.
+// SandboxBuildPOST The source container image and settings for the sandbox build.
 type SandboxBuildPOST struct {
-	// Name Names the image. Every build of an image shares it.
+	// Name The name used to select this image when creating a sandbox, between 1 and 255 characters. Can't start with `sbb-`, the prefix reserved for build IDs. Multiple builds can share a name.
 	Name string `json:"name"`
 
-	// RegistryCredential Pulls `sourceImage` from a private registry. Used for this build only and never stored.
+	// RegistryCredential Credentials used to pull `sourceImage` from a private registry for this build.
 	RegistryCredential *struct {
+		// Password The password used to authenticate with the image registry.
 		Password string `json:"password"`
+
+		// Username The username used to authenticate with the image registry.
 		Username string `json:"username"`
 	} `json:"registryCredential,omitempty"`
 
-	// SourceImage The image to convert, by tag or digest.
+	// SourceImage The container image to convert, specified by tag or digest.
 	//
 	// Example: python:3.13
 	SourceImage string `json:"sourceImage"`
 }
 
-// SandboxBuildStatus defines model for sandboxBuildStatus.
+// SandboxBuildStatus The sandbox build's current status.
 type SandboxBuildStatus string
 
-// SandboxConnectRequest Optional body when minting a run connect token. `command` is stored on
-// the exec timeline (truncated to 4KB); the full command is still sent
-// to the sandbox proxy when executing.
+// SandboxConnectRequest defines model for sandboxConnectRequest.
 type SandboxConnectRequest struct {
-	// Command Command text for the sandbox event timeline.
-	// Deprecated: Ignored. The sandbox timeline records the command sent in the run request.
 	Command *string `json:"command,omitempty"`
 }
 
-// SandboxConnectResponse A minted connect token and the sandbox-proxy endpoint to invoke with it.
-// Send the request (and body, where the operation takes one) to `uri`
-// using `method`, with `token` as a bearer credential.
+// SandboxConnectResponse A short-lived connect token and the URL to use it with. Send the request to `uri` using `method`, with `token` as the bearer token. Include a request body if the operation requires one.
 type SandboxConnectResponse struct {
-	// ExecutionId Identifier for this execution.
+	// ExecutionId The ID of the sandbox execution.
 	//
 	// Example: exe-cph1rs3idesc73a2b2mg
 	ExecutionId string `json:"executionId"`
 
-	// ExpiresAt When `token` stops being valid. Start the run before this time.
+	// ExpiresAt The timestamp when the token expires, in ISO 8601 format. Start the authorized operation before this time.
 	//
 	// Example: 2026-07-10T12:00:00Z
 	ExpiresAt time.Time `json:"expiresAt"`
 
-	// Method HTTP method to use against `uri`.
+	// Method The HTTP method to use when sending the request to `uri`.
 	//
 	// Example: POST
 	Method string `json:"method"`
 
-	// Token Short-lived bearer token authorizing exactly this operation against the sandbox.
+	// Token A short-lived bearer token that authorizes only the requested operation on this sandbox.
 	Token string `json:"token"`
 
-	// Uri The sandbox-proxy endpoint to invoke.
+	// Uri The URL to send the authorized command run or file transfer request to.
 	//
 	// Example: https://sbx-abc123.oregon.sandbox.onrender.com/runs/stream
 	Uri string `json:"uri"`
 }
 
-// SandboxCredential Desired credential configuration scoped to one sandbox group. Secret values
-// are independent for each credential ID and are never returned, including to admins.
+// SandboxCredential A credential configured for injection into matching outbound HTTPS requests from sandboxes in one sandbox group. Each credential stores its own secret value. These endpoints do not return secret values, including to admins.
+//
+// Credential injection supports HTTPS requests on port 443. Avoid overlapping credential configurations for the same hostname. Multiple matching credentials are not combined.
 type SandboxCredential struct {
-	// Domain Exact public DNS hostname, normalized to lowercase. IP addresses, ports,
-	// wildcards, and local/internal hostnames are not supported.
+	// Domain The destination hostname to match for credential injection. Must be a public DNS hostname. Render normalizes it to lowercase and matches it exactly. IP addresses, ports, wildcards, and local or internal hostnames are not supported.
 	//
 	//
 	// Example: api.render.com
-	Domain  string `json:"domain"`
-	Enabled bool   `json:"enabled"`
+	Domain string `json:"domain"`
 
-	// Id Caller-supplied URL-safe name, unique within the sandbox group. The names
-	// `.` and `..` and the prefix `rnd-` are reserved. IDs are case-sensitive.
+	// Enabled Whether this credential is enabled for injection.
+	Enabled bool `json:"enabled"`
+
+	// Id The case-sensitive ID you assign to the credential, unique within its sandbox group. Use only letters, numbers, periods, underscores, tildes, and hyphens. The names `.` and `..` and IDs starting with `rnd-` are reserved.
 	//
 	//
 	// Example: my-inference-key
-	Id        SandboxCredentialId        `json:"id"`
+	Id SandboxCredentialId `json:"id"`
+
+	// Injection Settings for injecting the secret value into matching outbound HTTPS requests.
 	Injection SandboxCredentialInjection `json:"injection"`
 
-	// Methods GET, HEAD, POST, PUT, PATCH, DELETE, or OPTIONS, normalized to uppercase.
-	// An empty list matches any method.
+	// Methods The HTTP methods to match for credential injection. Supported methods are GET, HEAD, POST, PUT, PATCH, DELETE, and OPTIONS, normalized to uppercase. An empty list matches any method.
 	Methods []string `json:"methods"`
 
-	// Paths Absolute request path patterns. The entire path must match.
-	// Use * for one nonempty path segment or ** for one or more.
-	// Wildcards must occupy whole segments. For example, /a/* matches
-	// /a/b, while /a/** also matches /a/b/c. Neither matches /a.
-	// Query strings, fragments, and escaping are not supported in patterns.
-	// Request query strings do not affect path matching.
-	// An empty list matches any path.
-	Paths   []string                  `json:"paths"`
+	// Paths The request path patterns to match for credential injection. Each pattern must match the entire absolute path. Use `*` for one nonempty path segment or `**` for one or more segments. Wildcards must occupy whole segments. For example, `/a/*` matches `/a/b`, and `/a/**` also matches `/a/b/c`. Neither matches `/a`. Patterns do not support query strings, fragments, or escaping. Request query strings do not affect matching. An empty list matches any path.
+	Paths []string `json:"paths"`
+
+	// Version Metadata for a credential version. These endpoints do not return secret values.
 	Version *SandboxCredentialVersion `json:"version,omitempty"`
 }
 
-// SandboxCredentialCreate defines model for sandboxCredentialCreate.
+// SandboxCredentialCreate The credential configuration to create, including request matching and injection settings.
 type SandboxCredentialCreate struct {
-	// Domain Exact public DNS hostname, normalized to lowercase. IP addresses, ports,
-	// wildcards, and local/internal hostnames are not supported.
-	Domain  string `json:"domain"`
-	Enabled *bool  `json:"enabled,omitempty"`
+	// Domain The destination hostname to match for credential injection. Must be a public DNS hostname. Render normalizes it to lowercase and matches it exactly. IP addresses, ports, wildcards, and local or internal hostnames are not supported.
+	Domain string `json:"domain"`
 
-	// Id Caller-supplied URL-safe name, unique within the sandbox group. The names
-	// `.` and `..` and the prefix `rnd-` are reserved. IDs are case-sensitive.
+	// Enabled Whether this credential is enabled for injection. Defaults to `true`.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Id The case-sensitive ID you assign to the credential, unique within its sandbox group. Use only letters, numbers, periods, underscores, tildes, and hyphens. The names `.` and `..` and IDs starting with `rnd-` are reserved.
 	//
 	//
 	// Example: my-inference-key
-	Id        SandboxCredentialId        `json:"id"`
+	Id SandboxCredentialId `json:"id"`
+
+	// Injection Settings for injecting the secret value into matching outbound HTTPS requests.
 	Injection SandboxCredentialInjection `json:"injection"`
 
-	// Methods GET, HEAD, POST, PUT, PATCH, DELETE, or OPTIONS, normalized to uppercase.
-	// Omitted or empty matches any method.
+	// Methods The HTTP methods to match for credential injection. Supported methods are GET, HEAD, POST, PUT, PATCH, DELETE, and OPTIONS, normalized to uppercase. Omit or provide an empty list to match any method.
 	Methods *[]string `json:"methods,omitempty"`
 
-	// Paths Absolute request path patterns. The entire path must match.
-	// Use * for one nonempty path segment or ** for one or more.
-	// Wildcards must occupy whole segments. For example, /a/* matches
-	// /a/b, while /a/** also matches /a/b/c. Neither matches /a.
-	// Query strings, fragments, and escaping are not supported in patterns.
-	// Request query strings do not affect path matching.
-	// Omitted or empty matches any path.
+	// Paths The request path patterns to match for credential injection. Each pattern must match the entire absolute path. Use `*` for one nonempty path segment or `**` for one or more segments. Wildcards must occupy whole segments. For example, `/a/*` matches `/a/b`, and `/a/**` also matches `/a/b/c`. Neither matches `/a`. Patterns do not support query strings, fragments, or escaping. Request query strings do not affect matching. Omit or provide an empty list to match any path.
 	Paths *[]string `json:"paths,omitempty"`
 
-	// Value Secret value to store for this credential ID. The largest supported secret
-	// value is 5 KiB (5120 UTF-8 bytes).
+	// Value The secret value to store, up to 5 KiB (5120 UTF-8 bytes).
 	Value string `json:"value"`
 }
 
-// SandboxCredentialId Caller-supplied URL-safe name, unique within the sandbox group. The names
-// `.` and `..` and the prefix `rnd-` are reserved. IDs are case-sensitive.
+// SandboxCredentialId The case-sensitive ID you assign to the credential, unique within its sandbox group. Use only letters, numbers, periods, underscores, tildes, and hyphens. The names `.` and `..` and IDs starting with `rnd-` are reserved.
 //
 // Example: my-inference-key
 type SandboxCredentialId = string
 
-// SandboxCredentialInjection defines model for sandboxCredentialInjection.
+// SandboxCredentialInjection Settings for injecting the secret value into matching outbound HTTPS requests.
 type SandboxCredentialInjection struct {
-	// Name Required for header, cookie, and query injection. Routing and connection
-	// headers cannot be targeted.
+	// Name The header, cookie, or query parameter to set. Required for `header`, `cookie`, and `query`. Headers that control routing or connection behavior cannot be used.
 	Name *string `json:"name,omitempty"`
 
-	// Template Literal template containing 1-5 occurrences of ${SECRET}, such as
-	// "Bearer ${SECRET}". Each ${SECRET} is replaced directly with the
-	// assigned secret value. Omit to use the raw secret value.
+	// Template A template containing 1–5 occurrences of `${SECRET}`, such as `Bearer ${SECRET}`. Render replaces each occurrence with the secret value. Omit to use the secret value without a template.
 	//
 	//
 	// Example: Bearer ${SECRET}
 	Template *string `json:"template,omitempty"`
 
-	// Type How to inject the credential into a matching request. Basic authentication
-	// uses the rendered value in username:password form and does not accept name.
+	// Type How Render adds the credential to a matching request. For `basic`, the value after applying `template` must have the form `username:password`. Do not provide `name`.
 	Type SandboxCredentialInjectionType `json:"type"`
 }
 
-// SandboxCredentialInjectionType How to inject the credential into a matching request. Basic authentication
-// uses the rendered value in username:password form and does not accept name.
+// SandboxCredentialInjectionType How Render adds the credential to a matching request. For `basic`, the value after applying `template` must have the form `username:password`. Do not provide `name`.
 type SandboxCredentialInjectionType string
 
-// SandboxCredentialRestore defines model for sandboxCredentialRestore.
+// SandboxCredentialRestore The retained credential version to restore.
 type SandboxCredentialRestore struct {
-	// VersionId Retained version whose configuration will be used to create a new current revision.
+	// VersionId The ID of a retained credential version to restore as a new current version.
 	VersionId int64 `json:"versionId"`
 }
 
-// SandboxCredentialUpdate Omitted fields retain their existing values. Empty methods or paths arrays
-// clear those filters. Developers may update injection, methods, paths, and
-// enabled state. Changing the destination requires an admin and otherwise
-// returns 403. Overwriting a value requires an admin; omitting it has no effect.
-// Changes to routing, injection, or enabled state create a new configuration version.
-// Overwriting the value also creates a version, even when the value is unchanged.
-// The credential ID is immutable.
+// SandboxCredentialUpdate The credential settings to update. Omitted top-level fields keep their current values. Providing `injection` replaces the entire object. Its `template` defaults to `${SECRET}` when omitted. Empty `methods` or `paths` lists remove those filters. Developers can update `injection`, `methods`, `paths`, and `enabled`. Changing `domain` or `value` requires an admin.
+//
+// Changes to routing, injection, or enabled state create a new version. Setting `value` creates a new version even if the secret value is unchanged. The credential ID cannot be changed.
 type SandboxCredentialUpdate struct {
-	Domain    *string                     `json:"domain,omitempty"`
-	Enabled   *bool                       `json:"enabled,omitempty"`
-	Injection *SandboxCredentialInjection `json:"injection,omitempty"`
-	Methods   *[]string                   `json:"methods,omitempty"`
+	// Domain The destination hostname to match for credential injection. Must be a public DNS hostname. Render normalizes it to lowercase and matches it exactly. IP addresses, ports, wildcards, and local or internal hostnames are not supported. Omit to preserve the current hostname.
+	Domain *string `json:"domain,omitempty"`
 
-	// Paths Absolute request path patterns. The entire path must match.
-	// Use * for one nonempty path segment or ** for one or more.
-	// Wildcards must occupy whole segments. For example, /a/* matches
-	// /a/b, while /a/** also matches /a/b/c. Neither matches /a.
-	// Query strings, fragments, and escaping are not supported in patterns.
-	// Request query strings do not affect path matching.
-	// An empty list matches any path. Omit to preserve the current filter.
+	// Enabled Whether this credential is enabled for injection. Omit to preserve the current setting.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Injection Settings for injecting the secret value into matching outbound HTTPS requests.
+	Injection *SandboxCredentialInjection `json:"injection,omitempty"`
+
+	// Methods The HTTP methods to match for credential injection. Supported methods are GET, HEAD, POST, PUT, PATCH, DELETE, and OPTIONS, normalized to uppercase. An empty list matches any method. Omit to preserve the current filter.
+	Methods *[]string `json:"methods,omitempty"`
+
+	// Paths The request path patterns to match for credential injection. Each pattern must match the entire absolute path. Use `*` for one nonempty path segment or `**` for one or more segments. Wildcards must occupy whole segments. For example, `/a/*` matches `/a/b`, and `/a/**` also matches `/a/b/c`. Neither matches `/a`. Patterns do not support query strings, fragments, or escaping. Request query strings do not affect matching. An empty list matches any path. Omit to preserve the current filter.
 	Paths *[]string `json:"paths,omitempty"`
 
-	// Value Admin-only. At most 5 KiB (5120 UTF-8 bytes). Omit to preserve the
-	// current value.
+	// Value The replacement secret value, up to 5 KiB (5120 UTF-8 bytes). Requires an admin. Omit to preserve the current value.
 	Value *string `json:"value,omitempty"`
 }
 
-// SandboxCredentialVersion defines model for sandboxCredentialVersion.
+// SandboxCredentialVersion Metadata for a credential version. These endpoints do not return secret values.
 type SandboxCredentialVersion struct {
-	// Fingerprint Fingerprint of the complete routing configuration, injection configuration,
-	// and secret value. Matching fingerprints identify equivalent versions of
-	// credentials in the same sandbox group. Fingerprints cannot be compared
-	// across sandbox groups.
+	// Fingerprint A fingerprint of the routing settings, injection settings, and secret value. Matching fingerprints identify equivalent credential configurations within the same sandbox group. Fingerprints cannot be compared across groups.
 	Fingerprint string `json:"fingerprint"`
 
-	// Id Monotonically increasing configuration version ID. Updates and restores assign new IDs.
+	// Id The ID of the credential version. Each new version receives a higher ID, including versions created by a restore.
 	Id int64 `json:"id"`
 
-	// RestoredFromVersionId Version restored to create this revision. Omitted for creates and updates.
-	RestoredFromVersionId *int64    `json:"restoredFromVersionId,omitempty"`
-	UpdatedAt             time.Time `json:"updatedAt"`
+	// RestoredFromVersionId The ID of the credential version restored to create this version. Omitted for versions created by a create or update request.
+	RestoredFromVersionId *int64 `json:"restoredFromVersionId,omitempty"`
 
-	// UpdatedBy Object ID of the authenticated identity that created this configuration version.
+	// UpdatedAt The timestamp when this credential version was created, in ISO 8601 format.
+	UpdatedAt time.Time `json:"updatedAt"`
+
+	// UpdatedBy The ID of the authenticated identity that created this credential version.
 	UpdatedBy string `json:"updatedBy"`
 }
 
-// SandboxEgressRule defines model for sandboxEgressRule.
+// SandboxEgressRule A destination that sandboxes can access when the network policy is `allow-list`.
 type SandboxEgressRule struct {
-	// Domain Hostname to apply the rule to. Matching is exact: `foo.local` does not
-	// cover `api.foo.local`, which needs its own rule or `*.foo.local`. A
-	// wildcard is only allowed as the leftmost label.
+	// Domain The hostname this rule allows, up to 253 characters. Matching is exact: `foo.local` does not match `api.foo.local`. Use a separate rule or `*.foo.local` for subdomains. A wildcard is allowed only as the leftmost label.
 	//
 	//
 	// Example: *.bar.local
 	Domain string `json:"domain"`
 
-	// Protocol Protocol this rule admits. Only `https` is accepted:
-	// under `allow-list` every other outbound protocol is dropped.
+	// Protocol The protocol allowed for this destination. Defaults to `https`. The `allow-list` policy blocks outbound traffic that uses other protocols.
 	Protocol *SandboxEgressRuleProtocol `json:"protocol,omitempty"`
 }
 
-// SandboxEgressRuleProtocol Protocol this rule admits. Only `https` is accepted:
-// under `allow-list` every other outbound protocol is dropped.
+// SandboxEgressRuleProtocol The protocol allowed for this destination. Defaults to `https`. The `allow-list` policy blocks outbound traffic that uses other protocols.
 type SandboxEgressRuleProtocol string
 
-// SandboxGroup defines model for sandboxGroup.
+// SandboxGroup A group of sandboxes in a workspace that share a region, concurrency limit, and credentials.
 type SandboxGroup struct {
-	// ConcurrencyLimit The effective limit on active sandboxes in this group, capped by Render's limit for this workspace.
+	// ConcurrencyLimit The maximum number of active sandboxes allowed in this group, capped by Render's limit for the workspace.
 	ConcurrencyLimit int `json:"concurrencyLimit"`
 
-	// CreatedAt Example: 2026-07-02T18:30:00Z
+	// CreatedAt The timestamp when the sandbox group was created, in ISO 8601 format.
+	//
+	// Example: 2026-07-02T18:30:00Z
 	CreatedAt time.Time `json:"createdAt"`
 
-	// EnvironmentId Environment this group is bound to.
+	// EnvironmentId The ID of the environment this sandbox group belongs to, if any.
 	EnvironmentId *string `json:"environmentId,omitempty"`
 
-	// Id Example: sbg-cph1rs3idesc73a2b2mg
+	// Id The ID of the sandbox group.
+	//
+	// Example: sbg-cph1rs3idesc73a2b2mg
 	Id SandboxGroupId `json:"id"`
 
-	// IsDefault Whether this is the workspace's default group. Sandboxes are created
-	// here unless a group is given.
+	// IsDefault Whether this is the workspace's default sandbox group. Create requests that omit `sandboxGroupId` use this group.
 	IsDefault bool `json:"isDefault"`
 
-	// Name Human-friendly name for the group.
+	// Name The sandbox group's name.
 	//
 	// Example: Default
 	Name string `json:"name"`
@@ -613,263 +674,242 @@ type SandboxGroup struct {
 	// Example: tea-cph1rs3idesc73a2b2mg
 	OwnerId string `json:"ownerId"`
 
-	// Region Render region the group operates in.
+	// Region The Render region where the group's sandboxes run.
 	//
 	// Example: oregon
 	Region string `json:"region"`
 
-	// UpdatedAt Example: 2026-07-02T18:30:00Z
+	// UpdatedAt The timestamp when the sandbox group was last updated, in ISO 8601 format.
+	//
+	// Example: 2026-07-02T18:30:00Z
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-// SandboxGroupId Example: sbg-cph1rs3idesc73a2b2mg
+// SandboxGroupId The ID of the sandbox group.
+//
+// Example: sbg-cph1rs3idesc73a2b2mg
 type SandboxGroupId = string
 
-// SandboxGroupPATCH defines model for sandboxGroupPATCH.
+// SandboxGroupPATCH The sandbox group's concurrency settings to update.
 type SandboxGroupPATCH struct {
-	// ConcurrencyLimit Maximum active sandboxes in the group. The configured value is capped
-	// by Render's limit for this workspace. Responses return the effective limit.
-	// Lowering the limit does not stop existing sandboxes.
+	// ConcurrencyLimit The maximum number of active sandboxes allowed in this group. Must be at least 1. Render caps this value at the workspace's limit and returns the effective limit. Lowering the limit does not stop existing sandboxes.
 	//
 	//
 	// Example: 10
 	ConcurrencyLimit int `json:"concurrencyLimit"`
 }
 
-// SandboxGroupPOST defines model for sandboxGroupPOST.
+// SandboxGroupPOST The sandbox group to create.
 type SandboxGroupPOST struct {
-	// Name Name, unique within the workspace.
+	// Name The sandbox group's name. Must be unique within the workspace.
 	//
 	// Example: CI agents
 	Name string `json:"name"`
 
-	// OwnerId Workspace ID.
+	// OwnerId The ID of the workspace to create the sandbox group in.
 	//
 	// Example: tea-cph1rs3idesc73a2b2mg
 	OwnerId string `json:"ownerId"`
 
-	// Region Region for the group's sandboxes. Defaults to Render's default sandbox region.
+	// Region The Render region where the group's sandboxes run. Defaults to `oregon`.
 	//
 	// Example: oregon
 	Region *string `json:"region,omitempty"`
 }
 
-// SandboxId Example: sbx-1cd4gcph1rs3idesc73a2b2mg
+// SandboxId The ID of the sandbox.
+//
+// Example: sbx-1cd4gcph1rs3idesc73a2b2mg
 type SandboxId = string
 
-// SandboxNetworkPolicy defines model for sandboxNetworkPolicy.
+// SandboxNetworkPolicy The policy that controls outbound traffic from the sandbox.
 type SandboxNetworkPolicy struct {
-	// Default Deprecated alias for `type`, always returned with the same value.
-	// To be removed before GA; read `type` instead.
+	// Default A deprecated alias for `type`, returned with the same value. Read `type` instead.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Default *SandboxNetworkPolicyType `json:"default,omitempty"`
 
-	// Rules Destinations the sandbox may reach, present when `type` is
-	// `allow-list` and absent otherwise. Each domain may be listed once.
+	// Rules Destinations the sandbox may reach, present when `type` is `allow-list` and absent otherwise. Each domain may be listed once.
 	Rules *[]SandboxEgressRule `json:"rules,omitempty"`
 
-	// Type How outbound traffic is handled. `allow-all`, `deny-all`, or
-	// `allow-list` (requires additional `rules`).
+	// Type How Render handles outbound traffic from the sandbox. The `allow-list` policy requires `rules`.
 	Type SandboxNetworkPolicyType `json:"type"`
 }
 
-// SandboxNetworkPolicyPOST Set either `type` or its deprecated alias `default`. Sending both is
-// only accepted when they name the same policy.
+// SandboxNetworkPolicyPOST The outbound traffic policy to apply to the sandbox. Provide `type` or its deprecated alias `default`. If both are provided, they must match.
 type SandboxNetworkPolicyPOST struct {
-	// Default Deprecated alias for `type`, accepted so that clients built against
-	// the earlier schema keep working. To be removed before GA.
+	// Default A deprecated alias for `type`. Use `type` instead.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Default *SandboxNetworkPolicyType `json:"default,omitempty"`
 
-	// Rules Destinations the sandbox may reach, required when the policy is
-	// `allow-list` and rejected otherwise. Each domain may be listed once.
+	// Rules Destinations the sandbox may reach, required when the policy is `allow-list` and rejected otherwise. Each domain may be listed once.
 	Rules *[]SandboxEgressRule `json:"rules,omitempty"`
 
-	// Type How outbound traffic is handled. `allow-all`, `deny-all`, or
-	// `allow-list` (requires additional `rules`). Either `type` or `default`
-	// is required when `networkPolicy` is provided. Defaults to `allow-all`,
-	// or to the source sandbox's network policy when starting from a
-	// snapshot. Include `networkPolicy` to override.
+	// Type How Render handles outbound traffic from the sandbox. The `allow-list` policy requires `rules`. Required unless `default` is provided. If `networkPolicy` is omitted, defaults to `allow-all`, or to the source sandbox's policy when creating a sandbox from a snapshot.
 	Type *SandboxNetworkPolicyType `json:"type,omitempty"`
 }
 
-// SandboxNetworkPolicyType How outbound traffic is handled. `allow-all`, `deny-all`, or
-// `allow-list` (requires additional `rules`).
+// SandboxNetworkPolicyType How Render handles outbound traffic from the sandbox. The `allow-list` policy requires `rules`.
 type SandboxNetworkPolicyType string
 
-// SandboxPOST defines model for sandboxPOST.
+// SandboxPOST The sandbox to create, including its compute plan, network policy, and optional source build or snapshot.
 type SandboxPOST struct {
-	// BuildId Start from this build's image instead of the base image. The build
-	// must have succeeded and be in the sandbox's group: 404 with `code:
-	// build_not_found` if it isn't in the group, and 409 with `code:
-	// build_not_succeeded` if it hasn't succeeded. Mutually exclusive
-	// with `buildName`, `snapshotId` and `snapshotName`.
+	// BuildId The ID of the build to create the sandbox from instead of the base image. The build must have succeeded and belong to the same sandbox group. Cannot be combined with `buildName`, `snapshotId`, or `snapshotName`.
 	BuildId *SandboxBuildId `json:"buildId,omitempty"`
 
-	// BuildName Start from the newest succeeded build with this name in the
-	// sandbox's group. 404 with `code: build_not_found` if the group has
-	// no build with the name, and 409 with `code: build_not_succeeded` if
-	// none of them has succeeded. Mutually exclusive with `buildId`,
-	// `snapshotId` and `snapshotName`.
+	// BuildName The name of the build to create the sandbox from instead of the base image. Uses the newest successful build with this name in the sandbox group. Cannot be combined with `buildId`, `snapshotId`, or `snapshotName`.
 	BuildName *string `json:"buildName,omitempty"`
 
-	// Env Inline environment variables injected into the sandbox at creation.
+	// Env The environment variables to set when creating the sandbox.
 	Env *map[string]string `json:"env,omitempty"`
 
-	// IdleTimeoutSeconds Seconds of inactivity before the sandbox is suspended. Use 0 to disable
-	// automatic idle suspension. Positive values must be at least 300. Defaults
-	// to 900, or to the source sandbox's idle timeout when starting from a
-	// snapshot.
+	// IdleTimeoutSeconds The number of seconds of inactivity before Render suspends the sandbox. Use 0 to disable automatic idle suspension. Positive values must be between 300 and 86400. Defaults to 900, or to the source sandbox's idle timeout when creating a sandbox from a snapshot.
 	IdleTimeoutSeconds *int `json:"idleTimeoutSeconds,omitempty"`
 
-	// Name A label for the sandbox, like `my-agent`. It isn't unique, so the
-	// sandbox ID stays the handle. It can't start with `sbx-`.
+	// Name A label for the sandbox, such as `my-agent`, up to 64 characters. Names do not have to be unique; use the sandbox ID to identify a specific sandbox. Must not start with `sbx-`.
 	Name *string `json:"name,omitempty"`
 
-	// NetworkPolicy Set either `type` or its deprecated alias `default`. Sending both is
-	// only accepted when they name the same policy.
+	// NetworkPolicy The outbound traffic policy to apply to the sandbox. Provide `type` or its deprecated alias `default`. If both are provided, they must match.
 	NetworkPolicy *SandboxNetworkPolicyPOST `json:"networkPolicy,omitempty"`
 
 	// OwnerId The ID of the workspace the sandbox belongs to.
 	OwnerId string `json:"ownerId"`
 
-	// Plan Compute plan. See `sandboxPlan` for known values.
+	// Plan The compute plan for the sandbox. See `sandboxPlan` for known values.
 	Plan *SandboxPlan `json:"plan,omitempty"`
 
-	// SandboxGroupId Group to create the sandbox in; defaults to the workspace's default group.
+	// SandboxGroupId The ID of the sandbox group to create the sandbox in. Defaults to the workspace's default group.
 	SandboxGroupId *SandboxGroupId `json:"sandboxGroupId,omitempty"`
 
-	// SharedFilesystems Shared filesystems to mount in the sandbox. At most one is
-	// supported.
+	// SharedFilesystems Shared filesystems to mount in the sandbox. At most one is supported.
 	SharedFilesystems *[]SandboxSharedFilesystem `json:"sharedFilesystems,omitempty"`
 
-	// SnapshotId Start from this snapshot instead of the base image. Must be `available`
-	// and in the same sandbox group. For a `runtime` snapshot, `plan` must
-	// match the snapshot's plan. The new sandbox uses the source sandbox's
-	// network policy, timeout and idle timeout. Include `networkPolicy`,
-	// `timeoutSeconds` or `idleTimeoutSeconds` to set a different one.
+	// SnapshotId The ID of the snapshot to create the sandbox from instead of the base image. The snapshot must be `available` and belong to the same sandbox group. For a `runtime` snapshot, `plan` must match the snapshot's plan. The new sandbox inherits the source sandbox's network policy, timeout, and idle timeout. Provide `networkPolicy`, `timeoutSeconds`, or `idleTimeoutSeconds` to override these settings.
 	SnapshotId *SandboxSnapshotId `json:"snapshotId,omitempty"`
 
-	// SnapshotName Start from the snapshot this name currently resolves to in the sandbox
-	// group. Mutually exclusive with `snapshotId`. Same restore rules as
-	// `snapshotId`.
+	// SnapshotName The name of the snapshot to create the sandbox from. Uses the most recently created snapshot with this name in the sandbox group that is `available` and unexpired. Cannot be combined with `snapshotId`. The same restore requirements as `snapshotId` apply.
 	SnapshotName *SandboxSnapshotName `json:"snapshotName,omitempty"`
 
-	// TimeoutSeconds Maximum sandbox lifetime in seconds. Sandbox is terminated when reached.
-	// Use 0 for no timeout. Positive values must be at least 60. Defaults to
-	// 86400, or to the source sandbox's timeout when starting from a snapshot.
+	// TimeoutSeconds The maximum time the sandbox can run continuously, in seconds. The sandbox terminates when this time elapses. If the sandbox is suspended and later resumed, this timeout restarts.
+	//
+	// Use 0 to disable the runtime timeout. Positive values must be between 60 and 2592000 (30 days). Defaults to 86400, or to the source sandbox's runtime timeout when creating a sandbox from a snapshot.
 	TimeoutSeconds *int `json:"timeoutSeconds,omitempty"`
 }
 
-// SandboxPlan The compute plan to use. `starter`, `standard` and `pro` are deprecated.
+// SandboxPlan The compute plan for the sandbox. The `starter`, `standard`, and `pro` plans are deprecated.
 type SandboxPlan string
 
-// SandboxSharedFilesystem defines model for sandboxSharedFilesystem.
+// SandboxSharedFilesystem A shared filesystem mounted in a sandbox.
 type SandboxSharedFilesystem struct {
-	// MountPath Absolute path in the sandbox where the filesystem is mounted. Must
-	// not be `/` or inside a system directory such as `/proc`, `/etc`,
-	// or `/usr`.
+	// MountPath Absolute path in the sandbox where the filesystem is mounted. Must not be `/` or inside a system directory such as `/proc`, `/etc`, or `/usr`.
 	//
 	//
 	// Example: /data
 	MountPath string `json:"mountPath"`
 
-	// Name Name of the shared filesystem in the workspace. The first sandbox
-	// that uses a name creates the filesystem; later sandboxes in the
-	// workspace that use the same name share it.
+	// Name The name of the shared filesystem in the workspace, up to 63 characters. The first sandbox to use a name creates the filesystem. Other sandboxes in the workspace that use the same name share that filesystem.
 	//
 	//
 	// Example: data
 	Name string `json:"name"`
 }
 
-// SandboxSnapshot defines model for sandboxSnapshot.
+// SandboxSnapshot A saved filesystem or runtime state that can be used to create another sandbox.
 type SandboxSnapshot struct {
-	// CapturedAt When the sandbox was frozen for capture. Null until `available`.
+	// CapturedAt The timestamp when capture completed, in ISO 8601 format. Null until the snapshot is `available`.
 	CapturedAt *time.Time `json:"capturedAt,omitempty"`
 
-	// Error Null unless `failed`.
+	// Error The reason the snapshot failed. Null unless its status is `failed`.
 	Error *string `json:"error,omitempty"`
 
-	// ExpiresAt The time after which the snapshot can no longer be retrieved or restored.
-	// Set by Render when the create request did not specify one.
+	// ExpiresAt The timestamp after which the snapshot can no longer be retrieved or restored, in ISO 8601 format. Each time you create a sandbox from this snapshot, Render resets its expiration to `ttlSeconds` seconds after that use. For snapshots with no expiration (`ttlSeconds: 0`), this is `9999-12-31T23:59:59Z`.
 	ExpiresAt time.Time `json:"expiresAt"`
 
-	// Id Example: snp-cph1rs3idesc73a2b2mg
+	// Id The ID of the sandbox snapshot.
+	//
+	// Example: snp-cph1rs3idesc73a2b2mg
 	Id SandboxSnapshotId `json:"id"`
 
-	// Kind `filesystem` captures the writable filesystem and restores onto any plan.
-	// `runtime` also captures memory and CPU state and restores only onto the
-	// plan of the source sandbox.
+	// Kind The state to capture. A `filesystem` snapshot captures the writable filesystem and can be restored to any plan. A `runtime` snapshot also captures memory and CPU state and must be restored to the source sandbox plan.
 	Kind SandboxSnapshotKind `json:"kind"`
 
-	// Name Set at create. Never changes. Null when created without a name.
+	// Name The name assigned when the snapshot was created. Cannot be changed. Null if no name was provided.
 	Name *SandboxSnapshotName `json:"name,omitempty"`
 
-	// Plan Plan of the source sandbox at capture time. See `sandboxPlan` for known values.
-	Plan        SandboxPlan `json:"plan"`
-	RequestedAt time.Time   `json:"requestedAt"`
+	// Plan The source sandbox's compute plan when the snapshot was captured. See `sandboxPlan` for known values.
+	Plan SandboxPlan `json:"plan"`
 
-	// SandboxGroupId Example: sbg-cph1rs3idesc73a2b2mg
+	// RequestedAt The timestamp when the snapshot was requested, in ISO 8601 format.
+	RequestedAt time.Time `json:"requestedAt"`
+
+	// SandboxGroupId The ID of the sandbox group.
+	//
+	// Example: sbg-cph1rs3idesc73a2b2mg
 	SandboxGroupId SandboxGroupId `json:"sandboxGroupId"`
 
-	// SizeBytes Null until `available`.
+	// SizeBytes The size of the snapshot, in bytes. Null until the snapshot is `available`.
 	SizeBytes *int64 `json:"sizeBytes,omitempty"`
 
-	// SourceSandboxId The sandbox this snapshot was captured from. Lineage only.
-	SourceSandboxId SandboxId             `json:"sourceSandboxId"`
-	Status          SandboxSnapshotStatus `json:"status"`
+	// SourceSandboxId The ID of the sandbox this snapshot was captured from, recorded for reference.
+	SourceSandboxId SandboxId `json:"sourceSandboxId"`
+
+	// Status The snapshot's current status.
+	Status SandboxSnapshotStatus `json:"status"`
+
+	// TTLSeconds The snapshot's lifetime after its last use, in seconds. A value of 0 means the snapshot does not expire. If omitted, Render's default snapshot lifetime applies.
+	TTLSeconds *int `json:"ttlSeconds,omitempty"`
 }
 
-// SandboxSnapshotId Example: snp-cph1rs3idesc73a2b2mg
+// SandboxSnapshotId The ID of the sandbox snapshot.
+//
+// Example: snp-cph1rs3idesc73a2b2mg
 type SandboxSnapshotId = string
 
-// SandboxSnapshotKind `filesystem` captures the writable filesystem and restores onto any plan.
-// `runtime` also captures memory and CPU state and restores only onto the
-// plan of the source sandbox.
+// SandboxSnapshotKind The state to capture. A `filesystem` snapshot captures the writable filesystem and can be restored to any plan. A `runtime` snapshot also captures memory and CPU state and must be restored to the source sandbox plan.
 type SandboxSnapshotKind string
 
-// SandboxSnapshotName Case sensitive. Scoped to the sandbox group. Must not start with `snp-`
-// so clients can tell a name from a snapshot ID. Several snapshots may
-// share a name; the most recently available one is the one the name
-// resolves to.
+// SandboxSnapshotName A case-sensitive name for snapshots in a sandbox group, up to 64 characters. Must not start with `snp-`. Multiple snapshots can share a name. When creating a sandbox by snapshot name, Render uses the most recently created snapshot with that name that is `available` and unexpired.
 //
 // Example: gold
 type SandboxSnapshotName = string
 
-// SandboxSnapshotPOST defines model for sandboxSnapshotPOST.
+// SandboxSnapshotPOST The settings for the sandbox snapshot to capture.
 type SandboxSnapshotPOST struct {
-	// ExpiresAt The time after which the snapshot can no longer be retrieved or restored.
-	// Must be in the future. Omit to use Render's default snapshot lifetime.
-	ExpiresAt *time.Time           `json:"expiresAt,omitempty"`
-	Kind      *SandboxSnapshotKind `json:"kind,omitempty"`
+	// ExpiresAt The expiration timestamp, in ISO 8601 format. Deprecated; use `ttlSeconds` instead. Must be in the future. Render sets the snapshot lifetime to the duration between the request and this timestamp.
+	// Deprecated: Use ttlSeconds instead.
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 
-	// Name Case sensitive. Scoped to the sandbox group. Must not start with `snp-`
-	// so clients can tell a name from a snapshot ID. Several snapshots may
-	// share a name; the most recently available one is the one the name
-	// resolves to.
+	// Kind The state to capture in the snapshot. Defaults to `runtime`.
+	Kind *SandboxSnapshotKind `json:"kind,omitempty"`
+
+	// Name A case-sensitive name for snapshots in a sandbox group, up to 64 characters. Must not start with `snp-`. Multiple snapshots can share a name. When creating a sandbox by snapshot name, Render uses the most recently created snapshot with that name that is `available` and unexpired.
 	//
 	//
 	// Example: gold
 	Name *SandboxSnapshotName `json:"name,omitempty"`
+
+	// TTLSeconds The snapshot's lifetime after its last use, in seconds. Creating a sandbox from this snapshot resets its remaining lifetime to this duration. Use 0 to keep the snapshot until you delete it. Defaults to Render's snapshot lifetime. Cannot be combined with `expiresAt`.
+	TTLSeconds *int `json:"ttlSeconds,omitempty"`
 }
 
-// SandboxSnapshotStatus defines model for sandboxSnapshotStatus.
+// SandboxSnapshotStatus The snapshot's current status.
 type SandboxSnapshotStatus string
 
-// SandboxStatus defines model for sandboxStatus.
+// SandboxStatus The sandbox's current status.
 type SandboxStatus string
 
-// BuildId Example: sbb-cph1rs3idesc73a2b2mg
+// BuildId The ID of the sandbox build.
+//
+// Example: sbb-cph1rs3idesc73a2b2mg
 type BuildId = SandboxBuildId
 
-// CredentialId Caller-supplied URL-safe name, unique within the sandbox group. The names
-// `.` and `..` and the prefix `rnd-` are reserved. IDs are case-sensitive.
+// CredentialId The case-sensitive ID you assign to the credential, unique within its sandbox group. Use only letters, numbers, periods, underscores, tildes, and hyphens. The names `.` and `..` and IDs starting with `rnd-` are reserved.
 //
 // Example: my-inference-key
 type CredentialId = SandboxCredentialId
 
-// ExecId Example: exe-cph1rs3idesc73a2b2mg
+// ExecId The ID of the sandbox execution.
+//
+// Example: exe-cph1rs3idesc73a2b2mg
 type ExecId = ExecutionId
 
 // OwnerId defines model for ownerId.
@@ -878,5 +918,7 @@ type OwnerId = string
 // OwnerIdGroupScoped defines model for ownerIdGroupScoped.
 type OwnerIdGroupScoped = string
 
-// SnapshotId Example: snp-cph1rs3idesc73a2b2mg
+// SnapshotId The ID of the sandbox snapshot.
+//
+// Example: snp-cph1rs3idesc73a2b2mg
 type SnapshotId = SandboxSnapshotId

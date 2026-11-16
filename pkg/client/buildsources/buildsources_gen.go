@@ -12,6 +12,24 @@ import (
 	externalRef6 "github.com/render-oss/cli/pkg/client/envvar"
 )
 
+// Defines values for BuildClearCache.
+const (
+	Clear      BuildClearCache = "clear"
+	DoNotClear BuildClearCache = "do_not_clear"
+)
+
+// Valid indicates whether the value is a known member of the BuildClearCache enum.
+func (e BuildClearCache) Valid() bool {
+	switch e {
+	case Clear:
+		return true
+	case DoNotClear:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for BuildRunRuntime.
 const (
 	BuildRunRuntimeDocker BuildRunRuntime = "docker"
@@ -209,6 +227,9 @@ type Build struct {
 	Image     *Image    `json:"image,omitempty"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
+
+// BuildClearCache If `clear`, Render clears the build source's build cache before building. This can be useful if you're experiencing issues with your build.
+type BuildClearCache string
 
 // BuildFilter Glob patterns matched against files changed by a commit. When set, a commit only triggers a build when at least one changed file matches `paths` and none match `ignoredPaths`. Useful for monorepos where a single repo backs many services.
 type BuildFilter struct {

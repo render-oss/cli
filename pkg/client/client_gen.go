@@ -350,6 +350,23 @@ type ClientInterface interface {
 	// Corresponds with GET /build-sources/{buildSourceId}/builds (the `ListBuildsInBuildSource` operationId).
 	ListBuildsInBuildSource(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *ListBuildsInBuildSourceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// TriggerBuildSourceBuildWithBody Trigger a build
+	//
+	// Start a new build of the build source at the current HEAD of its
+	// branch, even if an up-to-date build already exists. Services linked to
+	// the build source with autodeploy enabled are deployed with the result.
+	//
+	// Updating a build source or its build-time environment (env vars,
+	// secret files, env groups) with the REST API does not build it. Call
+	// this endpoint after those changes to build them.
+	//
+	// Only `git` build sources can be built.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /build-sources/{buildSourceId}/builds (the `TriggerBuildSourceBuild` operationId).
+	TriggerBuildSourceBuildWithBody(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// TriggerBuildSourceBuild Trigger a build
 	//
 	// Start a new build of the build source at the current HEAD of its
@@ -362,8 +379,10 @@ type ClientInterface interface {
 	//
 	// Only `git` build sources can be built.
 	//
+	// Takes a body of the `application/json` content type.
+	//
 	// Corresponds with POST /build-sources/{buildSourceId}/builds (the `TriggerBuildSourceBuild` operationId).
-	TriggerBuildSourceBuild(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error)
+	TriggerBuildSourceBuild(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body TriggerBuildSourceBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveBuildSourceBuild Retrieve a build
 	//
@@ -2071,17 +2090,14 @@ type ClientInterface interface {
 
 	// ListSandboxGroups List sandbox groups
 	//
-	// List sandbox groups for a single workspace, newest first. The default
-	// page size is 20 and the maximum is 100.
-	// Use the last item's cursor to fetch the next page, until it is empty.
+	// List sandbox groups in a workspace, newest first. Returns up to 20 groups by default, with a maximum of 100. To fetch the next page, pass the last result's cursor as `cursor`. Continue until the response is empty.
 	//
 	// Corresponds with GET /sandbox-groups (the `ListSandboxGroups` operationId).
 	ListSandboxGroups(ctx context.Context, params *ListSandboxGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateSandboxGroupWithBody Create sandbox group
 	//
-	// Create a sandbox group. The workspace's first group becomes its default.
-	// Returns 409 if the `name` is taken.
+	// Create a sandbox group. The first group in a workspace becomes its default.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -2090,8 +2106,7 @@ type ClientInterface interface {
 
 	// CreateSandboxGroup Create sandbox group
 	//
-	// Create a sandbox group. The workspace's first group becomes its default.
-	// Returns 409 if the `name` is taken.
+	// Create a sandbox group. The first group in a workspace becomes its default.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2100,29 +2115,21 @@ type ClientInterface interface {
 
 	// DeleteSandboxGroup Delete sandbox group
 	//
-	// Delete a sandbox group. Its sandboxes are terminated, and its snapshots
-	// and credentials are deleted shortly after the request returns.
-	//
-	// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
-	// 409 with `code: default_sandbox_group_not_deletable` for the owner's
-	// default sandbox group. Make another group the default first.
-	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Delete a sandbox group. Its sandboxes are terminated and its snapshots and credentials are deleted shortly after the request returns.
 	//
 	// Corresponds with DELETE /sandbox-groups/{sandboxGroupId} (the `DeleteSandboxGroup` operationId).
 	DeleteSandboxGroup(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveSandboxGroup Retrieve sandbox group
 	//
-	// Retrieve a sandbox group. 400 `invalid_sandbox_group_id` for a malformed ID.
+	// Retrieve a sandbox group by ID.
 	//
 	// Corresponds with GET /sandbox-groups/{sandboxGroupId} (the `RetrieveSandboxGroup` operationId).
 	RetrieveSandboxGroup(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateSandboxGroupWithBody Update sandbox group
 	//
-	// Update a sandbox group's concurrency limit. Returns 400 for a malformed
-	// ID (`invalid_sandbox_group_id`), missing `concurrencyLimit`, or a value
-	// below 1. The response returns the effective limit after applying Render's cap.
+	// Update a sandbox group's concurrency limit. The response contains the effective limit after applying Render's limit for the workspace.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -2131,9 +2138,7 @@ type ClientInterface interface {
 
 	// UpdateSandboxGroup Update sandbox group
 	//
-	// Update a sandbox group's concurrency limit. Returns 400 for a malformed
-	// ID (`invalid_sandbox_group_id`), missing `concurrencyLimit`, or a value
-	// below 1. The response returns the effective limit after applying Render's cap.
+	// Update a sandbox group's concurrency limit. The response contains the effective limit after applying Render's limit for the workspace.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2142,32 +2147,16 @@ type ClientInterface interface {
 
 	// ListSandboxBuilds List sandbox builds
 	//
-	// Builds in a sandbox group, newest first.
-	//
-	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-	// well-formed `sbg-` ID, `code: invalid_status` for a status outside the
-	// build status vocabulary, `code: invalid_cursor` for a malformed cursor,
-	// or `code: invalid_limit` for a limit outside 1 to 100.
+	// List builds in a sandbox group, newest first.
 	//
 	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/builds (the `ListSandboxBuilds` operationId).
 	ListSandboxBuilds(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, params *ListSandboxBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateSandboxBuildWithBody Create sandbox build
 	//
-	// Starts converting an OCI image into a sandbox image, and returns the
-	// build without waiting for it. Poll the build until it `succeeded` or
-	// `failed`, then pass its ID as `buildId` to create a sandbox. A request
-	// for a name and image digest the group already has, or is building,
-	// returns that build.
+	// Start converting an OCI container image into an image that sandboxes can use. New builds run asynchronously. Retrieve the build until its status is `succeeded` or `failed`. After it succeeds, provide its ID as `buildId` when creating a sandbox.
 	//
-	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-	// well-formed `sbg-` ID, or a message if the image is invalid or its
-	// registry can't serve it.
-	//
-	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-	//
-	// 429 if the group already has as many builds pending or running as its
-	// limit allows. The message includes the limit.
+	// If the group already has a pending, running, or succeeded build for the same name and image digest, Render returns that build. Retrying a failed build starts a new build.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -2176,55 +2165,43 @@ type ClientInterface interface {
 
 	// CreateSandboxBuild Create sandbox build
 	//
-	// Starts converting an OCI image into a sandbox image, and returns the
-	// build without waiting for it. Poll the build until it `succeeded` or
-	// `failed`, then pass its ID as `buildId` to create a sandbox. A request
-	// for a name and image digest the group already has, or is building,
-	// returns that build.
+	// Start converting an OCI container image into an image that sandboxes can use. New builds run asynchronously. Retrieve the build until its status is `succeeded` or `failed`. After it succeeds, provide its ID as `buildId` when creating a sandbox.
 	//
-	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-	// well-formed `sbg-` ID, or a message if the image is invalid or its
-	// registry can't serve it.
-	//
-	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-	//
-	// 429 if the group already has as many builds pending or running as its
-	// limit allows. The message includes the limit.
+	// If the group already has a pending, running, or succeeded build for the same name and image digest, Render returns that build. Retrying a failed build starts a new build.
 	//
 	// Takes a body of the `application/json` content type.
 	//
 	// Corresponds with POST /sandbox-groups/{sandboxGroupId}/builds (the `CreateSandboxBuild` operationId).
 	CreateSandboxBuild(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, body CreateSandboxBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// DeleteSandboxBuild Delete sandbox build
+	//
+	// Delete a build of a sandbox image. The build no longer appears in lists and cannot be retrieved or used to create sandboxes, including by image name. Repeated requests to delete the build return HTTP 204.
+	//
+	// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/builds/{buildId} (the `DeleteSandboxBuild` operationId).
+	DeleteSandboxBuild(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, buildId externalRef17.BuildId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// RetrieveSandboxBuild Retrieve sandbox build
 	//
-	// One build by ID. 404 with `code: build_not_found` if the build doesn't
-	// exist or belongs to another sandbox group.
-	//
-	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-	// well-formed `sbg-` ID, or `invalid build ID` if `buildId` is not a
-	// well-formed `sbb-` ID.
+	// Retrieve a build by ID.
 	//
 	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/builds/{buildId} (the `RetrieveSandboxBuild` operationId).
 	RetrieveSandboxBuild(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, buildId externalRef17.BuildId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListSandboxGroupCredentials List sandbox group credentials
 	//
-	// Returns all credentials in the group, sorted by caller-supplied ID.
-	// Secret values are never returned, including to admins.
+	// List credentials in the sandbox group, sorted by credential ID. Returns credential settings and metadata. These endpoints do not return secret values, including to admins.
 	//
 	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials (the `ListSandboxGroupCredentials` operationId).
 	ListSandboxGroupCredentials(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateSandboxGroupCredentialWithBody Create sandbox group credential
 	//
-	// Admin-only. Creates an independent credential with a caller-supplied ID.
-	// Each sandbox group supports at most 25 credentials and 200 KiB (204800
-	// bytes) of serialized current credentials, including configuration and
-	// values. Three distinct prior configurations per credential are retained
-	// by fingerprint, with a 1 MiB total storage limit including version
-	// metadata and configurations. Limits are checked before saving. A
-	// temporary synchronization conflicts return 429.
+	// Configure a credential for injection into matching outbound HTTPS requests from sandboxes in this group. Requires an admin. You assign the credential ID.
+	//
+	// Each group supports up to 25 credentials. Current credential settings and secret values have a combined serialized size limit of 200 KiB (204800 bytes). Render retains the current configuration and three distinct prior configurations per credential, with a total storage limit of 1 MiB including version metadata.
+	//
+	// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -2233,13 +2210,11 @@ type ClientInterface interface {
 
 	// CreateSandboxGroupCredential Create sandbox group credential
 	//
-	// Admin-only. Creates an independent credential with a caller-supplied ID.
-	// Each sandbox group supports at most 25 credentials and 200 KiB (204800
-	// bytes) of serialized current credentials, including configuration and
-	// values. Three distinct prior configurations per credential are retained
-	// by fingerprint, with a 1 MiB total storage limit including version
-	// metadata and configurations. Limits are checked before saving. A
-	// temporary synchronization conflicts return 429.
+	// Configure a credential for injection into matching outbound HTTPS requests from sandboxes in this group. Requires an admin. You assign the credential ID.
+	//
+	// Each group supports up to 25 credentials. Current credential settings and secret values have a combined serialized size limit of 200 KiB (204800 bytes). Render retains the current configuration and three distinct prior configurations per credential, with a total storage limit of 1 MiB including version metadata.
+	//
+	// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2248,31 +2223,25 @@ type ClientInterface interface {
 
 	// DeleteSandboxGroupCredential Delete sandbox group credential
 	//
-	// Admin-only. Removes the credential if present and synchronizes the
-	// group's gateway configuration. Repeated deletion requests are accepted.
-	// A temporary synchronization conflict returns 429.
+	// Delete a credential from the sandbox group. Requires an admin. Repeated delete requests are accepted, including if the credential is already absent.
 	//
 	// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `DeleteSandboxGroupCredential` operationId).
 	DeleteSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, credentialId externalRef17.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveSandboxGroupCredential Retrieve sandbox group credential
 	//
-	// Secret values are never returned, including to admins.
-	// Credentials are scoped to the addressed sandbox group.
+	// Retrieve the settings and metadata for a credential in this sandbox group. These endpoints do not return secret values, including to admins.
 	//
 	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `RetrieveSandboxGroupCredential` operationId).
 	RetrieveSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, credentialId externalRef17.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateSandboxGroupCredentialWithBody Update sandbox group credential
 	//
-	// Admins may update configuration. Developers may update injection,
-	// method/path filters, and enabled state; destination or value changes
-	// require an admin. Assigning a value creates a new version; omitting it
-	// preserves the value. Other omitted fields are preserved; empty methods
-	// or paths arrays clear their filters. The group's serialized current
-	// credentials must remain within 200 KiB (204800 bytes). A successful
-	// response means desired state was saved; runtime reconciliation may still
-	// be pending. A temporary synchronization conflict returns 429.
+	// Update a credential. Developers can change `injection`, `methods`, `paths`, and `enabled`. Changing `domain` or `value` requires an admin.
+	//
+	// Omitted top-level fields keep their current values. Providing `injection` replaces the entire object. Its `template` defaults to `${SECRET}` when omitted. An empty `methods` or `paths` list removes that filter. Providing `value` creates a new version. The combined serialized size of current credential settings and secret values in the group must remain within 200 KiB (204800 bytes).
+	//
+	// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -2281,14 +2250,11 @@ type ClientInterface interface {
 
 	// UpdateSandboxGroupCredential Update sandbox group credential
 	//
-	// Admins may update configuration. Developers may update injection,
-	// method/path filters, and enabled state; destination or value changes
-	// require an admin. Assigning a value creates a new version; omitting it
-	// preserves the value. Other omitted fields are preserved; empty methods
-	// or paths arrays clear their filters. The group's serialized current
-	// credentials must remain within 200 KiB (204800 bytes). A successful
-	// response means desired state was saved; runtime reconciliation may still
-	// be pending. A temporary synchronization conflict returns 429.
+	// Update a credential. Developers can change `injection`, `methods`, `paths`, and `enabled`. Changing `domain` or `value` requires an admin.
+	//
+	// Omitted top-level fields keep their current values. Providing `injection` replaces the entire object. Its `template` defaults to `${SECRET}` when omitted. An empty `methods` or `paths` list removes that filter. Providing `value` creates a new version. The combined serialized size of current credential settings and secret values in the group must remain within 200 KiB (204800 bytes).
+	//
+	// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2297,15 +2263,13 @@ type ClientInterface interface {
 
 	// RestoreSandboxGroupCredentialWithBody Restore sandbox credential configuration
 	//
-	// Admin-only. Creates a new current revision from the routing
-	// configuration, injection configuration, and secret value of a retained
-	// version. The new revision has an increasing version ID, the restoring
-	// identity and timestamp, the same fingerprint as the source, and
-	// restoredFromVersionId identifying the source. Each distinct
-	// configuration is stored once by fingerprint. The current and three most
-	// recently active prior configurations are retained. Evicting a
-	// configuration removes all version metadata referring to it. Values are
-	// never returned. A temporary synchronization conflict returns 429.
+	// Restore a retained credential version, including its routing settings, injection settings, and secret value, as a new current version. Requires an admin.
+	//
+	// The new version has a higher ID, records who restored it and when, and identifies the source in `restoredFromVersionId`. Its fingerprint matches the source version. Render retains the current configuration and the three distinct prior configurations most recently active. Removing an older configuration also removes all versions that refer to it.
+	//
+	// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
+	//
+	// These endpoints do not return secret values.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -2314,15 +2278,13 @@ type ClientInterface interface {
 
 	// RestoreSandboxGroupCredential Restore sandbox credential configuration
 	//
-	// Admin-only. Creates a new current revision from the routing
-	// configuration, injection configuration, and secret value of a retained
-	// version. The new revision has an increasing version ID, the restoring
-	// identity and timestamp, the same fingerprint as the source, and
-	// restoredFromVersionId identifying the source. Each distinct
-	// configuration is stored once by fingerprint. The current and three most
-	// recently active prior configurations are retained. Evicting a
-	// configuration removes all version metadata referring to it. Values are
-	// never returned. A temporary synchronization conflict returns 429.
+	// Restore a retained credential version, including its routing settings, injection settings, and secret value, as a new current version. Requires an admin.
+	//
+	// The new version has a higher ID, records who restored it and when, and identifies the source in `restoredFromVersionId`. Its fingerprint matches the source version. Render retains the current configuration and the three distinct prior configurations most recently active. Removing an older configuration also removes all versions that refer to it.
+	//
+	// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
+	//
+	// These endpoints do not return secret values.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2331,100 +2293,51 @@ type ClientInterface interface {
 
 	// ListSandboxGroupCredentialVersions List sandbox credential versions
 	//
-	// Returns version metadata in descending version ID order. Multiple versions may
-	// share one configuration fingerprint. Metadata is retained while its configuration
-	// is retained; configurations are evicted by their most recent activation version ID.
-	// Secret values and the group fingerprint nonce are never returned.
+	// List retained credential versions, newest version ID first. Versions with identical settings and secret values share a fingerprint.
+	//
+	// Render retains the current configuration and the three distinct prior configurations most recently active. When an older configuration is removed, all versions that refer to it are also removed. These endpoints do not return secret values.
 	//
 	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/versions (the `ListSandboxGroupCredentialVersions` operationId).
 	ListSandboxGroupCredentialVersions(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, credentialId externalRef17.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SetDefaultSandboxGroup Set default sandbox group
 	//
-	// Make a sandbox group its owner's default. Sandbox creates without a
-	// `sandboxGroupId` use the default group. The previous default stays as a
-	// regular group. Idempotent: setting the current default returns it unchanged.
-	//
-	// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
-	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Set a sandbox group as its workspace's default. Sandbox create requests that omit `sandboxGroupId` use this group. The previous default remains available as a regular group. Setting the current default returns it unchanged.
 	//
 	// Corresponds with POST /sandbox-groups/{sandboxGroupId}/set-default (the `SetDefaultSandboxGroup` operationId).
 	SetDefaultSandboxGroup(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListSandboxSnapshots List sandbox snapshots
 	//
-	// Snapshots in a sandbox group, newest first. Expired and deleted snapshots
-	// are omitted.
-	//
-	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-	// well-formed `sbg-` ID, `code: invalid_owner_id` if `ownerId` is missing or
-	// repeated, `code: invalid_status` for a status outside the snapshot status
-	// vocabulary, `code: invalid_cursor` for a malformed or unknown cursor, or
-	// `code: invalid_limit` for a limit outside 1 to 100.
+	// List snapshots in a sandbox group, newest first. Excludes expired and deleted snapshots.
 	//
 	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots (the `ListSandboxSnapshots` operationId).
 	ListSandboxSnapshots(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, params *ListSandboxSnapshotsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteSandboxSnapshot Delete sandbox snapshot
 	//
-	// Idempotent: returns 204 if the snapshot is already deleted or expired.
-	// Sandboxes created from the snapshot are not affected. A snapshot that
-	// belongs to another sandbox group returns 404.
-	//
-	// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
-	// 400 with `code: invalid_snapshot_id` when `snapshotId` is malformed.
-	// 409 with `code: snapshot_creating` while the capture is in progress.
+	// Delete a snapshot. Sandboxes created from it are not affected. Returns HTTP 204 if the snapshot is already deleted or expired.
 	//
 	// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `DeleteSandboxSnapshot` operationId).
 	DeleteSandboxSnapshot(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, snapshotId externalRef17.SnapshotId, params *DeleteSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RetrieveSandboxSnapshot Retrieve sandbox snapshot
 	//
-	// One snapshot by ID. Deleted and expired snapshots return 404. A snapshot
-	// that belongs to another sandbox group returns 404.
-	//
-	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-	// well-formed `sbg-` ID, or `code: invalid_snapshot_id` if `snapshotId` is
-	// not a well-formed `snp-` ID.
+	// Retrieve a snapshot by ID.
 	//
 	// Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `RetrieveSandboxSnapshot` operationId).
 	RetrieveSandboxSnapshot(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, snapshotId externalRef17.SnapshotId, params *RetrieveSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListSandboxes List sandboxes
 	//
-	// List sandboxes for a single workspace. Sandboxes are scoped to the region of
-	// their workspace's sandbox group, so one workspace must be named per request.
+	// List sandboxes in a workspace. Each request must specify one workspace. Sandboxes run in the region of their sandbox group.
 	//
 	// Corresponds with GET /sandboxes (the `ListSandboxes` operationId).
 	ListSandboxes(ctx context.Context, params *ListSandboxesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateSandboxWithBody Create sandbox
 	//
-	// Create a sandbox. Returns the initial sandbox snapshot synchronously.
-	//
-	// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
-	// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
-	// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
-	// different `plan`.
-	//
-	// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
-	// malformed, 400 without a code if `snapshotId` is also set, and 404 with
-	// `code: snapshot_not_found` if no `available` snapshot in the group has the
-	// name. The 409 cases above apply to the resolved snapshot.
-	//
-	// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
-	// or starts with `sbx-`.
-	//
-	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-	//
-	// 400 with `code: sandbox_group_limit_reached` if the owner has no default
-	// sandbox group and is already at its sandbox group limit.
-	//
-	// 400 with `code: invalid_sandbox_plan` if `plan` is not one the API currently
-	// accepts. The message lists the accepted plans.
-	//
-	// 400 with `code: invalid_timeout_seconds` if `timeoutSeconds` is below 0 or
-	// above 2592000 (30 days).
+	// Create a sandbox and return its initial state. The sandbox might still be starting when the response is returned. To use a saved snapshot or custom image, provide `snapshotId`, `snapshotName`, `buildId`, or `buildName`.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -2433,31 +2346,7 @@ type ClientInterface interface {
 
 	// CreateSandbox Create sandbox
 	//
-	// Create a sandbox. Returns the initial sandbox snapshot synchronously.
-	//
-	// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
-	// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
-	// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
-	// different `plan`.
-	//
-	// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
-	// malformed, 400 without a code if `snapshotId` is also set, and 404 with
-	// `code: snapshot_not_found` if no `available` snapshot in the group has the
-	// name. The 409 cases above apply to the resolved snapshot.
-	//
-	// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
-	// or starts with `sbx-`.
-	//
-	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-	//
-	// 400 with `code: sandbox_group_limit_reached` if the owner has no default
-	// sandbox group and is already at its sandbox group limit.
-	//
-	// 400 with `code: invalid_sandbox_plan` if `plan` is not one the API currently
-	// accepts. The message lists the accepted plans.
-	//
-	// 400 with `code: invalid_timeout_seconds` if `timeoutSeconds` is below 0 or
-	// above 2592000 (30 days).
+	// Create a sandbox and return its initial state. The sandbox might still be starting when the response is returned. To use a saved snapshot or custom image, provide `snapshotId`, `snapshotName`, `buildId`, or `buildName`.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2487,31 +2376,16 @@ type ClientInterface interface {
 
 	// ConnectSandboxFiles Mint a connect token for a sandbox file transfer
 	//
-	// Mint a short-lived, capability-scoped connect token that authorizes a
-	// single file upload or download against the sandbox, and return the
-	// sandbox-proxy endpoint to invoke with it. The caller streams the file
-	// bytes directly to (or from) that endpoint with the token as a bearer
-	// credential. `application/octet-stream` carries a single file and
-	// `application/x-tar` a directory archive, with compression carried
-	// separately by `Content-Encoding: gzip` in either direction; directory
-	// downloads return `application/x-tar` with `Content-Encoding: gzip`. The
-	// token is bound to this sandbox, operation, and path, and expires
-	// shortly after issuance.
+	// Create a short-lived connect token for a file upload or download. Transfer the file directly to or from the URL in the response, using the token as the bearer token. The token authorizes only the specified sandbox, operation, and path. Its expiration time is returned in `expiresAt`.
 	//
-	// 409 with `code: sandbox_not_running` if the sandbox is terminated or
-	// errored, or `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Use `application/octet-stream` for a single file or `application/x-tar` for a directory archive. For gzip compression, also set `Content-Encoding: gzip`. Directory downloads return `application/x-tar` with `Content-Encoding: gzip`.
 	//
 	// Corresponds with POST /sandboxes/{sandboxId}/files/{operation}/token (the `ConnectSandboxFiles` operationId).
 	ConnectSandboxFiles(ctx context.Context, sandboxId externalRef17.SandboxId, operation string, params *ConnectSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ConnectSandboxRunWithBody Create a connect token for a sandbox run
 	//
-	// Mint a short-lived, capability-scoped connect token that authorizes a
-	// single run operation against the specified sandbox. The response contains
-	// the sandbox URI where the caller sends the command with the token as a bearer credential.
-	//
-	// 409 with `code: sandbox_not_running` if the sandbox is terminated or
-	// errored, or `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Create a short-lived connect token for a command run in this sandbox. Send the command to the URL in the response, using the token as the bearer token. The token authorizes only the requested operation.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -2520,12 +2394,7 @@ type ClientInterface interface {
 
 	// ConnectSandboxRun Create a connect token for a sandbox run
 	//
-	// Mint a short-lived, capability-scoped connect token that authorizes a
-	// single run operation against the specified sandbox. The response contains
-	// the sandbox URI where the caller sends the command with the token as a bearer credential.
-	//
-	// 409 with `code: sandbox_not_running` if the sandbox is terminated or
-	// errored, or `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Create a short-lived connect token for a command run in this sandbox. Send the command to the URL in the response, using the token as the bearer token. The token authorizes only the requested operation.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2534,13 +2403,7 @@ type ClientInterface interface {
 
 	// CreateSandboxSnapshotWithBody Create sandbox snapshot
 	//
-	// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
-	// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
-	// running; a runtime capture pauses it briefly.
-	//
-	// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
-	// `code: sandbox_not_running` if the sandbox is not `running`, or
-	// `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Capture a snapshot of a running sandbox. Returns HTTP 202 with the snapshot in `creating` status. Retrieve the snapshot until its status is `available` or `failed`. The sandbox continues running, with a brief pause when capturing a runtime snapshot.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -2549,13 +2412,7 @@ type ClientInterface interface {
 
 	// CreateSandboxSnapshot Create sandbox snapshot
 	//
-	// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
-	// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
-	// running; a runtime capture pauses it briefly.
-	//
-	// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
-	// `code: sandbox_not_running` if the sandbox is not `running`, or
-	// `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Capture a snapshot of a running sandbox. Returns HTTP 202 with the snapshot in `creating` status. Retrieve the snapshot until its status is `available` or `failed`. The sandbox continues running, with a brief pause when capturing a runtime snapshot.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2564,9 +2421,7 @@ type ClientInterface interface {
 
 	// TerminateSandbox Terminate sandbox
 	//
-	// Terminate the sandbox with the provided ID. Idempotent: returns 204 from any
-	// state, including `terminated`. Terminating a `creating` sandbox cancels
-	// boot/setup immediately.
+	// Terminate the sandbox with the provided ID. Returns HTTP 204 even if the sandbox is already terminated. You can also terminate a sandbox while it is starting (`creating`).
 	//
 	// Corresponds with POST /sandboxes/{sandboxId}/terminate (the `TerminateSandbox` operationId).
 	TerminateSandbox(ctx context.Context, sandboxId externalRef17.SandboxId, params *TerminateSandboxParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3895,6 +3750,33 @@ func (c *Client) ListBuildsInBuildSource(ctx context.Context, buildSourceId exte
 	return c.Client.Do(req)
 }
 
+// TriggerBuildSourceBuildWithBody Trigger a build
+//
+// Start a new build of the build source at the current HEAD of its
+// branch, even if an up-to-date build already exists. Services linked to
+// the build source with autodeploy enabled are deployed with the result.
+//
+// Updating a build source or its build-time environment (env vars,
+// secret files, env groups) with the REST API does not build it. Call
+// this endpoint after those changes to build them.
+//
+// Only `git` build sources can be built.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /build-sources/{buildSourceId}/builds (the `TriggerBuildSourceBuild` operationId).
+func (c *Client) TriggerBuildSourceBuildWithBody(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTriggerBuildSourceBuildRequestWithBody(c.Server, buildSourceId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // TriggerBuildSourceBuild Trigger a build
 //
 // Start a new build of the build source at the current HEAD of its
@@ -3907,9 +3789,11 @@ func (c *Client) ListBuildsInBuildSource(ctx context.Context, buildSourceId exte
 //
 // Only `git` build sources can be built.
 //
+// Takes a body of the `application/json` content type.
+//
 // Corresponds with POST /build-sources/{buildSourceId}/builds (the `TriggerBuildSourceBuild` operationId).
-func (c *Client) TriggerBuildSourceBuild(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewTriggerBuildSourceBuildRequest(c.Server, buildSourceId)
+func (c *Client) TriggerBuildSourceBuild(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body TriggerBuildSourceBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTriggerBuildSourceBuildRequest(c.Server, buildSourceId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -7646,9 +7530,7 @@ func (c *Client) UpdateRegistryCredential(ctx context.Context, registryCredentia
 
 // ListSandboxGroups List sandbox groups
 //
-// List sandbox groups for a single workspace, newest first. The default
-// page size is 20 and the maximum is 100.
-// Use the last item's cursor to fetch the next page, until it is empty.
+// List sandbox groups in a workspace, newest first. Returns up to 20 groups by default, with a maximum of 100. To fetch the next page, pass the last result's cursor as `cursor`. Continue until the response is empty.
 //
 // Corresponds with GET /sandbox-groups (the `ListSandboxGroups` operationId).
 func (c *Client) ListSandboxGroups(ctx context.Context, params *ListSandboxGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -7665,8 +7547,7 @@ func (c *Client) ListSandboxGroups(ctx context.Context, params *ListSandboxGroup
 
 // CreateSandboxGroupWithBody Create sandbox group
 //
-// Create a sandbox group. The workspace's first group becomes its default.
-// Returns 409 if the `name` is taken.
+// Create a sandbox group. The first group in a workspace becomes its default.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7685,8 +7566,7 @@ func (c *Client) CreateSandboxGroupWithBody(ctx context.Context, contentType str
 
 // CreateSandboxGroup Create sandbox group
 //
-// Create a sandbox group. The workspace's first group becomes its default.
-// Returns 409 if the `name` is taken.
+// Create a sandbox group. The first group in a workspace becomes its default.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -7705,13 +7585,7 @@ func (c *Client) CreateSandboxGroup(ctx context.Context, body CreateSandboxGroup
 
 // DeleteSandboxGroup Delete sandbox group
 //
-// Delete a sandbox group. Its sandboxes are terminated, and its snapshots
-// and credentials are deleted shortly after the request returns.
-//
-// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
-// 409 with `code: default_sandbox_group_not_deletable` for the owner's
-// default sandbox group. Make another group the default first.
-// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Delete a sandbox group. Its sandboxes are terminated and its snapshots and credentials are deleted shortly after the request returns.
 //
 // Corresponds with DELETE /sandbox-groups/{sandboxGroupId} (the `DeleteSandboxGroup` operationId).
 func (c *Client) DeleteSandboxGroup(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -7728,7 +7602,7 @@ func (c *Client) DeleteSandboxGroup(ctx context.Context, sandboxGroupId external
 
 // RetrieveSandboxGroup Retrieve sandbox group
 //
-// Retrieve a sandbox group. 400 `invalid_sandbox_group_id` for a malformed ID.
+// Retrieve a sandbox group by ID.
 //
 // Corresponds with GET /sandbox-groups/{sandboxGroupId} (the `RetrieveSandboxGroup` operationId).
 func (c *Client) RetrieveSandboxGroup(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -7745,9 +7619,7 @@ func (c *Client) RetrieveSandboxGroup(ctx context.Context, sandboxGroupId extern
 
 // UpdateSandboxGroupWithBody Update sandbox group
 //
-// Update a sandbox group's concurrency limit. Returns 400 for a malformed
-// ID (`invalid_sandbox_group_id`), missing `concurrencyLimit`, or a value
-// below 1. The response returns the effective limit after applying Render's cap.
+// Update a sandbox group's concurrency limit. The response contains the effective limit after applying Render's limit for the workspace.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7766,9 +7638,7 @@ func (c *Client) UpdateSandboxGroupWithBody(ctx context.Context, sandboxGroupId 
 
 // UpdateSandboxGroup Update sandbox group
 //
-// Update a sandbox group's concurrency limit. Returns 400 for a malformed
-// ID (`invalid_sandbox_group_id`), missing `concurrencyLimit`, or a value
-// below 1. The response returns the effective limit after applying Render's cap.
+// Update a sandbox group's concurrency limit. The response contains the effective limit after applying Render's limit for the workspace.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -7787,12 +7657,7 @@ func (c *Client) UpdateSandboxGroup(ctx context.Context, sandboxGroupId external
 
 // ListSandboxBuilds List sandbox builds
 //
-// Builds in a sandbox group, newest first.
-//
-// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-// well-formed `sbg-` ID, `code: invalid_status` for a status outside the
-// build status vocabulary, `code: invalid_cursor` for a malformed cursor,
-// or `code: invalid_limit` for a limit outside 1 to 100.
+// List builds in a sandbox group, newest first.
 //
 // Corresponds with GET /sandbox-groups/{sandboxGroupId}/builds (the `ListSandboxBuilds` operationId).
 func (c *Client) ListSandboxBuilds(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, params *ListSandboxBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -7809,20 +7674,9 @@ func (c *Client) ListSandboxBuilds(ctx context.Context, sandboxGroupId externalR
 
 // CreateSandboxBuildWithBody Create sandbox build
 //
-// Starts converting an OCI image into a sandbox image, and returns the
-// build without waiting for it. Poll the build until it `succeeded` or
-// `failed`, then pass its ID as `buildId` to create a sandbox. A request
-// for a name and image digest the group already has, or is building,
-// returns that build.
+// Start converting an OCI container image into an image that sandboxes can use. New builds run asynchronously. Retrieve the build until its status is `succeeded` or `failed`. After it succeeds, provide its ID as `buildId` when creating a sandbox.
 //
-// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-// well-formed `sbg-` ID, or a message if the image is invalid or its
-// registry can't serve it.
-//
-// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-//
-// 429 if the group already has as many builds pending or running as its
-// limit allows. The message includes the limit.
+// If the group already has a pending, running, or succeeded build for the same name and image digest, Render returns that build. Retrying a failed build starts a new build.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7841,20 +7695,9 @@ func (c *Client) CreateSandboxBuildWithBody(ctx context.Context, sandboxGroupId 
 
 // CreateSandboxBuild Create sandbox build
 //
-// Starts converting an OCI image into a sandbox image, and returns the
-// build without waiting for it. Poll the build until it `succeeded` or
-// `failed`, then pass its ID as `buildId` to create a sandbox. A request
-// for a name and image digest the group already has, or is building,
-// returns that build.
+// Start converting an OCI container image into an image that sandboxes can use. New builds run asynchronously. Retrieve the build until its status is `succeeded` or `failed`. After it succeeds, provide its ID as `buildId` when creating a sandbox.
 //
-// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-// well-formed `sbg-` ID, or a message if the image is invalid or its
-// registry can't serve it.
-//
-// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-//
-// 429 if the group already has as many builds pending or running as its
-// limit allows. The message includes the limit.
+// If the group already has a pending, running, or succeeded build for the same name and image digest, Render returns that build. Retrying a failed build starts a new build.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -7871,14 +7714,26 @@ func (c *Client) CreateSandboxBuild(ctx context.Context, sandboxGroupId external
 	return c.Client.Do(req)
 }
 
+// DeleteSandboxBuild Delete sandbox build
+//
+// Delete a build of a sandbox image. The build no longer appears in lists and cannot be retrieved or used to create sandboxes, including by image name. Repeated requests to delete the build return HTTP 204.
+//
+// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/builds/{buildId} (the `DeleteSandboxBuild` operationId).
+func (c *Client) DeleteSandboxBuild(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, buildId externalRef17.BuildId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteSandboxBuildRequest(c.Server, sandboxGroupId, buildId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // RetrieveSandboxBuild Retrieve sandbox build
 //
-// One build by ID. 404 with `code: build_not_found` if the build doesn't
-// exist or belongs to another sandbox group.
-//
-// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-// well-formed `sbg-` ID, or `invalid build ID` if `buildId` is not a
-// well-formed `sbb-` ID.
+// Retrieve a build by ID.
 //
 // Corresponds with GET /sandbox-groups/{sandboxGroupId}/builds/{buildId} (the `RetrieveSandboxBuild` operationId).
 func (c *Client) RetrieveSandboxBuild(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, buildId externalRef17.BuildId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -7895,8 +7750,7 @@ func (c *Client) RetrieveSandboxBuild(ctx context.Context, sandboxGroupId extern
 
 // ListSandboxGroupCredentials List sandbox group credentials
 //
-// Returns all credentials in the group, sorted by caller-supplied ID.
-// Secret values are never returned, including to admins.
+// List credentials in the sandbox group, sorted by credential ID. Returns credential settings and metadata. These endpoints do not return secret values, including to admins.
 //
 // Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials (the `ListSandboxGroupCredentials` operationId).
 func (c *Client) ListSandboxGroupCredentials(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -7913,13 +7767,11 @@ func (c *Client) ListSandboxGroupCredentials(ctx context.Context, sandboxGroupId
 
 // CreateSandboxGroupCredentialWithBody Create sandbox group credential
 //
-// Admin-only. Creates an independent credential with a caller-supplied ID.
-// Each sandbox group supports at most 25 credentials and 200 KiB (204800
-// bytes) of serialized current credentials, including configuration and
-// values. Three distinct prior configurations per credential are retained
-// by fingerprint, with a 1 MiB total storage limit including version
-// metadata and configurations. Limits are checked before saving. A
-// temporary synchronization conflicts return 429.
+// Configure a credential for injection into matching outbound HTTPS requests from sandboxes in this group. Requires an admin. You assign the credential ID.
+//
+// Each group supports up to 25 credentials. Current credential settings and secret values have a combined serialized size limit of 200 KiB (204800 bytes). Render retains the current configuration and three distinct prior configurations per credential, with a total storage limit of 1 MiB including version metadata.
+//
+// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7938,13 +7790,11 @@ func (c *Client) CreateSandboxGroupCredentialWithBody(ctx context.Context, sandb
 
 // CreateSandboxGroupCredential Create sandbox group credential
 //
-// Admin-only. Creates an independent credential with a caller-supplied ID.
-// Each sandbox group supports at most 25 credentials and 200 KiB (204800
-// bytes) of serialized current credentials, including configuration and
-// values. Three distinct prior configurations per credential are retained
-// by fingerprint, with a 1 MiB total storage limit including version
-// metadata and configurations. Limits are checked before saving. A
-// temporary synchronization conflicts return 429.
+// Configure a credential for injection into matching outbound HTTPS requests from sandboxes in this group. Requires an admin. You assign the credential ID.
+//
+// Each group supports up to 25 credentials. Current credential settings and secret values have a combined serialized size limit of 200 KiB (204800 bytes). Render retains the current configuration and three distinct prior configurations per credential, with a total storage limit of 1 MiB including version metadata.
+//
+// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -7963,9 +7813,7 @@ func (c *Client) CreateSandboxGroupCredential(ctx context.Context, sandboxGroupI
 
 // DeleteSandboxGroupCredential Delete sandbox group credential
 //
-// Admin-only. Removes the credential if present and synchronizes the
-// group's gateway configuration. Repeated deletion requests are accepted.
-// A temporary synchronization conflict returns 429.
+// Delete a credential from the sandbox group. Requires an admin. Repeated delete requests are accepted, including if the credential is already absent.
 //
 // Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `DeleteSandboxGroupCredential` operationId).
 func (c *Client) DeleteSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, credentialId externalRef17.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -7982,8 +7830,7 @@ func (c *Client) DeleteSandboxGroupCredential(ctx context.Context, sandboxGroupI
 
 // RetrieveSandboxGroupCredential Retrieve sandbox group credential
 //
-// Secret values are never returned, including to admins.
-// Credentials are scoped to the addressed sandbox group.
+// Retrieve the settings and metadata for a credential in this sandbox group. These endpoints do not return secret values, including to admins.
 //
 // Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials/{credentialId} (the `RetrieveSandboxGroupCredential` operationId).
 func (c *Client) RetrieveSandboxGroupCredential(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, credentialId externalRef17.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -8000,14 +7847,11 @@ func (c *Client) RetrieveSandboxGroupCredential(ctx context.Context, sandboxGrou
 
 // UpdateSandboxGroupCredentialWithBody Update sandbox group credential
 //
-// Admins may update configuration. Developers may update injection,
-// method/path filters, and enabled state; destination or value changes
-// require an admin. Assigning a value creates a new version; omitting it
-// preserves the value. Other omitted fields are preserved; empty methods
-// or paths arrays clear their filters. The group's serialized current
-// credentials must remain within 200 KiB (204800 bytes). A successful
-// response means desired state was saved; runtime reconciliation may still
-// be pending. A temporary synchronization conflict returns 429.
+// Update a credential. Developers can change `injection`, `methods`, `paths`, and `enabled`. Changing `domain` or `value` requires an admin.
+//
+// Omitted top-level fields keep their current values. Providing `injection` replaces the entire object. Its `template` defaults to `${SECRET}` when omitted. An empty `methods` or `paths` list removes that filter. Providing `value` creates a new version. The combined serialized size of current credential settings and secret values in the group must remain within 200 KiB (204800 bytes).
+//
+// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8026,14 +7870,11 @@ func (c *Client) UpdateSandboxGroupCredentialWithBody(ctx context.Context, sandb
 
 // UpdateSandboxGroupCredential Update sandbox group credential
 //
-// Admins may update configuration. Developers may update injection,
-// method/path filters, and enabled state; destination or value changes
-// require an admin. Assigning a value creates a new version; omitting it
-// preserves the value. Other omitted fields are preserved; empty methods
-// or paths arrays clear their filters. The group's serialized current
-// credentials must remain within 200 KiB (204800 bytes). A successful
-// response means desired state was saved; runtime reconciliation may still
-// be pending. A temporary synchronization conflict returns 429.
+// Update a credential. Developers can change `injection`, `methods`, `paths`, and `enabled`. Changing `domain` or `value` requires an admin.
+//
+// Omitted top-level fields keep their current values. Providing `injection` replaces the entire object. Its `template` defaults to `${SECRET}` when omitted. An empty `methods` or `paths` list removes that filter. Providing `value` creates a new version. The combined serialized size of current credential settings and secret values in the group must remain within 200 KiB (204800 bytes).
+//
+// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8052,15 +7893,13 @@ func (c *Client) UpdateSandboxGroupCredential(ctx context.Context, sandboxGroupI
 
 // RestoreSandboxGroupCredentialWithBody Restore sandbox credential configuration
 //
-// Admin-only. Creates a new current revision from the routing
-// configuration, injection configuration, and secret value of a retained
-// version. The new revision has an increasing version ID, the restoring
-// identity and timestamp, the same fingerprint as the source, and
-// restoredFromVersionId identifying the source. Each distinct
-// configuration is stored once by fingerprint. The current and three most
-// recently active prior configurations are retained. Evicting a
-// configuration removes all version metadata referring to it. Values are
-// never returned. A temporary synchronization conflict returns 429.
+// Restore a retained credential version, including its routing settings, injection settings, and secret value, as a new current version. Requires an admin.
+//
+// The new version has a higher ID, records who restored it and when, and identifies the source in `restoredFromVersionId`. Its fingerprint matches the source version. Render retains the current configuration and the three distinct prior configurations most recently active. Removing an older configuration also removes all versions that refer to it.
+//
+// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
+//
+// These endpoints do not return secret values.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8079,15 +7918,13 @@ func (c *Client) RestoreSandboxGroupCredentialWithBody(ctx context.Context, sand
 
 // RestoreSandboxGroupCredential Restore sandbox credential configuration
 //
-// Admin-only. Creates a new current revision from the routing
-// configuration, injection configuration, and secret value of a retained
-// version. The new revision has an increasing version ID, the restoring
-// identity and timestamp, the same fingerprint as the source, and
-// restoredFromVersionId identifying the source. Each distinct
-// configuration is stored once by fingerprint. The current and three most
-// recently active prior configurations are retained. Evicting a
-// configuration removes all version metadata referring to it. Values are
-// never returned. A temporary synchronization conflict returns 429.
+// Restore a retained credential version, including its routing settings, injection settings, and secret value, as a new current version. Requires an admin.
+//
+// The new version has a higher ID, records who restored it and when, and identifies the source in `restoredFromVersionId`. Its fingerprint matches the source version. Render retains the current configuration and the three distinct prior configurations most recently active. Removing an older configuration also removes all versions that refer to it.
+//
+// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
+//
+// These endpoints do not return secret values.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8106,10 +7943,9 @@ func (c *Client) RestoreSandboxGroupCredential(ctx context.Context, sandboxGroup
 
 // ListSandboxGroupCredentialVersions List sandbox credential versions
 //
-// Returns version metadata in descending version ID order. Multiple versions may
-// share one configuration fingerprint. Metadata is retained while its configuration
-// is retained; configurations are evicted by their most recent activation version ID.
-// Secret values and the group fingerprint nonce are never returned.
+// List retained credential versions, newest version ID first. Versions with identical settings and secret values share a fingerprint.
+//
+// Render retains the current configuration and the three distinct prior configurations most recently active. When an older configuration is removed, all versions that refer to it are also removed. These endpoints do not return secret values.
 //
 // Corresponds with GET /sandbox-groups/{sandboxGroupId}/credentials/{credentialId}/versions (the `ListSandboxGroupCredentialVersions` operationId).
 func (c *Client) ListSandboxGroupCredentialVersions(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, credentialId externalRef17.CredentialId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -8126,12 +7962,7 @@ func (c *Client) ListSandboxGroupCredentialVersions(ctx context.Context, sandbox
 
 // SetDefaultSandboxGroup Set default sandbox group
 //
-// Make a sandbox group its owner's default. Sandbox creates without a
-// `sandboxGroupId` use the default group. The previous default stays as a
-// regular group. Idempotent: setting the current default returns it unchanged.
-//
-// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
-// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Set a sandbox group as its workspace's default. Sandbox create requests that omit `sandboxGroupId` use this group. The previous default remains available as a regular group. Setting the current default returns it unchanged.
 //
 // Corresponds with POST /sandbox-groups/{sandboxGroupId}/set-default (the `SetDefaultSandboxGroup` operationId).
 func (c *Client) SetDefaultSandboxGroup(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -8148,14 +7979,7 @@ func (c *Client) SetDefaultSandboxGroup(ctx context.Context, sandboxGroupId exte
 
 // ListSandboxSnapshots List sandbox snapshots
 //
-// Snapshots in a sandbox group, newest first. Expired and deleted snapshots
-// are omitted.
-//
-// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-// well-formed `sbg-` ID, `code: invalid_owner_id` if `ownerId` is missing or
-// repeated, `code: invalid_status` for a status outside the snapshot status
-// vocabulary, `code: invalid_cursor` for a malformed or unknown cursor, or
-// `code: invalid_limit` for a limit outside 1 to 100.
+// List snapshots in a sandbox group, newest first. Excludes expired and deleted snapshots.
 //
 // Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots (the `ListSandboxSnapshots` operationId).
 func (c *Client) ListSandboxSnapshots(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, params *ListSandboxSnapshotsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -8172,13 +7996,7 @@ func (c *Client) ListSandboxSnapshots(ctx context.Context, sandboxGroupId extern
 
 // DeleteSandboxSnapshot Delete sandbox snapshot
 //
-// Idempotent: returns 204 if the snapshot is already deleted or expired.
-// Sandboxes created from the snapshot are not affected. A snapshot that
-// belongs to another sandbox group returns 404.
-//
-// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
-// 400 with `code: invalid_snapshot_id` when `snapshotId` is malformed.
-// 409 with `code: snapshot_creating` while the capture is in progress.
+// Delete a snapshot. Sandboxes created from it are not affected. Returns HTTP 204 if the snapshot is already deleted or expired.
 //
 // Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `DeleteSandboxSnapshot` operationId).
 func (c *Client) DeleteSandboxSnapshot(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, snapshotId externalRef17.SnapshotId, params *DeleteSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -8195,12 +8013,7 @@ func (c *Client) DeleteSandboxSnapshot(ctx context.Context, sandboxGroupId exter
 
 // RetrieveSandboxSnapshot Retrieve sandbox snapshot
 //
-// One snapshot by ID. Deleted and expired snapshots return 404. A snapshot
-// that belongs to another sandbox group returns 404.
-//
-// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-// well-formed `sbg-` ID, or `code: invalid_snapshot_id` if `snapshotId` is
-// not a well-formed `snp-` ID.
+// Retrieve a snapshot by ID.
 //
 // Corresponds with GET /sandbox-groups/{sandboxGroupId}/snapshots/{snapshotId} (the `RetrieveSandboxSnapshot` operationId).
 func (c *Client) RetrieveSandboxSnapshot(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, snapshotId externalRef17.SnapshotId, params *RetrieveSandboxSnapshotParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -8217,8 +8030,7 @@ func (c *Client) RetrieveSandboxSnapshot(ctx context.Context, sandboxGroupId ext
 
 // ListSandboxes List sandboxes
 //
-// List sandboxes for a single workspace. Sandboxes are scoped to the region of
-// their workspace's sandbox group, so one workspace must be named per request.
+// List sandboxes in a workspace. Each request must specify one workspace. Sandboxes run in the region of their sandbox group.
 //
 // Corresponds with GET /sandboxes (the `ListSandboxes` operationId).
 func (c *Client) ListSandboxes(ctx context.Context, params *ListSandboxesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -8235,31 +8047,7 @@ func (c *Client) ListSandboxes(ctx context.Context, params *ListSandboxesParams,
 
 // CreateSandboxWithBody Create sandbox
 //
-// Create a sandbox. Returns the initial sandbox snapshot synchronously.
-//
-// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
-// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
-// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
-// different `plan`.
-//
-// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
-// malformed, 400 without a code if `snapshotId` is also set, and 404 with
-// `code: snapshot_not_found` if no `available` snapshot in the group has the
-// name. The 409 cases above apply to the resolved snapshot.
-//
-// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
-// or starts with `sbx-`.
-//
-// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-//
-// 400 with `code: sandbox_group_limit_reached` if the owner has no default
-// sandbox group and is already at its sandbox group limit.
-//
-// 400 with `code: invalid_sandbox_plan` if `plan` is not one the API currently
-// accepts. The message lists the accepted plans.
-//
-// 400 with `code: invalid_timeout_seconds` if `timeoutSeconds` is below 0 or
-// above 2592000 (30 days).
+// Create a sandbox and return its initial state. The sandbox might still be starting when the response is returned. To use a saved snapshot or custom image, provide `snapshotId`, `snapshotName`, `buildId`, or `buildName`.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8278,31 +8066,7 @@ func (c *Client) CreateSandboxWithBody(ctx context.Context, contentType string, 
 
 // CreateSandbox Create sandbox
 //
-// Create a sandbox. Returns the initial sandbox snapshot synchronously.
-//
-// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
-// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
-// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
-// different `plan`.
-//
-// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
-// malformed, 400 without a code if `snapshotId` is also set, and 404 with
-// `code: snapshot_not_found` if no `available` snapshot in the group has the
-// name. The 409 cases above apply to the resolved snapshot.
-//
-// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
-// or starts with `sbx-`.
-//
-// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-//
-// 400 with `code: sandbox_group_limit_reached` if the owner has no default
-// sandbox group and is already at its sandbox group limit.
-//
-// 400 with `code: invalid_sandbox_plan` if `plan` is not one the API currently
-// accepts. The message lists the accepted plans.
-//
-// 400 with `code: invalid_timeout_seconds` if `timeoutSeconds` is below 0 or
-// above 2592000 (30 days).
+// Create a sandbox and return its initial state. The sandbox might still be starting when the response is returned. To use a saved snapshot or custom image, provide `snapshotId`, `snapshotName`, `buildId`, or `buildName`.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8372,19 +8136,9 @@ func (c *Client) RetrieveSandboxExecution(ctx context.Context, sandboxId externa
 
 // ConnectSandboxFiles Mint a connect token for a sandbox file transfer
 //
-// Mint a short-lived, capability-scoped connect token that authorizes a
-// single file upload or download against the sandbox, and return the
-// sandbox-proxy endpoint to invoke with it. The caller streams the file
-// bytes directly to (or from) that endpoint with the token as a bearer
-// credential. `application/octet-stream` carries a single file and
-// `application/x-tar` a directory archive, with compression carried
-// separately by `Content-Encoding: gzip` in either direction; directory
-// downloads return `application/x-tar` with `Content-Encoding: gzip`. The
-// token is bound to this sandbox, operation, and path, and expires
-// shortly after issuance.
+// Create a short-lived connect token for a file upload or download. Transfer the file directly to or from the URL in the response, using the token as the bearer token. The token authorizes only the specified sandbox, operation, and path. Its expiration time is returned in `expiresAt`.
 //
-// 409 with `code: sandbox_not_running` if the sandbox is terminated or
-// errored, or `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Use `application/octet-stream` for a single file or `application/x-tar` for a directory archive. For gzip compression, also set `Content-Encoding: gzip`. Directory downloads return `application/x-tar` with `Content-Encoding: gzip`.
 //
 // Corresponds with POST /sandboxes/{sandboxId}/files/{operation}/token (the `ConnectSandboxFiles` operationId).
 func (c *Client) ConnectSandboxFiles(ctx context.Context, sandboxId externalRef17.SandboxId, operation string, params *ConnectSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -8401,12 +8155,7 @@ func (c *Client) ConnectSandboxFiles(ctx context.Context, sandboxId externalRef1
 
 // ConnectSandboxRunWithBody Create a connect token for a sandbox run
 //
-// Mint a short-lived, capability-scoped connect token that authorizes a
-// single run operation against the specified sandbox. The response contains
-// the sandbox URI where the caller sends the command with the token as a bearer credential.
-//
-// 409 with `code: sandbox_not_running` if the sandbox is terminated or
-// errored, or `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Create a short-lived connect token for a command run in this sandbox. Send the command to the URL in the response, using the token as the bearer token. The token authorizes only the requested operation.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8425,12 +8174,7 @@ func (c *Client) ConnectSandboxRunWithBody(ctx context.Context, sandboxId extern
 
 // ConnectSandboxRun Create a connect token for a sandbox run
 //
-// Mint a short-lived, capability-scoped connect token that authorizes a
-// single run operation against the specified sandbox. The response contains
-// the sandbox URI where the caller sends the command with the token as a bearer credential.
-//
-// 409 with `code: sandbox_not_running` if the sandbox is terminated or
-// errored, or `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Create a short-lived connect token for a command run in this sandbox. Send the command to the URL in the response, using the token as the bearer token. The token authorizes only the requested operation.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8449,13 +8193,7 @@ func (c *Client) ConnectSandboxRun(ctx context.Context, sandboxId externalRef17.
 
 // CreateSandboxSnapshotWithBody Create sandbox snapshot
 //
-// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
-// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
-// running; a runtime capture pauses it briefly.
-//
-// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
-// `code: sandbox_not_running` if the sandbox is not `running`, or
-// `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Capture a snapshot of a running sandbox. Returns HTTP 202 with the snapshot in `creating` status. Retrieve the snapshot until its status is `available` or `failed`. The sandbox continues running, with a brief pause when capturing a runtime snapshot.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8474,13 +8212,7 @@ func (c *Client) CreateSandboxSnapshotWithBody(ctx context.Context, sandboxId ex
 
 // CreateSandboxSnapshot Create sandbox snapshot
 //
-// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
-// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
-// running; a runtime capture pauses it briefly.
-//
-// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
-// `code: sandbox_not_running` if the sandbox is not `running`, or
-// `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Capture a snapshot of a running sandbox. Returns HTTP 202 with the snapshot in `creating` status. Retrieve the snapshot until its status is `available` or `failed`. The sandbox continues running, with a brief pause when capturing a runtime snapshot.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8499,9 +8231,7 @@ func (c *Client) CreateSandboxSnapshot(ctx context.Context, sandboxId externalRe
 
 // TerminateSandbox Terminate sandbox
 //
-// Terminate the sandbox with the provided ID. Idempotent: returns 204 from any
-// state, including `terminated`. Terminating a `creating` sandbox cancels
-// boot/setup immediately.
+// Terminate the sandbox with the provided ID. Returns HTTP 204 even if the sandbox is already terminated. You can also terminate a sandbox while it is starting (`creating`).
 //
 // Corresponds with POST /sandboxes/{sandboxId}/terminate (the `TerminateSandbox` operationId).
 func (c *Client) TerminateSandbox(ctx context.Context, sandboxId externalRef17.SandboxId, params *TerminateSandboxParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -11185,8 +10915,19 @@ func NewListBuildsInBuildSourceRequest(server string, buildSourceId externalRef3
 	return req, nil
 }
 
-// NewTriggerBuildSourceBuildRequest constructs an http.Request for the TriggerBuildSourceBuild method
-func NewTriggerBuildSourceBuildRequest(server string, buildSourceId externalRef3.BuildSourceIdParam) (*http.Request, error) {
+// NewTriggerBuildSourceBuildRequest calls the generic TriggerBuildSourceBuild builder with application/json body
+func NewTriggerBuildSourceBuildRequest(server string, buildSourceId externalRef3.BuildSourceIdParam, body TriggerBuildSourceBuildJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTriggerBuildSourceBuildRequestWithBody(server, buildSourceId, "application/json", bodyReader)
+}
+
+// NewTriggerBuildSourceBuildRequestWithBody constructs an http.Request for the TriggerBuildSourceBuild method, with any body, and a specified content type
+func NewTriggerBuildSourceBuildRequestWithBody(server string, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -11211,10 +10952,12 @@ func NewTriggerBuildSourceBuildRequest(server string, buildSourceId externalRef3
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -14851,6 +14594,18 @@ func NewListLogsRequest(server string, params *ListLogsParams) (*http.Request, e
 
 		}
 
+		if params.Build != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "build", *params.Build, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Level != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "level", *params.Level, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
@@ -15437,6 +15192,18 @@ func NewSubscribeLogsRequest(server string, params *SubscribeLogsParams) (*http.
 
 		}
 
+		if params.Build != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "build", *params.Build, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Level != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "level", *params.Level, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
@@ -15678,6 +15445,18 @@ func NewListLogsValuesRequest(server string, params *ListLogsValuesParams) (*htt
 		if params.Sandbox != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "sandbox", *params.Sandbox, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Build != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "build", *params.Build, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -21753,6 +21532,47 @@ func NewCreateSandboxBuildRequestWithBody(server string, sandboxGroupId external
 	return req, nil
 }
 
+// NewDeleteSandboxBuildRequest constructs an http.Request for the DeleteSandboxBuild method
+func NewDeleteSandboxBuildRequest(server string, sandboxGroupId externalRef17.SandboxGroupId, buildId externalRef17.BuildId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxGroupId", sandboxGroupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "buildId", buildId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandbox-groups/%s/builds/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewRetrieveSandboxBuildRequest constructs an http.Request for the RetrieveSandboxBuild method
 func NewRetrieveSandboxBuildRequest(server string, sandboxGroupId externalRef17.SandboxGroupId, buildId externalRef17.BuildId) (*http.Request, error) {
 	var err error
@@ -27520,6 +27340,23 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /build-sources/{buildSourceId}/builds (the `ListBuildsInBuildSource` operationId).
 	ListBuildsInBuildSourceWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, params *ListBuildsInBuildSourceParams, reqEditors ...RequestEditorFn) (*ListBuildsInBuildSourceResponse, error)
 
+	// TriggerBuildSourceBuildWithBodyWithResponse Trigger a build
+	//
+	// Start a new build of the build source at the current HEAD of its
+	// branch, even if an up-to-date build already exists. Services linked to
+	// the build source with autodeploy enabled are deployed with the result.
+	//
+	// Updating a build source or its build-time environment (env vars,
+	// secret files, env groups) with the REST API does not build it. Call
+	// this endpoint after those changes to build them.
+	//
+	// Only `git` build sources can be built.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /build-sources/{buildSourceId}/builds (the `TriggerBuildSourceBuild` operationId).
+	TriggerBuildSourceBuildWithBodyWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TriggerBuildSourceBuildResponse, error)
+
 	// TriggerBuildSourceBuildWithResponse Trigger a build
 	//
 	// Start a new build of the build source at the current HEAD of its
@@ -27532,10 +27369,10 @@ type ClientWithResponsesInterface interface {
 	//
 	// Only `git` build sources can be built.
 	//
-	// Returns a wrapper object for the known response body format(s).
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /build-sources/{buildSourceId}/builds (the `TriggerBuildSourceBuild` operationId).
-	TriggerBuildSourceBuildWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*TriggerBuildSourceBuildResponse, error)
+	TriggerBuildSourceBuildWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body TriggerBuildSourceBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*TriggerBuildSourceBuildResponse, error)
 
 	// RetrieveBuildSourceBuildWithResponse Retrieve a build
 	//
@@ -29489,9 +29326,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListSandboxGroupsWithResponse List sandbox groups
 	//
-	// List sandbox groups for a single workspace, newest first. The default
-	// page size is 20 and the maximum is 100.
-	// Use the last item's cursor to fetch the next page, until it is empty.
+	// List sandbox groups in a workspace, newest first. Returns up to 20 groups by default, with a maximum of 100. To fetch the next page, pass the last result's cursor as `cursor`. Continue until the response is empty.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29500,8 +29335,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateSandboxGroupWithBodyWithResponse Create sandbox group
 	//
-	// Create a sandbox group. The workspace's first group becomes its default.
-	// Returns 409 if the `name` is taken.
+	// Create a sandbox group. The first group in a workspace becomes its default.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29510,8 +29344,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateSandboxGroupWithResponse Create sandbox group
 	//
-	// Create a sandbox group. The workspace's first group becomes its default.
-	// Returns 409 if the `name` is taken.
+	// Create a sandbox group. The first group in a workspace becomes its default.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29520,13 +29353,7 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteSandboxGroupWithResponse Delete sandbox group
 	//
-	// Delete a sandbox group. Its sandboxes are terminated, and its snapshots
-	// and credentials are deleted shortly after the request returns.
-	//
-	// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
-	// 409 with `code: default_sandbox_group_not_deletable` for the owner's
-	// default sandbox group. Make another group the default first.
-	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Delete a sandbox group. Its sandboxes are terminated and its snapshots and credentials are deleted shortly after the request returns.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29535,7 +29362,7 @@ type ClientWithResponsesInterface interface {
 
 	// RetrieveSandboxGroupWithResponse Retrieve sandbox group
 	//
-	// Retrieve a sandbox group. 400 `invalid_sandbox_group_id` for a malformed ID.
+	// Retrieve a sandbox group by ID.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29544,9 +29371,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateSandboxGroupWithBodyWithResponse Update sandbox group
 	//
-	// Update a sandbox group's concurrency limit. Returns 400 for a malformed
-	// ID (`invalid_sandbox_group_id`), missing `concurrencyLimit`, or a value
-	// below 1. The response returns the effective limit after applying Render's cap.
+	// Update a sandbox group's concurrency limit. The response contains the effective limit after applying Render's limit for the workspace.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29555,9 +29380,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateSandboxGroupWithResponse Update sandbox group
 	//
-	// Update a sandbox group's concurrency limit. Returns 400 for a malformed
-	// ID (`invalid_sandbox_group_id`), missing `concurrencyLimit`, or a value
-	// below 1. The response returns the effective limit after applying Render's cap.
+	// Update a sandbox group's concurrency limit. The response contains the effective limit after applying Render's limit for the workspace.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29566,12 +29389,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListSandboxBuildsWithResponse List sandbox builds
 	//
-	// Builds in a sandbox group, newest first.
-	//
-	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-	// well-formed `sbg-` ID, `code: invalid_status` for a status outside the
-	// build status vocabulary, `code: invalid_cursor` for a malformed cursor,
-	// or `code: invalid_limit` for a limit outside 1 to 100.
+	// List builds in a sandbox group, newest first.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29580,20 +29398,9 @@ type ClientWithResponsesInterface interface {
 
 	// CreateSandboxBuildWithBodyWithResponse Create sandbox build
 	//
-	// Starts converting an OCI image into a sandbox image, and returns the
-	// build without waiting for it. Poll the build until it `succeeded` or
-	// `failed`, then pass its ID as `buildId` to create a sandbox. A request
-	// for a name and image digest the group already has, or is building,
-	// returns that build.
+	// Start converting an OCI container image into an image that sandboxes can use. New builds run asynchronously. Retrieve the build until its status is `succeeded` or `failed`. After it succeeds, provide its ID as `buildId` when creating a sandbox.
 	//
-	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-	// well-formed `sbg-` ID, or a message if the image is invalid or its
-	// registry can't serve it.
-	//
-	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-	//
-	// 429 if the group already has as many builds pending or running as its
-	// limit allows. The message includes the limit.
+	// If the group already has a pending, running, or succeeded build for the same name and image digest, Render returns that build. Retrying a failed build starts a new build.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29602,34 +29409,27 @@ type ClientWithResponsesInterface interface {
 
 	// CreateSandboxBuildWithResponse Create sandbox build
 	//
-	// Starts converting an OCI image into a sandbox image, and returns the
-	// build without waiting for it. Poll the build until it `succeeded` or
-	// `failed`, then pass its ID as `buildId` to create a sandbox. A request
-	// for a name and image digest the group already has, or is building,
-	// returns that build.
+	// Start converting an OCI container image into an image that sandboxes can use. New builds run asynchronously. Retrieve the build until its status is `succeeded` or `failed`. After it succeeds, provide its ID as `buildId` when creating a sandbox.
 	//
-	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-	// well-formed `sbg-` ID, or a message if the image is invalid or its
-	// registry can't serve it.
-	//
-	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-	//
-	// 429 if the group already has as many builds pending or running as its
-	// limit allows. The message includes the limit.
+	// If the group already has a pending, running, or succeeded build for the same name and image digest, Render returns that build. Retrying a failed build starts a new build.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /sandbox-groups/{sandboxGroupId}/builds (the `CreateSandboxBuild` operationId).
 	CreateSandboxBuildWithResponse(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, body CreateSandboxBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateSandboxBuildResponse, error)
 
+	// DeleteSandboxBuildWithResponse Delete sandbox build
+	//
+	// Delete a build of a sandbox image. The build no longer appears in lists and cannot be retrieved or used to create sandboxes, including by image name. Repeated requests to delete the build return HTTP 204.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/builds/{buildId} (the `DeleteSandboxBuild` operationId).
+	DeleteSandboxBuildWithResponse(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, buildId externalRef17.BuildId, reqEditors ...RequestEditorFn) (*DeleteSandboxBuildResponse, error)
+
 	// RetrieveSandboxBuildWithResponse Retrieve sandbox build
 	//
-	// One build by ID. 404 with `code: build_not_found` if the build doesn't
-	// exist or belongs to another sandbox group.
-	//
-	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-	// well-formed `sbg-` ID, or `invalid build ID` if `buildId` is not a
-	// well-formed `sbb-` ID.
+	// Retrieve a build by ID.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29638,8 +29438,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListSandboxGroupCredentialsWithResponse List sandbox group credentials
 	//
-	// Returns all credentials in the group, sorted by caller-supplied ID.
-	// Secret values are never returned, including to admins.
+	// List credentials in the sandbox group, sorted by credential ID. Returns credential settings and metadata. These endpoints do not return secret values, including to admins.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29648,13 +29447,11 @@ type ClientWithResponsesInterface interface {
 
 	// CreateSandboxGroupCredentialWithBodyWithResponse Create sandbox group credential
 	//
-	// Admin-only. Creates an independent credential with a caller-supplied ID.
-	// Each sandbox group supports at most 25 credentials and 200 KiB (204800
-	// bytes) of serialized current credentials, including configuration and
-	// values. Three distinct prior configurations per credential are retained
-	// by fingerprint, with a 1 MiB total storage limit including version
-	// metadata and configurations. Limits are checked before saving. A
-	// temporary synchronization conflicts return 429.
+	// Configure a credential for injection into matching outbound HTTPS requests from sandboxes in this group. Requires an admin. You assign the credential ID.
+	//
+	// Each group supports up to 25 credentials. Current credential settings and secret values have a combined serialized size limit of 200 KiB (204800 bytes). Render retains the current configuration and three distinct prior configurations per credential, with a total storage limit of 1 MiB including version metadata.
+	//
+	// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29663,13 +29460,11 @@ type ClientWithResponsesInterface interface {
 
 	// CreateSandboxGroupCredentialWithResponse Create sandbox group credential
 	//
-	// Admin-only. Creates an independent credential with a caller-supplied ID.
-	// Each sandbox group supports at most 25 credentials and 200 KiB (204800
-	// bytes) of serialized current credentials, including configuration and
-	// values. Three distinct prior configurations per credential are retained
-	// by fingerprint, with a 1 MiB total storage limit including version
-	// metadata and configurations. Limits are checked before saving. A
-	// temporary synchronization conflicts return 429.
+	// Configure a credential for injection into matching outbound HTTPS requests from sandboxes in this group. Requires an admin. You assign the credential ID.
+	//
+	// Each group supports up to 25 credentials. Current credential settings and secret values have a combined serialized size limit of 200 KiB (204800 bytes). Render retains the current configuration and three distinct prior configurations per credential, with a total storage limit of 1 MiB including version metadata.
+	//
+	// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29678,9 +29473,7 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteSandboxGroupCredentialWithResponse Delete sandbox group credential
 	//
-	// Admin-only. Removes the credential if present and synchronizes the
-	// group's gateway configuration. Repeated deletion requests are accepted.
-	// A temporary synchronization conflict returns 429.
+	// Delete a credential from the sandbox group. Requires an admin. Repeated delete requests are accepted, including if the credential is already absent.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29689,8 +29482,7 @@ type ClientWithResponsesInterface interface {
 
 	// RetrieveSandboxGroupCredentialWithResponse Retrieve sandbox group credential
 	//
-	// Secret values are never returned, including to admins.
-	// Credentials are scoped to the addressed sandbox group.
+	// Retrieve the settings and metadata for a credential in this sandbox group. These endpoints do not return secret values, including to admins.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29699,14 +29491,11 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateSandboxGroupCredentialWithBodyWithResponse Update sandbox group credential
 	//
-	// Admins may update configuration. Developers may update injection,
-	// method/path filters, and enabled state; destination or value changes
-	// require an admin. Assigning a value creates a new version; omitting it
-	// preserves the value. Other omitted fields are preserved; empty methods
-	// or paths arrays clear their filters. The group's serialized current
-	// credentials must remain within 200 KiB (204800 bytes). A successful
-	// response means desired state was saved; runtime reconciliation may still
-	// be pending. A temporary synchronization conflict returns 429.
+	// Update a credential. Developers can change `injection`, `methods`, `paths`, and `enabled`. Changing `domain` or `value` requires an admin.
+	//
+	// Omitted top-level fields keep their current values. Providing `injection` replaces the entire object. Its `template` defaults to `${SECRET}` when omitted. An empty `methods` or `paths` list removes that filter. Providing `value` creates a new version. The combined serialized size of current credential settings and secret values in the group must remain within 200 KiB (204800 bytes).
+	//
+	// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29715,14 +29504,11 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateSandboxGroupCredentialWithResponse Update sandbox group credential
 	//
-	// Admins may update configuration. Developers may update injection,
-	// method/path filters, and enabled state; destination or value changes
-	// require an admin. Assigning a value creates a new version; omitting it
-	// preserves the value. Other omitted fields are preserved; empty methods
-	// or paths arrays clear their filters. The group's serialized current
-	// credentials must remain within 200 KiB (204800 bytes). A successful
-	// response means desired state was saved; runtime reconciliation may still
-	// be pending. A temporary synchronization conflict returns 429.
+	// Update a credential. Developers can change `injection`, `methods`, `paths`, and `enabled`. Changing `domain` or `value` requires an admin.
+	//
+	// Omitted top-level fields keep their current values. Providing `injection` replaces the entire object. Its `template` defaults to `${SECRET}` when omitted. An empty `methods` or `paths` list removes that filter. Providing `value` creates a new version. The combined serialized size of current credential settings and secret values in the group must remain within 200 KiB (204800 bytes).
+	//
+	// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29731,15 +29517,13 @@ type ClientWithResponsesInterface interface {
 
 	// RestoreSandboxGroupCredentialWithBodyWithResponse Restore sandbox credential configuration
 	//
-	// Admin-only. Creates a new current revision from the routing
-	// configuration, injection configuration, and secret value of a retained
-	// version. The new revision has an increasing version ID, the restoring
-	// identity and timestamp, the same fingerprint as the source, and
-	// restoredFromVersionId identifying the source. Each distinct
-	// configuration is stored once by fingerprint. The current and three most
-	// recently active prior configurations are retained. Evicting a
-	// configuration removes all version metadata referring to it. Values are
-	// never returned. A temporary synchronization conflict returns 429.
+	// Restore a retained credential version, including its routing settings, injection settings, and secret value, as a new current version. Requires an admin.
+	//
+	// The new version has a higher ID, records who restored it and when, and identifies the source in `restoredFromVersionId`. Its fingerprint matches the source version. Render retains the current configuration and the three distinct prior configurations most recently active. Removing an older configuration also removes all versions that refer to it.
+	//
+	// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
+	//
+	// These endpoints do not return secret values.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29748,15 +29532,13 @@ type ClientWithResponsesInterface interface {
 
 	// RestoreSandboxGroupCredentialWithResponse Restore sandbox credential configuration
 	//
-	// Admin-only. Creates a new current revision from the routing
-	// configuration, injection configuration, and secret value of a retained
-	// version. The new revision has an increasing version ID, the restoring
-	// identity and timestamp, the same fingerprint as the source, and
-	// restoredFromVersionId identifying the source. Each distinct
-	// configuration is stored once by fingerprint. The current and three most
-	// recently active prior configurations are retained. Evicting a
-	// configuration removes all version metadata referring to it. Values are
-	// never returned. A temporary synchronization conflict returns 429.
+	// Restore a retained credential version, including its routing settings, injection settings, and secret value, as a new current version. Requires an admin.
+	//
+	// The new version has a higher ID, records who restored it and when, and identifies the source in `restoredFromVersionId`. Its fingerprint matches the source version. Render retains the current configuration and the three distinct prior configurations most recently active. Removing an older configuration also removes all versions that refer to it.
+	//
+	// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
+	//
+	// These endpoints do not return secret values.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29765,10 +29547,9 @@ type ClientWithResponsesInterface interface {
 
 	// ListSandboxGroupCredentialVersionsWithResponse List sandbox credential versions
 	//
-	// Returns version metadata in descending version ID order. Multiple versions may
-	// share one configuration fingerprint. Metadata is retained while its configuration
-	// is retained; configurations are evicted by their most recent activation version ID.
-	// Secret values and the group fingerprint nonce are never returned.
+	// List retained credential versions, newest version ID first. Versions with identical settings and secret values share a fingerprint.
+	//
+	// Render retains the current configuration and the three distinct prior configurations most recently active. When an older configuration is removed, all versions that refer to it are also removed. These endpoints do not return secret values.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29777,12 +29558,7 @@ type ClientWithResponsesInterface interface {
 
 	// SetDefaultSandboxGroupWithResponse Set default sandbox group
 	//
-	// Make a sandbox group its owner's default. Sandbox creates without a
-	// `sandboxGroupId` use the default group. The previous default stays as a
-	// regular group. Idempotent: setting the current default returns it unchanged.
-	//
-	// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
-	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Set a sandbox group as its workspace's default. Sandbox create requests that omit `sandboxGroupId` use this group. The previous default remains available as a regular group. Setting the current default returns it unchanged.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29791,14 +29567,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListSandboxSnapshotsWithResponse List sandbox snapshots
 	//
-	// Snapshots in a sandbox group, newest first. Expired and deleted snapshots
-	// are omitted.
-	//
-	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-	// well-formed `sbg-` ID, `code: invalid_owner_id` if `ownerId` is missing or
-	// repeated, `code: invalid_status` for a status outside the snapshot status
-	// vocabulary, `code: invalid_cursor` for a malformed or unknown cursor, or
-	// `code: invalid_limit` for a limit outside 1 to 100.
+	// List snapshots in a sandbox group, newest first. Excludes expired and deleted snapshots.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29807,13 +29576,7 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteSandboxSnapshotWithResponse Delete sandbox snapshot
 	//
-	// Idempotent: returns 204 if the snapshot is already deleted or expired.
-	// Sandboxes created from the snapshot are not affected. A snapshot that
-	// belongs to another sandbox group returns 404.
-	//
-	// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
-	// 400 with `code: invalid_snapshot_id` when `snapshotId` is malformed.
-	// 409 with `code: snapshot_creating` while the capture is in progress.
+	// Delete a snapshot. Sandboxes created from it are not affected. Returns HTTP 204 if the snapshot is already deleted or expired.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29822,12 +29585,7 @@ type ClientWithResponsesInterface interface {
 
 	// RetrieveSandboxSnapshotWithResponse Retrieve sandbox snapshot
 	//
-	// One snapshot by ID. Deleted and expired snapshots return 404. A snapshot
-	// that belongs to another sandbox group returns 404.
-	//
-	// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-	// well-formed `sbg-` ID, or `code: invalid_snapshot_id` if `snapshotId` is
-	// not a well-formed `snp-` ID.
+	// Retrieve a snapshot by ID.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29836,8 +29594,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListSandboxesWithResponse List sandboxes
 	//
-	// List sandboxes for a single workspace. Sandboxes are scoped to the region of
-	// their workspace's sandbox group, so one workspace must be named per request.
+	// List sandboxes in a workspace. Each request must specify one workspace. Sandboxes run in the region of their sandbox group.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29846,31 +29603,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateSandboxWithBodyWithResponse Create sandbox
 	//
-	// Create a sandbox. Returns the initial sandbox snapshot synchronously.
-	//
-	// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
-	// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
-	// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
-	// different `plan`.
-	//
-	// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
-	// malformed, 400 without a code if `snapshotId` is also set, and 404 with
-	// `code: snapshot_not_found` if no `available` snapshot in the group has the
-	// name. The 409 cases above apply to the resolved snapshot.
-	//
-	// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
-	// or starts with `sbx-`.
-	//
-	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-	//
-	// 400 with `code: sandbox_group_limit_reached` if the owner has no default
-	// sandbox group and is already at its sandbox group limit.
-	//
-	// 400 with `code: invalid_sandbox_plan` if `plan` is not one the API currently
-	// accepts. The message lists the accepted plans.
-	//
-	// 400 with `code: invalid_timeout_seconds` if `timeoutSeconds` is below 0 or
-	// above 2592000 (30 days).
+	// Create a sandbox and return its initial state. The sandbox might still be starting when the response is returned. To use a saved snapshot or custom image, provide `snapshotId`, `snapshotName`, `buildId`, or `buildName`.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29879,31 +29612,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateSandboxWithResponse Create sandbox
 	//
-	// Create a sandbox. Returns the initial sandbox snapshot synchronously.
-	//
-	// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
-	// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
-	// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
-	// different `plan`.
-	//
-	// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
-	// malformed, 400 without a code if `snapshotId` is also set, and 404 with
-	// `code: snapshot_not_found` if no `available` snapshot in the group has the
-	// name. The 409 cases above apply to the resolved snapshot.
-	//
-	// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
-	// or starts with `sbx-`.
-	//
-	// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-	//
-	// 400 with `code: sandbox_group_limit_reached` if the owner has no default
-	// sandbox group and is already at its sandbox group limit.
-	//
-	// 400 with `code: invalid_sandbox_plan` if `plan` is not one the API currently
-	// accepts. The message lists the accepted plans.
-	//
-	// 400 with `code: invalid_timeout_seconds` if `timeoutSeconds` is below 0 or
-	// above 2592000 (30 days).
+	// Create a sandbox and return its initial state. The sandbox might still be starting when the response is returned. To use a saved snapshot or custom image, provide `snapshotId`, `snapshotName`, `buildId`, or `buildName`.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29939,19 +29648,9 @@ type ClientWithResponsesInterface interface {
 
 	// ConnectSandboxFilesWithResponse Mint a connect token for a sandbox file transfer
 	//
-	// Mint a short-lived, capability-scoped connect token that authorizes a
-	// single file upload or download against the sandbox, and return the
-	// sandbox-proxy endpoint to invoke with it. The caller streams the file
-	// bytes directly to (or from) that endpoint with the token as a bearer
-	// credential. `application/octet-stream` carries a single file and
-	// `application/x-tar` a directory archive, with compression carried
-	// separately by `Content-Encoding: gzip` in either direction; directory
-	// downloads return `application/x-tar` with `Content-Encoding: gzip`. The
-	// token is bound to this sandbox, operation, and path, and expires
-	// shortly after issuance.
+	// Create a short-lived connect token for a file upload or download. Transfer the file directly to or from the URL in the response, using the token as the bearer token. The token authorizes only the specified sandbox, operation, and path. Its expiration time is returned in `expiresAt`.
 	//
-	// 409 with `code: sandbox_not_running` if the sandbox is terminated or
-	// errored, or `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Use `application/octet-stream` for a single file or `application/x-tar` for a directory archive. For gzip compression, also set `Content-Encoding: gzip`. Directory downloads return `application/x-tar` with `Content-Encoding: gzip`.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -29960,12 +29659,7 @@ type ClientWithResponsesInterface interface {
 
 	// ConnectSandboxRunWithBodyWithResponse Create a connect token for a sandbox run
 	//
-	// Mint a short-lived, capability-scoped connect token that authorizes a
-	// single run operation against the specified sandbox. The response contains
-	// the sandbox URI where the caller sends the command with the token as a bearer credential.
-	//
-	// 409 with `code: sandbox_not_running` if the sandbox is terminated or
-	// errored, or `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Create a short-lived connect token for a command run in this sandbox. Send the command to the URL in the response, using the token as the bearer token. The token authorizes only the requested operation.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29974,12 +29668,7 @@ type ClientWithResponsesInterface interface {
 
 	// ConnectSandboxRunWithResponse Create a connect token for a sandbox run
 	//
-	// Mint a short-lived, capability-scoped connect token that authorizes a
-	// single run operation against the specified sandbox. The response contains
-	// the sandbox URI where the caller sends the command with the token as a bearer credential.
-	//
-	// 409 with `code: sandbox_not_running` if the sandbox is terminated or
-	// errored, or `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Create a short-lived connect token for a command run in this sandbox. Send the command to the URL in the response, using the token as the bearer token. The token authorizes only the requested operation.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -29988,13 +29677,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateSandboxSnapshotWithBodyWithResponse Create sandbox snapshot
 	//
-	// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
-	// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
-	// running; a runtime capture pauses it briefly.
-	//
-	// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
-	// `code: sandbox_not_running` if the sandbox is not `running`, or
-	// `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Capture a snapshot of a running sandbox. Returns HTTP 202 with the snapshot in `creating` status. Retrieve the snapshot until its status is `available` or `failed`. The sandbox continues running, with a brief pause when capturing a runtime snapshot.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -30003,13 +29686,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateSandboxSnapshotWithResponse Create sandbox snapshot
 	//
-	// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
-	// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
-	// running; a runtime capture pauses it briefly.
-	//
-	// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
-	// `code: sandbox_not_running` if the sandbox is not `running`, or
-	// `code: sandbox_group_suspended` if the sandbox group is suspended.
+	// Capture a snapshot of a running sandbox. Returns HTTP 202 with the snapshot in `creating` status. Retrieve the snapshot until its status is `available` or `failed`. The sandbox continues running, with a brief pause when capturing a runtime snapshot.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -30018,9 +29695,7 @@ type ClientWithResponsesInterface interface {
 
 	// TerminateSandboxWithResponse Terminate sandbox
 	//
-	// Terminate the sandbox with the provided ID. Idempotent: returns 204 from any
-	// state, including `terminated`. Terminating a `creating` sandbox cancels
-	// boot/setup immediately.
+	// Terminate the sandbox with the provided ID. Returns HTTP 204 even if the sandbox is already terminated. You can also terminate a sandbox while it is starting (`creating`).
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -47823,7 +47498,7 @@ type CreateSandboxGroupResponse struct {
 	// JSON404 the response for an HTTP 404 `application/json` response
 	JSON404 *N404NotFound
 	// JSON409 the response for an HTTP 409 `application/json` response
-	JSON409 *N409Conflict
+	JSON409 *Error
 	// JSON429 the response for an HTTP 429 `application/json` response
 	JSON429 *N429RateLimit
 	// JSON500 the response for an HTTP 500 `application/json` response
@@ -47860,7 +47535,7 @@ func (r CreateSandboxGroupResponse) GetJSON404() *N404NotFound {
 }
 
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
-func (r CreateSandboxGroupResponse) GetJSON409() *N409Conflict {
+func (r CreateSandboxGroupResponse) GetJSON409() *Error {
 	return r.JSON409
 }
 
@@ -47920,7 +47595,7 @@ type DeleteSandboxGroupResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400SandboxGroupBadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -47928,7 +47603,7 @@ type DeleteSandboxGroupResponse struct {
 	// JSON404 the response for an HTTP 404 `application/json` response
 	JSON404 *N404NotFound
 	// JSON409 the response for an HTTP 409 `application/json` response
-	JSON409 *N409Conflict
+	JSON409 *Error
 	// JSON429 the response for an HTTP 429 `application/json` response
 	JSON429 *N429RateLimit
 	// JSON500 the response for an HTTP 500 `application/json` response
@@ -47940,7 +47615,7 @@ type DeleteSandboxGroupResponse struct {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r DeleteSandboxGroupResponse) GetJSON400() *N400BadRequest {
+func (r DeleteSandboxGroupResponse) GetJSON400() *N400SandboxGroupBadRequest {
 	return r.JSON400
 }
 
@@ -47960,7 +47635,7 @@ func (r DeleteSandboxGroupResponse) GetJSON404() *N404NotFound {
 }
 
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
-func (r DeleteSandboxGroupResponse) GetJSON409() *N409Conflict {
+func (r DeleteSandboxGroupResponse) GetJSON409() *Error {
 	return r.JSON409
 }
 
@@ -48022,7 +47697,7 @@ type RetrieveSandboxGroupResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef17.SandboxGroup
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400SandboxGroupBadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -48045,7 +47720,7 @@ func (r RetrieveSandboxGroupResponse) GetJSON200() *externalRef17.SandboxGroup {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r RetrieveSandboxGroupResponse) GetJSON400() *N400BadRequest {
+func (r RetrieveSandboxGroupResponse) GetJSON400() *N400SandboxGroupBadRequest {
 	return r.JSON400
 }
 
@@ -48122,7 +47797,7 @@ type UpdateSandboxGroupResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef17.SandboxGroup
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *Error
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -48147,7 +47822,7 @@ func (r UpdateSandboxGroupResponse) GetJSON200() *externalRef17.SandboxGroup {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r UpdateSandboxGroupResponse) GetJSON400() *N400BadRequest {
+func (r UpdateSandboxGroupResponse) GetJSON400() *Error {
 	return r.JSON400
 }
 
@@ -48229,7 +47904,7 @@ type ListSandboxBuildsResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *[]SandboxBuildWithCursor
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *Error
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -48252,7 +47927,7 @@ func (r ListSandboxBuildsResponse) GetJSON200() *[]SandboxBuildWithCursor {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r ListSandboxBuildsResponse) GetJSON400() *N400BadRequest {
+func (r ListSandboxBuildsResponse) GetJSON400() *Error {
 	return r.JSON400
 }
 
@@ -48329,7 +48004,7 @@ type CreateSandboxBuildResponse struct {
 	// JSON201 the response for an HTTP 201 `application/json` response
 	JSON201 *externalRef17.SandboxBuild
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *Error
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -48337,9 +48012,9 @@ type CreateSandboxBuildResponse struct {
 	// JSON404 the response for an HTTP 404 `application/json` response
 	JSON404 *N404NotFound
 	// JSON409 the response for an HTTP 409 `application/json` response
-	JSON409 *N409Conflict
+	JSON409 *N409SandboxGroupSuspended
 	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
+	JSON429 *Error
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 	// JSON503 the response for an HTTP 503 `application/json` response
@@ -48354,7 +48029,7 @@ func (r CreateSandboxBuildResponse) GetJSON201() *externalRef17.SandboxBuild {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r CreateSandboxBuildResponse) GetJSON400() *N400BadRequest {
+func (r CreateSandboxBuildResponse) GetJSON400() *Error {
 	return r.JSON400
 }
 
@@ -48374,12 +48049,12 @@ func (r CreateSandboxBuildResponse) GetJSON404() *N404NotFound {
 }
 
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
-func (r CreateSandboxBuildResponse) GetJSON409() *N409Conflict {
+func (r CreateSandboxBuildResponse) GetJSON409() *N409SandboxGroupSuspended {
 	return r.JSON409
 }
 
 // GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r CreateSandboxBuildResponse) GetJSON429() *N429RateLimit {
+func (r CreateSandboxBuildResponse) GetJSON429() *Error {
 	return r.JSON429
 }
 
@@ -48422,6 +48097,106 @@ func (r CreateSandboxBuildResponse) ContentType() string {
 	return ""
 }
 
+// DeleteSandboxBuildResponse429Headers the declared response headers of an HTTP 429 response for DeleteSandboxBuild
+type DeleteSandboxBuildResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type DeleteSandboxBuildResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400SandboxBuildBadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404SandboxBuildNotFound
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *N503ServiceUnavailable
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *DeleteSandboxBuildResponse429Headers
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r DeleteSandboxBuildResponse) GetJSON400() *N400SandboxBuildBadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r DeleteSandboxBuildResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r DeleteSandboxBuildResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r DeleteSandboxBuildResponse) GetJSON404() *N404SandboxBuildNotFound {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r DeleteSandboxBuildResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r DeleteSandboxBuildResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r DeleteSandboxBuildResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r DeleteSandboxBuildResponse) GetJSON503() *N503ServiceUnavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteSandboxBuildResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteSandboxBuildResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteSandboxBuildResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteSandboxBuildResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // RetrieveSandboxBuildResponse429Headers the declared response headers of an HTTP 429 response for RetrieveSandboxBuild
 type RetrieveSandboxBuildResponse429Headers struct {
 	RateLimitLimit     *int
@@ -48436,13 +48211,13 @@ type RetrieveSandboxBuildResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef17.SandboxBuild
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400SandboxBuildBadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
 	JSON403 *N403Forbidden
 	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
+	JSON404 *N404SandboxBuildNotFound
 	// JSON429 the response for an HTTP 429 `application/json` response
 	JSON429 *N429RateLimit
 	// JSON500 the response for an HTTP 500 `application/json` response
@@ -48459,7 +48234,7 @@ func (r RetrieveSandboxBuildResponse) GetJSON200() *externalRef17.SandboxBuild {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r RetrieveSandboxBuildResponse) GetJSON400() *N400BadRequest {
+func (r RetrieveSandboxBuildResponse) GetJSON400() *N400SandboxBuildBadRequest {
 	return r.JSON400
 }
 
@@ -48474,7 +48249,7 @@ func (r RetrieveSandboxBuildResponse) GetJSON403() *N403Forbidden {
 }
 
 // GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r RetrieveSandboxBuildResponse) GetJSON404() *N404NotFound {
+func (r RetrieveSandboxBuildResponse) GetJSON404() *N404SandboxBuildNotFound {
 	return r.JSON404
 }
 
@@ -48536,7 +48311,7 @@ type ListSandboxGroupCredentialsResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *[]externalRef17.SandboxCredential
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *Error
+	JSON400 *N400SandboxGroupBadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -48559,7 +48334,7 @@ func (r ListSandboxGroupCredentialsResponse) GetJSON200() *[]externalRef17.Sandb
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r ListSandboxGroupCredentialsResponse) GetJSON400() *Error {
+func (r ListSandboxGroupCredentialsResponse) GetJSON400() *N400SandboxGroupBadRequest {
 	return r.JSON400
 }
 
@@ -48636,7 +48411,7 @@ type CreateSandboxGroupCredentialResponse struct {
 	// JSON201 the response for an HTTP 201 `application/json` response
 	JSON201 *externalRef17.SandboxCredential
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *Error
+	JSON400 *N400SandboxGroupBadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -48646,7 +48421,7 @@ type CreateSandboxGroupCredentialResponse struct {
 	// JSON409 the response for an HTTP 409 `application/json` response
 	JSON409 *N409Conflict
 	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
+	JSON429 *N429SandboxCredentialRateLimitOrConflict
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 	// JSON503 the response for an HTTP 503 `application/json` response
@@ -48661,7 +48436,7 @@ func (r CreateSandboxGroupCredentialResponse) GetJSON201() *externalRef17.Sandbo
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r CreateSandboxGroupCredentialResponse) GetJSON400() *Error {
+func (r CreateSandboxGroupCredentialResponse) GetJSON400() *N400SandboxGroupBadRequest {
 	return r.JSON400
 }
 
@@ -48686,7 +48461,7 @@ func (r CreateSandboxGroupCredentialResponse) GetJSON409() *N409Conflict {
 }
 
 // GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r CreateSandboxGroupCredentialResponse) GetJSON429() *N429RateLimit {
+func (r CreateSandboxGroupCredentialResponse) GetJSON429() *N429SandboxCredentialRateLimitOrConflict {
 	return r.JSON429
 }
 
@@ -48741,7 +48516,7 @@ type DeleteSandboxGroupCredentialResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *Error
+	JSON400 *N400SandboxGroupBadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -48751,7 +48526,7 @@ type DeleteSandboxGroupCredentialResponse struct {
 	// JSON409 the response for an HTTP 409 `application/json` response
 	JSON409 *N409Conflict
 	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
+	JSON429 *N429SandboxCredentialRateLimitOrConflict
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 	// JSON503 the response for an HTTP 503 `application/json` response
@@ -48761,7 +48536,7 @@ type DeleteSandboxGroupCredentialResponse struct {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r DeleteSandboxGroupCredentialResponse) GetJSON400() *Error {
+func (r DeleteSandboxGroupCredentialResponse) GetJSON400() *N400SandboxGroupBadRequest {
 	return r.JSON400
 }
 
@@ -48786,7 +48561,7 @@ func (r DeleteSandboxGroupCredentialResponse) GetJSON409() *N409Conflict {
 }
 
 // GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r DeleteSandboxGroupCredentialResponse) GetJSON429() *N429RateLimit {
+func (r DeleteSandboxGroupCredentialResponse) GetJSON429() *N429SandboxCredentialRateLimitOrConflict {
 	return r.JSON429
 }
 
@@ -48843,7 +48618,7 @@ type RetrieveSandboxGroupCredentialResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef17.SandboxCredential
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *Error
+	JSON400 *N400SandboxGroupBadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -48866,7 +48641,7 @@ func (r RetrieveSandboxGroupCredentialResponse) GetJSON200() *externalRef17.Sand
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r RetrieveSandboxGroupCredentialResponse) GetJSON400() *Error {
+func (r RetrieveSandboxGroupCredentialResponse) GetJSON400() *N400SandboxGroupBadRequest {
 	return r.JSON400
 }
 
@@ -48943,17 +48718,17 @@ type UpdateSandboxGroupCredentialResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef17.SandboxCredential
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *Error
+	JSON400 *N400SandboxGroupBadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
-	JSON403 *N403Forbidden
+	JSON403 *Error
 	// JSON404 the response for an HTTP 404 `application/json` response
 	JSON404 *N404NotFound
 	// JSON409 the response for an HTTP 409 `application/json` response
 	JSON409 *N409Conflict
 	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
+	JSON429 *N429SandboxCredentialRateLimitOrConflict
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 	// JSON503 the response for an HTTP 503 `application/json` response
@@ -48968,7 +48743,7 @@ func (r UpdateSandboxGroupCredentialResponse) GetJSON200() *externalRef17.Sandbo
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r UpdateSandboxGroupCredentialResponse) GetJSON400() *Error {
+func (r UpdateSandboxGroupCredentialResponse) GetJSON400() *N400SandboxGroupBadRequest {
 	return r.JSON400
 }
 
@@ -48978,7 +48753,7 @@ func (r UpdateSandboxGroupCredentialResponse) GetJSON401() *N401Unauthorized {
 }
 
 // GetJSON403 returns the response for an HTTP 403 `application/json` response
-func (r UpdateSandboxGroupCredentialResponse) GetJSON403() *N403Forbidden {
+func (r UpdateSandboxGroupCredentialResponse) GetJSON403() *Error {
 	return r.JSON403
 }
 
@@ -48993,7 +48768,7 @@ func (r UpdateSandboxGroupCredentialResponse) GetJSON409() *N409Conflict {
 }
 
 // GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r UpdateSandboxGroupCredentialResponse) GetJSON429() *N429RateLimit {
+func (r UpdateSandboxGroupCredentialResponse) GetJSON429() *N429SandboxCredentialRateLimitOrConflict {
 	return r.JSON429
 }
 
@@ -49060,7 +48835,7 @@ type RestoreSandboxGroupCredentialResponse struct {
 	// JSON409 the response for an HTTP 409 `application/json` response
 	JSON409 *N409Conflict
 	// JSON429 the response for an HTTP 429 `application/json` response
-	JSON429 *N429RateLimit
+	JSON429 *N429SandboxCredentialRateLimitOrConflict
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 	// JSON503 the response for an HTTP 503 `application/json` response
@@ -49100,7 +48875,7 @@ func (r RestoreSandboxGroupCredentialResponse) GetJSON409() *N409Conflict {
 }
 
 // GetJSON429 returns the response for an HTTP 429 `application/json` response
-func (r RestoreSandboxGroupCredentialResponse) GetJSON429() *N429RateLimit {
+func (r RestoreSandboxGroupCredentialResponse) GetJSON429() *N429SandboxCredentialRateLimitOrConflict {
 	return r.JSON429
 }
 
@@ -49264,7 +49039,7 @@ type SetDefaultSandboxGroupResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef17.SandboxGroup
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400SandboxGroupBadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -49272,7 +49047,7 @@ type SetDefaultSandboxGroupResponse struct {
 	// JSON404 the response for an HTTP 404 `application/json` response
 	JSON404 *N404NotFound
 	// JSON409 the response for an HTTP 409 `application/json` response
-	JSON409 *N409Conflict
+	JSON409 *N409SandboxGroupSuspended
 	// JSON429 the response for an HTTP 429 `application/json` response
 	JSON429 *N429RateLimit
 	// JSON500 the response for an HTTP 500 `application/json` response
@@ -49289,7 +49064,7 @@ func (r SetDefaultSandboxGroupResponse) GetJSON200() *externalRef17.SandboxGroup
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r SetDefaultSandboxGroupResponse) GetJSON400() *N400BadRequest {
+func (r SetDefaultSandboxGroupResponse) GetJSON400() *N400SandboxGroupBadRequest {
 	return r.JSON400
 }
 
@@ -49309,7 +49084,7 @@ func (r SetDefaultSandboxGroupResponse) GetJSON404() *N404NotFound {
 }
 
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
-func (r SetDefaultSandboxGroupResponse) GetJSON409() *N409Conflict {
+func (r SetDefaultSandboxGroupResponse) GetJSON409() *N409SandboxGroupSuspended {
 	return r.JSON409
 }
 
@@ -49371,7 +49146,7 @@ type ListSandboxSnapshotsResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *[]SandboxSnapshotWithCursor
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *Error
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -49394,7 +49169,7 @@ func (r ListSandboxSnapshotsResponse) GetJSON200() *[]SandboxSnapshotWithCursor 
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r ListSandboxSnapshotsResponse) GetJSON400() *N400BadRequest {
+func (r ListSandboxSnapshotsResponse) GetJSON400() *Error {
 	return r.JSON400
 }
 
@@ -49469,15 +49244,15 @@ type DeleteSandboxSnapshotResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400SandboxSnapshotBadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
 	JSON403 *N403Forbidden
 	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
+	JSON404 *Error
 	// JSON409 the response for an HTTP 409 `application/json` response
-	JSON409 *N409Conflict
+	JSON409 *Error
 	// JSON429 the response for an HTTP 429 `application/json` response
 	JSON429 *N429RateLimit
 	// JSON500 the response for an HTTP 500 `application/json` response
@@ -49489,7 +49264,7 @@ type DeleteSandboxSnapshotResponse struct {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r DeleteSandboxSnapshotResponse) GetJSON400() *N400BadRequest {
+func (r DeleteSandboxSnapshotResponse) GetJSON400() *N400SandboxSnapshotBadRequest {
 	return r.JSON400
 }
 
@@ -49504,12 +49279,12 @@ func (r DeleteSandboxSnapshotResponse) GetJSON403() *N403Forbidden {
 }
 
 // GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r DeleteSandboxSnapshotResponse) GetJSON404() *N404NotFound {
+func (r DeleteSandboxSnapshotResponse) GetJSON404() *Error {
 	return r.JSON404
 }
 
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
-func (r DeleteSandboxSnapshotResponse) GetJSON409() *N409Conflict {
+func (r DeleteSandboxSnapshotResponse) GetJSON409() *Error {
 	return r.JSON409
 }
 
@@ -49571,13 +49346,13 @@ type RetrieveSandboxSnapshotResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef17.SandboxSnapshot
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400SandboxSnapshotBadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
 	JSON403 *N403Forbidden
 	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
+	JSON404 *Error
 	// JSON429 the response for an HTTP 429 `application/json` response
 	JSON429 *N429RateLimit
 	// JSON500 the response for an HTTP 500 `application/json` response
@@ -49594,7 +49369,7 @@ func (r RetrieveSandboxSnapshotResponse) GetJSON200() *externalRef17.SandboxSnap
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r RetrieveSandboxSnapshotResponse) GetJSON400() *N400BadRequest {
+func (r RetrieveSandboxSnapshotResponse) GetJSON400() *N400SandboxSnapshotBadRequest {
 	return r.JSON400
 }
 
@@ -49609,7 +49384,7 @@ func (r RetrieveSandboxSnapshotResponse) GetJSON403() *N403Forbidden {
 }
 
 // GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r RetrieveSandboxSnapshotResponse) GetJSON404() *N404NotFound {
+func (r RetrieveSandboxSnapshotResponse) GetJSON404() *Error {
 	return r.JSON404
 }
 
@@ -49771,15 +49546,15 @@ type CreateSandboxResponse struct {
 	// JSON201 the response for an HTTP 201 `application/json` response
 	JSON201 *externalRef17.Sandbox
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *Error
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
 	JSON403 *N403Forbidden
 	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *N404NotFound
+	JSON404 *Error
 	// JSON409 the response for an HTTP 409 `application/json` response
-	JSON409 *N409Conflict
+	JSON409 *Error
 	// JSON429 the response for an HTTP 429 `application/json` response
 	JSON429 *N429RateLimit
 	// JSON500 the response for an HTTP 500 `application/json` response
@@ -49796,7 +49571,7 @@ func (r CreateSandboxResponse) GetJSON201() *externalRef17.Sandbox {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r CreateSandboxResponse) GetJSON400() *N400BadRequest {
+func (r CreateSandboxResponse) GetJSON400() *Error {
 	return r.JSON400
 }
 
@@ -49811,12 +49586,12 @@ func (r CreateSandboxResponse) GetJSON403() *N403Forbidden {
 }
 
 // GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r CreateSandboxResponse) GetJSON404() *N404NotFound {
+func (r CreateSandboxResponse) GetJSON404() *Error {
 	return r.JSON404
 }
 
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
-func (r CreateSandboxResponse) GetJSON409() *N409Conflict {
+func (r CreateSandboxResponse) GetJSON409() *Error {
 	return r.JSON409
 }
 
@@ -50172,7 +49947,7 @@ type ConnectSandboxFilesResponse struct {
 	// JSON404 the response for an HTTP 404 `application/json` response
 	JSON404 *N404NotFound
 	// JSON409 the response for an HTTP 409 `application/json` response
-	JSON409 *N409Conflict
+	JSON409 *N409SandboxConnectConflict
 	// JSON429 the response for an HTTP 429 `application/json` response
 	JSON429 *N429RateLimit
 	// JSON500 the response for an HTTP 500 `application/json` response
@@ -50209,7 +49984,7 @@ func (r ConnectSandboxFilesResponse) GetJSON404() *N404NotFound {
 }
 
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
-func (r ConnectSandboxFilesResponse) GetJSON409() *N409Conflict {
+func (r ConnectSandboxFilesResponse) GetJSON409() *N409SandboxConnectConflict {
 	return r.JSON409
 }
 
@@ -50279,7 +50054,7 @@ type ConnectSandboxRunResponse struct {
 	// JSON404 the response for an HTTP 404 `application/json` response
 	JSON404 *N404NotFound
 	// JSON409 the response for an HTTP 409 `application/json` response
-	JSON409 *N409Conflict
+	JSON409 *N409SandboxConnectConflict
 	// JSON429 the response for an HTTP 429 `application/json` response
 	JSON429 *N429RateLimit
 	// JSON500 the response for an HTTP 500 `application/json` response
@@ -50316,7 +50091,7 @@ func (r ConnectSandboxRunResponse) GetJSON404() *N404NotFound {
 }
 
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
-func (r ConnectSandboxRunResponse) GetJSON409() *N409Conflict {
+func (r ConnectSandboxRunResponse) GetJSON409() *N409SandboxConnectConflict {
 	return r.JSON409
 }
 
@@ -50378,7 +50153,7 @@ type CreateSandboxSnapshotResponse struct {
 	// JSON202 the response for an HTTP 202 `application/json` response
 	JSON202 *externalRef17.SandboxSnapshot
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *Error
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -50386,7 +50161,7 @@ type CreateSandboxSnapshotResponse struct {
 	// JSON404 the response for an HTTP 404 `application/json` response
 	JSON404 *N404NotFound
 	// JSON409 the response for an HTTP 409 `application/json` response
-	JSON409 *N409Conflict
+	JSON409 *Error
 	// JSON429 the response for an HTTP 429 `application/json` response
 	JSON429 *N429RateLimit
 	// JSON500 the response for an HTTP 500 `application/json` response
@@ -50403,7 +50178,7 @@ func (r CreateSandboxSnapshotResponse) GetJSON202() *externalRef17.SandboxSnapsh
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r CreateSandboxSnapshotResponse) GetJSON400() *N400BadRequest {
+func (r CreateSandboxSnapshotResponse) GetJSON400() *Error {
 	return r.JSON400
 }
 
@@ -50423,7 +50198,7 @@ func (r CreateSandboxSnapshotResponse) GetJSON404() *N404NotFound {
 }
 
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
-func (r CreateSandboxSnapshotResponse) GetJSON409() *N409Conflict {
+func (r CreateSandboxSnapshotResponse) GetJSON409() *Error {
 	return r.JSON409
 }
 
@@ -58374,6 +58149,29 @@ func (c *ClientWithResponses) ListBuildsInBuildSourceWithResponse(ctx context.Co
 	return ParseListBuildsInBuildSourceResponse(rsp)
 }
 
+// TriggerBuildSourceBuildWithBodyWithResponse Trigger a build
+//
+// Start a new build of the build source at the current HEAD of its
+// branch, even if an up-to-date build already exists. Services linked to
+// the build source with autodeploy enabled are deployed with the result.
+//
+// Updating a build source or its build-time environment (env vars,
+// secret files, env groups) with the REST API does not build it. Call
+// this endpoint after those changes to build them.
+//
+// Only `git` build sources can be built.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /build-sources/{buildSourceId}/builds (the `TriggerBuildSourceBuild` operationId).
+func (c *ClientWithResponses) TriggerBuildSourceBuildWithBodyWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TriggerBuildSourceBuildResponse, error) {
+	rsp, err := c.TriggerBuildSourceBuildWithBody(ctx, buildSourceId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTriggerBuildSourceBuildResponse(rsp)
+}
+
 // TriggerBuildSourceBuildWithResponse Trigger a build
 //
 // Start a new build of the build source at the current HEAD of its
@@ -58386,11 +58184,11 @@ func (c *ClientWithResponses) ListBuildsInBuildSourceWithResponse(ctx context.Co
 //
 // Only `git` build sources can be built.
 //
-// Returns a wrapper object for the known response body format(s).
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /build-sources/{buildSourceId}/builds (the `TriggerBuildSourceBuild` operationId).
-func (c *ClientWithResponses) TriggerBuildSourceBuildWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, reqEditors ...RequestEditorFn) (*TriggerBuildSourceBuildResponse, error) {
-	rsp, err := c.TriggerBuildSourceBuild(ctx, buildSourceId, reqEditors...)
+func (c *ClientWithResponses) TriggerBuildSourceBuildWithResponse(ctx context.Context, buildSourceId externalRef3.BuildSourceIdParam, body TriggerBuildSourceBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*TriggerBuildSourceBuildResponse, error) {
+	rsp, err := c.TriggerBuildSourceBuild(ctx, buildSourceId, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -61565,9 +61363,7 @@ func (c *ClientWithResponses) UpdateRegistryCredentialWithResponse(ctx context.C
 
 // ListSandboxGroupsWithResponse List sandbox groups
 //
-// List sandbox groups for a single workspace, newest first. The default
-// page size is 20 and the maximum is 100.
-// Use the last item's cursor to fetch the next page, until it is empty.
+// List sandbox groups in a workspace, newest first. Returns up to 20 groups by default, with a maximum of 100. To fetch the next page, pass the last result's cursor as `cursor`. Continue until the response is empty.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -61582,8 +61378,7 @@ func (c *ClientWithResponses) ListSandboxGroupsWithResponse(ctx context.Context,
 
 // CreateSandboxGroupWithBodyWithResponse Create sandbox group
 //
-// Create a sandbox group. The workspace's first group becomes its default.
-// Returns 409 if the `name` is taken.
+// Create a sandbox group. The first group in a workspace becomes its default.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61598,8 +61393,7 @@ func (c *ClientWithResponses) CreateSandboxGroupWithBodyWithResponse(ctx context
 
 // CreateSandboxGroupWithResponse Create sandbox group
 //
-// Create a sandbox group. The workspace's first group becomes its default.
-// Returns 409 if the `name` is taken.
+// Create a sandbox group. The first group in a workspace becomes its default.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61614,13 +61408,7 @@ func (c *ClientWithResponses) CreateSandboxGroupWithResponse(ctx context.Context
 
 // DeleteSandboxGroupWithResponse Delete sandbox group
 //
-// Delete a sandbox group. Its sandboxes are terminated, and its snapshots
-// and credentials are deleted shortly after the request returns.
-//
-// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
-// 409 with `code: default_sandbox_group_not_deletable` for the owner's
-// default sandbox group. Make another group the default first.
-// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Delete a sandbox group. Its sandboxes are terminated and its snapshots and credentials are deleted shortly after the request returns.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -61635,7 +61423,7 @@ func (c *ClientWithResponses) DeleteSandboxGroupWithResponse(ctx context.Context
 
 // RetrieveSandboxGroupWithResponse Retrieve sandbox group
 //
-// Retrieve a sandbox group. 400 `invalid_sandbox_group_id` for a malformed ID.
+// Retrieve a sandbox group by ID.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -61650,9 +61438,7 @@ func (c *ClientWithResponses) RetrieveSandboxGroupWithResponse(ctx context.Conte
 
 // UpdateSandboxGroupWithBodyWithResponse Update sandbox group
 //
-// Update a sandbox group's concurrency limit. Returns 400 for a malformed
-// ID (`invalid_sandbox_group_id`), missing `concurrencyLimit`, or a value
-// below 1. The response returns the effective limit after applying Render's cap.
+// Update a sandbox group's concurrency limit. The response contains the effective limit after applying Render's limit for the workspace.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61667,9 +61453,7 @@ func (c *ClientWithResponses) UpdateSandboxGroupWithBodyWithResponse(ctx context
 
 // UpdateSandboxGroupWithResponse Update sandbox group
 //
-// Update a sandbox group's concurrency limit. Returns 400 for a malformed
-// ID (`invalid_sandbox_group_id`), missing `concurrencyLimit`, or a value
-// below 1. The response returns the effective limit after applying Render's cap.
+// Update a sandbox group's concurrency limit. The response contains the effective limit after applying Render's limit for the workspace.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61684,12 +61468,7 @@ func (c *ClientWithResponses) UpdateSandboxGroupWithResponse(ctx context.Context
 
 // ListSandboxBuildsWithResponse List sandbox builds
 //
-// Builds in a sandbox group, newest first.
-//
-// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-// well-formed `sbg-` ID, `code: invalid_status` for a status outside the
-// build status vocabulary, `code: invalid_cursor` for a malformed cursor,
-// or `code: invalid_limit` for a limit outside 1 to 100.
+// List builds in a sandbox group, newest first.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -61704,20 +61483,9 @@ func (c *ClientWithResponses) ListSandboxBuildsWithResponse(ctx context.Context,
 
 // CreateSandboxBuildWithBodyWithResponse Create sandbox build
 //
-// Starts converting an OCI image into a sandbox image, and returns the
-// build without waiting for it. Poll the build until it `succeeded` or
-// `failed`, then pass its ID as `buildId` to create a sandbox. A request
-// for a name and image digest the group already has, or is building,
-// returns that build.
+// Start converting an OCI container image into an image that sandboxes can use. New builds run asynchronously. Retrieve the build until its status is `succeeded` or `failed`. After it succeeds, provide its ID as `buildId` when creating a sandbox.
 //
-// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-// well-formed `sbg-` ID, or a message if the image is invalid or its
-// registry can't serve it.
-//
-// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-//
-// 429 if the group already has as many builds pending or running as its
-// limit allows. The message includes the limit.
+// If the group already has a pending, running, or succeeded build for the same name and image digest, Render returns that build. Retrying a failed build starts a new build.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61732,20 +61500,9 @@ func (c *ClientWithResponses) CreateSandboxBuildWithBodyWithResponse(ctx context
 
 // CreateSandboxBuildWithResponse Create sandbox build
 //
-// Starts converting an OCI image into a sandbox image, and returns the
-// build without waiting for it. Poll the build until it `succeeded` or
-// `failed`, then pass its ID as `buildId` to create a sandbox. A request
-// for a name and image digest the group already has, or is building,
-// returns that build.
+// Start converting an OCI container image into an image that sandboxes can use. New builds run asynchronously. Retrieve the build until its status is `succeeded` or `failed`. After it succeeds, provide its ID as `buildId` when creating a sandbox.
 //
-// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-// well-formed `sbg-` ID, or a message if the image is invalid or its
-// registry can't serve it.
-//
-// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-//
-// 429 if the group already has as many builds pending or running as its
-// limit allows. The message includes the limit.
+// If the group already has a pending, running, or succeeded build for the same name and image digest, Render returns that build. Retrying a failed build starts a new build.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61758,14 +61515,24 @@ func (c *ClientWithResponses) CreateSandboxBuildWithResponse(ctx context.Context
 	return ParseCreateSandboxBuildResponse(rsp)
 }
 
+// DeleteSandboxBuildWithResponse Delete sandbox build
+//
+// Delete a build of a sandbox image. The build no longer appears in lists and cannot be retrieved or used to create sandboxes, including by image name. Repeated requests to delete the build return HTTP 204.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /sandbox-groups/{sandboxGroupId}/builds/{buildId} (the `DeleteSandboxBuild` operationId).
+func (c *ClientWithResponses) DeleteSandboxBuildWithResponse(ctx context.Context, sandboxGroupId externalRef17.SandboxGroupId, buildId externalRef17.BuildId, reqEditors ...RequestEditorFn) (*DeleteSandboxBuildResponse, error) {
+	rsp, err := c.DeleteSandboxBuild(ctx, sandboxGroupId, buildId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteSandboxBuildResponse(rsp)
+}
+
 // RetrieveSandboxBuildWithResponse Retrieve sandbox build
 //
-// One build by ID. 404 with `code: build_not_found` if the build doesn't
-// exist or belongs to another sandbox group.
-//
-// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-// well-formed `sbg-` ID, or `invalid build ID` if `buildId` is not a
-// well-formed `sbb-` ID.
+// Retrieve a build by ID.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -61780,8 +61547,7 @@ func (c *ClientWithResponses) RetrieveSandboxBuildWithResponse(ctx context.Conte
 
 // ListSandboxGroupCredentialsWithResponse List sandbox group credentials
 //
-// Returns all credentials in the group, sorted by caller-supplied ID.
-// Secret values are never returned, including to admins.
+// List credentials in the sandbox group, sorted by credential ID. Returns credential settings and metadata. These endpoints do not return secret values, including to admins.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -61796,13 +61562,11 @@ func (c *ClientWithResponses) ListSandboxGroupCredentialsWithResponse(ctx contex
 
 // CreateSandboxGroupCredentialWithBodyWithResponse Create sandbox group credential
 //
-// Admin-only. Creates an independent credential with a caller-supplied ID.
-// Each sandbox group supports at most 25 credentials and 200 KiB (204800
-// bytes) of serialized current credentials, including configuration and
-// values. Three distinct prior configurations per credential are retained
-// by fingerprint, with a 1 MiB total storage limit including version
-// metadata and configurations. Limits are checked before saving. A
-// temporary synchronization conflicts return 429.
+// Configure a credential for injection into matching outbound HTTPS requests from sandboxes in this group. Requires an admin. You assign the credential ID.
+//
+// Each group supports up to 25 credentials. Current credential settings and secret values have a combined serialized size limit of 200 KiB (204800 bytes). Render retains the current configuration and three distinct prior configurations per credential, with a total storage limit of 1 MiB including version metadata.
+//
+// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61817,13 +61581,11 @@ func (c *ClientWithResponses) CreateSandboxGroupCredentialWithBodyWithResponse(c
 
 // CreateSandboxGroupCredentialWithResponse Create sandbox group credential
 //
-// Admin-only. Creates an independent credential with a caller-supplied ID.
-// Each sandbox group supports at most 25 credentials and 200 KiB (204800
-// bytes) of serialized current credentials, including configuration and
-// values. Three distinct prior configurations per credential are retained
-// by fingerprint, with a 1 MiB total storage limit including version
-// metadata and configurations. Limits are checked before saving. A
-// temporary synchronization conflicts return 429.
+// Configure a credential for injection into matching outbound HTTPS requests from sandboxes in this group. Requires an admin. You assign the credential ID.
+//
+// Each group supports up to 25 credentials. Current credential settings and secret values have a combined serialized size limit of 200 KiB (204800 bytes). Render retains the current configuration and three distinct prior configurations per credential, with a total storage limit of 1 MiB including version metadata.
+//
+// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61838,9 +61600,7 @@ func (c *ClientWithResponses) CreateSandboxGroupCredentialWithResponse(ctx conte
 
 // DeleteSandboxGroupCredentialWithResponse Delete sandbox group credential
 //
-// Admin-only. Removes the credential if present and synchronizes the
-// group's gateway configuration. Repeated deletion requests are accepted.
-// A temporary synchronization conflict returns 429.
+// Delete a credential from the sandbox group. Requires an admin. Repeated delete requests are accepted, including if the credential is already absent.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -61855,8 +61615,7 @@ func (c *ClientWithResponses) DeleteSandboxGroupCredentialWithResponse(ctx conte
 
 // RetrieveSandboxGroupCredentialWithResponse Retrieve sandbox group credential
 //
-// Secret values are never returned, including to admins.
-// Credentials are scoped to the addressed sandbox group.
+// Retrieve the settings and metadata for a credential in this sandbox group. These endpoints do not return secret values, including to admins.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -61871,14 +61630,11 @@ func (c *ClientWithResponses) RetrieveSandboxGroupCredentialWithResponse(ctx con
 
 // UpdateSandboxGroupCredentialWithBodyWithResponse Update sandbox group credential
 //
-// Admins may update configuration. Developers may update injection,
-// method/path filters, and enabled state; destination or value changes
-// require an admin. Assigning a value creates a new version; omitting it
-// preserves the value. Other omitted fields are preserved; empty methods
-// or paths arrays clear their filters. The group's serialized current
-// credentials must remain within 200 KiB (204800 bytes). A successful
-// response means desired state was saved; runtime reconciliation may still
-// be pending. A temporary synchronization conflict returns 429.
+// Update a credential. Developers can change `injection`, `methods`, `paths`, and `enabled`. Changing `domain` or `value` requires an admin.
+//
+// Omitted top-level fields keep their current values. Providing `injection` replaces the entire object. Its `template` defaults to `${SECRET}` when omitted. An empty `methods` or `paths` list removes that filter. Providing `value` creates a new version. The combined serialized size of current credential settings and secret values in the group must remain within 200 KiB (204800 bytes).
+//
+// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61893,14 +61649,11 @@ func (c *ClientWithResponses) UpdateSandboxGroupCredentialWithBodyWithResponse(c
 
 // UpdateSandboxGroupCredentialWithResponse Update sandbox group credential
 //
-// Admins may update configuration. Developers may update injection,
-// method/path filters, and enabled state; destination or value changes
-// require an admin. Assigning a value creates a new version; omitting it
-// preserves the value. Other omitted fields are preserved; empty methods
-// or paths arrays clear their filters. The group's serialized current
-// credentials must remain within 200 KiB (204800 bytes). A successful
-// response means desired state was saved; runtime reconciliation may still
-// be pending. A temporary synchronization conflict returns 429.
+// Update a credential. Developers can change `injection`, `methods`, `paths`, and `enabled`. Changing `domain` or `value` requires an admin.
+//
+// Omitted top-level fields keep their current values. Providing `injection` replaces the entire object. Its `template` defaults to `${SECRET}` when omitted. An empty `methods` or `paths` list removes that filter. Providing `value` creates a new version. The combined serialized size of current credential settings and secret values in the group must remain within 200 KiB (204800 bytes).
+//
+// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61915,15 +61668,13 @@ func (c *ClientWithResponses) UpdateSandboxGroupCredentialWithResponse(ctx conte
 
 // RestoreSandboxGroupCredentialWithBodyWithResponse Restore sandbox credential configuration
 //
-// Admin-only. Creates a new current revision from the routing
-// configuration, injection configuration, and secret value of a retained
-// version. The new revision has an increasing version ID, the restoring
-// identity and timestamp, the same fingerprint as the source, and
-// restoredFromVersionId identifying the source. Each distinct
-// configuration is stored once by fingerprint. The current and three most
-// recently active prior configurations are retained. Evicting a
-// configuration removes all version metadata referring to it. Values are
-// never returned. A temporary synchronization conflict returns 429.
+// Restore a retained credential version, including its routing settings, injection settings, and secret value, as a new current version. Requires an admin.
+//
+// The new version has a higher ID, records who restored it and when, and identifies the source in `restoredFromVersionId`. Its fingerprint matches the source version. Render retains the current configuration and the three distinct prior configurations most recently active. Removing an older configuration also removes all versions that refer to it.
+//
+// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
+//
+// These endpoints do not return secret values.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61938,15 +61689,13 @@ func (c *ClientWithResponses) RestoreSandboxGroupCredentialWithBodyWithResponse(
 
 // RestoreSandboxGroupCredentialWithResponse Restore sandbox credential configuration
 //
-// Admin-only. Creates a new current revision from the routing
-// configuration, injection configuration, and secret value of a retained
-// version. The new revision has an increasing version ID, the restoring
-// identity and timestamp, the same fingerprint as the source, and
-// restoredFromVersionId identifying the source. Each distinct
-// configuration is stored once by fingerprint. The current and three most
-// recently active prior configurations are retained. Evicting a
-// configuration removes all version metadata referring to it. Values are
-// never returned. A temporary synchronization conflict returns 429.
+// Restore a retained credential version, including its routing settings, injection settings, and secret value, as a new current version. Requires an admin.
+//
+// The new version has a higher ID, records who restored it and when, and identifies the source in `restoredFromVersionId`. Its fingerprint matches the source version. Render retains the current configuration and the three distinct prior configurations most recently active. Removing an older configuration also removes all versions that refer to it.
+//
+// The response confirms the configuration was saved. It does not confirm that credential injection is active for a particular sandbox.
+//
+// These endpoints do not return secret values.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61961,10 +61710,9 @@ func (c *ClientWithResponses) RestoreSandboxGroupCredentialWithResponse(ctx cont
 
 // ListSandboxGroupCredentialVersionsWithResponse List sandbox credential versions
 //
-// Returns version metadata in descending version ID order. Multiple versions may
-// share one configuration fingerprint. Metadata is retained while its configuration
-// is retained; configurations are evicted by their most recent activation version ID.
-// Secret values and the group fingerprint nonce are never returned.
+// List retained credential versions, newest version ID first. Versions with identical settings and secret values share a fingerprint.
+//
+// Render retains the current configuration and the three distinct prior configurations most recently active. When an older configuration is removed, all versions that refer to it are also removed. These endpoints do not return secret values.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -61979,12 +61727,7 @@ func (c *ClientWithResponses) ListSandboxGroupCredentialVersionsWithResponse(ctx
 
 // SetDefaultSandboxGroupWithResponse Set default sandbox group
 //
-// Make a sandbox group its owner's default. Sandbox creates without a
-// `sandboxGroupId` use the default group. The previous default stays as a
-// regular group. Idempotent: setting the current default returns it unchanged.
-//
-// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
-// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Set a sandbox group as its workspace's default. Sandbox create requests that omit `sandboxGroupId` use this group. The previous default remains available as a regular group. Setting the current default returns it unchanged.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -61999,14 +61742,7 @@ func (c *ClientWithResponses) SetDefaultSandboxGroupWithResponse(ctx context.Con
 
 // ListSandboxSnapshotsWithResponse List sandbox snapshots
 //
-// Snapshots in a sandbox group, newest first. Expired and deleted snapshots
-// are omitted.
-//
-// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-// well-formed `sbg-` ID, `code: invalid_owner_id` if `ownerId` is missing or
-// repeated, `code: invalid_status` for a status outside the snapshot status
-// vocabulary, `code: invalid_cursor` for a malformed or unknown cursor, or
-// `code: invalid_limit` for a limit outside 1 to 100.
+// List snapshots in a sandbox group, newest first. Excludes expired and deleted snapshots.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -62021,13 +61757,7 @@ func (c *ClientWithResponses) ListSandboxSnapshotsWithResponse(ctx context.Conte
 
 // DeleteSandboxSnapshotWithResponse Delete sandbox snapshot
 //
-// Idempotent: returns 204 if the snapshot is already deleted or expired.
-// Sandboxes created from the snapshot are not affected. A snapshot that
-// belongs to another sandbox group returns 404.
-//
-// 400 with `code: invalid_sandbox_group_id` when `sandboxGroupId` is malformed.
-// 400 with `code: invalid_snapshot_id` when `snapshotId` is malformed.
-// 409 with `code: snapshot_creating` while the capture is in progress.
+// Delete a snapshot. Sandboxes created from it are not affected. Returns HTTP 204 if the snapshot is already deleted or expired.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -62042,12 +61772,7 @@ func (c *ClientWithResponses) DeleteSandboxSnapshotWithResponse(ctx context.Cont
 
 // RetrieveSandboxSnapshotWithResponse Retrieve sandbox snapshot
 //
-// One snapshot by ID. Deleted and expired snapshots return 404. A snapshot
-// that belongs to another sandbox group returns 404.
-//
-// 400 with `code: invalid_sandbox_group_id` if `sandboxGroupId` is not a
-// well-formed `sbg-` ID, or `code: invalid_snapshot_id` if `snapshotId` is
-// not a well-formed `snp-` ID.
+// Retrieve a snapshot by ID.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -62062,8 +61787,7 @@ func (c *ClientWithResponses) RetrieveSandboxSnapshotWithResponse(ctx context.Co
 
 // ListSandboxesWithResponse List sandboxes
 //
-// List sandboxes for a single workspace. Sandboxes are scoped to the region of
-// their workspace's sandbox group, so one workspace must be named per request.
+// List sandboxes in a workspace. Each request must specify one workspace. Sandboxes run in the region of their sandbox group.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -62078,31 +61802,7 @@ func (c *ClientWithResponses) ListSandboxesWithResponse(ctx context.Context, par
 
 // CreateSandboxWithBodyWithResponse Create sandbox
 //
-// Create a sandbox. Returns the initial sandbox snapshot synchronously.
-//
-// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
-// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
-// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
-// different `plan`.
-//
-// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
-// malformed, 400 without a code if `snapshotId` is also set, and 404 with
-// `code: snapshot_not_found` if no `available` snapshot in the group has the
-// name. The 409 cases above apply to the resolved snapshot.
-//
-// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
-// or starts with `sbx-`.
-//
-// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-//
-// 400 with `code: sandbox_group_limit_reached` if the owner has no default
-// sandbox group and is already at its sandbox group limit.
-//
-// 400 with `code: invalid_sandbox_plan` if `plan` is not one the API currently
-// accepts. The message lists the accepted plans.
-//
-// 400 with `code: invalid_timeout_seconds` if `timeoutSeconds` is below 0 or
-// above 2592000 (30 days).
+// Create a sandbox and return its initial state. The sandbox might still be starting when the response is returned. To use a saved snapshot or custom image, provide `snapshotId`, `snapshotName`, `buildId`, or `buildName`.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62117,31 +61817,7 @@ func (c *ClientWithResponses) CreateSandboxWithBodyWithResponse(ctx context.Cont
 
 // CreateSandboxWithResponse Create sandbox
 //
-// Create a sandbox. Returns the initial sandbox snapshot synchronously.
-//
-// With `snapshotId`: 404 with `code: snapshot_not_found` if the snapshot does not
-// exist; 409 with `code: snapshot_not_available` if it is not `available`, or
-// `code: snapshot_plan_mismatch` if a `runtime` snapshot was requested with a
-// different `plan`.
-//
-// With `snapshotName`: 400 with `code: invalid_snapshot_name` if the name is
-// malformed, 400 without a code if `snapshotId` is also set, and 404 with
-// `code: snapshot_not_found` if no `available` snapshot in the group has the
-// name. The 409 cases above apply to the resolved snapshot.
-//
-// 400 with `code: invalid_sandbox_name` if `name` is longer than 64 characters
-// or starts with `sbx-`.
-//
-// 409 with `code: sandbox_group_suspended` if the sandbox group is suspended.
-//
-// 400 with `code: sandbox_group_limit_reached` if the owner has no default
-// sandbox group and is already at its sandbox group limit.
-//
-// 400 with `code: invalid_sandbox_plan` if `plan` is not one the API currently
-// accepts. The message lists the accepted plans.
-//
-// 400 with `code: invalid_timeout_seconds` if `timeoutSeconds` is below 0 or
-// above 2592000 (30 days).
+// Create a sandbox and return its initial state. The sandbox might still be starting when the response is returned. To use a saved snapshot or custom image, provide `snapshotId`, `snapshotName`, `buildId`, or `buildName`.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62201,19 +61877,9 @@ func (c *ClientWithResponses) RetrieveSandboxExecutionWithResponse(ctx context.C
 
 // ConnectSandboxFilesWithResponse Mint a connect token for a sandbox file transfer
 //
-// Mint a short-lived, capability-scoped connect token that authorizes a
-// single file upload or download against the sandbox, and return the
-// sandbox-proxy endpoint to invoke with it. The caller streams the file
-// bytes directly to (or from) that endpoint with the token as a bearer
-// credential. `application/octet-stream` carries a single file and
-// `application/x-tar` a directory archive, with compression carried
-// separately by `Content-Encoding: gzip` in either direction; directory
-// downloads return `application/x-tar` with `Content-Encoding: gzip`. The
-// token is bound to this sandbox, operation, and path, and expires
-// shortly after issuance.
+// Create a short-lived connect token for a file upload or download. Transfer the file directly to or from the URL in the response, using the token as the bearer token. The token authorizes only the specified sandbox, operation, and path. Its expiration time is returned in `expiresAt`.
 //
-// 409 with `code: sandbox_not_running` if the sandbox is terminated or
-// errored, or `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Use `application/octet-stream` for a single file or `application/x-tar` for a directory archive. For gzip compression, also set `Content-Encoding: gzip`. Directory downloads return `application/x-tar` with `Content-Encoding: gzip`.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -62228,12 +61894,7 @@ func (c *ClientWithResponses) ConnectSandboxFilesWithResponse(ctx context.Contex
 
 // ConnectSandboxRunWithBodyWithResponse Create a connect token for a sandbox run
 //
-// Mint a short-lived, capability-scoped connect token that authorizes a
-// single run operation against the specified sandbox. The response contains
-// the sandbox URI where the caller sends the command with the token as a bearer credential.
-//
-// 409 with `code: sandbox_not_running` if the sandbox is terminated or
-// errored, or `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Create a short-lived connect token for a command run in this sandbox. Send the command to the URL in the response, using the token as the bearer token. The token authorizes only the requested operation.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62248,12 +61909,7 @@ func (c *ClientWithResponses) ConnectSandboxRunWithBodyWithResponse(ctx context.
 
 // ConnectSandboxRunWithResponse Create a connect token for a sandbox run
 //
-// Mint a short-lived, capability-scoped connect token that authorizes a
-// single run operation against the specified sandbox. The response contains
-// the sandbox URI where the caller sends the command with the token as a bearer credential.
-//
-// 409 with `code: sandbox_not_running` if the sandbox is terminated or
-// errored, or `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Create a short-lived connect token for a command run in this sandbox. Send the command to the URL in the response, using the token as the bearer token. The token authorizes only the requested operation.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62268,13 +61924,7 @@ func (c *ClientWithResponses) ConnectSandboxRunWithResponse(ctx context.Context,
 
 // CreateSandboxSnapshotWithBodyWithResponse Create sandbox snapshot
 //
-// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
-// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
-// running; a runtime capture pauses it briefly.
-//
-// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
-// `code: sandbox_not_running` if the sandbox is not `running`, or
-// `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Capture a snapshot of a running sandbox. Returns HTTP 202 with the snapshot in `creating` status. Retrieve the snapshot until its status is `available` or `failed`. The sandbox continues running, with a brief pause when capturing a runtime snapshot.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62289,13 +61939,7 @@ func (c *ClientWithResponses) CreateSandboxSnapshotWithBodyWithResponse(ctx cont
 
 // CreateSandboxSnapshotWithResponse Create sandbox snapshot
 //
-// Capture a snapshot of a running sandbox. Returns 202 with the snapshot in
-// `creating`. Poll until it is `available` or `failed`. The sandbox keeps
-// running; a runtime capture pauses it briefly.
-//
-// 400 with `code: invalid_snapshot_name` if `name` is malformed. 409 with
-// `code: sandbox_not_running` if the sandbox is not `running`, or
-// `code: sandbox_group_suspended` if the sandbox group is suspended.
+// Capture a snapshot of a running sandbox. Returns HTTP 202 with the snapshot in `creating` status. Retrieve the snapshot until its status is `available` or `failed`. The sandbox continues running, with a brief pause when capturing a runtime snapshot.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62310,9 +61954,7 @@ func (c *ClientWithResponses) CreateSandboxSnapshotWithResponse(ctx context.Cont
 
 // TerminateSandboxWithResponse Terminate sandbox
 //
-// Terminate the sandbox with the provided ID. Idempotent: returns 204 from any
-// state, including `terminated`. Terminating a `creating` sandbox cancels
-// boot/setup immediately.
+// Terminate the sandbox with the provided ID. Returns HTTP 204 even if the sandbox is already terminated. You can also terminate a sandbox while it is starting (`creating`).
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -81884,7 +81526,7 @@ func ParseCreateSandboxGroupResponse(rsp *http.Response) (*CreateSandboxGroupRes
 		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest N409Conflict
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -81968,7 +81610,7 @@ func ParseDeleteSandboxGroupResponse(rsp *http.Response) (*DeleteSandboxGroupRes
 		break // No content-type
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400SandboxGroupBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -81996,7 +81638,7 @@ func ParseDeleteSandboxGroupResponse(rsp *http.Response) (*DeleteSandboxGroupRes
 		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest N409Conflict
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -82084,7 +81726,7 @@ func ParseRetrieveSandboxGroupResponse(rsp *http.Response) (*RetrieveSandboxGrou
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400SandboxGroupBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -82193,7 +81835,7 @@ func ParseUpdateSandboxGroupResponse(rsp *http.Response) (*UpdateSandboxGroupRes
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -82309,7 +81951,7 @@ func ParseListSandboxBuildsResponse(rsp *http.Response) (*ListSandboxBuildsRespo
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -82418,7 +82060,7 @@ func ParseCreateSandboxBuildResponse(rsp *http.Response) (*CreateSandboxBuildRes
 		response.JSON201 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -82446,14 +82088,14 @@ func ParseCreateSandboxBuildResponse(rsp *http.Response) (*CreateSandboxBuildRes
 		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest N409Conflict
+		var dest N409SandboxGroupSuspended
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -82512,6 +82154,118 @@ func ParseCreateSandboxBuildResponse(rsp *http.Response) (*CreateSandboxBuildRes
 	return response, nil
 }
 
+// ParseDeleteSandboxBuildResponse parses an HTTP response from a DeleteSandboxBuildWithResponse call
+func ParseDeleteSandboxBuildResponse(rsp *http.Response) (*DeleteSandboxBuildResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteSandboxBuildResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400SandboxBuildBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404SandboxBuildNotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest N503ServiceUnavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers DeleteSandboxBuildResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
 // ParseRetrieveSandboxBuildResponse parses an HTTP response from a RetrieveSandboxBuildWithResponse call
 func ParseRetrieveSandboxBuildResponse(rsp *http.Response) (*RetrieveSandboxBuildResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -82534,7 +82288,7 @@ func ParseRetrieveSandboxBuildResponse(rsp *http.Response) (*RetrieveSandboxBuil
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400SandboxBuildBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -82555,7 +82309,7 @@ func ParseRetrieveSandboxBuildResponse(rsp *http.Response) (*RetrieveSandboxBuil
 		response.JSON403 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
+		var dest N404SandboxBuildNotFound
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -82643,7 +82397,7 @@ func ParseListSandboxGroupCredentialsResponse(rsp *http.Response) (*ListSandboxG
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest Error
+		var dest N400SandboxGroupBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -82752,7 +82506,7 @@ func ParseCreateSandboxGroupCredentialResponse(rsp *http.Response) (*CreateSandb
 		response.JSON201 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest Error
+		var dest N400SandboxGroupBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -82787,7 +82541,7 @@ func ParseCreateSandboxGroupCredentialResponse(rsp *http.Response) (*CreateSandb
 		response.JSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
+		var dest N429SandboxCredentialRateLimitOrConflict
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -82864,7 +82618,7 @@ func ParseDeleteSandboxGroupCredentialResponse(rsp *http.Response) (*DeleteSandb
 		break // No content-type
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest Error
+		var dest N400SandboxGroupBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -82899,7 +82653,7 @@ func ParseDeleteSandboxGroupCredentialResponse(rsp *http.Response) (*DeleteSandb
 		response.JSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
+		var dest N429SandboxCredentialRateLimitOrConflict
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -82980,7 +82734,7 @@ func ParseRetrieveSandboxGroupCredentialResponse(rsp *http.Response) (*RetrieveS
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest Error
+		var dest N400SandboxGroupBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -83089,7 +82843,7 @@ func ParseUpdateSandboxGroupCredentialResponse(rsp *http.Response) (*UpdateSandb
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest Error
+		var dest N400SandboxGroupBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -83103,7 +82857,7 @@ func ParseUpdateSandboxGroupCredentialResponse(rsp *http.Response) (*UpdateSandb
 		response.JSON401 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest N403Forbidden
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -83124,7 +82878,7 @@ func ParseUpdateSandboxGroupCredentialResponse(rsp *http.Response) (*UpdateSandb
 		response.JSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
+		var dest N429SandboxCredentialRateLimitOrConflict
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -83240,7 +82994,7 @@ func ParseRestoreSandboxGroupCredentialResponse(rsp *http.Response) (*RestoreSan
 		response.JSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
-		var dest N429RateLimit
+		var dest N429SandboxCredentialRateLimitOrConflict
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -83437,7 +83191,7 @@ func ParseSetDefaultSandboxGroupResponse(rsp *http.Response) (*SetDefaultSandbox
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400SandboxGroupBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -83465,7 +83219,7 @@ func ParseSetDefaultSandboxGroupResponse(rsp *http.Response) (*SetDefaultSandbox
 		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest N409Conflict
+		var dest N409SandboxGroupSuspended
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -83553,7 +83307,7 @@ func ParseListSandboxSnapshotsResponse(rsp *http.Response) (*ListSandboxSnapshot
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -83658,7 +83412,7 @@ func ParseDeleteSandboxSnapshotResponse(rsp *http.Response) (*DeleteSandboxSnaps
 		break // No content-type
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400SandboxSnapshotBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -83679,14 +83433,14 @@ func ParseDeleteSandboxSnapshotResponse(rsp *http.Response) (*DeleteSandboxSnaps
 		response.JSON403 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest N409Conflict
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -83774,7 +83528,7 @@ func ParseRetrieveSandboxSnapshotResponse(rsp *http.Response) (*RetrieveSandboxS
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400SandboxSnapshotBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -83795,7 +83549,7 @@ func ParseRetrieveSandboxSnapshotResponse(rsp *http.Response) (*RetrieveSandboxS
 		response.JSON403 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -83992,7 +83746,7 @@ func ParseCreateSandboxResponse(rsp *http.Response) (*CreateSandboxResponse, err
 		response.JSON201 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -84013,14 +83767,14 @@ func ParseCreateSandboxResponse(rsp *http.Response) (*CreateSandboxResponse, err
 		response.JSON403 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404NotFound
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest N409Conflict
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -84449,7 +84203,7 @@ func ParseConnectSandboxFilesResponse(rsp *http.Response) (*ConnectSandboxFilesR
 		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest N409Conflict
+		var dest N409SandboxConnectConflict
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -84565,7 +84319,7 @@ func ParseConnectSandboxRunResponse(rsp *http.Response) (*ConnectSandboxRunRespo
 		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest N409Conflict
+		var dest N409SandboxConnectConflict
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -84653,7 +84407,7 @@ func ParseCreateSandboxSnapshotResponse(rsp *http.Response) (*CreateSandboxSnaps
 		response.JSON202 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -84681,7 +84435,7 @@ func ParseCreateSandboxSnapshotResponse(rsp *http.Response) (*CreateSandboxSnaps
 		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest N409Conflict
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
