@@ -66,7 +66,7 @@ func TestSandboxImages_HelpListsSubcommands(t *testing.T) {
 
 	result, err := h.execute("--help")
 	require.NoError(t, err)
-	for _, sub := range []string{"import", "get", "list"} {
+	for _, sub := range []string{"import", "get", "list", "delete"} {
 		assert.Contains(t, result.Stdout, sub, "expected subcommand %q in help output", sub)
 	}
 }
@@ -502,4 +502,148 @@ func TestSandboxImagesList_GroupResolution(t *testing.T) {
 			assert.Equal(t, !tc.explicit, h.server.HasRequest("GET", "/sandbox-groups?"), "the group lookup runs only without --group")
 		})
 	}
+}
+
+func TestSandboxImagesDelete(t *testing.T) {
+	tests := []struct {
+		name          string
+		imageID       string // empty means the seeded image
+		defaultGroup  bool   // omit --group
+		confirm       bool
+		inUseMessage  string
+		wantErr       []string // nil means no error
+		wantStdout    []string
+		wantNotStdout string
+		wantSent      bool // a DELETE request reached the API
+		wantDeleted   bool
+	}{
+		{
+			name:       "preview by default",
+			wantStdout: []string{"would delete", "Re-run with --confirm"},
+		},
+		{
+			name:          "confirm",
+			confirm:       true,
+			wantStdout:    []string{"Deleted"},
+			wantNotStdout: "Re-run",
+			wantSent:      true,
+			wantDeleted:   true,
+		},
+		{
+			name:         "default group",
+			defaultGroup: true,
+			confirm:      true,
+			wantStdout:   []string{"Deleted"},
+			wantSent:     true,
+			wantDeleted:  true,
+		},
+		{
+			name:         "in use surfaces message",
+			confirm:      true,
+			inUseMessage: "image is in use by 1 sandbox (sbx-1)",
+			wantErr:      []string{"409 (image_in_use)", "sbx-1"},
+			wantSent:     true,
+		},
+		{
+			name:    "not found",
+			imageID: "sbb-missing",
+			confirm: true,
+			wantErr: []string{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newSandboxImagesHarness(t)
+			image := h.seedImage(sandboxesclient.SandboxBuild{})
+			if tc.inUseMessage != "" {
+				h.server.SandboxBuilds.MarkInUse(image.Id, tc.inUseMessage)
+			}
+			id := image.Id
+			if tc.imageID != "" {
+				id = tc.imageID
+			}
+			args := []string{"delete", id, "--output", "text"}
+			if !tc.defaultGroup {
+				args = append(args, "--group", h.group.Id)
+			}
+			if tc.confirm {
+				args = append(args, "--confirm")
+			}
+
+			result, err := h.execute(args...)
+			if tc.wantErr != nil {
+				require.Error(t, err)
+				for _, want := range tc.wantErr {
+					assert.Contains(t, err.Error(), want)
+				}
+			} else {
+				require.NoError(t, err)
+				for _, want := range tc.wantStdout {
+					assert.Contains(t, result.Stdout, want)
+				}
+				assert.Contains(t, result.Stdout, image.Id)
+				if tc.wantNotStdout != "" {
+					assert.NotContains(t, result.Stdout, tc.wantNotStdout)
+				}
+			}
+			assert.Equal(t, tc.wantSent, h.server.HasDeleteRequest())
+			if tc.wantDeleted {
+				assert.True(t, h.server.HasRequest("DELETE", "/sandbox-groups/"+h.group.Id+"/builds/"+image.Id))
+				assert.Empty(t, h.server.SandboxBuilds.Instances)
+			} else {
+				assert.Len(t, h.server.SandboxBuilds.Instances, 1)
+			}
+		})
+	}
+}
+
+func TestSandboxImagesDelete_JSONOutput(t *testing.T) {
+	tests := []struct {
+		name        string
+		confirm     bool
+		wantDeleted bool
+	}{
+		{name: "preview", confirm: false, wantDeleted: false},
+		{name: "confirmed", confirm: true, wantDeleted: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newSandboxImagesHarness(t)
+			image := h.seedImage(sandboxesclient.SandboxBuild{})
+			args := []string{"delete", image.Id, "--group", h.group.Id, "--output", "json"}
+			if tc.confirm {
+				args = append(args, "--confirm")
+			}
+
+			result, err := h.execute(args...)
+			require.NoError(t, err)
+
+			body := testrequire.ParseJSONMap(t, result.Stdout)
+			assert.Equal(t, image.Id, testrequire.SubMap(t, body, "data")["id"])
+			meta := testrequire.SubMap(t, body, "meta")
+			assert.Equal(t, tc.wantDeleted, meta["deleted"])
+			if tc.wantDeleted {
+				assert.NotContains(t, meta, "message")
+			} else {
+				assert.Contains(t, meta["message"], "--confirm")
+			}
+		})
+	}
+}
+
+func TestSandboxImagesDelete_AlreadyDeleted(t *testing.T) {
+	h := newSandboxImagesHarness(t)
+	image := h.seedImage(sandboxesclient.SandboxBuild{})
+
+	_, err := h.execute("delete", image.Id, "--group", h.group.Id, "--confirm", "--output", "text")
+	require.NoError(t, err)
+
+	// The API hides deleted builds from get, so a second delete stops at the
+	// lookup with not found and sends no DELETE.
+	h.server.Requests = nil
+	_, err = h.execute("delete", image.Id, "--group", h.group.Id, "--confirm", "--output", "text")
+	require.Error(t, err)
+	assert.False(t, h.server.HasDeleteRequest())
 }

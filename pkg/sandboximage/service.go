@@ -48,6 +48,12 @@ func (s *Service) Get(ctx context.Context, sandboxGroupID, imageID string) (*san
 	return s.repo.Get(ctx, sandboxGroupID, imageID)
 }
 
+// Delete deletes an image. sandboxGroupID must already be resolved, as Get
+// returns it on the image.
+func (s *Service) Delete(ctx context.Context, sandboxGroupID, imageID string) error {
+	return s.repo.Delete(ctx, sandboxGroupID, imageID)
+}
+
 type ListInput struct {
 	SandboxGroupID string
 	Name           string

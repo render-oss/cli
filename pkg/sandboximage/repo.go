@@ -46,6 +46,14 @@ func (r *Repo) Get(ctx context.Context, sandboxGroupID, imageID string) (*sandbo
 	return resp.JSON200, nil
 }
 
+func (r *Repo) Delete(ctx context.Context, sandboxGroupID, imageID string) error {
+	resp, err := r.client.DeleteSandboxBuildWithResponse(ctx, sandboxGroupID, imageID)
+	if err != nil {
+		return err
+	}
+	return client.ErrorFromResponse(resp)
+}
+
 // ListForGroup returns every image in the group matching the filters, newest
 // first, following cursors until the last page.
 func (r *Repo) ListForGroup(ctx context.Context, sandboxGroupID string, params *client.ListSandboxBuildsParams) ([]*sandboxesclient.SandboxBuild, error) {

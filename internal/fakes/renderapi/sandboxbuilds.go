@@ -17,6 +17,22 @@ type SandboxBuildResource struct {
 	Resource[*sandboxesclient.SandboxBuild]
 	errorQueue    []int
 	getErrorQueue []int
+	inUse         map[string]string
+	// deleted holds group ID + "/" + build ID for builds already deleted, so a
+	// repeat DELETE returns 204 like the real API.
+	deleted map[string]bool
+}
+
+// ErrorCodeImageInUse is the code the API sends when a delete names an image
+// that sandboxes or snapshots still use.
+const ErrorCodeImageInUse = "image_in_use"
+
+// MarkInUse makes a DELETE of the build fail with 409 image_in_use and message.
+func (r *SandboxBuildResource) MarkInUse(buildID, message string) {
+	if r.inUse == nil {
+		r.inUse = map[string]string{}
+	}
+	r.inUse[buildID] = message
 }
 
 func (r *SandboxBuildResource) RespondWith(status int) {
@@ -212,5 +228,33 @@ func registerSandboxBuildRoutes(mux *http.ServeMux, s *Server, record func(*http
 			build.Status, build.FinishedAt = sandboxesclient.SandboxBuildStatusSucceeded, &finishedAt
 		}
 		writeJSON(w, http.StatusOK, build)
+	})
+
+	mux.HandleFunc("DELETE /sandbox-groups/{groupId}/builds/{buildId}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		if status, hasError := s.SandboxBuilds.nextError(); hasError {
+			w.WriteHeader(status)
+			return
+		}
+		groupID, buildID := r.PathValue("groupId"), r.PathValue("buildId")
+		if s.SandboxBuilds.deleted[groupID+"/"+buildID] {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		idx := s.buildIndex(groupID, buildID)
+		if idx == -1 {
+			writeAPIError(w, http.StatusNotFound, "not found: build", "build_not_found")
+			return
+		}
+		if message, ok := s.SandboxBuilds.inUse[buildID]; ok {
+			writeAPIError(w, http.StatusConflict, message, ErrorCodeImageInUse)
+			return
+		}
+		s.SandboxBuilds.Instances = slices.Delete(s.SandboxBuilds.Instances, idx, idx+1)
+		if s.SandboxBuilds.deleted == nil {
+			s.SandboxBuilds.deleted = map[string]bool{}
+		}
+		s.SandboxBuilds.deleted[groupID+"/"+buildID] = true
+		w.WriteHeader(http.StatusNoContent)
 	})
 }

@@ -13,8 +13,8 @@ func newSandboxImagesCmd(children ...*cobra.Command) *cobra.Command {
 Importing an OCI image, such as python:3.13, prepares it so new sandboxes can
 start from it with "render sandboxes create --image".
 
-Images belong to a sandbox group. Importing, getting, or listing images uses
-the active workspace's default group unless --group is provided.
+Images belong to a sandbox group. Importing, getting, listing, or deleting
+images uses the active workspace's default group unless --group is provided.
 
 Images must be linux/amd64 and ship a shell. Alpine and Debian-based images
 work; scratch and distroless images are rejected.`,
@@ -29,6 +29,9 @@ work; scratch and distroless images are rejected.`,
 
   # List the group's images
   render sandbox-groups images list
+
+  # Delete an image that nothing uses
+  render sandbox-groups images delete sbb-abc123 --confirm
 
   # Start a sandbox from the newest succeeded image named python
   render sandboxes create --image python`,
