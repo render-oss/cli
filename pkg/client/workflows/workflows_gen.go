@@ -456,6 +456,25 @@ type FlowRunStep struct {
 	WakeAt *time.Time `json:"wakeAt,omitempty"`
 }
 
+// FlowRunStepAttempt defines model for FlowRunStepAttempt.
+type FlowRunStepAttempt struct {
+	Attempt     int64      `json:"attempt"`
+	CompletedAt time.Time  `json:"completedAt"`
+	FlowAttempt int64      `json:"flowAttempt"`
+	RetryAt     *time.Time `json:"retryAt,omitempty"`
+	StartedAt   time.Time  `json:"startedAt"`
+}
+
+// FlowRunStepAttemptDetails defines model for FlowRunStepAttemptDetails.
+type FlowRunStepAttemptDetails struct {
+	Attempt     int64      `json:"attempt"`
+	CompletedAt time.Time  `json:"completedAt"`
+	Error       string     `json:"error"`
+	FlowAttempt int64      `json:"flowAttempt"`
+	RetryAt     *time.Time `json:"retryAt,omitempty"`
+	StartedAt   time.Time  `json:"startedAt"`
+}
+
 // FlowRunStepDetails defines model for FlowRunStepDetails.
 type FlowRunStepDetails struct {
 	// ChildTaskRunId For detached steps, the ID of the task run the step started.
@@ -465,7 +484,8 @@ type FlowRunStepDetails struct {
 	CompletedAt    *time.Time `json:"completedAt,omitempty"`
 
 	// Error Error message if the step failed.
-	Error *string `json:"error,omitempty"`
+	Error          *string               `json:"error,omitempty"`
+	FailedAttempts *[]FlowRunStepAttempt `json:"failedAttempts,omitempty"`
 
 	// Input The step's input. For detached steps, the input of the child task run.
 	Input interface{} `json:"input,omitempty"`

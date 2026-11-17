@@ -4163,6 +4163,13 @@ type ListFlowRunStepsParams struct {
 // GetFlowRunStepParams defines parameters for GetFlowRunStep.
 type GetFlowRunStepParams struct {
 	// StepKey The SDK's key for the step, as `stepKey` reports it in the step listing. Steps that share a sequence number are told apart by it. Omit it for a step the SDK recorded without one.
+	StepKey         *externalRef21.FlowRunStepKeyParam `form:"stepKey,omitempty" json:"stepKey,omitempty"`
+	IncludeAttempts *bool                              `form:"includeAttempts,omitempty" json:"includeAttempts,omitempty"`
+}
+
+// GetFlowRunStepAttemptParams defines parameters for GetFlowRunStepAttempt.
+type GetFlowRunStepAttemptParams struct {
+	// StepKey The SDK's key for the step, as `stepKey` reports it in the step listing. Steps that share a sequence number are told apart by it. Omit it for a step the SDK recorded without one.
 	StepKey *externalRef21.FlowRunStepKeyParam `form:"stepKey,omitempty" json:"stepKey,omitempty"`
 }
 
