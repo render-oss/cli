@@ -653,7 +653,7 @@ type SandboxGroup struct {
 	// Example: 2026-07-02T18:30:00Z
 	CreatedAt time.Time `json:"createdAt"`
 
-	// EnvironmentId The ID of the environment this sandbox group belongs to, if any.
+	// EnvironmentId The ID of the environment that contains this group. Null if the group isn't in a project. To move a group, add it to or remove it from an environment with `/environments/{environmentId}/resources`.
 	EnvironmentId *string `json:"environmentId,omitempty"`
 
 	// Id The ID of the sandbox group.
@@ -701,6 +701,11 @@ type SandboxGroupPATCH struct {
 
 // SandboxGroupPOST The sandbox group to create.
 type SandboxGroupPOST struct {
+	// EnvironmentId The ID of an environment in the workspace to create the group in. If you omit it, the group isn't in a project. Creating a group in a protected environment requires an admin.
+	//
+	// Example: evm-cph1rs3idesc73a2b2mg
+	EnvironmentId *string `json:"environmentId,omitempty"`
+
 	// Name The sandbox group's name. Must be unique within the workspace.
 	//
 	// Example: CI agents

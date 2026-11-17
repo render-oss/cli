@@ -37046,8 +37046,8 @@ type AddResourcesToEnvironmentResponse429Headers struct {
 type AddResourcesToEnvironmentResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *Environment
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *Environment
 	// JSON400 the response for an HTTP 400 `application/json` response
 	JSON400 *N400BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
@@ -37064,9 +37064,9 @@ type AddResourcesToEnvironmentResponse struct {
 	Headers429 *AddResourcesToEnvironmentResponse429Headers
 }
 
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r AddResourcesToEnvironmentResponse) GetJSON200() *Environment {
-	return r.JSON200
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r AddResourcesToEnvironmentResponse) GetJSON201() *Environment {
+	return r.JSON201
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
@@ -70602,12 +70602,12 @@ func ParseAddResourcesToEnvironmentResponse(rsp *http.Response) (*AddResourcesTo
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
 		var dest Environment
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON200 = &dest
+		response.JSON201 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest N400BadRequest

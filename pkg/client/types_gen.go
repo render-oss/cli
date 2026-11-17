@@ -2175,13 +2175,17 @@ type DockerDetailsPOST struct {
 
 // EnvGroup defines model for envGroup.
 type EnvGroup struct {
-	CreatedAt     time.Time    `json:"createdAt"`
-	EnvVars       []EnvVar     `json:"envVars"`
-	EnvironmentId *string      `json:"environmentId,omitempty"`
-	Id            string       `json:"id"`
-	Name          string       `json:"name"`
-	OwnerId       string       `json:"ownerId"`
-	SecretFiles   []SecretFile `json:"secretFiles"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// EnvVars Omitted if the caller doesn't have the permission to read the environment group's secret values.
+	EnvVars       *[]EnvVar `json:"envVars,omitempty"`
+	EnvironmentId *string   `json:"environmentId,omitempty"`
+	Id            string    `json:"id"`
+	Name          string    `json:"name"`
+	OwnerId       string    `json:"ownerId"`
+
+	// SecretFiles Omitted if the caller doesn't have the permission to read the environment group's secret values.
+	SecretFiles *[]SecretFile `json:"secretFiles,omitempty"`
 
 	// ServiceLinks List of serviceIds linked to the envGroup
 	ServiceLinks []EnvGroupLink `json:"serviceLinks"`
