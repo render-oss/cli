@@ -1,6 +1,8 @@
 package blueprint
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -198,4 +200,67 @@ func TestBuildCreateRequestLinkedWorktree(t *testing.T) {
 	got, err := (CreateInput{}).buildCreateRequest(t.Context(), "workspace")
 	require.NoError(t, err)
 	require.Equal(t, bptypes.BlueprintSource{Repo: "https://github.com/acme/app", Branch: new("review"), Path: new("render.yaml")}, got.Source)
+}
+
+func TestBuildCreateRequestResolvesSSHHostAlias(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		origin   string
+		resolved map[string]string
+		want     string
+	}{
+		{
+			name:     "scp-style alias resolves to its HostName",
+			origin:   "git@github-work:acme/app.git",
+			resolved: map[string]string{"github-work": "github.com"},
+			want:     "https://github.com/acme/app.git",
+		},
+		{
+			name:     "ssh scheme alias with a port resolves to its HostName",
+			origin:   "ssh://git@gitlab-alias:2222/acme/app.git",
+			resolved: map[string]string{"gitlab-alias": "gitlab.com"},
+			want:     "https://gitlab.com/acme/app.git",
+		},
+		{
+			name:     "alias for GitHub's SSH-over-443 host resolves to github.com",
+			origin:   "git@github-443:acme/app.git",
+			resolved: map[string]string{"github-443": "ssh.github.com"},
+			want:     "https://github.com/acme/app.git",
+		},
+		{
+			name:     "known provider host is not passed to ssh",
+			origin:   "git@github.com:acme/app.git",
+			resolved: map[string]string{"github.com": "ssh.example.com"},
+			want:     "https://github.com/acme/app.git",
+		},
+		{
+			name:   "unresolvable host is kept",
+			origin: "git@git.example.com:acme/app.git",
+			want:   "https://git.example.com/acme/app.git",
+		},
+		{
+			name:     "HTTPS origin is not passed to ssh",
+			origin:   "https://github.com/acme/app.git",
+			resolved: map[string]string{"github.com": "unexpected.example.com"},
+			want:     "https://github.com/acme/app.git",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			original := sshHostname
+			t.Cleanup(func() { sshHostname = original })
+			sshHostname = func(_ context.Context, host string) (string, error) {
+				if hostname, ok := tc.resolved[host]; ok {
+					return hostname, nil
+				}
+				return "", errors.New("not resolved")
+			}
+
+			dir, repo := newBlueprintGitRepo(t)
+			addBlueprintGitRemote(t, repo, "origin", tc.origin)
+			t.Chdir(dir)
+			got, err := CreateInput{}.buildCreateRequest(t.Context(), "workspace")
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got.Source.Repo)
+		})
+	}
 }
