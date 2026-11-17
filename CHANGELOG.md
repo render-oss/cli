@@ -1,10 +1,24 @@
 # Changelog
 
-## [Unreleased]
+## [2.37.0] - 2026-11-16
+
+### Added
+
+- `render sandbox-groups images list` lists a sandbox group's images, with `--name` and `--status` filters
+- `render sandbox-groups images delete` to delete a sandbox image. It previews by default; pass `--confirm` to delete. An image that sandboxes or snapshots still use can't be deleted, and the error names them
+- `render workflows dev` now runs durable workflows that use inline steps and detached tasks, and replays a workflow after its process crashes. Flow steps are logged as they start, retry, complete, or fail
+- `--local` on `render workflows flows list` to list flows registered with the `render workflows dev` server
+
+### Changed
+
+- `render sandboxes list` now opens an interactive list in a terminal. Pass `--output text` for the previous table output
+- `render workflows tasks list --local` no longer lists flows; use `render workflows flows list --local`
+- Updated Go to 1.27.4
 
 ### Fixed
 
-- Updated Go to 1.27.4
+- Service commands no longer fail with API tokens that can't read the service's project or environment, such as tokens scoped to `services.read_write`
+- In `render workflows dev`, a canceled subtask now reports an error to its parent instead of appearing to still run
 
 ## [2.36.0] - 2026-11-06
 
