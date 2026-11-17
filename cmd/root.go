@@ -1,20 +1,22 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/render-oss/cli/internal/updatenotice"
+	"github.com/render-oss/cli/pkg/analytics"
 	"github.com/render-oss/cli/pkg/cfg"
 	"github.com/render-oss/cli/pkg/client"
-	"github.com/render-oss/cli/pkg/client/version"
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/dependencies"
@@ -351,21 +353,25 @@ func printError(cmd *cobra.Command, err error) {
 
 // printVersionWithUpdateCheck prints the current version and checks for updates
 func printVersionWithUpdateCheck() {
-	fmt.Printf("render v%s\n", cfg.Version)
+	stdout := command.NewStream(os.Stdout)
+	fmt.Fprintf(stdout, "render v%s\n", cfg.Version)
 
-	vc := version.NewClient(cfg.RepoURL)
-	newVersion, err := vc.NewVersionAvailable()
-	if err == nil && newVersion != "" {
-		fmt.Println()
-		fmt.Println(lipgloss.NewStyle().Foreground(renderstyle.ColorWarning).
-			Render(fmt.Sprintf("A new version is available: %s\n\nTo upgrade, see: %s",
-				renderstyle.Bold("v"+newVersion),
-				cfg.InstallationInstructionsURL)))
-	} else if err == nil {
-		fmt.Println()
-		fmt.Println(lipgloss.NewStyle().Foreground(renderstyle.ColorOK).
-			Render("You are using the latest version"))
+	current, err := semver.Parse(cfg.Version)
+	if err != nil {
+		// Builds from source have no release version to compare against.
+		return
 	}
+	latest, err := updatenotice.NewReleaseClient(cfg.RepoURL).LatestRelease(context.Background())
+	if err != nil {
+		return
+	}
+	newVersion := ""
+	if latest.Version.GT(current) {
+		newVersion = latest.Version.String()
+	}
+	// A pipe gets the notice as one plain line rather than the terminal layout.
+	line := !command.DetectTerminalSignals().StdoutTTY
+	fmt.Fprintf(stdout, "\n%s\n", updatenotice.RenderStatus(stdout, cfg.Version, newVersion, updatenotice.DetectInstall(), line))
 }
 
 // isRootVersionRequest reports whether --version / -v appears among the
@@ -425,9 +431,30 @@ func exitCodeFromError(err error) int {
 // Every execution funnels through the single onExecutionComplete call here, no
 // matter which path inside execute produced the result.
 func Execute() int {
+	updateCheck := startUpdateCheck(os.Args[1:])
 	result, deps := execute()
-	onExecutionComplete(result, deps, rootCmd)
+	onExecutionComplete(result, deps, rootCmd, updateCheck)
 	return result.ExitCode
+}
+
+// startUpdateCheck begins the background release lookup behind the "update
+// available" notice. It returns nil, which shows nothing, when neither a person
+// at the terminal nor an AI agent will read the notice, or when --version
+// prints its own update status.
+func startUpdateCheck(args []string) *updatenotice.Check {
+	if isRootVersionRequest(args, rootCmd.PersistentFlags()) {
+		return nil
+	}
+
+	signals, err := command.DetectRuntimeSignals()
+	if err != nil {
+		return nil
+	}
+
+	return updatenotice.Start(updatenotice.Conditions{
+		Interactive: signals.SupportsInteractive(),
+		Agent:       len(analytics.DetectAgentSignals()) > 0 && !signals.CI,
+	}, updatenotice.NewReleaseClient(cfg.RepoURL), cfg.Version)
 }
 
 // execute runs one CLI execution and returns its classified result.

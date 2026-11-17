@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/term"
@@ -32,6 +33,9 @@ import (
 type Stream struct {
 	w        io.Writer
 	renderer *lipgloss.Renderer
+	// background shares the process-wide background detection with renderer
+	// the first time the renderer is used.
+	background sync.Once
 }
 
 // NewStream builds a Stream for w.
@@ -66,7 +70,26 @@ func (s *Stream) Renderer() *lipgloss.Renderer {
 	if s == nil || s.renderer == nil {
 		return discardRenderer
 	}
+	s.background.Do(func() { shareBackground(s.renderer) })
 	return s.renderer
+}
+
+// stdoutIsTerminal is replaced in tests.
+var stdoutIsTerminal = func() bool { return isTTY(os.Stdout.Fd()) }
+
+// shareBackground gives r the light-or-dark background answer that lipgloss's
+// global renderer resolves for stdout, which the help text and pkg/style
+// already use. Resolving an adaptive color makes a renderer ask the terminal
+// for its background color, and a terminal that never answers stalls the CLI
+// for the query's 5 second timeout. Sharing the one answer keeps that to a
+// single query per process instead of one per stream.
+//
+// When stdout is not a terminal, the global renderer has nothing to ask, so r
+// keeps detecting the background of its own stream.
+func shareBackground(r *lipgloss.Renderer) {
+	if stdoutIsTerminal() {
+		r.SetHasDarkBackground(lipgloss.HasDarkBackground())
+	}
 }
 
 // Width reports how many columns wide this stream's terminal is.The width is measured on each call.

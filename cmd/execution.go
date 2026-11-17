@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/render-oss/cli/internal/analyticsnotice"
+	"github.com/render-oss/cli/internal/updatenotice"
 	"github.com/render-oss/cli/pkg/analytics"
 	"github.com/render-oss/cli/pkg/cfg"
 	commandpkg "github.com/render-oss/cli/pkg/command"
@@ -22,32 +23,61 @@ const (
 )
 
 // onExecutionCompleteFunc runs side effects after a command execution finishes.
-type onExecutionCompleteFunc func(result commandpkg.ExecutionResult, deps *dependencies.Dependencies, root *cobra.Command)
+// updateCheck is the update check started for this execution, or nil.
+type onExecutionCompleteFunc func(result commandpkg.ExecutionResult, deps *dependencies.Dependencies, root *cobra.Command, updateCheck *updatenotice.Check)
 
 // onExecutionComplete is the single process-wide hook for completed executions.
-var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.ExecutionResult, deps *dependencies.Dependencies, root *cobra.Command) {
+var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.ExecutionResult, deps *dependencies.Dependencies, root *cobra.Command, updateCheck *updatenotice.Check) {
+	if analyticsNoticeShown := completeAnalytics(result, deps, root); analyticsNoticeShown {
+		// One notice per command: the update notice waits for a later run.
+		updateCheck.Cancel()
+		return
+	}
+	if isStructuredOutput(result.OutputFormat) {
+		// Keep JSON and YAML output clean for whatever parses it, even when
+		// stdout and stderr share a terminal.
+		updateCheck.Cancel()
+		return
+	}
+	updateCheck.Show(commandpkg.NewStream(root.ErrOrStderr()))
+}
+
+// isStructuredOutput reports whether the command printed JSON or YAML.
+func isStructuredOutput(output *commandpkg.Output) bool {
+	return output != nil && (*output == commandpkg.JSON || *output == commandpkg.YAML)
+}
+
+// completeAnalytics shows the analytics notice if needed and sends analytics
+// for the execution. It reports whether the analytics notice may have been
+// printed on this run.
+func completeAnalytics(result commandpkg.ExecutionResult, deps *dependencies.Dependencies, root *cobra.Command) (noticeShown bool) {
 	// Nil deps means setup failed (or was skipped, as on the --version fast path)
 	// before a client existed, so there is no analytics sender to emit with.
 	if deps == nil {
-		return
+		return false
 	}
 	stderr := root.ErrOrStderr()
 	if result.AnalyticsNoticeEligible {
 		signals, err := deps.DetectRuntimeSignals()
 		if err != nil {
-			return
+			return false
 		}
 		if analyticsnotice.ShowIfNeeded(
 			commandpkg.NewStream(stderr),
 			analyticsNoticeConditions(signals),
 			analytics.ResolveConsent().OptOutReason,
 		) {
-			return
+			// ShowIfNeeded also returns true without printing when stderr is
+			// not a terminal, where AI agents still get the update notice, so
+			// only a terminal counts as shown. A marker read failure also
+			// returns true; that is rare enough to accept skipping the update
+			// notice too.
+			return signals.StderrTTY
 		}
 	}
 
 	if !result.AnalyticsEligible {
-		return
+		return false
 	}
 
 	if !result.AnalyticsNoticeEligible {
@@ -61,11 +91,12 @@ var onExecutionComplete onExecutionCompleteFunc = func(result commandpkg.Executi
 			signals.CI = cfg.IsCI()
 		}
 		if !analyticsnotice.CanSend(analyticsNoticeConditions(signals)) {
-			return
+			return false
 		}
 	}
 
 	deps.Analytics().Send(result, stderr)
+	return false
 }
 
 // markCommandAnalyticsIneligible excludes a command and all of its descendants

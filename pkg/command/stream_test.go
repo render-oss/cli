@@ -106,6 +106,21 @@ func TestStream_Width_IsZeroWhenNotATerminal(t *testing.T) {
 	require.Equal(t, 0, NewStream(file).Width(), "file that is not a terminal")
 }
 
+// Streams reuse the global renderer's background answer instead of asking the
+// terminal again, so a terminal that never answers costs one timeout, not one
+// per stream.
+func TestStream_SharesTheGlobalBackgroundAnswer(t *testing.T) {
+	original := stdoutIsTerminal
+	stdoutIsTerminal = func() bool { return true }
+	t.Cleanup(func() { stdoutIsTerminal = original })
+
+	for _, dark := range []bool{false, true} {
+		lipgloss.SetHasDarkBackground(dark)
+		require.Equal(t, dark, NewStream(&bytes.Buffer{}).Renderer().HasDarkBackground())
+	}
+	lipgloss.SetHasDarkBackground(true)
+}
+
 func TestStream_NilAndZeroValue_AreSafe(t *testing.T) {
 	clearColorEnvironment(t)
 

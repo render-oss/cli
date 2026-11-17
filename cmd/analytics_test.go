@@ -297,7 +297,7 @@ func (h *analyticsHarness) execute(args ...string) analyticsExecution {
 	invocation := h.newInvocation()
 	invocation.root.SetArgs(args)
 	result := runExecution(invocation.root, time.Now())
-	onExecutionComplete(result, invocation.deps, invocation.root)
+	onExecutionComplete(result, invocation.deps, invocation.root, nil)
 	return invocation.result(result)
 }
 
@@ -307,7 +307,7 @@ func (h *analyticsHarness) complete(result command.ExecutionResult) analyticsExe
 	h.t.Helper()
 
 	invocation := h.newInvocation()
-	onExecutionComplete(result, invocation.deps, invocation.root)
+	onExecutionComplete(result, invocation.deps, invocation.root, nil)
 	return invocation.result(result)
 }
 

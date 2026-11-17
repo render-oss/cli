@@ -10,6 +10,7 @@ import (
 const (
 	RepoURL                     = "https://api.github.com/repos/render-oss/cli"
 	InstallationInstructionsURL = "https://render.com/docs/cli#1-install-or-upgrade"
+	ReleasesURL                 = "https://github.com/render-oss/cli/releases"
 )
 
 var (
@@ -50,6 +51,12 @@ func DoNotTrack() bool {
 // We must respect this by disabling analytics
 func AnalyticsDisabledByEnv() bool {
 	return isTruthy(os.Getenv("RENDER_CLI_DISABLE_ANALYTICS"))
+}
+
+// UpdateNotifierDisabled reports whether RENDER_CLI_DISABLE_UPDATE_NOTIFIER is
+// truthy, which turns off the "update available" notice shown after commands.
+func UpdateNotifierDisabled() bool {
+	return isTruthy(os.Getenv("RENDER_CLI_DISABLE_UPDATE_NOTIFIER"))
 }
 
 // AnalyticsStrategy returns the raw configured analytics send strategy.

@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/render-oss/cli/internal/updatenotice"
 	"github.com/render-oss/cli/pkg/analytics"
 	"github.com/render-oss/cli/pkg/client"
 	telemetryclient "github.com/render-oss/cli/pkg/client/clitelemetry"
@@ -942,7 +943,7 @@ func TestExecuteInvokesOnExecutionComplete(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var callbackParams []command.ExecutionResult
-			spy := func(result command.ExecutionResult, _ *dependencies.Dependencies, _ *cobra.Command) {
+			spy := func(result command.ExecutionResult, _ *dependencies.Dependencies, _ *cobra.Command, _ *updatenotice.Check) {
 				callbackParams = append(callbackParams, result)
 			}
 			originalCallback := onExecutionComplete

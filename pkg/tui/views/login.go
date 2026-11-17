@@ -8,7 +8,6 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/render-oss/cli/pkg/client/oauth"
 	"github.com/spf13/cobra"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/dashboard"
-	renderstyle "github.com/render-oss/cli/pkg/style"
 	"github.com/render-oss/cli/pkg/tui"
 	"github.com/render-oss/cli/pkg/user"
 )
@@ -27,8 +25,6 @@ type notLoggedInMsg struct{}
 
 func NonInteractiveLogin(cmd *cobra.Command) error {
 	dc := oauth.NewClient(cfg.GetHost())
-	vc := version.NewClient(cfg.RepoURL)
-
 	alreadyLoggedIn := isAlreadyLoggedIn(cmd.Context())
 	if alreadyLoggedIn {
 		command.Println(cmd, "Success: CLI is already authenticated.")
@@ -41,12 +37,6 @@ func NonInteractiveLogin(cmd *cobra.Command) error {
 	}
 
 	command.Println(cmd, "Login successful! CLI token saved.")
-
-	newVersion, err := vc.NewVersionAvailable()
-	if err == nil && newVersion != "" {
-		_, _ = cmd.ErrOrStderr().Write([]byte(fmt.Sprintf("\n%s\n\n", lipgloss.NewStyle().Foreground(renderstyle.ColorWarning).
-			Render(fmt.Sprintf("render v%s is available. Current version is %s.\nInstallation instructions: %s", newVersion, cfg.Version, cfg.InstallationInstructionsURL)))))
-	}
 
 	return nil
 }
