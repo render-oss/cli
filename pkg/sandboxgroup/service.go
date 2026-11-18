@@ -21,9 +21,9 @@ func NewService(repo *Repo, resolver *resolve.Resolver) *Service {
 	return &Service{repo: repo, resolver: resolver}
 }
 
-// CreateInput names a new sandbox group.
 type CreateInput struct {
-	Name string
+	Name                string
+	EnvironmentIDOrName *string
 }
 
 // List returns the sandbox groups for the active workspace.
@@ -59,9 +59,16 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*sandboxesclie
 	if err != nil {
 		return nil, err
 	}
+
+	environmentID, err := s.resolveEnvironmentID(ctx, input.EnvironmentIDOrName)
+	if err != nil {
+		return nil, err
+	}
+
 	return s.repo.Create(ctx, sandboxesclient.SandboxGroupPOST{
-		OwnerId: workspace,
-		Name:    input.Name,
+		OwnerId:       workspace,
+		Name:          input.Name,
+		EnvironmentId: environmentID,
 	})
 }
 

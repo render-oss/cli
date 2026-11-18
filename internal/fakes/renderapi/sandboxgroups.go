@@ -186,8 +186,9 @@ func registerSandboxGroupRoutes(mux *http.ServeMux, s *Server, record func(*http
 			}
 		}
 		group := NewSandboxGroup(sandboxesclient.SandboxGroup{
-			OwnerId: body.OwnerId,
-			Name:    body.Name,
+			OwnerId:       body.OwnerId,
+			Name:          body.Name,
+			EnvironmentId: body.EnvironmentId,
 		})
 		if body.Region != nil {
 			group.Region = *body.Region

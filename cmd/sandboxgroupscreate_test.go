@@ -148,3 +148,136 @@ func TestSandboxGroupsCreate_APIError_Surfaces(t *testing.T) {
 	require.Error(t, err)
 	assert.Empty(t, h.server.SandboxGroups.Instances)
 }
+
+type sandboxGroupsCreateEnvOutcome struct {
+	Err                 string
+	Sent                bool
+	SentEnvironmentID   string
+	OutputEnvironmentID string
+}
+
+func sandboxGroupsCreateEnvOutcomeOf(
+	t *testing.T,
+	h sandboxGroupsCreateHarness,
+	result CommandResult,
+	err error,
+) sandboxGroupsCreateEnvOutcome {
+	t.Helper()
+
+	got := sandboxGroupsCreateEnvOutcome{}
+	if err != nil {
+		got.Err = err.Error()
+	}
+
+	req, sent := h.server.LastRequest("POST", "/sandbox-groups")
+	got.Sent = sent
+	if sent {
+		got.SentEnvironmentID = jsonStringField(testrequire.ParseJSONMap(t, string(req.Body)), "environmentId")
+	}
+
+	if err == nil {
+		output := unmarshalSandboxGroupJSONOutput(t, result.Stdout)
+		got.OutputEnvironmentID = jsonStringField(output, "environmentId")
+	}
+
+	return got
+}
+
+func TestSandboxGroupsCreate_Environment(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want sandboxGroupsCreateEnvOutcome
+	}{
+		{
+			name: "omitted",
+			args: []string{
+				"sandbox-groups", "create",
+				"--name", "agents",
+				"--output", "json",
+			},
+			want: sandboxGroupsCreateEnvOutcome{
+				Sent: true,
+			},
+		},
+		{
+			name: "by name",
+			args: []string{
+				"sandbox-groups", "create",
+				"--name", "agents",
+				"--environment", "staging",
+				"--output", "json",
+			},
+			want: sandboxGroupsCreateEnvOutcome{
+				Sent:                true,
+				SentEnvironmentID:   sandboxGroupsStagingEnvID,
+				OutputEnvironmentID: sandboxGroupsStagingEnvID,
+			},
+		},
+		{
+			name: "by ID",
+			args: []string{
+				"sandbox-groups", "create",
+				"--name", "agents",
+				"--environment", sandboxGroupsProductionEnvID,
+				"--output", "json",
+			},
+			want: sandboxGroupsCreateEnvOutcome{
+				Sent:                true,
+				SentEnvironmentID:   sandboxGroupsProductionEnvID,
+				OutputEnvironmentID: sandboxGroupsProductionEnvID,
+			},
+		},
+		{
+			name: "unknown name",
+			args: []string{
+				"sandbox-groups", "create",
+				"--name", "agents",
+				"--environment", "qa",
+				"--output", "json",
+			},
+			want: sandboxGroupsCreateEnvOutcome{
+				Err: `no environment found with name "qa"`,
+			},
+		},
+		{
+			name: "name in another workspace",
+			args: []string{
+				"sandbox-groups", "create",
+				"--name", "agents",
+				"--environment", "other",
+				"--output", "json",
+			},
+			want: sandboxGroupsCreateEnvOutcome{
+				Err: `no environment found with name "other"`,
+			},
+		},
+		{
+			name: "ID in another workspace",
+			args: []string{
+				"sandbox-groups", "create",
+				"--name", "agents",
+				"--environment", sandboxGroupsOtherEnvID,
+				"--output", "json",
+			},
+			want: sandboxGroupsCreateEnvOutcome{
+				Err: `environment "` + sandboxGroupsOtherEnvID + `"` +
+					` belongs to workspace "` + sandboxGroupsOtherWorkspaceID + `",` +
+					` not workspace "` + sandboxGroupsActiveWorkspaceID + `"`,
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// arrange
+			h := newSandboxGroupsCreateHarness(t)
+			seedSandboxGroupEnvironments(h.server)
+
+			// act
+			result, err := executeSandboxGroupsCommand(t, h.server, tc.args...)
+
+			// assert
+			assert.Equal(t, tc.want, sandboxGroupsCreateEnvOutcomeOf(t, h, result, err))
+		})
+	}
+}
