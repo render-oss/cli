@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	renderapi "github.com/render-oss/cli/internal/fakes/renderapi"
 	"github.com/render-oss/cli/internal/testids"
@@ -463,6 +464,7 @@ func TestFlowRunList_FiltersAndWorkspace(t *testing.T) {
 		"--flow", "flw-1",
 		"--status", "running",
 		"--status", "pending",
+		"--status", "sleeping",
 		"--workflow", "wfl-1",
 		"--workflow-version", "wfv-1",
 		"--output", "text",
@@ -475,7 +477,7 @@ func TestFlowRunList_FiltersAndWorkspace(t *testing.T) {
 	assert.Equal(t, []string{flowActiveWorkspaceID}, call.OwnerIds)
 	assert.Equal(t, []string{"my-workflow/my-flow"}, call.FlowSlugs)
 	assert.Equal(t, []string{"flw-1"}, call.FlowIds)
-	assert.Equal(t, []string{"running", "pending"}, call.Statuses)
+	assert.Equal(t, []string{"running", "pending", "sleeping"}, call.Statuses)
 	assert.Equal(t, []string{"wfl-1"}, call.WorkflowIds)
 	assert.Equal(t, []string{"wfv-1"}, call.WorkflowVersionId)
 	assert.Equal(t, "100", call.Limit)
@@ -1112,5 +1114,41 @@ func TestFlowRunList_WorkflowIDSkipsLookup(t *testing.T) {
 
 	for _, req := range server.Requests {
 		assert.NotContains(t, req.URI, "/workflows")
+	}
+}
+
+func TestFlowRunOutputKeepsRawStatuses(t *testing.T) {
+	withFlowWorkspace(t)
+	for _, status := range []string{"pending", "running", "sleeping", "paused", "completed", "future_state"} {
+		for _, format := range []string{"json", "yaml", "text"} {
+			for _, action := range []string{"list", "show"} {
+				t.Run(status+"/"+format+"/"+action, func(t *testing.T) {
+					server := renderapi.NewServer(t)
+					server.FlowRuns.Add(&renderapi.FlowRun{Id: "frn-raw", Body: json.RawMessage(`{"id":"frn-raw","flowId":"flw-1","status":"` + status + `","input":[],"attempts":[],"results":[]}`)})
+					args := []string{"flows", "runs", action}
+					if action == "show" {
+						args = append(args, "frn-raw")
+					} else {
+						args = append(args, "--flow", "flw-1")
+					}
+					result, err := executeFlowCommand(t, server, append(args, "--output", format)...)
+					require.NoError(t, err)
+					if format == "text" {
+						assert.Contains(t, result.Stdout, status)
+						return
+					}
+					var body any
+					if format == "json" {
+						require.NoError(t, json.Unmarshal([]byte(result.Stdout), &body))
+					} else {
+						require.NoError(t, yaml.Unmarshal([]byte(result.Stdout), &body))
+					}
+					if action == "list" {
+						body = body.([]any)[0]
+					}
+					assert.Equal(t, status, body.(map[string]any)["status"])
+				})
+			}
+		}
 	}
 }

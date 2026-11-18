@@ -25,7 +25,7 @@ func TaskRunDetailsFormat(taskRun *wfclient.TaskRunDetails) []tui.KeyValue {
 
 	keyValues := []tui.KeyValue{
 		{Key: "ID", Value: taskRun.Id},
-		{Key: "Status", Value: statusWithStyle(taskRun.Status).Render(string(taskRun.Status))},
+		{Key: "Status", Value: statusWithStyle(taskRun.Status).Render(tui.RunStatusLabel(string(taskRun.Status)))},
 		{Key: "Started At", Value: startedAt},
 		{Key: "Completed At", Value: completedAt},
 	}

@@ -43,7 +43,7 @@ func RunDetailsFormat(run *workflows.FlowRunDetails) []tui.KeyValue {
 	keyValues := []tui.KeyValue{
 		{Key: "ID", Value: run.Id},
 		{Key: "Flow ID", Value: run.FlowId},
-		{Key: "Status", Value: runStatusStyle(run.Status).Render(string(run.Status))},
+		{Key: "Status", Value: runStatusStyle(run.Status).Render(tui.RunStatusLabel(string(run.Status)))},
 		{Key: "Started At", Value: startedAt},
 		{Key: "Completed At", Value: completedAt},
 	}

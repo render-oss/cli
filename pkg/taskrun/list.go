@@ -6,17 +6,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	wfclient "github.com/render-oss/cli/pkg/client/workflows"
-	"github.com/render-oss/cli/pkg/style"
+	"github.com/render-oss/cli/pkg/tui"
 )
 
 func statusWithStyle(status wfclient.TaskRunStatus) lipgloss.Style {
-	switch status {
-	case wfclient.Failed:
-		return style.Status.Foreground(style.ColorError)
-	case wfclient.Pending, wfclient.Running, wfclient.Paused:
-		return style.Status.Foreground(style.ColorWarning)
-	}
-	return style.Status.Foreground(style.ColorOK)
+	return tui.RunStatusStyle(string(status))
 }
 
 func Header() []string {

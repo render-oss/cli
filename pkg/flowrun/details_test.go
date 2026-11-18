@@ -1,13 +1,19 @@
 package flowrun_test
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
+	"github.com/evertras/bubble-table/table"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	workflows "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/flowrun"
 	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/style"
 )
 
 func TestErrorDescription(t *testing.T) {
@@ -121,4 +127,81 @@ func TestIsFinished(t *testing.T) {
 			assert.Equal(t, tc.want, flowrun.IsFinished(tc.status))
 		})
 	}
+}
+
+func TestRunStatusPresentation(t *testing.T) {
+	for _, tc := range []struct {
+		raw         string
+		label       string
+		statusStyle lipgloss.Style
+	}{
+		{"pending", "Queued", style.Status.Foreground(style.ColorDeprioritized)},
+		{"running", "In Progress", style.Status.Foreground(style.ColorInfo)},
+		{"sleeping", "Sleeping", style.Status.Foreground(style.ColorWarningDeprioritized)},
+		{"succeeded", "Succeeded", style.Status.Foreground(style.ColorOK)},
+		{"completed", "Succeeded", style.Status.Foreground(style.ColorOK)},
+		{"failed", "Failed", style.Status.Foreground(style.ColorError)},
+		{"canceled", "Canceled", style.Status.Foreground(style.ColorDeprioritized)},
+		{"paused", "In Progress", style.Status.Foreground(style.ColorInfo)},
+		{"future_state", "future_state", style.Status.Foreground(style.ColorDeprioritized)},
+		{"suspended", "suspended", style.Status.Foreground(style.ColorDeprioritized)},
+		{"", "", style.Status.Foreground(style.ColorDeprioritized)},
+	} {
+		t.Run(tc.raw, func(t *testing.T) {
+			run := &workflows.FlowRun{Id: "run-1", Status: workflows.FlowRunStatus(tc.raw)}
+			original := *run
+			row := flowrun.RunTableRow(run)
+			cell, ok := row.Data["Status"].(table.StyledCell)
+			require.True(t, ok)
+			assert.Equal(t, tc.label, fmt.Sprintf("%v", cell.Data))
+			assert.Equal(t, tc.statusStyle.GetForeground(), cell.Style.GetForeground())
+			assert.Same(t, run, row.Data["flowRun"])
+			assert.Equal(t, original, *run)
+			details := &workflows.FlowRunDetails{Id: run.Id, Status: run.Status}
+			originalDetails := *details
+			var status string
+			for _, kv := range flowrun.RunDetailsFormat(details) {
+				if kv.Key == "Status" {
+					status = ansi.Strip(kv.Value)
+				}
+			}
+			assert.Equal(t, tc.label, status)
+			assert.Equal(t, originalDetails, *details)
+		})
+	}
+}
+
+func TestFlowRunTableFilterMatchesStatusLabelAndRawStatus(t *testing.T) {
+	for _, tc := range []struct {
+		status  workflows.FlowRunStatus
+		filters []string
+	}{
+		{workflows.FlowRunStatusPending, []string{"queued", "pending"}},
+		{workflows.FlowRunStatusRunning, []string{"progress", "running"}},
+		{workflows.FlowRunStatusPaused, []string{"progress", "paused"}},
+	} {
+		for _, filter := range tc.filters {
+			t.Run(string(tc.status)+"/"+filter, func(t *testing.T) {
+				model := table.New(flowrun.RunColumns()).
+					WithRows([]table.Row{
+						flowrun.RunTableRow(&workflows.FlowRun{Id: "matching", Status: tc.status}),
+						flowrun.RunTableRow(&workflows.FlowRun{Id: "nonmatching", Status: workflows.FlowRunStatusFailed}),
+					}).
+					Filtered(true).
+					WithFilterInputValue(filter)
+				rows := model.GetVisibleRows()
+				require.Len(t, rows, 1)
+				assert.Equal(t, "matching", rows[0].Data["ID"])
+			})
+		}
+	}
+}
+
+func TestFlowRunTableRendersOnlyStatusLabel(t *testing.T) {
+	model := table.New(flowrun.RunColumns()).
+		WithRows([]table.Row{flowrun.RunTableRow(&workflows.FlowRun{Id: "run-1", Status: workflows.FlowRunStatusPending})}).
+		WithTargetWidth(100)
+	view := ansi.Strip(model.View())
+	assert.Contains(t, view, "Queued")
+	assert.NotContains(t, view, "pending")
 }

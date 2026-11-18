@@ -5,6 +5,7 @@ import (
 
 	workflows "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/tui"
 )
 
 // FlowColumns returns the columns for the interactive flow list table.
@@ -50,7 +51,7 @@ func RunTableRow(run *workflows.FlowRun) table.Row {
 
 	return table.NewRow(table.RowData{
 		"ID":        run.Id,
-		"Status":    table.NewStyledCell(string(run.Status), runStatusStyle(run.Status)),
+		"Status":    table.NewStyledCell(tui.RunStatusTableValue(string(run.Status)), runStatusStyle(run.Status)),
 		"Started":   started,
 		"Completed": completed,
 		"Duration":  duration,

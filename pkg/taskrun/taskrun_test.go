@@ -1,15 +1,20 @@
 package taskrun
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
+	"github.com/evertras/bubble-table/table"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	wfclient "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/style"
 )
 
 func TestTaskRunDetailsFormat(t *testing.T) {
@@ -44,7 +49,7 @@ func TestTaskRunDetailsFormat(t *testing.T) {
 		}
 
 		assert.Equal(t, "tr-1", kvMap["ID"])
-		assert.Contains(t, kvMap["Status"], string(wfclient.Completed))
+		assert.Equal(t, "Succeeded", ansi.Strip(kvMap["Status"]))
 		assert.Equal(t, startedAt.Format(time.RFC3339), kvMap["Started At"])
 		assert.Equal(t, completedAt.Format(time.RFC3339), kvMap["Completed At"])
 		assert.Contains(t, kvMap["Input"], "key")
@@ -237,4 +242,81 @@ func TestIsFinished(t *testing.T) {
 			assert.Equal(t, tc.want, IsFinished(tc.status))
 		})
 	}
+}
+
+func TestRunStatusPresentation(t *testing.T) {
+	for _, tc := range []struct {
+		raw         string
+		label       string
+		statusStyle lipgloss.Style
+	}{
+		{"pending", "Queued", style.Status.Foreground(style.ColorDeprioritized)},
+		{"running", "In Progress", style.Status.Foreground(style.ColorInfo)},
+		{"sleeping", "Sleeping", style.Status.Foreground(style.ColorWarningDeprioritized)},
+		{"succeeded", "Succeeded", style.Status.Foreground(style.ColorOK)},
+		{"completed", "Succeeded", style.Status.Foreground(style.ColorOK)},
+		{"failed", "Failed", style.Status.Foreground(style.ColorError)},
+		{"canceled", "Canceled", style.Status.Foreground(style.ColorDeprioritized)},
+		{"paused", "In Progress", style.Status.Foreground(style.ColorInfo)},
+		{"future_state", "future_state", style.Status.Foreground(style.ColorDeprioritized)},
+		{"suspended", "suspended", style.Status.Foreground(style.ColorDeprioritized)},
+		{"", "", style.Status.Foreground(style.ColorDeprioritized)},
+	} {
+		t.Run(tc.raw, func(t *testing.T) {
+			run := &wfclient.TaskRun{Id: "run-1", Status: wfclient.TaskRunStatus(tc.raw)}
+			original := *run
+			row := TableRow(run)
+			cell, ok := row.Data["Status"].(table.StyledCell)
+			require.True(t, ok)
+			assert.Equal(t, tc.label, fmt.Sprintf("%v", cell.Data))
+			assert.Equal(t, tc.statusStyle.GetForeground(), cell.Style.GetForeground())
+			assert.Same(t, run, row.Data["taskRun"])
+			assert.Equal(t, original, *run)
+			details := &wfclient.TaskRunDetails{Id: run.Id, Status: run.Status}
+			originalDetails := *details
+			var status string
+			for _, kv := range TaskRunDetailsFormat(details) {
+				if kv.Key == "Status" {
+					status = ansi.Strip(kv.Value)
+				}
+			}
+			assert.Equal(t, tc.label, status)
+			assert.Equal(t, originalDetails, *details)
+		})
+	}
+}
+
+func TestTaskRunTableFilterMatchesStatusLabelAndRawStatus(t *testing.T) {
+	for _, tc := range []struct {
+		status  wfclient.TaskRunStatus
+		filters []string
+	}{
+		{wfclient.Pending, []string{"queued", "pending"}},
+		{wfclient.Running, []string{"progress", "running"}},
+		{wfclient.Paused, []string{"progress", "paused"}},
+	} {
+		for _, filter := range tc.filters {
+			t.Run(string(tc.status)+"/"+filter, func(t *testing.T) {
+				model := table.New(Columns()).
+					WithRows([]table.Row{
+						TableRow(&wfclient.TaskRun{Id: "matching", Status: tc.status}),
+						TableRow(&wfclient.TaskRun{Id: "nonmatching", Status: wfclient.Failed}),
+					}).
+					Filtered(true).
+					WithFilterInputValue(filter)
+				rows := model.GetVisibleRows()
+				require.Len(t, rows, 1)
+				assert.Equal(t, "matching", rows[0].Data["ID"])
+			})
+		}
+	}
+}
+
+func TestTaskRunTableRendersOnlyStatusLabel(t *testing.T) {
+	model := table.New(Columns()).
+		WithRows([]table.Row{TableRow(&wfclient.TaskRun{Id: "run-1", Status: wfclient.Pending})}).
+		WithTargetWidth(100)
+	view := ansi.Strip(model.View())
+	assert.Contains(t, view, "Queued")
+	assert.NotContains(t, view, "pending")
 }

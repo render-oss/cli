@@ -5,6 +5,7 @@ import (
 
 	wfclient "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/tui"
 )
 
 func Columns() []table.Column {
@@ -31,7 +32,7 @@ func TableRow(tr *wfclient.TaskRun) table.Row {
 
 	return table.NewRow(table.RowData{
 		"ID":        tr.Id,
-		"Status":    table.NewStyledCell(string(tr.Status), statusWithStyle(tr.Status)),
+		"Status":    table.NewStyledCell(tui.RunStatusTableValue(string(tr.Status)), statusWithStyle(tr.Status)),
 		"Started":   started,
 		"Completed": completed,
 		"Duration":  duration,

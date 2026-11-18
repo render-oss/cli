@@ -8,7 +8,7 @@ import (
 
 	workflows "github.com/render-oss/cli/pkg/client/workflows"
 	"github.com/render-oss/cli/pkg/pointers"
-	"github.com/render-oss/cli/pkg/style"
+	"github.com/render-oss/cli/pkg/tui"
 )
 
 // FlowHeader returns the column titles for a flow list table.
@@ -74,13 +74,7 @@ func StepRow(step *workflows.FlowRunStep) []string {
 }
 
 func runStatusStyle(status workflows.FlowRunStatus) lipgloss.Style {
-	switch status {
-	case workflows.FlowRunStatusFailed, workflows.FlowRunStatusCanceled:
-		return style.Status.Foreground(style.ColorError)
-	case workflows.FlowRunStatusPending, workflows.FlowRunStatusRunning, workflows.FlowRunStatusPaused:
-		return style.Status.Foreground(style.ColorWarning)
-	}
-	return style.Status.Foreground(style.ColorOK)
+	return tui.RunStatusStyle(string(status))
 }
 
 // RunStatusStyle exposes the status style so other packages can render matching badges.
