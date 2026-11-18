@@ -11,6 +11,7 @@ import (
 	"github.com/render-oss/cli/internal/testids"
 	"github.com/render-oss/cli/pkg/client"
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
+	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/sandboxgroup"
 )
 
@@ -32,7 +33,7 @@ func TestServiceList_ResolvesActiveWorkspace(t *testing.T) {
 
 	c, err := client.NewClientWithResponses(server.URL())
 	require.NoError(t, err)
-	svc := sandboxgroup.NewService(sandboxgroup.NewRepo(c))
+	svc := sandboxgroup.NewService(sandboxgroup.NewRepo(c), resolve.NewFromClient(c))
 
 	got, err := svc.List(context.Background())
 	require.NoError(t, err)
@@ -44,7 +45,7 @@ func TestServiceList_MissingWorkspaceReturnsError(t *testing.T) {
 	server := renderapi.NewServer(t)
 	c, err := client.NewClientWithResponses(server.URL())
 	require.NoError(t, err)
-	svc := sandboxgroup.NewService(sandboxgroup.NewRepo(c))
+	svc := sandboxgroup.NewService(sandboxgroup.NewRepo(c), resolve.NewFromClient(c))
 
 	// No RENDER_WORKSPACE set and no config file, so config.WorkspaceID errors.
 	t.Setenv("RENDER_WORKSPACE", "")
@@ -62,7 +63,7 @@ func TestServiceCreate_UsesActiveWorkspace(t *testing.T) {
 
 	c, err := client.NewClientWithResponses(server.URL())
 	require.NoError(t, err)
-	svc := sandboxgroup.NewService(sandboxgroup.NewRepo(c))
+	svc := sandboxgroup.NewService(sandboxgroup.NewRepo(c), resolve.NewFromClient(c))
 
 	got, err := svc.Create(context.Background(), sandboxgroup.CreateInput{Name: "agents"})
 	require.NoError(t, err)
@@ -79,7 +80,7 @@ func TestServiceCreate_MissingWorkspaceReturnsError(t *testing.T) {
 	server := renderapi.NewServer(t)
 	c, err := client.NewClientWithResponses(server.URL())
 	require.NoError(t, err)
-	svc := sandboxgroup.NewService(sandboxgroup.NewRepo(c))
+	svc := sandboxgroup.NewService(sandboxgroup.NewRepo(c), resolve.NewFromClient(c))
 
 	t.Setenv("RENDER_WORKSPACE", "")
 	t.Setenv("RENDER_CLI_CONFIG_PATH", t.TempDir()+"/nonexistent.yaml")

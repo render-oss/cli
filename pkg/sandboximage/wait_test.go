@@ -15,6 +15,7 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
+	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/sandboxgroup"
 	"github.com/render-oss/cli/pkg/sandboximage"
 )
@@ -52,7 +53,8 @@ func newImageDoerService(t *testing.T, images ...sandboxesclient.SandboxBuild) (
 	doer := &imageDoer{t: t, images: images}
 	c, err := client.NewClientWithResponses("http://image.test", client.WithHTTPClient(doer))
 	require.NoError(t, err)
-	return sandboximage.NewService(sandboximage.NewRepo(c), sandboxgroup.NewService(sandboxgroup.NewRepo(c))), doer
+	groupService := sandboxgroup.NewService(sandboxgroup.NewRepo(c), resolve.NewFromClient(c))
+	return sandboximage.NewService(sandboximage.NewRepo(c), groupService), doer
 }
 
 func TestWaitUntilReady(t *testing.T) {

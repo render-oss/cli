@@ -24,6 +24,8 @@ Examples:
   render sandbox-groups credentials list
   render sandbox-groups create --name agents
   render sandbox-groups default set sbg-abc123
+  render sandbox-groups environment set sbg-abc123 production
+  render sandbox-groups environment remove sbg-abc123
   render sandbox-groups delete sbg-abc123 --confirm
   render sandbox-groups images import python:3.13 --name python
 `,

@@ -107,6 +107,30 @@ func (r *Repo) Delete(ctx context.Context, id string) error {
 	}
 }
 
+// AddToEnvironment relies on the API to move the group out of any environment
+// it was in.
+func (r *Repo) AddToEnvironment(ctx context.Context, environmentID, groupID string) error {
+	resp, err := r.client.AddResourcesToEnvironmentWithResponse(ctx, environmentID,
+		client.EnvironmentResourcesPOSTInput{
+			ResourceIds: []string{groupID},
+		})
+	if err != nil {
+		return err
+	}
+	return client.ErrorFromResponse(resp)
+}
+
+func (r *Repo) RemoveFromEnvironment(ctx context.Context, environmentID, groupID string) error {
+	resp, err := r.client.RemoveResourcesFromEnvironmentWithResponse(ctx, environmentID,
+		&client.RemoveResourcesFromEnvironmentParams{
+			ResourceIds: []string{groupID},
+		})
+	if err != nil {
+		return err
+	}
+	return client.ErrorFromResponse(resp)
+}
+
 func (r *Repo) SetDefault(ctx context.Context, id string) (*sandboxesclient.SandboxGroup, error) {
 	resp, err := r.client.SetDefaultSandboxGroupWithResponse(ctx, id)
 	if err != nil {

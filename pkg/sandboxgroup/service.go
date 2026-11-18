@@ -6,16 +6,19 @@ import (
 
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
 	"github.com/render-oss/cli/pkg/config"
+	"github.com/render-oss/cli/pkg/pointers"
+	"github.com/render-oss/cli/pkg/resolve"
 )
 
 // Service holds business logic for sandbox groups: resolving the active
 // workspace before delegating to the Repo.
 type Service struct {
-	repo *Repo
+	repo     *Repo
+	resolver *resolve.Resolver
 }
 
-func NewService(repo *Repo) *Service {
-	return &Service{repo: repo}
+func NewService(repo *Repo, resolver *resolve.Resolver) *Service {
+	return &Service{repo: repo, resolver: resolver}
 }
 
 // CreateInput names a new sandbox group.
@@ -62,12 +65,62 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*sandboxesclie
 	})
 }
 
+func (s *Service) resolveEnvironmentID(ctx context.Context, envIDOrName *string) (*string, error) {
+	if envIDOrName == nil {
+		return nil, nil
+	}
+
+	scope, err := s.resolver.ResolveScopeInActiveWorkspace(ctx, resolve.ActiveWorkspaceScopeInput{
+		EnvironmentIDOrName: envIDOrName,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return scope.EnvironmentID(), nil
+}
+
 func (s *Service) Get(ctx context.Context, id string) (*sandboxesclient.SandboxGroup, error) {
 	return s.repo.Get(ctx, id)
 }
 
 func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *Service) SetEnvironment(
+	ctx context.Context,
+	groupID string,
+	environmentIDOrName string,
+) (*sandboxesclient.SandboxGroup, error) {
+	environmentID, err := s.resolveEnvironmentID(ctx, &environmentIDOrName)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.repo.AddToEnvironment(ctx, *environmentID, groupID); err != nil {
+		return nil, err
+	}
+
+	return s.repo.Get(ctx, groupID)
+}
+
+func (s *Service) ClearEnvironment(ctx context.Context, groupID string) (*sandboxesclient.SandboxGroup, error) {
+	group, err := s.repo.Get(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	environmentID := pointers.StringValue(group.EnvironmentId)
+	if environmentID == "" {
+		return group, nil
+	}
+
+	if err := s.repo.RemoveFromEnvironment(ctx, environmentID, groupID); err != nil {
+		return nil, err
+	}
+
+	return s.repo.Get(ctx, groupID)
 }
 
 func (s *Service) SetDefault(ctx context.Context, id string) (*sandboxesclient.SandboxGroup, error) {

@@ -275,7 +275,7 @@ func (d *Dependencies) SandboxCredentialService() *sandboxcredential.Service {
 
 func (d *Dependencies) SandboxGroupService() *sandboxgroup.Service {
 	return d.cache.sandboxGroupService.Get(func() *sandboxgroup.Service {
-		return sandboxgroup.NewService(d.SandboxGroupRepo())
+		return sandboxgroup.NewService(d.SandboxGroupRepo(), d.Resolver())
 	})
 }
 

@@ -12,6 +12,7 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
+	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/sandboxgroup"
 	"github.com/render-oss/cli/pkg/sandboximage"
 )
@@ -45,7 +46,8 @@ func newTestService(t *testing.T, groups []client.SandboxGroupWithCursor, respon
 
 	c, err := client.NewClientWithResponses(server.URL)
 	require.NoError(t, err)
-	return sandboximage.NewService(sandboximage.NewRepo(c), sandboxgroup.NewService(sandboxgroup.NewRepo(c))), &recorded
+	groupService := sandboxgroup.NewService(sandboxgroup.NewRepo(c), resolve.NewFromClient(c))
+	return sandboximage.NewService(sandboximage.NewRepo(c), groupService), &recorded
 }
 
 func respondJSON(status int, v any) func(w http.ResponseWriter) {

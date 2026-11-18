@@ -15,6 +15,7 @@ import (
 
 	"github.com/render-oss/cli/pkg/client"
 	sandboxesclient "github.com/render-oss/cli/pkg/client/sandboxes"
+	"github.com/render-oss/cli/pkg/resolve"
 	"github.com/render-oss/cli/pkg/sandboxgroup"
 	"github.com/render-oss/cli/pkg/sandboxsnapshot"
 )
@@ -52,7 +53,8 @@ func newSnapshotDoerService(t *testing.T, snapshots ...sandboxesclient.SandboxSn
 	doer := &snapshotDoer{t: t, snapshots: snapshots}
 	c, err := client.NewClientWithResponses("http://snapshot.test", client.WithHTTPClient(doer))
 	require.NoError(t, err)
-	return sandboxsnapshot.NewService(sandboxsnapshot.NewRepo(c), sandboxgroup.NewService(sandboxgroup.NewRepo(c))), doer
+	groupService := sandboxgroup.NewService(sandboxgroup.NewRepo(c), resolve.NewFromClient(c))
+	return sandboxsnapshot.NewService(sandboxsnapshot.NewRepo(c), groupService), doer
 }
 
 func TestWaitUntilAvailable(t *testing.T) {
