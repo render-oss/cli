@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -912,4 +914,74 @@ func parseStepSeq(s string) (int, error) {
 		return 0, fmt.Errorf("invalid step sequence %d: must be non-negative", n)
 	}
 	return n, nil
+}
+
+type FlowRunStepAttemptInput struct {
+	StepSeq string
+	Attempt *string
+	StepKey string
+}
+
+func (input FlowRunStepAttemptInput) Parse() (int, int64, error) {
+	seq, err := strconv.ParseUint(input.StepSeq, 10, 32)
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid step sequence %q: must be between 0 and 4294967295", input.StepSeq)
+	}
+	if input.Attempt == nil {
+		return int(seq), 0, nil
+	}
+	attempt, err := strconv.ParseUint(*input.Attempt, 10, 64)
+	if err != nil || attempt == 0 || attempt > uint64(math.MaxUint32)+1 {
+		return 0, 0, fmt.Errorf("invalid attempt %q: must be between 1 and 4294967296", *input.Attempt)
+	}
+	return int(seq), int64(attempt - 1), nil
+}
+
+func newFlowRunStepAttemptsCmd(deps *dependencies.Dependencies) *cobra.Command {
+	parent := &cobra.Command{Use: "attempts", Short: "Inspect inline step attempts"}
+	parent.AddCommand(newFlowRunStepAttemptCmd(deps, false), newFlowRunStepAttemptCmd(deps, true))
+	return parent
+}
+
+func newFlowRunStepAttemptCmd(deps *dependencies.Dependencies, show bool) *cobra.Command {
+	cmd := &cobra.Command{Use: "list <flowRunID> <stepSeq>", Short: "List recorded failures and the step outcome", Args: cobra.ExactArgs(2), SilenceUsage: true,
+		Long: `Inspect an inline step's recorded failures and derived step outcome.
+Attempts in arguments and output are numbered from 1. Derived rows have recorded: false;
+their execution start and flow attempt are unknown. A running step outcome is
+provisional and does not prove that an execution is currently running.
+The step and failure history are separate reads, not an atomic snapshot.`}
+	if show {
+		cmd.Use = "show <flowRunID> <stepSeq> <attempt>"
+		cmd.Short = "Show an inline step attempt"
+		cmd.Args = cobra.ExactArgs(3)
+	}
+	cmd.Flags().String("step-key", "", "Select the step key reported by the step listing")
+	setFlagPlaceholder(cmd.Flags(), "step-key", "KEY")
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		command.DefaultFormatNonInteractive(cmd)
+		key, err := cmd.Flags().GetString("step-key")
+		if err != nil {
+			return err
+		}
+		input := FlowRunStepAttemptInput{StepSeq: args[1], StepKey: key}
+		if show {
+			input.Attempt = &args[2]
+		}
+		seq, attempt, err := input.Parse()
+		if err != nil {
+			return err
+		}
+		service := flowrun.NewService(deps.FlowRunRepo())
+		if show {
+			_, err = command.NonInteractive(cmd, func() (*flowrun.StepAttempt, error) {
+				return service.GetStepAttempt(cmd.Context(), args[0], seq, input.StepKey, attempt)
+			}, flowrun.StepAttemptDetails)
+		} else {
+			_, err = command.NonInteractive(cmd, func() ([]flowrun.StepAttempt, error) {
+				return service.ListStepAttempts(cmd.Context(), args[0], seq, input.StepKey)
+			}, flowrun.StepAttemptTable)
+		}
+		return err
+	}
+	return cmd
 }

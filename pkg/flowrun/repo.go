@@ -189,3 +189,32 @@ func (r *Repo) GetFlowRunStep(ctx context.Context, flowRunID string, stepSeq int
 	}
 	return resp.JSON200, nil
 }
+
+func (r *Repo) GetFlowRunStepWithAttempts(ctx context.Context, flowRunID string, seq int, key string) (*workflows.FlowRunStepDetails, error) {
+	include := true
+	resp, err := r.client.GetFlowRunStepWithResponse(ctx, flowRunID, seq, &client.GetFlowRunStepParams{StepKey: &key, IncludeAttempts: &include})
+	if err != nil {
+		return nil, err
+	}
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("unexpected response: %s", resp.Status())
+	}
+	return resp.JSON200, nil
+}
+
+func (r *Repo) GetFlowRunStepAttempt(ctx context.Context, flowRunID string, seq int, key string, attempt int64) (*workflows.FlowRunStepAttemptDetails, error) {
+	resp, err := r.client.GetFlowRunStepAttemptWithResponse(ctx, flowRunID, seq, attempt, &client.GetFlowRunStepAttemptParams{StepKey: &key})
+	if err != nil {
+		return nil, err
+	}
+	if err := client.ErrorFromResponse(resp); err != nil {
+		return nil, err
+	}
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("unexpected response: %s", resp.Status())
+	}
+	return resp.JSON200, nil
+}

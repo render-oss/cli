@@ -178,6 +178,7 @@ func setupFlowCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
 		newFlowRunStepsCmd(
 			newFlowRunStepListCmd(deps),
 			newFlowRunStepShowCmd(deps),
+			newFlowRunStepAttemptsCmd(deps),
 		),
 	)
 	list := newFlowListCmd(deps, runList, runStart, runShow)

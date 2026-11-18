@@ -27,6 +27,15 @@ type Flow struct {
 type FlowRunStep struct {
 	FlowRunID string
 	Seq       int
+	Key       string
+	Body      json.RawMessage
+}
+
+type FlowRunStepAttempt struct {
+	FlowRunID string
+	Seq       int
+	Key       string
+	Attempt   int64
 	Body      json.RawMessage
 }
 
@@ -51,6 +60,7 @@ type FlowListCall struct {
 type FlowRunResource struct {
 	Resource[*FlowRun]
 	Steps         []*FlowRunStep
+	StepAttempts  []*FlowRunStepAttempt
 	ListCalls     []FlowRunListCall
 	StepListCalls []FlowRunStepListCall
 	StepGetCalls  []FlowRunStepGetCall
@@ -239,6 +249,29 @@ func registerFlowRunRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 		writeJSON(w, http.StatusOK, page)
 	})
 
+	mux.HandleFunc("GET /flow-runs/{flowRunId}/steps/{stepSeq}/attempts/{attempt}", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		seq, err := strconv.Atoi(r.PathValue("stepSeq"))
+		if err != nil {
+			writeJSON(w, 400, map[string]string{"message": "invalid step sequence"})
+			return
+		}
+		attempt, err := strconv.ParseInt(r.PathValue("attempt"), 10, 64)
+		if err != nil {
+			writeJSON(w, 400, map[string]string{"message": "invalid attempt"})
+			return
+		}
+		for _, row := range s.FlowRuns.StepAttempts {
+			if row.FlowRunID == r.PathValue("flowRunId") && row.Seq == seq && row.Key == r.URL.Query().Get("stepKey") && row.Attempt == attempt {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write(row.Body)
+				return
+			}
+		}
+		writeJSON(w, http.StatusNotFound, map[string]string{"message": "step attempt not found"})
+	})
+
 	mux.HandleFunc("GET /flow-runs/{flowRunId}/steps/{stepSeq}", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
 		id := r.PathValue("flowRunId")
@@ -252,7 +285,7 @@ func registerFlowRunRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 			Seq:       seq,
 		})
 		for _, step := range s.FlowRuns.Steps {
-			if step.FlowRunID == id && step.Seq == seq {
+			if step.FlowRunID == id && step.Seq == seq && step.Key == r.URL.Query().Get("stepKey") {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write(step.Body)
