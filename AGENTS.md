@@ -219,3 +219,25 @@ All naming conventions, field formatting rules, and flag standards are defined i
 ## Reference
 
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea) | [Cobra](https://github.com/spf13/cobra) | [Render CLI Docs](https://render.com/docs/cli)
+
+<!-- BEGIN PONYTAIL DEVELOPMENT RULES -->
+## Ponytail development rules
+
+Apply after reading the task and tracing the affected code. Repository constraints and explicit user requirements remain authoritative.
+
+1. **Map the complete change.** Identify every affected caller, test, fixture, config, and export. Check what the change could break or expose.
+
+2. **Use the smallest complete solution.** Skip speculative behavior. Reuse the project's existing helper, component, service, or pattern first. Then use the standard library or a platform feature unless the project already has a suitable implementation; then an installed dependency; then a clear one-line solution; otherwise write the minimum new code.
+
+3. **Fix the shared cause.** Search every caller of a function or contract before changing it. Trace the real flow and fix the root cause once at the shared code when callers converge there.
+
+4. **Keep the diff boring.** No unrequested abstractions, dependencies, wrappers, type conversions, options, configuration, or scaffolding for later. Preserve the structure and conventions already in the codebase. Prefer deletion and fewer files.
+
+5. **Keep safety.** Preserve validation at trust boundaries, error handling that prevents data loss, security, accessibility, hardware calibration, and anything explicitly requested.
+
+6. **Leave a check.** Non-trivial logic leaves one focused runnable test or assert-based self-check, using the existing project tooling. Trivial changes need no new check.
+
+7. **Mark known limits.** For an intentional shortcut with a known ceiling, use a `shortcut:` code comment that names the limit and when to upgrade it.
+
+8. **Review for cuts.** Before completion, inspect the diff for unnecessary code, standard-library or platform replacements, dead flexibility, and avoidable indirection without weakening correctness or security.
+<!-- END PONYTAIL DEVELOPMENT RULES -->
