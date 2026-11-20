@@ -46,6 +46,16 @@ func TestErrorFromResponse(t *testing.T) {
 		})
 
 		require.ErrorIs(t, err, client.ErrTooManyRequests)
+		require.EqualError(t, err, "too many requests")
+	})
+	t.Run("status code 429 with a message", func(t *testing.T) {
+		err := client.ErrorFromResponse(&client.ListSnapshotsResponse{
+			Body:         []byte(`{"message":"sandbox group has too many image imports in progress (limit 2)"}`),
+			HTTPResponse: &http.Response{StatusCode: http.StatusTooManyRequests},
+		})
+
+		require.ErrorIs(t, err, client.ErrTooManyRequests)
+		require.EqualError(t, err, "too many requests: sandbox group has too many image imports in progress (limit 2)")
 	})
 
 	t.Run("status code >= 400", func(t *testing.T) {

@@ -114,11 +114,16 @@ func ErrorFromResponse(v any) error {
 	if responseErr.Code == http.StatusForbidden {
 		return ErrForbidden
 	}
+	message := pointers.StringValue(responseErr.Message)
 	if responseErr.Code == http.StatusTooManyRequests {
-		return ErrTooManyRequests
+		// The rate limiter's body has no message; a limit such as one on
+		// concurrent image imports says which limit was hit.
+		if message == "" {
+			return ErrTooManyRequests
+		}
+		return &tooManyRequestsError{message: fmt.Sprintf("%s: %s", ErrTooManyRequests, message)}
 	}
 
-	message := pointers.StringValue(responseErr.Message)
 	errorCode := pointers.StringValue(responseErr.Error.Code)
 	var err error
 	switch {
@@ -135,6 +140,19 @@ func ErrorFromResponse(v any) error {
 		return &notFoundError{message: err.Error()}
 	}
 	return err
+}
+
+// tooManyRequestsError preserves the API's message while supporting errors.Is.
+type tooManyRequestsError struct {
+	message string
+}
+
+func (e *tooManyRequestsError) Error() string {
+	return e.message
+}
+
+func (e *tooManyRequestsError) Unwrap() error {
+	return ErrTooManyRequests
 }
 
 // notFoundError preserves the API's error details while supporting errors.Is.
