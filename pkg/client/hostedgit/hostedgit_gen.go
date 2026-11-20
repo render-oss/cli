@@ -10,6 +10,24 @@ import (
 	"time"
 )
 
+// Defines values for HostedRepoState.
+const (
+	Active   HostedRepoState = "active"
+	Inactive HostedRepoState = "inactive"
+)
+
+// Valid indicates whether the value is a known member of the HostedRepoState enum.
+func (e HostedRepoState) Valid() bool {
+	switch e {
+	case Active:
+		return true
+	case Inactive:
+		return true
+	default:
+		return false
+	}
+}
+
 // GitCredentials defines model for gitCredentials.
 type GitCredentials struct {
 	ExpiresAt time.Time `json:"expiresAt"`
@@ -29,5 +47,69 @@ type GitCredentials struct {
 	Write bool `json:"write"`
 }
 
+// HostedRepo defines model for hostedRepo.
+type HostedRepo struct {
+	CreatedAt time.Time `json:"createdAt"`
+
+	// DeleteAt When the repo will be deleted. Set only while it's inactive.
+	DeleteAt *time.Time `json:"deleteAt,omitempty"`
+
+	// Id Example: hrp-d04m9b1r0fns73ckp94f
+	Id string `json:"id"`
+
+	// Name Example: bookmarks
+	Name string `json:"name"`
+
+	// OwnerId Example: tea-cph1rs3idesc73a2b2mg
+	OwnerId string `json:"ownerId"`
+
+	// RemoteUrl The URL git pushes to and clones from
+	//
+	// Example: https://code.render.com/tea-cph1rs3idesc73a2b2mg/bookmarks.git
+	RemoteUrl string `json:"remoteUrl"`
+
+	// ServiceIds The services that deploy from the repo
+	ServiceIds []string `json:"serviceIds"`
+
+	// State An `inactive` repo has nothing that uses it and is deleted at `deleteAt`.
+	State HostedRepoState `json:"state"`
+
+	// WebUrl The URL a service deploys from
+	//
+	// Example: https://code.render.com/tea-cph1rs3idesc73a2b2mg/bookmarks
+	WebUrl string `json:"webUrl"`
+}
+
+// HostedRepoPOSTInput defines model for hostedRepoPOSTInput.
+type HostedRepoPOSTInput struct {
+	// DefaultBranch The branch a clone checks out. Defaults to `main`.
+	//
+	// Example: main
+	DefaultBranch *string `json:"defaultBranch,omitempty"`
+
+	// Name Up to 100 lowercase letters, digits, `.`, `_` or `-`, starting with a letter or digit and not ending in `.git`
+	//
+	// Example: bookmarks
+	Name string `json:"name"`
+
+	// OwnerId Example: tea-cph1rs3idesc73a2b2mg
+	OwnerId string `json:"ownerId"`
+}
+
+// HostedRepoState An `inactive` repo has nothing that uses it and is deleted at `deleteAt`.
+type HostedRepoState string
+
+// HostedRepoWithCursor defines model for hostedRepoWithCursor.
+type HostedRepoWithCursor struct {
+	Cursor     string     `json:"cursor"`
+	HostedRepo HostedRepo `json:"hostedRepo"`
+}
+
 // HostedRepoIdParam Example: hrp-d04m9b1r0fns73ckp94f
 type HostedRepoIdParam = string
+
+// HostedRepoNameParam Example: bookmarks
+type HostedRepoNameParam = string
+
+// HostedRepoOwnerIdParam Example: tea-cph1rs3idesc73a2b2mg
+type HostedRepoOwnerIdParam = string

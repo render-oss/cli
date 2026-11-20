@@ -20,6 +20,7 @@ import (
 	externalRef6 "github.com/render-oss/cli/pkg/client/envvar"
 	externalRef7 "github.com/render-oss/cli/pkg/client/events"
 	externalRef9 "github.com/render-oss/cli/pkg/client/eventtypes"
+	externalRef10 "github.com/render-oss/cli/pkg/client/hostedgit"
 	externalRef11 "github.com/render-oss/cli/pkg/client/jobs"
 	externalRef12 "github.com/render-oss/cli/pkg/client/logs"
 	externalRef13 "github.com/render-oss/cli/pkg/client/maintenance"
@@ -4198,6 +4199,21 @@ type ListFlowsParams struct {
 	WorkflowId *externalRef21.WorkflowIDFilterParam `form:"workflowId,omitempty" json:"workflowId,omitempty"`
 }
 
+// ListHostedReposParams defines parameters for ListHostedRepos.
+type ListHostedReposParams struct {
+	// OwnerId The ID of the workspace whose hosted repos to list
+	OwnerId externalRef10.HostedRepoOwnerIdParam `form:"ownerId" json:"ownerId"`
+
+	// Name Return only the hosted repo with this name
+	Name *externalRef10.HostedRepoNameParam `form:"name,omitempty" json:"name,omitempty"`
+
+	// Cursor The position in the result list to start from when fetching paginated results. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Cursor *CursorParam `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The maximum number of items to return. For details, see [Pagination](https://api-docs.render.com/reference/pagination).
+	Limit *LimitParam `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // ListKeyValueParams defines parameters for ListKeyValue.
 type ListKeyValueParams struct {
 	// Name Filter by name
@@ -5228,6 +5244,12 @@ type CreateSandboxSnapshotParams struct {
 	OwnerId *externalRef17.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
 }
 
+// SuspendSandboxParams defines parameters for SuspendSandbox.
+type SuspendSandboxParams struct {
+	// OwnerId The ID of the workspace the sandbox belongs to. If provided, it must match the sandbox's workspace. If omitted, Render determines the workspace from the sandbox ID.
+	OwnerId *externalRef17.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
+}
+
 // TerminateSandboxParams defines parameters for TerminateSandbox.
 type TerminateSandboxParams struct {
 	// OwnerId The ID of the workspace the sandbox belongs to. If provided, it must match the sandbox's workspace. If omitted, Render determines the workspace from the sandbox ID.
@@ -5734,6 +5756,9 @@ type AddResourcesToEnvironmentJSONRequestBody = EnvironmentResourcesPOSTInput
 
 // StartFlowRunJSONRequestBody defines body for StartFlowRun for application/json ContentType.
 type StartFlowRunJSONRequestBody = externalRef21.StartFlowRun
+
+// CreateHostedRepoJSONRequestBody defines body for CreateHostedRepo for application/json ContentType.
+type CreateHostedRepoJSONRequestBody = externalRef10.HostedRepoPOSTInput
 
 // CreateKeyValueJSONRequestBody defines body for CreateKeyValue for application/json ContentType.
 type CreateKeyValueJSONRequestBody = KeyValuePOSTInput
