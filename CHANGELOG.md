@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.38.0] - 2026-11-19
+
+### Added
+
+- `render sandbox-groups environment set <group> <environment>` to put a sandbox group in a project environment or move it to another one
+- `render sandbox-groups environment remove <group>` to take a sandbox group out of its project environment
+- `--environment` on `render sandbox-groups create` to create a sandbox group in a project environment
+- `render workflows flows runs steps attempts list` and `show` to inspect inline flow step attempts
+- A notice after a command when a newer release is available, at most once a day. It goes to stderr and doesn't show in scripts, CI or structured output
+
+### Changed
+
+- Interactive workflow views show friendly run status labels, such as Queued and In Progress. JSON, YAML, text output and `--status` still use the API values
+
+### Fixed
+
+- A request that fails with a 429 shows the API's error message, for example when a sandbox group has too many image imports in progress
+
 ## [2.37.0] - 2026-11-16
 
 ### Added
