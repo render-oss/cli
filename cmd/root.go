@@ -259,6 +259,7 @@ func setupCommands() (*dependencies.Dependencies, error) {
 	setupSSHCommands(rootCmd, deps)
 	setupKVCommands(rootCmd, deps)
 	setupPGCommands(rootCmd, deps)
+	rootCmd.AddCommand(newEnvGroupCmd(deps))
 	setupSandboxCommands(rootCmd, deps)
 	setupSandboxGroupsCommands(rootCmd, deps)
 	setupBlueprintCommands(EarlyAccessCmd, deps)

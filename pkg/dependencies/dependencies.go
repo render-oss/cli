@@ -9,6 +9,7 @@ import (
 	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/config"
 	"github.com/render-oss/cli/pkg/deploy"
+	"github.com/render-oss/cli/pkg/envgroup"
 	"github.com/render-oss/cli/pkg/environment"
 	"github.com/render-oss/cli/pkg/flowrun"
 	"github.com/render-oss/cli/pkg/keyvalue"
@@ -47,6 +48,7 @@ func (c *cache[T]) Get(fn func() T) T {
 }
 
 type cachedDependencies struct {
+	envGroupRepo             cache[*envgroup.Repo]
 	workflowLoader           cache[*workflowviews.WorkflowLoader]
 	workflowService          cache[*workflow.Service]
 	workflowRepo             cache[*workflow.Repo]
@@ -84,6 +86,10 @@ type cachedDependencies struct {
 	logLoader                cache[*views.LogLoader]
 	resourceLoader           cache[*views.ResourceLoader]
 	apiConfig                cache[*config.APIConfig]
+}
+
+func (d *Dependencies) EnvGroupRepo() *envgroup.Repo {
+	return d.cache.envGroupRepo.Get(func() *envgroup.Repo { return envgroup.NewRepo(d.client) })
 }
 
 type Dependencies struct {
