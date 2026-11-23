@@ -217,7 +217,7 @@ var CustomHelpTemplate = `{{cliVersion}}
   {{rpad .Name 20 | boldText}} {{trimPeriod .Short}}{{end}}{{end}}
 
 {{end}}{{if or .HasAvailableLocalFlags .HasAvailableInheritedFlags}}` + style.Title.Render("FLAGS") + `
-{{combinedFlagUsages .LocalFlags .InheritedFlags}}
+{{combinedFlagUsages .LocalFlags .InheritedFlags (helpTextWidth .)}}
 {{end}}{{if .Example}}` + style.Title.Render("EXAMPLES") + `
 {{formatExamples .Example}}
 

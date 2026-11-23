@@ -981,7 +981,7 @@ func TestCombinedFlagUsagesIncludesDefaultValue(t *testing.T) {
 	flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
 	flags.String("output", "interactive", "Output format.")
 
-	got := CombinedFlagUsages(flags, nil)
+	got := CombinedFlagUsages(flags, nil, maxHelpTextWidth)
 
 	require.Contains(t, got, `(default: "interactive")`)
 }
@@ -990,7 +990,7 @@ func TestCombinedFlagUsagesIncludesSingleSpaceStringDefault(t *testing.T) {
 	flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
 	flags.String("delimiter", " ", "Delimiter to use.")
 
-	got := CombinedFlagUsages(flags, nil)
+	got := CombinedFlagUsages(flags, nil, maxHelpTextWidth)
 
 	require.Contains(t, got, `(default: " ")`)
 }
@@ -1000,7 +1000,7 @@ func TestCombinedFlagUsagesIncludesDeprecationText(t *testing.T) {
 	flags.String("old-flag", "", "Old flag.")
 	flags.Lookup("old-flag").Deprecated = "use --new-flag instead"
 
-	got := CombinedFlagUsages(flags, nil)
+	got := CombinedFlagUsages(flags, nil, maxHelpTextWidth)
 
 	require.Contains(t, got, "(DEPRECATED: use --new-flag instead)")
 }
@@ -1010,12 +1010,42 @@ func TestCombinedFlagUsagesIncludesZeroNumericAndDurationDefaults(t *testing.T) 
 	flags.Int("limit", 0, "Max records.")
 	flags.Duration("timeout", 0*time.Second, "Request timeout.")
 
-	got := CombinedFlagUsages(flags, nil)
+	got := CombinedFlagUsages(flags, nil, maxHelpTextWidth)
 
 	require.Contains(t, got, "--limit")
 	require.Contains(t, got, "(default: 0)")
 	require.Contains(t, got, "--timeout")
 	require.Contains(t, got, "(default: 0s)")
+}
+
+func TestCombinedFlagUsagesWrapsDescriptions(t *testing.T) {
+	local := pflag.NewFlagSet("local", pflag.ContinueOnError)
+	local.Bool("wait", false, "Wait for the sandbox to become ready before returning.")
+	inherited := pflag.NewFlagSet("inherited", pflag.ContinueOnError)
+	inherited.BoolP("confirm", "c", false, "Confirm the operation")
+
+	const width = 54
+	lines := strings.Split(strings.TrimSuffix(CombinedFlagUsages(local, inherited, width), "\n"), "\n")
+	require.Len(t, lines, 4)
+	column := strings.Index(lines[0], "Wait")
+	require.Positive(t, column)
+	require.Equal(t, strings.Repeat(" ", column)+"before returning", lines[1])
+	require.Empty(t, lines[2])
+	require.Equal(t, column, strings.Index(lines[3], "Confirm"))
+	for _, line := range lines {
+		require.LessOrEqual(t, len(line), width)
+	}
+}
+
+func TestCombinedFlagUsagesStacksFlagsWhenNarrow(t *testing.T) {
+	flags := pflag.NewFlagSet("test", pflag.ContinueOnError)
+	flags.BoolP("confirm", "c", false, "Confirm the operation.")
+	flags.Bool("wait", false, "Wait for the sandbox to become ready before returning.")
+
+	const width = 35
+	got := CombinedFlagUsages(flags, nil, width)
+	require.Equal(t, "  -c, --confirm\n    Confirm the operation\n\n"+
+		"  --wait\n    Wait for the sandbox to become\n    ready before returning\n", got)
 }
 
 func TestServicesHelpContent(t *testing.T) {

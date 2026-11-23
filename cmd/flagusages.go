@@ -156,10 +156,11 @@ func getDescriptiveTypeName(flag *pflag.Flag, varname string) string {
 	return varname
 }
 
-// CombinedFlagUsages formats both local and inherited flags with consistent padding
-func CombinedFlagUsages(localFlags, inheritedFlags *pflag.FlagSet) string {
+// CombinedFlagUsages formats local and inherited flags for the help text width.
+func CombinedFlagUsages(localFlags, inheritedFlags *pflag.FlagSet, width int) string {
 	type flagInfo struct {
 		name                 string
+		width                int
 		varname              string
 		usage                string
 		suffix               string
@@ -208,6 +209,7 @@ func CombinedFlagUsages(localFlags, inheritedFlags *pflag.FlagSet) string {
 
 			allFlags = append(allFlags, flagInfo{
 				name:                 name,
+				width:                fullLength,
 				varname:              varname,
 				usage:                usage,
 				suffix:               suffix,
@@ -223,14 +225,28 @@ func CombinedFlagUsages(localFlags, inheritedFlags *pflag.FlagSet) string {
 		collectFlags(inheritedFlags)
 	}
 
-	// Format all flags with consistent padding
-	buf := new(bytes.Buffer)
-	const padding = 3
+	const columnGap = 3
+	const minDescriptionWidth = 36
+	const stackedIndent = 4
 
-	for _, flag := range allFlags {
+	descriptionColumn := maxFlagLen + columnGap
+	stacked := width-descriptionColumn < minDescriptionWidth
+	if stacked {
+		descriptionColumn = stackedIndent
+	}
+	descriptionIndent := strings.Repeat(" ", descriptionColumn)
+
+	buf := new(bytes.Buffer)
+	for index, flag := range allFlags {
 		// Parse and format flag name with selective bolding
 		// Don't bold the comma and space between short and long flags
+		if index > 0 {
+			buf.WriteByte('\n')
+		}
 		flagName := flag.name
+		if stacked {
+			flagName = "  " + strings.TrimLeft(flagName, " ")
+		}
 		if strings.Contains(flagName, ", --") {
 			// Split on the comma to bold separately
 			parts := strings.SplitN(flagName, ", ", 2)
@@ -251,22 +267,17 @@ func CombinedFlagUsages(localFlags, inheritedFlags *pflag.FlagSet) string {
 			buf.WriteString(flag.suffix)
 		}
 
-		// Calculate current display width
-		currentLen := lipgloss.Width(flag.name)
-		if flag.varname != "" {
-			currentLen += lipgloss.Width(fmt.Sprintf(" <%s>", flag.varname))
+		if stacked {
+			buf.WriteByte('\n')
+			buf.WriteString(descriptionIndent)
+		} else {
+			buf.WriteString(strings.Repeat(" ", descriptionColumn-flag.width))
 		}
-		currentLen += lipgloss.Width(flag.suffix)
 
-		// Add padding to align descriptions
-		spacesToAdd := maxFlagLen - currentLen + padding
-		buf.WriteString(strings.Repeat(" ", spacesToAdd))
-
-		// Remove trailing period from usage description
-		usage := strings.TrimSuffix(flag.usage, ".")
-		buf.WriteString(usage)
-		buf.WriteString(flag.defaultAndDeprecated)
-		buf.WriteString("\n")
+		usage := strings.TrimSuffix(flag.usage, ".") + flag.defaultAndDeprecated
+		description := wrapText(usage, max(1, width-descriptionColumn))
+		buf.WriteString(strings.ReplaceAll(description, "\n", "\n"+descriptionIndent))
+		buf.WriteByte('\n')
 	}
 
 	return buf.String()
