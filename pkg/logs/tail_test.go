@@ -29,7 +29,7 @@ func setupTailTest(t *testing.T) (*LogRepo, *renderapi.Server) {
 func TestTailLogsResume(t *testing.T) {
 	timestamp := time.Date(2026, 9, 9, 12, 0, 0, 123456789, time.UTC)
 	params := client.ListLogsParams{
-		OwnerId: "owner", Resource: []string{"srv-one", "srv-two"},
+		OwnerId: "owner", Resource: &[]string{"srv-one", "srv-two"},
 		Instance: &[]string{"instance"}, Text: &[]string{"hello"}, Level: &[]string{"info"},
 		Type: &[]string{"app"}, Host: &[]string{"example.com"}, StatusCode: &[]string{"200"},
 		Method: &[]string{"GET"}, Path: &[]string{"/"}, Task: &[]string{"task"}, TaskRun: &[]string{"run"},

@@ -28,7 +28,7 @@ func TestLogLoaderToParam(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Equal(t, "", params.OwnerId)
-		require.Equal(t, []string{"wfl-local"}, params.Resource)
+		require.Equal(t, &[]string{"wfl-local"}, params.Resource)
 	})
 
 	t.Run("production requires workspace", func(t *testing.T) {
@@ -51,6 +51,6 @@ func TestLogLoaderToParam(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Equal(t, "wrk-test123", params.OwnerId)
-		require.Equal(t, []string{resourceID}, params.Resource)
+		require.Equal(t, &[]string{resourceID}, params.Resource)
 	})
 }

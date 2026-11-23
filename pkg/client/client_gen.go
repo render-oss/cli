@@ -353,8 +353,11 @@ type ClientInterface interface {
 	// TriggerBuildSourceBuildWithBody Trigger a build
 	//
 	// Start a new build of the build source at the current HEAD of its
-	// branch, even if an up-to-date build already exists. Services linked to
-	// the build source with autodeploy enabled are deployed with the result.
+	// branch, even if an up-to-date build already exists.
+	//
+	// By default, all services linked to the build source with autodeploy enabled
+	// will be deployed. Use `deploy.serviceScope` to override this and choose specific
+	// linked services.
 	//
 	// Updating a build source or its build-time environment (env vars,
 	// secret files, env groups) with the REST API does not build it. Call
@@ -370,8 +373,11 @@ type ClientInterface interface {
 	// TriggerBuildSourceBuild Trigger a build
 	//
 	// Start a new build of the build source at the current HEAD of its
-	// branch, even if an up-to-date build already exists. Services linked to
-	// the build source with autodeploy enabled are deployed with the result.
+	// branch, even if an up-to-date build already exists.
+	//
+	// By default, all services linked to the build source with autodeploy enabled
+	// will be deployed. Use `deploy.serviceScope` to override this and choose specific
+	// linked services.
 	//
 	// Updating a build source or its build-time environment (env vars,
 	// secret files, env groups) with the REST API does not build it. Call
@@ -2427,6 +2433,34 @@ type ClientInterface interface {
 	// Corresponds with POST /sandboxes/{sandboxId}/files/{operation}/token (the `ConnectSandboxFiles` operationId).
 	ConnectSandboxFiles(ctx context.Context, sandboxId externalRef17.SandboxId, operation string, params *ConnectSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListSandboxPorts List exposed sandbox ports
+	//
+	// List configured public ports and their HTTPS URLs. Returns an empty array if no ports are exposed.
+	//
+	// Corresponds with GET /sandboxes/{sandboxId}/ports (the `ListSandboxPorts` operationId).
+	ListSandboxPorts(ctx context.Context, sandboxId externalRef17.SandboxId, params *ListSandboxPortsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// HideSandboxPort Hide a sandbox port
+	//
+	// Hide a configured port without waking a suspended sandbox. Ports are hidden by default. Works in any status but errored. Succeeds if the port is already closed. While the sandbox has a running VM, returns only after routing to the port is revoked and its open connections, including WebSockets and streaming responses, are disconnected. If that can't be confirmed, the port stays closed and the request fails with a 503; retrying confirms again.
+	//
+	// Corresponds with DELETE /sandboxes/{sandboxId}/ports/{port} (the `HideSandboxPort` operationId).
+	HideSandboxPort(ctx context.Context, sandboxId externalRef17.SandboxId, port int, params *HideSandboxPortParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RetrieveSandboxPort Retrieve an exposed sandbox port
+	//
+	// Return the configured HTTPS URL without changing exposure or checking application readiness.
+	//
+	// Corresponds with GET /sandboxes/{sandboxId}/ports/{port} (the `RetrieveSandboxPort` operationId).
+	RetrieveSandboxPort(ctx context.Context, sandboxId externalRef17.SandboxId, port int, params *RetrieveSandboxPortParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ExposeSandboxPort Expose a sandbox port
+	//
+	// Expose a port publicly. Works while the sandbox is creating, running, resuming, suspending or suspended; a sandbox without a running VM applies the port when it starts. Returns the same URL if already exposed. Changes propagate asynchronously. Render does not check application readiness.
+	//
+	// Corresponds with PUT /sandboxes/{sandboxId}/ports/{port} (the `ExposeSandboxPort` operationId).
+	ExposeSandboxPort(ctx context.Context, sandboxId externalRef17.SandboxId, port int, params *ExposeSandboxPortParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ConnectSandboxRunWithBody Create a connect token for a sandbox run
 	//
 	// Create a short-lived connect token for a command run in this sandbox. Send the command to the URL in the response, using the token as the bearer token. The token authorizes only the requested operation.
@@ -3804,8 +3838,11 @@ func (c *Client) ListBuildsInBuildSource(ctx context.Context, buildSourceId exte
 // TriggerBuildSourceBuildWithBody Trigger a build
 //
 // Start a new build of the build source at the current HEAD of its
-// branch, even if an up-to-date build already exists. Services linked to
-// the build source with autodeploy enabled are deployed with the result.
+// branch, even if an up-to-date build already exists.
+//
+// By default, all services linked to the build source with autodeploy enabled
+// will be deployed. Use `deploy.serviceScope` to override this and choose specific
+// linked services.
 //
 // Updating a build source or its build-time environment (env vars,
 // secret files, env groups) with the REST API does not build it. Call
@@ -3831,8 +3868,11 @@ func (c *Client) TriggerBuildSourceBuildWithBody(ctx context.Context, buildSourc
 // TriggerBuildSourceBuild Trigger a build
 //
 // Start a new build of the build source at the current HEAD of its
-// branch, even if an up-to-date build already exists. Services linked to
-// the build source with autodeploy enabled are deployed with the result.
+// branch, even if an up-to-date build already exists.
+//
+// By default, all services linked to the build source with autodeploy enabled
+// will be deployed. Use `deploy.serviceScope` to override this and choose specific
+// linked services.
 //
 // Updating a build source or its build-time environment (env vars,
 // secret files, env groups) with the REST API does not build it. Call
@@ -8298,6 +8338,74 @@ func (c *Client) RetrieveSandboxExecution(ctx context.Context, sandboxId externa
 // Corresponds with POST /sandboxes/{sandboxId}/files/{operation}/token (the `ConnectSandboxFiles` operationId).
 func (c *Client) ConnectSandboxFiles(ctx context.Context, sandboxId externalRef17.SandboxId, operation string, params *ConnectSandboxFilesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewConnectSandboxFilesRequest(c.Server, sandboxId, operation, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListSandboxPorts List exposed sandbox ports
+//
+// List configured public ports and their HTTPS URLs. Returns an empty array if no ports are exposed.
+//
+// Corresponds with GET /sandboxes/{sandboxId}/ports (the `ListSandboxPorts` operationId).
+func (c *Client) ListSandboxPorts(ctx context.Context, sandboxId externalRef17.SandboxId, params *ListSandboxPortsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSandboxPortsRequest(c.Server, sandboxId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// HideSandboxPort Hide a sandbox port
+//
+// Hide a configured port without waking a suspended sandbox. Ports are hidden by default. Works in any status but errored. Succeeds if the port is already closed. While the sandbox has a running VM, returns only after routing to the port is revoked and its open connections, including WebSockets and streaming responses, are disconnected. If that can't be confirmed, the port stays closed and the request fails with a 503; retrying confirms again.
+//
+// Corresponds with DELETE /sandboxes/{sandboxId}/ports/{port} (the `HideSandboxPort` operationId).
+func (c *Client) HideSandboxPort(ctx context.Context, sandboxId externalRef17.SandboxId, port int, params *HideSandboxPortParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewHideSandboxPortRequest(c.Server, sandboxId, port, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RetrieveSandboxPort Retrieve an exposed sandbox port
+//
+// Return the configured HTTPS URL without changing exposure or checking application readiness.
+//
+// Corresponds with GET /sandboxes/{sandboxId}/ports/{port} (the `RetrieveSandboxPort` operationId).
+func (c *Client) RetrieveSandboxPort(ctx context.Context, sandboxId externalRef17.SandboxId, port int, params *RetrieveSandboxPortParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRetrieveSandboxPortRequest(c.Server, sandboxId, port, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ExposeSandboxPort Expose a sandbox port
+//
+// Expose a port publicly. Works while the sandbox is creating, running, resuming, suspending or suspended; a sandbox without a running VM applies the port when it starts. Returns the same URL if already exposed. Changes propagate asynchronously. Render does not check application readiness.
+//
+// Corresponds with PUT /sandboxes/{sandboxId}/ports/{port} (the `ExposeSandboxPort` operationId).
+func (c *Client) ExposeSandboxPort(ctx context.Context, sandboxId externalRef17.SandboxId, port int, params *ExposeSandboxPortParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewExposeSandboxPortRequest(c.Server, sandboxId, port, params)
 	if err != nil {
 		return nil, err
 	}
@@ -14953,7 +15061,43 @@ func NewListLogsRequest(server string, params *ListLogsParams) (*http.Request, e
 
 		if params.Resource != nil {
 
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "resource", params.Resource, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "resource", *params.Resource, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -15551,7 +15695,43 @@ func NewSubscribeLogsRequest(server string, params *SubscribeLogsParams) (*http.
 
 		if params.Resource != nil {
 
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "resource", params.Resource, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "resource", *params.Resource, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -15813,7 +15993,43 @@ func NewListLogsValuesRequest(server string, params *ListLogsValuesParams) (*htt
 
 		if params.Resource != nil {
 
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "resource", params.Resource, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "resource", *params.Resource, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -16377,6 +16593,42 @@ func NewGetActiveConnectionsRequest(server string, params *GetActiveConnectionsP
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if encoded := queryValues.Encode(); encoded != "" {
 			rawQueryFragments = append(rawQueryFragments, encoded)
 		}
@@ -16467,6 +16719,42 @@ func NewGetBandwidthRequest(server string, params *GetBandwidthParams) (*http.Re
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if encoded := queryValues.Encode(); encoded != "" {
 			rawQueryFragments = append(rawQueryFragments, encoded)
 		}
@@ -16548,6 +16836,42 @@ func NewGetBandwidthSourcesRequest(server string, params *GetBandwidthSourcesPar
 		if params.Service != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "service", *params.Service, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -16659,6 +16983,30 @@ func NewGetCpuRequest(server string, params *GetCpuParams) (*http.Request, error
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Instance != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "instance", *params.Instance, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
@@ -16674,6 +17022,18 @@ func NewGetCpuRequest(server string, params *GetCpuParams) (*http.Request, error
 		if params.AggregationMethod != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "aggregationMethod", *params.AggregationMethod, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -16785,9 +17145,45 @@ func NewGetCpuLimitRequest(server string, params *GetCpuLimitParams) (*http.Requ
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Instance != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "instance", *params.Instance, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -16899,9 +17295,45 @@ func NewGetCpuTargetRequest(server string, params *GetCpuTargetParams) (*http.Re
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Instance != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "instance", *params.Instance, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -17013,6 +17445,42 @@ func NewGetDiskCapacityRequest(server string, params *GetDiskCapacityParams) (*h
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if encoded := queryValues.Encode(); encoded != "" {
 			rawQueryFragments = append(rawQueryFragments, encoded)
 		}
@@ -17106,6 +17574,42 @@ func NewGetDiskUsageRequest(server string, params *GetDiskUsageParams) (*http.Re
 		if params.Service != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "service", *params.Service, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -17217,6 +17721,42 @@ func NewListApplicationFilterValuesRequest(server string, params *ListApplicatio
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if encoded := queryValues.Encode(); encoded != "" {
 			rawQueryFragments = append(rawQueryFragments, encoded)
 		}
@@ -17319,6 +17859,30 @@ func NewListHttpFilterValuesRequest(server string, params *ListHttpFilterValuesP
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Host != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "host", *params.Host, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
@@ -17334,6 +17898,18 @@ func NewListHttpFilterValuesRequest(server string, params *ListHttpFilterValuesP
 		if params.StatusCode != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "statusCode", *params.StatusCode, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -17445,6 +18021,30 @@ func NewListPathFilterValuesRequest(server string, params *ListPathFilterValuesP
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Host != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "host", *params.Host, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
@@ -17472,6 +18072,18 @@ func NewListPathFilterValuesRequest(server string, params *ListPathFilterValuesP
 		if params.Path != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "path", *params.Path, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -17583,6 +18195,30 @@ func NewGetHttpLatencyRequest(server string, params *GetHttpLatencyParams) (*htt
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Host != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "host", *params.Host, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
@@ -17610,6 +18246,18 @@ func NewGetHttpLatencyRequest(server string, params *GetHttpLatencyParams) (*htt
 		if params.Quantile != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "quantile", *params.Quantile, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "number", Format: "float"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -17721,6 +18369,30 @@ func NewGetHttpRequestsRequest(server string, params *GetHttpRequestsParams) (*h
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Host != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "host", *params.Host, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
@@ -17748,6 +18420,18 @@ func NewGetHttpRequestsRequest(server string, params *GetHttpRequestsParams) (*h
 		if params.AggregateBy != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "aggregateBy", *params.AggregateBy, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -17859,6 +18543,42 @@ func NewGetInstanceCountRequest(server string, params *GetInstanceCountParams) (
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if encoded := queryValues.Encode(); encoded != "" {
 			rawQueryFragments = append(rawQueryFragments, encoded)
 		}
@@ -17961,9 +18681,45 @@ func NewGetMemoryRequest(server string, params *GetMemoryParams) (*http.Request,
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Instance != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "instance", *params.Instance, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -18075,9 +18831,45 @@ func NewGetMemoryLimitRequest(server string, params *GetMemoryLimitParams) (*htt
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Instance != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "instance", *params.Instance, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -18189,9 +18981,45 @@ func NewGetMemoryTargetRequest(server string, params *GetMemoryTargetParams) (*h
 
 		}
 
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Instance != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "instance", *params.Instance, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -18282,6 +19110,42 @@ func NewGetReplicationLagRequest(server string, params *GetReplicationLagParams)
 		if params.Resource != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "resource", *params.Resource, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Project != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project", *params.Project, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Environment != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "environment", *params.Environment, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Region != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "region", *params.Region, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -23094,6 +23958,271 @@ func NewConnectSandboxFilesRequest(server string, sandboxId externalRef17.Sandbo
 	return req, nil
 }
 
+// NewListSandboxPortsRequest constructs an http.Request for the ListSandboxPorts method
+func NewListSandboxPortsRequest(server string, sandboxId externalRef17.SandboxId, params *ListSandboxPortsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandboxes/%s/ports", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewHideSandboxPortRequest constructs an http.Request for the HideSandboxPort method
+func NewHideSandboxPortRequest(server string, sandboxId externalRef17.SandboxId, port int, params *HideSandboxPortParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "port", port, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandboxes/%s/ports/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRetrieveSandboxPortRequest constructs an http.Request for the RetrieveSandboxPort method
+func NewRetrieveSandboxPortRequest(server string, sandboxId externalRef17.SandboxId, port int, params *RetrieveSandboxPortParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "port", port, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandboxes/%s/ports/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewExposeSandboxPortRequest constructs an http.Request for the ExposeSandboxPort method
+func NewExposeSandboxPortRequest(server string, sandboxId externalRef17.SandboxId, port int, params *ExposeSandboxPortParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "sandboxId", sandboxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "port", port, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sandboxes/%s/ports/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.OwnerId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ownerId", *params.OwnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewConnectSandboxRunRequest calls the generic ConnectSandboxRun builder with application/json body
 func NewConnectSandboxRunRequest(server string, sandboxId externalRef17.SandboxId, operation string, params *ConnectSandboxRunParams, body ConnectSandboxRunJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -27857,8 +28986,11 @@ type ClientWithResponsesInterface interface {
 	// TriggerBuildSourceBuildWithBodyWithResponse Trigger a build
 	//
 	// Start a new build of the build source at the current HEAD of its
-	// branch, even if an up-to-date build already exists. Services linked to
-	// the build source with autodeploy enabled are deployed with the result.
+	// branch, even if an up-to-date build already exists.
+	//
+	// By default, all services linked to the build source with autodeploy enabled
+	// will be deployed. Use `deploy.serviceScope` to override this and choose specific
+	// linked services.
 	//
 	// Updating a build source or its build-time environment (env vars,
 	// secret files, env groups) with the REST API does not build it. Call
@@ -27874,8 +29006,11 @@ type ClientWithResponsesInterface interface {
 	// TriggerBuildSourceBuildWithResponse Trigger a build
 	//
 	// Start a new build of the build source at the current HEAD of its
-	// branch, even if an up-to-date build already exists. Services linked to
-	// the build source with autodeploy enabled are deployed with the result.
+	// branch, even if an up-to-date build already exists.
+	//
+	// By default, all services linked to the build source with autodeploy enabled
+	// will be deployed. Use `deploy.serviceScope` to override this and choose specific
+	// linked services.
 	//
 	// Updating a build source or its build-time environment (env vars,
 	// secret files, env groups) with the REST API does not build it. Call
@@ -30222,6 +31357,42 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /sandboxes/{sandboxId}/files/{operation}/token (the `ConnectSandboxFiles` operationId).
 	ConnectSandboxFilesWithResponse(ctx context.Context, sandboxId externalRef17.SandboxId, operation string, params *ConnectSandboxFilesParams, reqEditors ...RequestEditorFn) (*ConnectSandboxFilesResponse, error)
+
+	// ListSandboxPortsWithResponse List exposed sandbox ports
+	//
+	// List configured public ports and their HTTPS URLs. Returns an empty array if no ports are exposed.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /sandboxes/{sandboxId}/ports (the `ListSandboxPorts` operationId).
+	ListSandboxPortsWithResponse(ctx context.Context, sandboxId externalRef17.SandboxId, params *ListSandboxPortsParams, reqEditors ...RequestEditorFn) (*ListSandboxPortsResponse, error)
+
+	// HideSandboxPortWithResponse Hide a sandbox port
+	//
+	// Hide a configured port without waking a suspended sandbox. Ports are hidden by default. Works in any status but errored. Succeeds if the port is already closed. While the sandbox has a running VM, returns only after routing to the port is revoked and its open connections, including WebSockets and streaming responses, are disconnected. If that can't be confirmed, the port stays closed and the request fails with a 503; retrying confirms again.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /sandboxes/{sandboxId}/ports/{port} (the `HideSandboxPort` operationId).
+	HideSandboxPortWithResponse(ctx context.Context, sandboxId externalRef17.SandboxId, port int, params *HideSandboxPortParams, reqEditors ...RequestEditorFn) (*HideSandboxPortResponse, error)
+
+	// RetrieveSandboxPortWithResponse Retrieve an exposed sandbox port
+	//
+	// Return the configured HTTPS URL without changing exposure or checking application readiness.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /sandboxes/{sandboxId}/ports/{port} (the `RetrieveSandboxPort` operationId).
+	RetrieveSandboxPortWithResponse(ctx context.Context, sandboxId externalRef17.SandboxId, port int, params *RetrieveSandboxPortParams, reqEditors ...RequestEditorFn) (*RetrieveSandboxPortResponse, error)
+
+	// ExposeSandboxPortWithResponse Expose a sandbox port
+	//
+	// Expose a port publicly. Works while the sandbox is creating, running, resuming, suspending or suspended; a sandbox without a running VM applies the port when it starts. Returns the same URL if already exposed. Changes propagate asynchronously. Render does not check application readiness.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /sandboxes/{sandboxId}/ports/{port} (the `ExposeSandboxPort` operationId).
+	ExposeSandboxPortWithResponse(ctx context.Context, sandboxId externalRef17.SandboxId, port int, params *ExposeSandboxPortParams, reqEditors ...RequestEditorFn) (*ExposeSandboxPortResponse, error)
 
 	// ConnectSandboxRunWithBodyWithResponse Create a connect token for a sandbox run
 	//
@@ -32767,7 +33938,7 @@ type TriggerBuildSourceBuildResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON201 the response for an HTTP 201 `application/json` response
-	JSON201 *externalRef3.Build
+	JSON201 *externalRef3.BuildWithDeploys
 	// JSON400 the response for an HTTP 400 `application/json` response
 	JSON400 *N400BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
@@ -32787,7 +33958,7 @@ type TriggerBuildSourceBuildResponse struct {
 }
 
 // GetJSON201 returns the response for an HTTP 201 `application/json` response
-func (r TriggerBuildSourceBuildResponse) GetJSON201() *externalRef3.Build {
+func (r TriggerBuildSourceBuildResponse) GetJSON201() *externalRef3.BuildWithDeploys {
 	return r.JSON201
 }
 
@@ -39861,7 +41032,7 @@ type ListLogsResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *Logs200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *Error
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -39888,7 +41059,7 @@ func (r ListLogsResponse) GetJSON200() *Logs200Response {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r ListLogsResponse) GetJSON400() *N400BadRequest {
+func (r ListLogsResponse) GetJSON400() *Error {
 	return r.JSON400
 }
 
@@ -40717,7 +41888,7 @@ type SubscribeLogsResponse struct {
 	// JSON101 the response for an HTTP 101 `application/json` response
 	JSON101 *externalRef12.Log
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *Error
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -40744,7 +41915,7 @@ func (r SubscribeLogsResponse) GetJSON101() *externalRef12.Log {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r SubscribeLogsResponse) GetJSON400() *N400BadRequest {
+func (r SubscribeLogsResponse) GetJSON400() *Error {
 	return r.JSON400
 }
 
@@ -40831,7 +42002,7 @@ type ListLogsValuesResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *LogsValues200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *Error
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -40858,7 +42029,7 @@ func (r ListLogsValuesResponse) GetJSON200() *LogsValues200Response {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r ListLogsValuesResponse) GetJSON400() *N400BadRequest {
+func (r ListLogsValuesResponse) GetJSON400() *Error {
 	return r.JSON400
 }
 
@@ -41453,7 +42624,9 @@ type GetActiveConnectionsResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -41464,8 +42637,13 @@ func (r GetActiveConnectionsResponse) GetJSON200() *externalRef14.Metrics200Resp
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetActiveConnectionsResponse) GetJSON400() *N400BadRequest {
+func (r GetActiveConnectionsResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetActiveConnectionsResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -41508,7 +42686,9 @@ type GetBandwidthResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -41519,8 +42699,13 @@ func (r GetBandwidthResponse) GetJSON200() *externalRef14.Metrics200Response {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetBandwidthResponse) GetJSON400() *N400BadRequest {
+func (r GetBandwidthResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetBandwidthResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -41581,6 +42766,8 @@ type GetBandwidthSourcesResponse struct {
 	}
 	// JSON400 the response for an HTTP 400 `application/json` response
 	JSON400 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -41610,6 +42797,11 @@ func (r GetBandwidthSourcesResponse) GetJSON200() *struct {
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
 func (r GetBandwidthSourcesResponse) GetJSON400() *Error {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetBandwidthSourcesResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -41652,7 +42844,9 @@ type GetCpuResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -41663,8 +42857,13 @@ func (r GetCpuResponse) GetJSON200() *externalRef14.Metrics200Response {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetCpuResponse) GetJSON400() *N400BadRequest {
+func (r GetCpuResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetCpuResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -41707,7 +42906,9 @@ type GetCpuLimitResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -41718,8 +42919,13 @@ func (r GetCpuLimitResponse) GetJSON200() *externalRef14.Metrics200Response {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetCpuLimitResponse) GetJSON400() *N400BadRequest {
+func (r GetCpuLimitResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetCpuLimitResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -41762,7 +42968,9 @@ type GetCpuTargetResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -41773,8 +42981,13 @@ func (r GetCpuTargetResponse) GetJSON200() *externalRef14.Metrics200Response {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetCpuTargetResponse) GetJSON400() *N400BadRequest {
+func (r GetCpuTargetResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetCpuTargetResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -41817,7 +43030,9 @@ type GetDiskCapacityResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -41828,8 +43043,13 @@ func (r GetDiskCapacityResponse) GetJSON200() *externalRef14.Metrics200Response 
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetDiskCapacityResponse) GetJSON400() *N400BadRequest {
+func (r GetDiskCapacityResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetDiskCapacityResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -41872,7 +43092,9 @@ type GetDiskUsageResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -41883,8 +43105,13 @@ func (r GetDiskUsageResponse) GetJSON200() *externalRef14.Metrics200Response {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetDiskUsageResponse) GetJSON400() *N400BadRequest {
+func (r GetDiskUsageResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetDiskUsageResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -41927,7 +43154,9 @@ type ListApplicationFilterValuesResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.MetricsFiltersApplication200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -41938,8 +43167,13 @@ func (r ListApplicationFilterValuesResponse) GetJSON200() *externalRef14.Metrics
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r ListApplicationFilterValuesResponse) GetJSON400() *N400BadRequest {
+func (r ListApplicationFilterValuesResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListApplicationFilterValuesResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -41982,7 +43216,9 @@ type ListHttpFilterValuesResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.MetricsFiltersHTTP200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -41993,8 +43229,13 @@ func (r ListHttpFilterValuesResponse) GetJSON200() *externalRef14.MetricsFilters
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r ListHttpFilterValuesResponse) GetJSON400() *N400BadRequest {
+func (r ListHttpFilterValuesResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListHttpFilterValuesResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -42037,7 +43278,9 @@ type ListPathFilterValuesResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.MetricsFiltersPath200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -42048,8 +43291,13 @@ func (r ListPathFilterValuesResponse) GetJSON200() *externalRef14.MetricsFilters
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r ListPathFilterValuesResponse) GetJSON400() *N400BadRequest {
+func (r ListPathFilterValuesResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListPathFilterValuesResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -42092,7 +43340,9 @@ type GetHttpLatencyResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -42103,8 +43353,13 @@ func (r GetHttpLatencyResponse) GetJSON200() *externalRef14.Metrics200Response {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetHttpLatencyResponse) GetJSON400() *N400BadRequest {
+func (r GetHttpLatencyResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetHttpLatencyResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -42147,7 +43402,9 @@ type GetHttpRequestsResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -42158,8 +43415,13 @@ func (r GetHttpRequestsResponse) GetJSON200() *externalRef14.Metrics200Response 
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetHttpRequestsResponse) GetJSON400() *N400BadRequest {
+func (r GetHttpRequestsResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetHttpRequestsResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -42202,7 +43464,9 @@ type GetInstanceCountResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -42213,8 +43477,13 @@ func (r GetInstanceCountResponse) GetJSON200() *externalRef14.Metrics200Response
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetInstanceCountResponse) GetJSON400() *N400BadRequest {
+func (r GetInstanceCountResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetInstanceCountResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -42257,7 +43526,9 @@ type GetMemoryResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -42268,8 +43539,13 @@ func (r GetMemoryResponse) GetJSON200() *externalRef14.Metrics200Response {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetMemoryResponse) GetJSON400() *N400BadRequest {
+func (r GetMemoryResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetMemoryResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -42312,7 +43588,9 @@ type GetMemoryLimitResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -42323,8 +43601,13 @@ func (r GetMemoryLimitResponse) GetJSON200() *externalRef14.Metrics200Response {
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetMemoryLimitResponse) GetJSON400() *N400BadRequest {
+func (r GetMemoryLimitResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetMemoryLimitResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -42367,7 +43650,9 @@ type GetMemoryTargetResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -42378,8 +43663,13 @@ func (r GetMemoryTargetResponse) GetJSON200() *externalRef14.Metrics200Response 
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetMemoryTargetResponse) GetJSON400() *N400BadRequest {
+func (r GetMemoryTargetResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetMemoryTargetResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -42422,7 +43712,9 @@ type GetReplicationLagResponse struct {
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *externalRef14.Metrics200Response
 	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *N400BadRequest
+	JSON400 *N400MetricsBadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404NotFound
 	// JSON500 the response for an HTTP 500 `application/json` response
 	JSON500 *N500InternalServerError
 }
@@ -42433,8 +43725,13 @@ func (r GetReplicationLagResponse) GetJSON200() *externalRef14.Metrics200Respons
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r GetReplicationLagResponse) GetJSON400() *N400BadRequest {
+func (r GetReplicationLagResponse) GetJSON400() *N400MetricsBadRequest {
 	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetReplicationLagResponse) GetJSON404() *N404NotFound {
+	return r.JSON404
 }
 
 // GetJSON500 returns the response for an HTTP 500 `application/json` response
@@ -50605,7 +51902,7 @@ type CreateSandboxResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON201 the response for an HTTP 201 `application/json` response
-	JSON201 *externalRef17.Sandbox
+	JSON201 *externalRef17.SandboxDetailResponse
 	// JSON400 the response for an HTTP 400 `application/json` response
 	JSON400 *Error
 	// JSON401 the response for an HTTP 401 `application/json` response
@@ -50627,7 +51924,7 @@ type CreateSandboxResponse struct {
 }
 
 // GetJSON201 returns the response for an HTTP 201 `application/json` response
-func (r CreateSandboxResponse) GetJSON201() *externalRef17.Sandbox {
+func (r CreateSandboxResponse) GetJSON201() *externalRef17.SandboxDetailResponse {
 	return r.JSON201
 }
 
@@ -50712,7 +52009,7 @@ type RetrieveSandboxResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *externalRef17.Sandbox
+	JSON200 *externalRef17.SandboxDetailResponse
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *N401Unauthorized
 	// JSON403 the response for an HTTP 403 `application/json` response
@@ -50730,7 +52027,7 @@ type RetrieveSandboxResponse struct {
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r RetrieveSandboxResponse) GetJSON200() *externalRef17.Sandbox {
+func (r RetrieveSandboxResponse) GetJSON200() *externalRef17.SandboxDetailResponse {
 	return r.JSON200
 }
 
@@ -51087,6 +52384,399 @@ func (r ConnectSandboxFilesResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ConnectSandboxFilesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ListSandboxPortsResponse429Headers the declared response headers of an HTTP 429 response for ListSandboxPorts
+type ListSandboxPortsResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type ListSandboxPortsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *externalRef17.SandboxExposedPorts
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *ListSandboxPortsResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListSandboxPortsResponse) GetJSON200() *externalRef17.SandboxExposedPorts {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListSandboxPortsResponse) GetJSON400() *N400BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListSandboxPortsResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ListSandboxPortsResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListSandboxPortsResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r ListSandboxPortsResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r ListSandboxPortsResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r ListSandboxPortsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSandboxPortsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSandboxPortsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListSandboxPortsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// HideSandboxPortResponse429Headers the declared response headers of an HTTP 429 response for HideSandboxPort
+type HideSandboxPortResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type HideSandboxPortResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *N409Conflict
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *HideSandboxPortResponse429Headers
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r HideSandboxPortResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r HideSandboxPortResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r HideSandboxPortResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r HideSandboxPortResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r HideSandboxPortResponse) GetJSON409() *N409Conflict {
+	return r.JSON409
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r HideSandboxPortResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r HideSandboxPortResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r HideSandboxPortResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r HideSandboxPortResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r HideSandboxPortResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r HideSandboxPortResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r HideSandboxPortResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// RetrieveSandboxPortResponse429Headers the declared response headers of an HTTP 429 response for RetrieveSandboxPort
+type RetrieveSandboxPortResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type RetrieveSandboxPortResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *externalRef17.SandboxExposedPort
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *RetrieveSandboxPortResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RetrieveSandboxPortResponse) GetJSON200() *externalRef17.SandboxExposedPort {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r RetrieveSandboxPortResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RetrieveSandboxPortResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r RetrieveSandboxPortResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r RetrieveSandboxPortResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r RetrieveSandboxPortResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r RetrieveSandboxPortResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r RetrieveSandboxPortResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RetrieveSandboxPortResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RetrieveSandboxPortResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RetrieveSandboxPortResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ExposeSandboxPortResponse429Headers the declared response headers of an HTTP 429 response for ExposeSandboxPort
+type ExposeSandboxPortResponse429Headers struct {
+	RateLimitLimit     *int
+	RateLimitRemaining *int
+	RateLimitReset     *int
+	RetryAfter         *int
+}
+
+type ExposeSandboxPortResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *externalRef17.SandboxExposedPort
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *ExposeSandboxPort409JSONResponseBody
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *N429RateLimit
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500InternalServerError
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *ExposeSandboxPortResponse429Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ExposeSandboxPortResponse) GetJSON200() *externalRef17.SandboxExposedPort {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ExposeSandboxPortResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ExposeSandboxPortResponse) GetJSON401() *N401Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ExposeSandboxPortResponse) GetJSON403() *N403Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ExposeSandboxPortResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r ExposeSandboxPortResponse) GetJSON409() *ExposeSandboxPort409JSONResponseBody {
+	return r.JSON409
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r ExposeSandboxPortResponse) GetJSON429() *N429RateLimit {
+	return r.JSON429
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r ExposeSandboxPortResponse) GetJSON500() *N500InternalServerError {
+	return r.JSON500
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ExposeSandboxPortResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ExposeSandboxPortResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ExposeSandboxPortResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ExposeSandboxPortResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ExposeSandboxPortResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -59313,8 +61003,11 @@ func (c *ClientWithResponses) ListBuildsInBuildSourceWithResponse(ctx context.Co
 // TriggerBuildSourceBuildWithBodyWithResponse Trigger a build
 //
 // Start a new build of the build source at the current HEAD of its
-// branch, even if an up-to-date build already exists. Services linked to
-// the build source with autodeploy enabled are deployed with the result.
+// branch, even if an up-to-date build already exists.
+//
+// By default, all services linked to the build source with autodeploy enabled
+// will be deployed. Use `deploy.serviceScope` to override this and choose specific
+// linked services.
 //
 // Updating a build source or its build-time environment (env vars,
 // secret files, env groups) with the REST API does not build it. Call
@@ -59336,8 +61029,11 @@ func (c *ClientWithResponses) TriggerBuildSourceBuildWithBodyWithResponse(ctx co
 // TriggerBuildSourceBuildWithResponse Trigger a build
 //
 // Start a new build of the build source at the current HEAD of its
-// branch, even if an up-to-date build already exists. Services linked to
-// the build source with autodeploy enabled are deployed with the result.
+// branch, even if an up-to-date build already exists.
+//
+// By default, all services linked to the build source with autodeploy enabled
+// will be deployed. Use `deploy.serviceScope` to override this and choose specific
+// linked services.
 //
 // Updating a build source or its build-time environment (env vars,
 // secret files, env groups) with the REST API does not build it. Call
@@ -63141,6 +64837,66 @@ func (c *ClientWithResponses) ConnectSandboxFilesWithResponse(ctx context.Contex
 	return ParseConnectSandboxFilesResponse(rsp)
 }
 
+// ListSandboxPortsWithResponse List exposed sandbox ports
+//
+// List configured public ports and their HTTPS URLs. Returns an empty array if no ports are exposed.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /sandboxes/{sandboxId}/ports (the `ListSandboxPorts` operationId).
+func (c *ClientWithResponses) ListSandboxPortsWithResponse(ctx context.Context, sandboxId externalRef17.SandboxId, params *ListSandboxPortsParams, reqEditors ...RequestEditorFn) (*ListSandboxPortsResponse, error) {
+	rsp, err := c.ListSandboxPorts(ctx, sandboxId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSandboxPortsResponse(rsp)
+}
+
+// HideSandboxPortWithResponse Hide a sandbox port
+//
+// Hide a configured port without waking a suspended sandbox. Ports are hidden by default. Works in any status but errored. Succeeds if the port is already closed. While the sandbox has a running VM, returns only after routing to the port is revoked and its open connections, including WebSockets and streaming responses, are disconnected. If that can't be confirmed, the port stays closed and the request fails with a 503; retrying confirms again.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /sandboxes/{sandboxId}/ports/{port} (the `HideSandboxPort` operationId).
+func (c *ClientWithResponses) HideSandboxPortWithResponse(ctx context.Context, sandboxId externalRef17.SandboxId, port int, params *HideSandboxPortParams, reqEditors ...RequestEditorFn) (*HideSandboxPortResponse, error) {
+	rsp, err := c.HideSandboxPort(ctx, sandboxId, port, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseHideSandboxPortResponse(rsp)
+}
+
+// RetrieveSandboxPortWithResponse Retrieve an exposed sandbox port
+//
+// Return the configured HTTPS URL without changing exposure or checking application readiness.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /sandboxes/{sandboxId}/ports/{port} (the `RetrieveSandboxPort` operationId).
+func (c *ClientWithResponses) RetrieveSandboxPortWithResponse(ctx context.Context, sandboxId externalRef17.SandboxId, port int, params *RetrieveSandboxPortParams, reqEditors ...RequestEditorFn) (*RetrieveSandboxPortResponse, error) {
+	rsp, err := c.RetrieveSandboxPort(ctx, sandboxId, port, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRetrieveSandboxPortResponse(rsp)
+}
+
+// ExposeSandboxPortWithResponse Expose a sandbox port
+//
+// Expose a port publicly. Works while the sandbox is creating, running, resuming, suspending or suspended; a sandbox without a running VM applies the port when it starts. Returns the same URL if already exposed. Changes propagate asynchronously. Render does not check application readiness.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /sandboxes/{sandboxId}/ports/{port} (the `ExposeSandboxPort` operationId).
+func (c *ClientWithResponses) ExposeSandboxPortWithResponse(ctx context.Context, sandboxId externalRef17.SandboxId, port int, params *ExposeSandboxPortParams, reqEditors ...RequestEditorFn) (*ExposeSandboxPortResponse, error) {
+	rsp, err := c.ExposeSandboxPort(ctx, sandboxId, port, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseExposeSandboxPortResponse(rsp)
+}
+
 // ConnectSandboxRunWithBodyWithResponse Create a connect token for a sandbox run
 //
 // Create a short-lived connect token for a command run in this sandbox. Send the command to the URL in the response, using the token as the bearer token. The token authorizes only the requested operation.
@@ -66452,7 +68208,7 @@ func ParseTriggerBuildSourceBuildResponse(rsp *http.Response) (*TriggerBuildSour
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest externalRef3.Build
+		var dest externalRef3.BuildWithDeploys
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -74229,7 +75985,7 @@ func ParseListLogsResponse(rsp *http.Response) (*ListLogsResponse, error) {
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -75163,7 +76919,7 @@ func ParseSubscribeLogsResponse(rsp *http.Response) (*SubscribeLogsResponse, err
 		response.JSON101 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -75286,7 +77042,7 @@ func ParseListLogsValuesResponse(rsp *http.Response) (*ListLogsValuesResponse, e
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -75931,11 +77687,18 @@ func ParseGetActiveConnectionsResponse(rsp *http.Response) (*GetActiveConnection
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -75971,11 +77734,18 @@ func ParseGetBandwidthResponse(rsp *http.Response) (*GetBandwidthResponse, error
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76034,6 +77804,13 @@ func ParseGetBandwidthSourcesResponse(rsp *http.Response) (*GetBandwidthSourcesR
 		}
 		response.JSON400 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -76068,11 +77845,18 @@ func ParseGetCpuResponse(rsp *http.Response) (*GetCpuResponse, error) {
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76108,11 +77892,18 @@ func ParseGetCpuLimitResponse(rsp *http.Response) (*GetCpuLimitResponse, error) 
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76148,11 +77939,18 @@ func ParseGetCpuTargetResponse(rsp *http.Response) (*GetCpuTargetResponse, error
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76188,11 +77986,18 @@ func ParseGetDiskCapacityResponse(rsp *http.Response) (*GetDiskCapacityResponse,
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76228,11 +78033,18 @@ func ParseGetDiskUsageResponse(rsp *http.Response) (*GetDiskUsageResponse, error
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76268,11 +78080,18 @@ func ParseListApplicationFilterValuesResponse(rsp *http.Response) (*ListApplicat
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76308,11 +78127,18 @@ func ParseListHttpFilterValuesResponse(rsp *http.Response) (*ListHttpFilterValue
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76348,11 +78174,18 @@ func ParseListPathFilterValuesResponse(rsp *http.Response) (*ListPathFilterValue
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76388,11 +78221,18 @@ func ParseGetHttpLatencyResponse(rsp *http.Response) (*GetHttpLatencyResponse, e
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76428,11 +78268,18 @@ func ParseGetHttpRequestsResponse(rsp *http.Response) (*GetHttpRequestsResponse,
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76468,11 +78315,18 @@ func ParseGetInstanceCountResponse(rsp *http.Response) (*GetInstanceCountRespons
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76508,11 +78362,18 @@ func ParseGetMemoryResponse(rsp *http.Response) (*GetMemoryResponse, error) {
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76548,11 +78409,18 @@ func ParseGetMemoryLimitResponse(rsp *http.Response) (*GetMemoryLimitResponse, e
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76588,11 +78456,18 @@ func ParseGetMemoryTargetResponse(rsp *http.Response) (*GetMemoryTargetResponse,
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -76628,11 +78503,18 @@ func ParseGetReplicationLagResponse(rsp *http.Response) (*GetReplicationLagRespo
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest N400BadRequest
+		var dest N400MetricsBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest N500InternalServerError
@@ -85537,7 +87419,7 @@ func ParseCreateSandboxResponse(rsp *http.Response) (*CreateSandboxResponse, err
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest externalRef17.Sandbox
+		var dest externalRef17.SandboxDetailResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -85653,7 +87535,7 @@ func ParseRetrieveSandboxResponse(rsp *http.Response) (*RetrieveSandboxResponse,
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest externalRef17.Sandbox
+		var dest externalRef17.SandboxDetailResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -86033,6 +87915,438 @@ func ParseConnectSandboxFilesResponse(rsp *http.Response) (*ConnectSandboxFilesR
 	switch {
 	case rsp.StatusCode == 429:
 		var headers ConnectSandboxFilesResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseListSandboxPortsResponse parses an HTTP response from a ListSandboxPortsWithResponse call
+func ParseListSandboxPortsResponse(rsp *http.Response) (*ListSandboxPortsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSandboxPortsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef17.SandboxExposedPorts
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers ListSandboxPortsResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseHideSandboxPortResponse parses an HTTP response from a HideSandboxPortWithResponse call
+func ParseHideSandboxPortResponse(rsp *http.Response) (*HideSandboxPortResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &HideSandboxPortResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest N409Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers HideSandboxPortResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseRetrieveSandboxPortResponse parses an HTTP response from a RetrieveSandboxPortWithResponse call
+func ParseRetrieveSandboxPortResponse(rsp *http.Response) (*RetrieveSandboxPortResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RetrieveSandboxPortResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef17.SandboxExposedPort
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers RetrieveSandboxPortResponse429Headers
+		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitLimit = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Remaining"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Remaining", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitRemaining = &value
+		}
+		if values := rsp.Header.Values("RateLimit-Reset"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Reset", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RateLimitReset = &value
+		}
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = &value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseExposeSandboxPortResponse parses an HTTP response from a ExposeSandboxPortWithResponse call
+func ParseExposeSandboxPortResponse(rsp *http.Response) (*ExposeSandboxPortResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ExposeSandboxPortResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest externalRef17.SandboxExposedPort
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ExposeSandboxPort409JSONResponseBody
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest N429RateLimit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500InternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 429:
+		var headers ExposeSandboxPortResponse429Headers
 		if values := rsp.Header.Values("RateLimit-Limit"); len(values) > 0 {
 			var value int
 			if err := runtime.BindStyledParameterWithOptions("simple", "RateLimit-Limit", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {

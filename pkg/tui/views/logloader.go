@@ -175,7 +175,7 @@ func (l *LogLoader) ToParam(ctx context.Context, in LogInput) (*client.ListLogsP
 	}
 
 	return &client.ListLogsParams{
-		Resource:   resourceIDs,
+		Resource:   &resourceIDs,
 		OwnerId:    ownerID,
 		Instance:   pointers.FromArray(in.Instance),
 		Limit:      pointers.From(in.Limit),

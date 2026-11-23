@@ -244,6 +244,9 @@ type ApplicationMetricAggregationMethod string
 // DatastoreResourceQueryParam Example: dpg-xxxxx,red-xxxxx
 type DatastoreResourceQueryParam = string
 
+// EnvironmentQueryParam Example: evm-xxxxx
+type EnvironmentQueryParam = string
+
 // HostQueryParam Example: example.com
 type HostQueryParam = string
 
@@ -262,8 +265,14 @@ type PathQueryParam = string
 // PostgresResourceQueryParam Example: dpg-xxxxx
 type PostgresResourceQueryParam = string
 
+// ProjectQueryParam Example: prj-xxxxx
+type ProjectQueryParam = string
+
 // Quantile Example: 0.99
 type Quantile = float32
+
+// RegionQueryParam Example: oregon
+type RegionQueryParam = string
 
 // ResolutionParam Example: 60
 type ResolutionParam = float32

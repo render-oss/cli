@@ -205,6 +205,36 @@ func (e SandboxPlan) Valid() bool {
 	}
 }
 
+// Defines values for SandboxPortLimitErrorCode.
+const (
+	PortLimitExceeded SandboxPortLimitErrorCode = "port_limit_exceeded"
+)
+
+// Valid indicates whether the value is a known member of the SandboxPortLimitErrorCode enum.
+func (e SandboxPortLimitErrorCode) Valid() bool {
+	switch e {
+	case PortLimitExceeded:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SandboxPortProtocol.
+const (
+	Tcp SandboxPortProtocol = "tcp"
+)
+
+// Valid indicates whether the value is a known member of the SandboxPortProtocol enum.
+func (e SandboxPortProtocol) Valid() bool {
+	switch e {
+	case Tcp:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SandboxSnapshotKind.
 const (
 	Filesystem SandboxSnapshotKind = "filesystem"
@@ -628,6 +658,59 @@ type SandboxCredentialVersion struct {
 	UpdatedBy string `json:"updatedBy"`
 }
 
+// SandboxDetailResponse defines model for sandboxDetailResponse.
+type SandboxDetailResponse struct {
+	// CreatedAt The timestamp when the sandbox was created, in ISO 8601 format.
+	//
+	// Example: 2026-04-01T18:30:00Z
+	CreatedAt time.Time `json:"createdAt"`
+
+	// ExposedPorts The exposed ports and their URLs, present when the workspace can use sandbox ingress.
+	ExposedPorts *SandboxExposedPorts `json:"exposed_ports,omitempty"`
+
+	// Id The ID of the sandbox.
+	//
+	// Example: sbx-1cd4gcph1rs3idesc73a2b2mg
+	Id SandboxId `json:"id"`
+
+	// IdleTimeoutSeconds The number of seconds of inactivity before Render suspends the sandbox. A value of 0 disables automatic idle suspension.
+	//
+	// Example: 900
+	IdleTimeoutSeconds int `json:"idleTimeoutSeconds"`
+
+	// Name The label set when the sandbox was created.
+	Name *string `json:"name,omitempty"`
+
+	// NetworkPolicy The policy that controls outbound traffic from the sandbox.
+	NetworkPolicy SandboxNetworkPolicy `json:"networkPolicy"`
+
+	// Plan The sandbox's compute plan. See `sandboxPlan` for known values.
+	Plan SandboxPlan `json:"plan"`
+
+	// Region The Render region where the sandbox runs.
+	//
+	// Example: oregon
+	Region string `json:"region"`
+
+	// SandboxGroupId The ID of the sandbox group this sandbox belongs to.
+	SandboxGroupId *SandboxGroupId `json:"sandboxGroupId,omitempty"`
+
+	// SharedFilesystems Shared filesystems mounted in the sandbox. Absent when there are none.
+	SharedFilesystems *[]SandboxSharedFilesystem `json:"sharedFilesystems,omitempty"`
+
+	// Status The sandbox's current status.
+	Status SandboxStatus `json:"status"`
+
+	// TerminatedAt The timestamp when the sandbox was terminated, in ISO 8601 format. Null if the sandbox has not been terminated.
+	TerminatedAt *time.Time `json:"terminatedAt,omitempty"`
+
+	// TimeoutSeconds The maximum time the sandbox can run continuously, in seconds. The sandbox terminates when this time elapses. If the sandbox is suspended and later resumed, this timeout restarts. A value of 0 disables the runtime timeout.
+	//
+	//
+	// Example: 86400
+	TimeoutSeconds int `json:"timeoutSeconds"`
+}
+
 // SandboxEgressRule A destination that sandboxes can access when the network policy is `allow-list`.
 type SandboxEgressRule struct {
 	// Domain The hostname this rule allows, up to 253 characters. Matching is exact: `foo.local` does not match `api.foo.local`. Use a separate rule or `*.foo.local` for subdomains. A wildcard is allowed only as the leftmost label.
@@ -642,6 +725,20 @@ type SandboxEgressRule struct {
 
 // SandboxEgressRuleProtocol The protocol allowed for this destination. Defaults to `https`. The `allow-list` policy blocks outbound traffic that uses other protocols.
 type SandboxEgressRuleProtocol string
+
+// SandboxExposedPort defines model for sandboxExposedPort.
+type SandboxExposedPort struct {
+	Port int `json:"port"`
+
+	// Protocol The transport protocol. Only TCP is supported.
+	Protocol SandboxPortProtocol `json:"protocol"`
+
+	// Url The HTTPS URL for the exposed port.
+	Url string `json:"url"`
+}
+
+// SandboxExposedPorts defines model for sandboxExposedPorts.
+type SandboxExposedPorts = []SandboxExposedPort
 
 // SandboxGroup A group of sandboxes in a workspace that share a region, concurrency limit, and credentials.
 type SandboxGroup struct {
@@ -767,6 +864,9 @@ type SandboxPOST struct {
 	// Env The environment variables to set when creating the sandbox.
 	Env *map[string]string `json:"env,omitempty"`
 
+	// ExposedPorts Ports to expose through public ingress when the sandbox starts. Defaults to none, including when creating a sandbox from a snapshot. Use the sandbox's ports endpoints to change them later.
+	ExposedPorts *SandboxPorts `json:"exposed_ports,omitempty"`
+
 	// IdleTimeoutSeconds The number of seconds of inactivity before Render suspends the sandbox. Use 0 to disable automatic idle suspension. Positive values must be between 300 and 86400. Defaults to 900, or to the source sandbox's idle timeout when creating a sandbox from a snapshot.
 	IdleTimeoutSeconds *int `json:"idleTimeoutSeconds,omitempty"`
 
@@ -802,6 +902,38 @@ type SandboxPOST struct {
 
 // SandboxPlan The compute plan for the sandbox. The `starter`, `standard`, and `pro` plans are deprecated.
 type SandboxPlan string
+
+// SandboxPort A single port exposed through public HTTP/WebSocket ingress.
+type SandboxPort struct {
+	Port SandboxPortNumber `json:"port"`
+
+	// Protocol The transport protocol. Only TCP is supported.
+	Protocol SandboxPortProtocol `json:"protocol"`
+}
+
+// SandboxPortLimitError defines model for sandboxPortLimitError.
+type SandboxPortLimitError struct {
+	Code SandboxPortLimitErrorCode `json:"code"`
+
+	// Limit Maximum number of distinct exposed ports.
+	Limit   int    `json:"limit"`
+	Message string `json:"message"`
+
+	// Usage Number of ports already exposed.
+	Usage int `json:"usage"`
+}
+
+// SandboxPortLimitErrorCode defines model for SandboxPortLimitError.Code.
+type SandboxPortLimitErrorCode string
+
+// SandboxPortNumber defines model for sandboxPortNumber.
+type SandboxPortNumber = int
+
+// SandboxPortProtocol The transport protocol. Only TCP is supported.
+type SandboxPortProtocol string
+
+// SandboxPorts Ports exposed through public HTTP/WebSocket ingress, not arbitrary TCP forwarding. Each port may appear once, and at most 10 ports may be exposed.
+type SandboxPorts = []SandboxPort
 
 // SandboxSharedFilesystem A shared filesystem mounted in a sandbox.
 type SandboxSharedFilesystem struct {

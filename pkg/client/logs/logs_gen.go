@@ -247,6 +247,9 @@ type DirectionParam = LogDirection
 // LogFilterBuild defines model for logFilterBuild.
 type LogFilterBuild = []string
 
+// LogFilterEnvironment defines model for logFilterEnvironment.
+type LogFilterEnvironment = string
+
 // LogFilterHost defines model for logFilterHost.
 type LogFilterHost = []string
 
@@ -261,6 +264,12 @@ type LogFilterMethod = []string
 
 // LogFilterPath defines model for logFilterPath.
 type LogFilterPath = []string
+
+// LogFilterProject defines model for logFilterProject.
+type LogFilterProject = string
+
+// LogFilterRegion defines model for logFilterRegion.
+type LogFilterRegion = string
 
 // LogFilterResource defines model for logFilterResource.
 type LogFilterResource = []string

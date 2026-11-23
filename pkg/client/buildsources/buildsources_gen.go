@@ -30,6 +30,27 @@ func (e BuildClearCache) Valid() bool {
 	}
 }
 
+// Defines values for BuildDeployServiceScope.
+const (
+	AutodeployOnly BuildDeployServiceScope = "autodeploy_only"
+	Custom         BuildDeployServiceScope = "custom"
+	None           BuildDeployServiceScope = "none"
+)
+
+// Valid indicates whether the value is a known member of the BuildDeployServiceScope enum.
+func (e BuildDeployServiceScope) Valid() bool {
+	switch e {
+	case AutodeployOnly:
+		return true
+	case Custom:
+		return true
+	case None:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for BuildRunRuntime.
 const (
 	BuildRunRuntimeDocker BuildRunRuntime = "docker"
@@ -87,6 +108,24 @@ func (e BuildRunStatus) Valid() bool {
 	case Succeeded:
 		return true
 	case Unknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BuildSkippedServiceReason.
+const (
+	DeploysShutOff BuildSkippedServiceReason = "deploys_shut_off"
+	Suspended      BuildSkippedServiceReason = "suspended"
+)
+
+// Valid indicates whether the value is a known member of the BuildSkippedServiceReason enum.
+func (e BuildSkippedServiceReason) Valid() bool {
+	switch e {
+	case DeploysShutOff:
+		return true
+	case Suspended:
 		return true
 	default:
 		return false
@@ -231,6 +270,32 @@ type Build struct {
 // BuildClearCache If `clear`, Render clears the build source's build cache before building. This can be useful if you're experiencing issues with your build.
 type BuildClearCache string
 
+// BuildDeploy defines model for buildDeploy.
+type BuildDeploy struct {
+	DeployId  string `json:"deployId"`
+	ServiceId string `json:"serviceId"`
+}
+
+// BuildDeployInput defines model for buildDeployInput.
+type BuildDeployInput struct {
+	// ServiceIds IDs of the linked services to deploy to. Required when `serviceScope` is `custom`, and not allowed with the other scopes. You must be authorized to trigger a deploy for each service that you include in this list.
+	ServiceIds *[]string `json:"serviceIds,omitempty"`
+
+	// ServiceScope Which linked services the build deploys to:
+	//
+	// - `autodeploy_only`: every linked service with autodeploy on, including services set to deploy after CI checks pass. Services with autodeploy off do not get a deploy.
+	// - `none`: no services. The build runs and deploys nothing.
+	// - `custom`: the linked services in `serviceIds`, regardless of their autodeploy setting.
+	ServiceScope BuildDeployServiceScope `json:"serviceScope"`
+}
+
+// BuildDeployServiceScope Which linked services the build deploys to:
+//
+// - `autodeploy_only`: every linked service with autodeploy on, including services set to deploy after CI checks pass. Services with autodeploy off do not get a deploy.
+// - `none`: no services. The build runs and deploys nothing.
+// - `custom`: the linked services in `serviceIds`, regardless of their autodeploy setting.
+type BuildDeployServiceScope string
+
 // BuildFilter Glob patterns matched against files changed by a commit. When set, a commit only triggers a build when at least one changed file matches `paths` and none match `ignoredPaths`. Useful for monorepos where a single repo backs many services.
 type BuildFilter struct {
 	IgnoredPaths []string `json:"ignoredPaths"`
@@ -256,6 +321,22 @@ type BuildRunRuntime string
 
 // BuildRunStatus defines model for BuildRun.Status.
 type BuildRunStatus string
+
+// BuildSkippedService defines model for buildSkippedService.
+type BuildSkippedService struct {
+	// Reason Why the service did not get a deploy:
+	//
+	// - `suspended`: the service is suspended.
+	// - `deploys_shut_off`: Render has temporarily paused deploys for the service's plan tier.
+	Reason    BuildSkippedServiceReason `json:"reason"`
+	ServiceId string                    `json:"serviceId"`
+}
+
+// BuildSkippedServiceReason Why the service did not get a deploy:
+//
+// - `suspended`: the service is suspended.
+// - `deploys_shut_off`: Render has temporarily paused deploys for the service's plan tier.
+type BuildSkippedServiceReason string
 
 // BuildSource defines model for buildSource.
 type BuildSource struct {
@@ -397,6 +478,27 @@ type BuildSourceWithCursor struct {
 type BuildWithCursor struct {
 	Build  Build  `json:"build"`
 	Cursor string `json:"cursor"`
+}
+
+// BuildWithDeploys defines model for buildWithDeploys.
+type BuildWithDeploys struct {
+	AssetsDeletedAt *time.Time `json:"assetsDeletedAt,omitempty"`
+
+	// BuildRun The Render build run that produced this build. Present when the build source is currently build-based. Mutually exclusive with `image`.
+	BuildRun      *BuildRun     `json:"buildRun,omitempty"`
+	BuildSourceId BuildSourceId `json:"buildSourceId"`
+	CreatedAt     time.Time     `json:"createdAt"`
+
+	// Deploys The deploys that the build started, one for each service.
+	Deploys []BuildDeploy `json:"deploys"`
+	Id      BuildId       `json:"id"`
+
+	// Image Present when the build source is currently image-based. Mutually exclusive with `buildRun`.
+	Image *Image `json:"image,omitempty"`
+
+	// SkippedServices Services in `deploy.serviceScope` that did not get a deploy, with the reason for each. The build still runs for the other services. For `autodeploy_only`, suspended services are not listed.
+	SkippedServices []BuildSkippedService `json:"skippedServices"`
+	UpdatedAt       time.Time             `json:"updatedAt"`
 }
 
 // Image Present when the build source is currently image-based. Mutually exclusive with `buildRun`.

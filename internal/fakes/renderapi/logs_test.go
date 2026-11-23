@@ -113,7 +113,7 @@ func TestScriptedLogSubscriptionOrderAndQueries(t *testing.T) {
 func dialLogSubscription(t *testing.T, server *renderapi.Server) (*websocket.Conn, *http.Response, error) {
 	t.Helper()
 	req, err := client.NewSubscribeLogsRequest(server.URL(), &client.SubscribeLogsParams{
-		OwnerId: "owner", Resource: []string{"srv-one", "srv-two"},
+		OwnerId: "owner", Resource: &[]string{"srv-one", "srv-two"},
 	})
 	require.NoError(t, err)
 	req.URL.Scheme = "ws"
@@ -138,7 +138,7 @@ func TestScriptedLogCloseCode(t *testing.T) {
 			server := renderapi.NewServer(t)
 			server.Logs.QueueStreams(renderapi.LogStreamConfig{CloseCode: websocket.CloseGoingAway})
 			req, err := client.NewSubscribeLogsRequest(server.URL(), &client.SubscribeLogsParams{
-				OwnerId: "owner", Resource: []string{"srv-one"},
+				OwnerId: "owner", Resource: &[]string{"srv-one"},
 			})
 			require.NoError(t, err)
 			req.URL.Scheme = "ws"
@@ -169,7 +169,7 @@ func TestLogStreamCleanup(t *testing.T) {
 		server := renderapi.NewServer(t)
 		stream = server.Logs.QueueStreams(renderapi.LogStreamConfig{HoldOpen: true})[0]
 		req, err := client.NewSubscribeLogsRequest(server.URL(), &client.SubscribeLogsParams{
-			OwnerId: "owner", Resource: []string{"srv-one"},
+			OwnerId: "owner", Resource: &[]string{"srv-one"},
 		})
 		require.NoError(t, err)
 		req.URL.Scheme = "ws"

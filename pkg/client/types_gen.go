@@ -3845,6 +3845,9 @@ type WorkflowVersionIdParam = []string
 // N400BadRequest defines model for 400BadRequest.
 type N400BadRequest = Error
 
+// N400MetricsBadRequest defines model for 400MetricsBadRequest.
+type N400MetricsBadRequest = Error
+
 // N400SandboxBuildBadRequest defines model for 400SandboxBuildBadRequest.
 type N400SandboxBuildBadRequest = Error
 
@@ -3983,7 +3986,8 @@ type ListBuildsInBuildSourceParams struct {
 // TriggerBuildSourceBuildJSONBody defines parameters for TriggerBuildSourceBuild.
 type TriggerBuildSourceBuildJSONBody struct {
 	// ClearCache If `clear`, Render clears the build source's build cache before building. This can be useful if you're experiencing issues with your build.
-	ClearCache *externalRef3.BuildClearCache `json:"clearCache,omitempty"`
+	ClearCache *externalRef3.BuildClearCache  `json:"clearCache,omitempty"`
+	Deploy     *externalRef3.BuildDeployInput `json:"deploy,omitempty"`
 }
 
 // GetEnvVarsForBuildSourceParams defines parameters for GetEnvVarsForBuildSource.
@@ -4262,8 +4266,17 @@ type ListLogsParams struct {
 	// Forward will start with the oldest logs in the time range.
 	Direction *externalRef12.DirectionParam `form:"direction,omitempty" json:"direction,omitempty"`
 
-	// Resource Filter logs by their resource. A resource is the id of a server, cronjob, job, postgres, redis, workflow, or sandbox group.
-	Resource externalRef12.LogFilterResource `form:"resource" json:"resource"`
+	// Resource Filter logs by their resource. A resource is the id of a server, cronjob, job, postgres, redis, workflow, or sandbox group. Required unless `project` is provided.
+	Resource *externalRef12.LogFilterResource `form:"resource,omitempty" json:"resource,omitempty"`
+
+	// Project The ID of a project to return logs for. The query covers the project's services, cron jobs, Postgres databases, and Key Value instances. Combine with `resource` to narrow the query to specific resources in the project.
+	Project *externalRef12.LogFilterProject `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment in the project to return logs for. Requires `project`.
+	Environment *externalRef12.LogFilterEnvironment `form:"environment,omitempty" json:"environment,omitempty"`
+
+	// Region The region to return logs for, such as `oregon`. Requires `project`. Required when the project's or environment's resources are in more than one region.
+	Region *externalRef12.LogFilterRegion `form:"region,omitempty" json:"region,omitempty"`
 
 	// Instance Filter logs by the instance they were emitted from. An instance is the id of a specific running server.
 	Instance *externalRef12.LogFilterInstance `form:"instance,omitempty" json:"instance,omitempty"`
@@ -4341,8 +4354,17 @@ type SubscribeLogsParams struct {
 	// Forward will start with the oldest logs in the time range.
 	Direction *externalRef12.DirectionParam `form:"direction,omitempty" json:"direction,omitempty"`
 
-	// Resource Filter logs by their resource. A resource is the id of a server, cronjob, job, postgres, redis, workflow, or sandbox group.
-	Resource externalRef12.LogFilterResource `form:"resource" json:"resource"`
+	// Resource Filter logs by their resource. A resource is the id of a server, cronjob, job, postgres, redis, workflow, or sandbox group. Required unless `project` is provided.
+	Resource *externalRef12.LogFilterResource `form:"resource,omitempty" json:"resource,omitempty"`
+
+	// Project The ID of a project to return logs for. The query covers the project's services, cron jobs, Postgres databases, and Key Value instances. Combine with `resource` to narrow the query to specific resources in the project.
+	Project *externalRef12.LogFilterProject `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment in the project to return logs for. Requires `project`.
+	Environment *externalRef12.LogFilterEnvironment `form:"environment,omitempty" json:"environment,omitempty"`
+
+	// Region The region to return logs for, such as `oregon`. Requires `project`. Required when the project's or environment's resources are in more than one region.
+	Region *externalRef12.LogFilterRegion `form:"region,omitempty" json:"region,omitempty"`
 
 	// Instance Filter logs by the instance they were emitted from. An instance is the id of a specific running server.
 	Instance *externalRef12.LogFilterInstance `form:"instance,omitempty" json:"instance,omitempty"`
@@ -4402,8 +4424,17 @@ type ListLogsValuesParams struct {
 	// Forward will start with the oldest logs in the time range.
 	Direction *externalRef12.DirectionParam `form:"direction,omitempty" json:"direction,omitempty"`
 
-	// Resource Filter logs by their resource. A resource is the id of a server, cronjob, job, postgres, redis, workflow, or sandbox group.
-	Resource externalRef12.LogFilterResource `form:"resource" json:"resource"`
+	// Resource Filter logs by their resource. A resource is the id of a server, cronjob, job, postgres, redis, workflow, or sandbox group. Required unless `project` is provided.
+	Resource *externalRef12.LogFilterResource `form:"resource,omitempty" json:"resource,omitempty"`
+
+	// Project The ID of a project to return logs for. The query covers the project's services, cron jobs, Postgres databases, and Key Value instances. Combine with `resource` to narrow the query to specific resources in the project.
+	Project *externalRef12.LogFilterProject `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment in the project to return logs for. Requires `project`.
+	Environment *externalRef12.LogFilterEnvironment `form:"environment,omitempty" json:"environment,omitempty"`
+
+	// Region The region to return logs for, such as `oregon`. Requires `project`. Required when the project's or environment's resources are in more than one region.
+	Region *externalRef12.LogFilterRegion `form:"region,omitempty" json:"region,omitempty"`
 
 	// Instance Filter logs by the instance they were emitted from. An instance is the id of a specific running server.
 	Instance *externalRef12.LogFilterInstance `form:"instance,omitempty" json:"instance,omitempty"`
@@ -4470,6 +4501,15 @@ type GetActiveConnectionsParams struct {
 
 	// Resource Resource ID to query. When multiple resource query params are provided, they are ORed together. Resources Postgres ids or Redis ids
 	Resource *externalRef14.DatastoreResourceQueryParam `form:"resource,omitempty" json:"resource,omitempty"`
+
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetBandwidthParams defines parameters for GetBandwidth.
@@ -4486,6 +4526,15 @@ type GetBandwidthParams struct {
 	// Service This parameter is deprecated. Please use `resource` instead
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
+
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetBandwidthSourcesParams defines parameters for GetBandwidthSources.
@@ -4502,6 +4551,15 @@ type GetBandwidthSourcesParams struct {
 	// Service This parameter is deprecated. Please use `resource` instead
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
+
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetBandwidthSources200JSONResponseBodyDataLabelsTrafficSource defines parameters for GetBandwidthSources.
@@ -4525,11 +4583,20 @@ type GetCpuParams struct {
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
 
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
 	// Instance Instance ID to query. When multiple instance ID query params are provided, they are ORed together
 	Instance *externalRef14.InstanceQueryParam `form:"instance,omitempty" json:"instance,omitempty"`
 
 	// AggregationMethod The aggregation method to apply to multiple time series
 	AggregationMethod *externalRef14.ApplicationMetricAggregationMethod `form:"aggregationMethod,omitempty" json:"aggregationMethod,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetCpuLimitParams defines parameters for GetCpuLimit.
@@ -4550,8 +4617,17 @@ type GetCpuLimitParams struct {
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
 
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
 	// Instance Instance ID to query. When multiple instance ID query params are provided, they are ORed together
 	Instance *externalRef14.InstanceQueryParam `form:"instance,omitempty" json:"instance,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetCpuTargetParams defines parameters for GetCpuTarget.
@@ -4572,8 +4648,17 @@ type GetCpuTargetParams struct {
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
 
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
 	// Instance Instance ID to query. When multiple instance ID query params are provided, they are ORed together
 	Instance *externalRef14.InstanceQueryParam `form:"instance,omitempty" json:"instance,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetDiskCapacityParams defines parameters for GetDiskCapacity.
@@ -4593,6 +4678,15 @@ type GetDiskCapacityParams struct {
 	// Service This parameter is deprecated. Please use `resource` instead
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
+
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetDiskUsageParams defines parameters for GetDiskUsage.
@@ -4612,6 +4706,15 @@ type GetDiskUsageParams struct {
 	// Service This parameter is deprecated. Please use `resource` instead
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
+
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // ListApplicationFilterValuesParams defines parameters for ListApplicationFilterValues.
@@ -4631,6 +4734,15 @@ type ListApplicationFilterValuesParams struct {
 	// Service This parameter is deprecated. Please use `resource` instead
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
+
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // ListHttpFilterValuesParams defines parameters for ListHttpFilterValues.
@@ -4651,11 +4763,20 @@ type ListHttpFilterValuesParams struct {
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
 
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
 	// Host The hosts of HTTP requests to filter to. When multiple host query params are provided, they are ORed together
 	Host *externalRef14.HostQueryParam `form:"host,omitempty" json:"host,omitempty"`
 
 	// StatusCode The status codes of HTTP requests to filter to. When multiple status code query params are provided, they are ORed together
 	StatusCode *externalRef14.HttpStatusCode `form:"statusCode,omitempty" json:"statusCode,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // ListPathFilterValuesParams defines parameters for ListPathFilterValues.
@@ -4676,6 +4797,12 @@ type ListPathFilterValuesParams struct {
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
 
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
 	// Host The hosts of HTTP requests to filter to. When multiple host query params are provided, they are ORed together
 	Host *externalRef14.HostQueryParam `form:"host,omitempty" json:"host,omitempty"`
 
@@ -4684,6 +4811,9 @@ type ListPathFilterValuesParams struct {
 
 	// Path The paths of HTTP requests to filter to. When multiple path query params are provided, they are ORed together
 	Path *externalRef14.PathQueryParam `form:"path,omitempty" json:"path,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetHttpLatencyParams defines parameters for GetHttpLatency.
@@ -4704,6 +4834,12 @@ type GetHttpLatencyParams struct {
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
 
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
 	// Host The hosts of HTTP requests to filter to. When multiple host query params are provided, they are ORed together
 	Host *externalRef14.HostQueryParam `form:"host,omitempty" json:"host,omitempty"`
 
@@ -4712,6 +4848,9 @@ type GetHttpLatencyParams struct {
 
 	// Quantile The quantile of latencies to fetch. When multiple quantile query params are provided, they are ORed together
 	Quantile *externalRef14.Quantile `form:"quantile,omitempty" json:"quantile,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetHttpRequestsParams defines parameters for GetHttpRequests.
@@ -4732,6 +4871,12 @@ type GetHttpRequestsParams struct {
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
 
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
 	// Host The hosts of HTTP requests to filter to. When multiple host query params are provided, they are ORed together
 	Host *externalRef14.HostQueryParam `form:"host,omitempty" json:"host,omitempty"`
 
@@ -4740,6 +4885,9 @@ type GetHttpRequestsParams struct {
 
 	// AggregateBy The field to aggregate by
 	AggregateBy *externalRef14.HttpAggregateBy `form:"aggregateBy,omitempty" json:"aggregateBy,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetInstanceCountParams defines parameters for GetInstanceCount.
@@ -4759,6 +4907,15 @@ type GetInstanceCountParams struct {
 	// Service This parameter is deprecated. Please use `resource` instead
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
+
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetMemoryParams defines parameters for GetMemory.
@@ -4779,8 +4936,17 @@ type GetMemoryParams struct {
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
 
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
 	// Instance Instance ID to query. When multiple instance ID query params are provided, they are ORed together
 	Instance *externalRef14.InstanceQueryParam `form:"instance,omitempty" json:"instance,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetMemoryLimitParams defines parameters for GetMemoryLimit.
@@ -4801,8 +4967,17 @@ type GetMemoryLimitParams struct {
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
 
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
 	// Instance Instance ID to query. When multiple instance ID query params are provided, they are ORed together
 	Instance *externalRef14.InstanceQueryParam `form:"instance,omitempty" json:"instance,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetMemoryTargetParams defines parameters for GetMemoryTarget.
@@ -4823,8 +4998,17 @@ type GetMemoryTargetParams struct {
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Service *externalRef14.ServiceQueryParam `form:"service,omitempty" json:"service,omitempty"`
 
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
 	// Instance Instance ID to query. When multiple instance ID query params are provided, they are ORed together
 	Instance *externalRef14.InstanceQueryParam `form:"instance,omitempty" json:"instance,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetReplicationLagParams defines parameters for GetReplicationLag.
@@ -4840,6 +5024,15 @@ type GetReplicationLagParams struct {
 
 	// Resource Postgres ID to query. When multiple resource query params are provided, they are ORed together
 	Resource *externalRef14.PostgresResourceQueryParam `form:"resource,omitempty" json:"resource,omitempty"`
+
+	// Project The ID of a project to query. The query covers the resources in the project that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the project. Only one project can be provided. A project that doesn't exist or that you can't access returns a 404.
+	Project *externalRef14.ProjectQueryParam `form:"project,omitempty" json:"project,omitempty"`
+
+	// Environment The ID of an environment to query. The query covers the resources in the environment that you can view, so `resource` is optional when this is provided. If `resource` is also provided, the query covers only those resources, and each must belong to the environment. Only one environment can be provided. If `project` is also provided, the environment must belong to that project. An environment that doesn't exist or that you can't access returns a 404.
+	Environment *externalRef14.EnvironmentQueryParam `form:"environment,omitempty" json:"environment,omitempty"`
+
+	// Region The region to query when querying by `project` or `environment`. Required when the project's or environment's resources are in more than one region
+	Region *externalRef14.RegionQueryParam `form:"region,omitempty" json:"region,omitempty"`
 }
 
 // GetTaskRunsCompletedParams defines parameters for GetTaskRunsCompleted.
@@ -5230,6 +5423,35 @@ type ConnectSandboxFilesParams struct {
 	//
 	// Relative paths are resolved from the image's `WORKDIR`, or the home directory if no `WORKDIR` is set. Use `.` for that working directory. Absolute paths are resolved from the sandbox filesystem root.
 	Path string `form:"path" json:"path"`
+}
+
+// ListSandboxPortsParams defines parameters for ListSandboxPorts.
+type ListSandboxPortsParams struct {
+	// OwnerId The ID of the workspace the sandbox belongs to. If provided, it must match the sandbox's workspace. If omitted, Render determines the workspace from the sandbox ID.
+	OwnerId *externalRef17.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
+}
+
+// HideSandboxPortParams defines parameters for HideSandboxPort.
+type HideSandboxPortParams struct {
+	// OwnerId The ID of the workspace the sandbox belongs to. If provided, it must match the sandbox's workspace. If omitted, Render determines the workspace from the sandbox ID.
+	OwnerId *externalRef17.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
+}
+
+// RetrieveSandboxPortParams defines parameters for RetrieveSandboxPort.
+type RetrieveSandboxPortParams struct {
+	// OwnerId The ID of the workspace the sandbox belongs to. If provided, it must match the sandbox's workspace. If omitted, Render determines the workspace from the sandbox ID.
+	OwnerId *externalRef17.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
+}
+
+// ExposeSandboxPortParams defines parameters for ExposeSandboxPort.
+type ExposeSandboxPortParams struct {
+	// OwnerId The ID of the workspace the sandbox belongs to. If provided, it must match the sandbox's workspace. If omitted, Render determines the workspace from the sandbox ID.
+	OwnerId *externalRef17.OwnerId `form:"ownerId,omitempty" json:"ownerId,omitempty"`
+}
+
+// ExposeSandboxPort409JSONResponseBody defines parameters for ExposeSandboxPort.
+type ExposeSandboxPort409JSONResponseBody struct {
+	union json.RawMessage
 }
 
 // ConnectSandboxRunParams defines parameters for ConnectSandboxRun.
@@ -6632,6 +6854,68 @@ func (t EventTypeParam) MarshalJSON() ([]byte, error) {
 }
 
 func (t *EventTypeParam) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsExternalRef17SandboxPortLimitError returns the union data inside the ExposeSandboxPort409JSONResponseBody as a externalRef17.SandboxPortLimitError
+func (t ExposeSandboxPort409JSONResponseBody) AsExternalRef17SandboxPortLimitError() (externalRef17.SandboxPortLimitError, error) {
+	var body externalRef17.SandboxPortLimitError
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExternalRef17SandboxPortLimitError overwrites any union data inside the ExposeSandboxPort409JSONResponseBody as the provided externalRef17.SandboxPortLimitError
+func (t *ExposeSandboxPort409JSONResponseBody) FromExternalRef17SandboxPortLimitError(v externalRef17.SandboxPortLimitError) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExternalRef17SandboxPortLimitError performs a merge with any union data inside the ExposeSandboxPort409JSONResponseBody, using the provided externalRef17.SandboxPortLimitError
+func (t *ExposeSandboxPort409JSONResponseBody) MergeExternalRef17SandboxPortLimitError(v externalRef17.SandboxPortLimitError) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsError returns the union data inside the ExposeSandboxPort409JSONResponseBody as a Error
+func (t ExposeSandboxPort409JSONResponseBody) AsError() (Error, error) {
+	var body Error
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromError overwrites any union data inside the ExposeSandboxPort409JSONResponseBody as the provided Error
+func (t *ExposeSandboxPort409JSONResponseBody) FromError(v Error) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeError performs a merge with any union data inside the ExposeSandboxPort409JSONResponseBody, using the provided Error
+func (t *ExposeSandboxPort409JSONResponseBody) MergeError(v Error) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ExposeSandboxPort409JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ExposeSandboxPort409JSONResponseBody) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

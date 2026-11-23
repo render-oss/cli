@@ -103,11 +103,12 @@ func (r *Repo) CreateSandbox(
 		return nil, fmt.Errorf("create sandbox: success response missing sandbox body")
 	}
 
+	sb := sandboxFromDetail(resp.JSON201)
 	if onEvent != nil {
-		onEvent(resp.JSON201)
+		onEvent(sb)
 	}
 
-	return resp.JSON201, nil
+	return sb, nil
 }
 
 func (r *Repo) GetSandbox(ctx context.Context, id string) (*sandboxclient.Sandbox, error) {
@@ -125,7 +126,30 @@ func (r *Repo) GetSandbox(ctx context.Context, id string) (*sandboxclient.Sandbo
 		return nil, err
 	}
 
-	return resp.JSON200, nil
+	return sandboxFromDetail(resp.JSON200), nil
+}
+
+// sandboxFromDetail drops the detail-only fields, such as exposed ports, so
+// create and retrieve return the same type as list.
+func sandboxFromDetail(d *sandboxclient.SandboxDetailResponse) *sandboxclient.Sandbox {
+	if d == nil {
+		return nil
+	}
+
+	return &sandboxclient.Sandbox{
+		CreatedAt:          d.CreatedAt,
+		Id:                 d.Id,
+		IdleTimeoutSeconds: d.IdleTimeoutSeconds,
+		Name:               d.Name,
+		NetworkPolicy:      d.NetworkPolicy,
+		Plan:               d.Plan,
+		Region:             d.Region,
+		SandboxGroupId:     d.SandboxGroupId,
+		SharedFilesystems:  d.SharedFilesystems,
+		Status:             d.Status,
+		TerminatedAt:       d.TerminatedAt,
+		TimeoutSeconds:     d.TimeoutSeconds,
+	}
 }
 
 func (r *Repo) ExecSandboxStream(ctx context.Context, id string, command string, onOutput func(*ExecOutputEvent) error) (int, error) {
