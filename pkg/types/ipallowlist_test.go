@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/render-oss/cli/pkg/types"
@@ -59,6 +60,32 @@ func TestParseIPAllowListEntry(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid CIDR")
 	})
+}
+
+func TestParseIPAllowListEntryDescriptionLength(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		description string
+		ok          bool
+	}{
+		{"255 ASCII characters", strings.Repeat("x", 255), true},
+		{"256 ASCII characters", strings.Repeat("x", 256), false},
+		{"255 multi-byte characters", strings.Repeat("雪", 255), true},
+		{"256 multi-byte characters", strings.Repeat("雪", 256), false},
+		{"64 emoji", strings.Repeat("😀", 64), true},
+		{"punctuation and Unicode", "QA,office=入口,description=kept", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cidr, desc, err := types.ParseIPAllowListEntry("cidr=10.0.0.0/8,description=" + tc.description)
+			if !tc.ok {
+				require.ErrorContains(t, err, "description exceeds 255 characters")
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, "10.0.0.0/8", cidr)
+			assert.Equal(t, tc.description, desc)
+		})
+	}
 }
 
 func TestParseIPAllowList(t *testing.T) {

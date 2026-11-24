@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/render-oss/cli/pkg/client"
 )
@@ -38,7 +39,7 @@ func ParseIPAllowListEntry(raw string) (cidrBlock string, description string, er
 	cidrBlock = ipNet.String()
 
 	const maxDescriptionLength = 255
-	if len(description) > maxDescriptionLength {
+	if utf8.RuneCountInString(description) > maxDescriptionLength {
 		return "", "", fmt.Errorf("invalid --ip-allow-list %q: description exceeds %d characters", raw, maxDescriptionLength)
 	}
 
