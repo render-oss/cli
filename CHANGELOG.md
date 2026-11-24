@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.39.0] - 2026-11-24
+
+### Added
+
+- `render sandboxes suspend <sandboxId>` to suspend a running sandbox. Pass `--wait` to wait until the sandbox is suspended, up to 60 seconds
+
+### Changed
+
+- Paragraphs in `--help` menus now wrap to the terminal width.
+
 ## [2.38.0] - 2026-11-19
 
 ### Added
