@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/render-oss/cli/pkg/cfg"
 )
@@ -16,7 +18,48 @@ import (
 const cliOauthClientID = "429024F5E608930E2A65EF92591A25CC"
 const authorizationPendingAPIMsg = "authorization_pending"
 
+// invalidGrantAPIMsg is the RFC 6749 section 5.2 error code for a refresh token
+// that is invalid, expired, revoked, or was issued to another client.
+const invalidGrantAPIMsg = "invalid_grant"
+
 var ErrAuthorizationPending = errors.New("authorization pending")
+
+// ResponseError is returned when an OAuth endpoint responds with a non-200
+// status. It keeps the HTTP status and OAuth error code so callers can tell a
+// definitive grant refusal apart from a temporary failure.
+type ResponseError struct {
+	// StatusCode is the HTTP status code of the response.
+	StatusCode int
+	// Code is the OAuth "error" field of the response body, if present.
+	Code string
+	// Body is the raw response body when it does not contain an OAuth error code.
+	Body string
+	// RetryAfter is the delay from a delta-seconds Retry-After header, if present.
+	RetryAfter time.Duration
+}
+
+func (e *ResponseError) Error() string {
+	if e.Code != "" {
+		return e.Code
+	}
+	if e.Body != "" {
+		return e.Body
+	}
+	return fmt.Sprintf("create device grant failed with status %d", e.StatusCode)
+}
+
+// IsInvalidGrant reports whether err is a definitive refusal of the grant
+// (for example, a revoked or expired refresh token). Other failures, such as
+// network errors, rate limiting, server errors, and malformed responses, are
+// not proof that the grant is unusable and may succeed on a later attempt.
+func IsInvalidGrant(err error) bool {
+	var respErr *ResponseError
+	if !errors.As(err, &respErr) {
+		return false
+	}
+	return respErr.Code == invalidGrantAPIMsg &&
+		(respErr.StatusCode == http.StatusBadRequest || respErr.StatusCode == http.StatusUnauthorized)
+}
 
 type DeviceGrant struct {
 	DeviceCode              string `json:"device_code"`
@@ -157,6 +200,7 @@ func (c *Client) postFor(ctx context.Context, path string, body any, v any) erro
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, err := io.ReadAll(resp.Body)
@@ -164,18 +208,32 @@ func (c *Client) postFor(ctx context.Context, path string, body any, v any) erro
 			return err
 		}
 
+		respErr := &ResponseError{
+			StatusCode: resp.StatusCode,
+			RetryAfter: parseRetryAfter(resp.Header.Get("Retry-After")),
+		}
 		if string(respBody) != "" {
 			var errResp ErrorResponse
 			err = json.Unmarshal(respBody, &errResp)
 			if err == nil && errResp.Error != "" {
-				return errors.New(errResp.Error)
+				respErr.Code = errResp.Error
+			} else {
+				respErr.Body = string(respBody)
 			}
-
-			return errors.New(string(respBody))
 		}
 
-		return fmt.Errorf("create device grant failed with status %d", resp.StatusCode)
+		return respErr
 	}
 
 	return json.NewDecoder(resp.Body).Decode(v)
+}
+
+// parseRetryAfter returns the delay from a delta-seconds Retry-After header.
+// HTTP-date values and malformed headers yield zero.
+func parseRetryAfter(v string) time.Duration {
+	seconds, err := strconv.Atoi(strings.TrimSpace(v))
+	if err != nil || seconds < 0 {
+		return 0
+	}
+	return time.Duration(seconds) * time.Second
 }

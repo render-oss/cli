@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
 
@@ -129,4 +130,28 @@ func TestLoginViewShowsFallbackHintWhenBrowserOpenFails(t *testing.T) {
 
 	assert.Contains(t, l.View(), "Could not open your browser automatically")
 	assert.Contains(t, l.View(), "https://dashboard.example.com/login")
+}
+
+func TestPollForTokenContinuesWhileAuthorizationPending(t *testing.T) {
+	requests := 0
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/device-token", r.URL.Path)
+		requests++
+		if requests == 1 {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"error":"authorization_pending"}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"access_token":"some device token"}`))
+	}))
+	defer s.Close()
+
+	token, err := pollForToken(context.Background(), oauth.NewClient(s.URL), &oauth.DeviceGrant{
+		DeviceCode: "some device code",
+		ExpiresIn:  10,
+		Interval:   1,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "some device token", token.AccessToken)
+	assert.Equal(t, 2, requests)
 }
