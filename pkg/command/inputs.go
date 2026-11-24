@@ -90,12 +90,15 @@ func getStringSliceValue(flags *pflag.FlagSet, tag string) ([]string, error) {
 
 		// StringArray flags support multiple invocations: --flag a --flag b
 		// Unlike StringSlice which expects comma-separated: --flag=a,b
+		// Read the stored values directly: GetStringArray round-trips them
+		// through CSV, which turns an interior CRLF into LF and drops an
+		// explicitly empty argument.
 		if flag.Value.Type() == "stringArray" {
-			val, err := flags.GetStringArray(tag)
-			if err != nil {
-				return nil, err
+			sliceValue, ok := flag.Value.(pflag.SliceValue)
+			if !ok {
+				return nil, fmt.Errorf("unexpected string array type")
 			}
-			return val, nil
+			return sliceValue.GetSlice(), nil
 		}
 	}
 

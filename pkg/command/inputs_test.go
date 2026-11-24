@@ -156,6 +156,33 @@ func TestParseCommand(t *testing.T) {
 		require.Equal(t, []string{"bar", "baz"}, v.Foo)
 	})
 
+	t.Run("parse string array keeps values verbatim", func(t *testing.T) {
+		type testStruct struct {
+			Foo []string `cli:"foo"`
+		}
+		for _, tc := range []struct {
+			name string
+			args []string
+			want []string
+		}{
+			{"interior CRLF", []string{"--foo", "K=first\r\nsecond"}, []string{"K=first\r\nsecond"}},
+			{"LF, lone CR and tab", []string{"--foo", "K=a\nb\rc\td"}, []string{"K=a\nb\rc\td"}},
+			{"commas and quotes", []string{"--foo", `K="a,b"`, "--foo", "L=c,d"}, []string{`K="a,b"`, "L=c,d"}},
+			{"explicit empty argument", []string{"--foo="}, []string{""}},
+			{"valid empty value", []string{"--foo", "K="}, []string{"K="}},
+			{"no flag", nil, []string{}},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				var v testStruct
+				cmd := &cobra.Command{}
+				cmd.Flags().StringArray("foo", []string{}, "")
+				require.NoError(t, cmd.ParseFlags(tc.args))
+				require.NoError(t, command.ParseCommand(cmd, []string{}, &v))
+				require.Equal(t, tc.want, v.Foo)
+			})
+		}
+	})
+
 	t.Run("arg parsing", func(t *testing.T) {
 		t.Run("simple arg", func(t *testing.T) {
 			type testStruct struct {
