@@ -191,12 +191,16 @@ func TestNormalizeAndValidateUpdateInput(t *testing.T) {
 	t.Run("normalizes and validates", func(t *testing.T) {
 		input := servicetypes.ServiceUpdateInput{
 			Name:            " new-name ",
+			RootDirectory:   pointers.From(" app "),
 			BuildCommand:    pointers.From("  npm ci  "),
 			ServiceIDOrName: "my-service-id",
 		}
 		got, err := servicetypes.NormalizeAndValidateUpdateInput(input)
 		require.NoError(t, err)
 		require.Equal(t, "new-name", got.Name)
+		require.Equal(t, "app", *got.RootDirectory)
+		// Command text is sent byte-for-byte; only other fields are trimmed.
+		require.Equal(t, "  npm ci  ", *got.BuildCommand)
 	})
 
 	t.Run("empty build-command is preserved to allow clearing", func(t *testing.T) {
@@ -342,5 +346,37 @@ func TestValidateForServiceType(t *testing.T) {
 			err := input.ValidateForServiceType(st)
 			require.NoError(t, err, "build-command should be allowed for %s", st)
 		}
+	})
+}
+
+func TestNormalizeServiceUpdateCLIInputCommandText(t *testing.T) {
+	t.Run("keeps command text exactly", func(t *testing.T) {
+		got := servicetypes.NormalizeServiceUpdateCLIInput(servicetypes.ServiceUpdateInput{
+			BuildCommand:     pointers.From(`printf '%s' tail\ `),
+			StartCommand:     pointers.From("printf '%s' tail\\\t"),
+			PreDeployCommand: pointers.From(" bin/migrate "),
+			CronCommand:      pointers.From(`printf '%s' 'tail '`),
+			CronSchedule:     pointers.From(" 0 * * * * "),
+		})
+		assert.Equal(t, `printf '%s' tail\ `, *got.BuildCommand)
+		assert.Equal(t, "printf '%s' tail\\\t", *got.StartCommand)
+		assert.Equal(t, " bin/migrate ", *got.PreDeployCommand)
+		assert.Equal(t, `printf '%s' 'tail '`, *got.CronCommand)
+		assert.Equal(t, "0 * * * *", *got.CronSchedule)
+	})
+
+	t.Run("whitespace-only commands clear and unset commands stay unset", func(t *testing.T) {
+		got := servicetypes.NormalizeServiceUpdateCLIInput(servicetypes.ServiceUpdateInput{
+			BuildCommand: pointers.From(" \t "),
+			StartCommand: pointers.From(""),
+			CronCommand:  pointers.From("   "),
+		})
+		require.NotNil(t, got.BuildCommand)
+		assert.Equal(t, "", *got.BuildCommand)
+		require.NotNil(t, got.StartCommand)
+		assert.Equal(t, "", *got.StartCommand)
+		require.NotNil(t, got.CronCommand)
+		assert.Equal(t, "", *got.CronCommand)
+		assert.Nil(t, got.PreDeployCommand)
 	})
 }

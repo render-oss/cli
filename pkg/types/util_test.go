@@ -98,3 +98,46 @@ func TestOptionalNonZeroString(t *testing.T) {
 		require.Equal(t, "value", *result)
 	})
 }
+
+func TestOptionalCommandText(t *testing.T) {
+	t.Run("returns nil for nil pointer", func(t *testing.T) {
+		require.Nil(t, types.OptionalCommandText(nil))
+	})
+
+	t.Run("returns empty string for whitespace-only string", func(t *testing.T) {
+		whitespace := " \t "
+		result := types.OptionalCommandText(&whitespace)
+		require.NotNil(t, result)
+		require.Equal(t, "", *result)
+	})
+
+	t.Run("keeps surrounding whitespace", func(t *testing.T) {
+		value := " printf '%s' tail\\ "
+		result := types.OptionalCommandText(&value)
+		require.NotNil(t, result)
+		require.Equal(t, " printf '%s' tail\\ ", *result)
+	})
+}
+
+func TestOptionalNonZeroCommandText(t *testing.T) {
+	t.Run("returns nil for nil pointer", func(t *testing.T) {
+		require.Nil(t, types.OptionalNonZeroCommandText(nil))
+	})
+
+	t.Run("returns nil for empty string", func(t *testing.T) {
+		empty := ""
+		require.Nil(t, types.OptionalNonZeroCommandText(&empty))
+	})
+
+	t.Run("returns nil for whitespace-only string", func(t *testing.T) {
+		whitespace := " \t "
+		require.Nil(t, types.OptionalNonZeroCommandText(&whitespace))
+	})
+
+	t.Run("keeps surrounding whitespace", func(t *testing.T) {
+		value := "printf '%s' tail\\\t"
+		result := types.OptionalNonZeroCommandText(&value)
+		require.NotNil(t, result)
+		require.Equal(t, "printf '%s' tail\\\t", *result)
+	})
+}
