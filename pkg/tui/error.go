@@ -57,6 +57,9 @@ func (m *ErrorModel) View() string {
 	if errors.As(m.Err, userFacingError) {
 		title = userFacingError.Title
 		message = userFacingError.Message
+		if message == "" && userFacingError.Err != nil {
+			message = userFacingError.Err.Error()
+		}
 	} else {
 		message = m.Err.Error()
 	}
