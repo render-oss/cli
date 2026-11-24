@@ -200,6 +200,20 @@ server.Postgres.Add(renderapi.NewPostgres(client.PostgresDetail{
 }))
 ```
 
+## Fixing Regen PRs
+
+When a regen PR (`auto/regen-cli`) breaks the build, push a follow-up
+commit to that branch. Don't edit `pkg/client/`.
+
+- Fix call sites in the repo layer (`pkg/*/repo.go`). If a response type
+  changes, map it back to the type callers already use. This keeps
+  behavior the same.
+- A required parameter that becomes optional turns into a pointer. Pass
+  `&x` to keep sending the same request.
+- Using new API fields or filters is a feature. Do it in a separate PR.
+- Verify with the CI commands: `go test ./cmd/... ./pkg/... ./internal/...`
+  and `go test -tags cli_json_export_tool ./tools/generate-cli-json-export`.
+
 ## Common Gotchas
 
 - Don't block in `Update()` - use `tea.Cmd` for async work
