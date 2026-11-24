@@ -12,6 +12,7 @@ import (
 	"github.com/render-oss/cli/cmd"
 	"github.com/render-oss/cli/pkg/client"
 	lclient "github.com/render-oss/cli/pkg/client/logs"
+	"github.com/render-oss/cli/pkg/command"
 	"github.com/render-oss/cli/pkg/tui"
 	"github.com/render-oss/cli/pkg/tui/testhelper"
 	"github.com/render-oss/cli/pkg/tui/views"
@@ -109,5 +110,53 @@ func TestLogView(t *testing.T) {
 
 		err := tm.Quit()
 		require.NoError(t, err)
+	})
+
+	t.Run("applying unchanged filters preserves fractional time bounds", func(t *testing.T) {
+		ctx := context.Background()
+
+		start, err := time.Parse(time.RFC3339Nano, "2026-10-11T00:50:00.857576125Z")
+		require.NoError(t, err)
+		end, err := time.Parse(time.RFC3339Nano, "2026-10-11T06:20:00.857576999+05:30")
+		require.NoError(t, err)
+
+		input := views.LogInput{
+			ResourceIDs: []string{"foo"},
+			StartTime:   &command.TimeOrRelative{T: &start},
+			EndTime:     &command.TimeOrRelative{T: &end},
+		}
+
+		interactiveInputs := make(chan views.LogInput, 1)
+		interactiveLogsCommand := func(ctx context.Context, input views.LogInput, breadcrumb string) tea.Cmd {
+			interactiveInputs <- input
+			return nil
+		}
+
+		logCmd := cmd.NewLogsCmd(nil)
+
+		m := views.NewLogsView(ctx, logCmd, interactiveLogsCommand, input, loadFunc)
+		tm := teatest.NewTestModel(t, testhelper.Stackify(m))
+
+		tm.Send(tea.WindowSizeMsg{Width: 80, Height: 80})
+		tm.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("/")})
+
+		teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+			return bytes.Contains(bts, []byte("foo"))
+		}, teatest.WithCheckInterval(time.Millisecond*10), teatest.WithDuration(time.Second*3))
+
+		// Apply without editing any field
+		tm.Send(tea.KeyMsg{Type: tea.KeyEnter})
+
+		select {
+		case got := <-interactiveInputs:
+			require.NotNil(t, got.StartTime)
+			require.NotNil(t, got.EndTime)
+			require.True(t, start.Equal(*got.StartTime.T), "start: expected %s, got %s", start.Format(time.RFC3339Nano), got.StartTime.T.Format(time.RFC3339Nano))
+			require.True(t, end.Equal(*got.EndTime.T), "end: expected %s, got %s", end.Format(time.RFC3339Nano), got.EndTime.T.Format(time.RFC3339Nano))
+		case <-time.After(time.Second * 3):
+			t.Fatal("filter callback was not invoked")
+		}
+
+		require.NoError(t, tm.Quit())
 	})
 }

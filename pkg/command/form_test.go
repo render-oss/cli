@@ -2,6 +2,7 @@ package command
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -117,5 +118,57 @@ func TestPreferredEditor(t *testing.T) {
 	t.Run("respects nano if user explicitly set it", func(t *testing.T) {
 		t.Setenv("EDITOR", "nano")
 		assert.Equal(t, "nano", preferredEditor())
+	})
+}
+
+func TestFormValuesPreserveTimeOrRelative(t *testing.T) {
+	type sample struct {
+		Text      []string        `cli:"text"`
+		StartTime *TimeOrRelative `cli:"start"`
+		EndTime   *TimeOrRelative `cli:"end"`
+	}
+
+	now := time.Date(2026, 10, 11, 1, 0, 0, 0, time.UTC)
+	for _, str := range []string{
+		"2026-10-11T00:50:00.857576125Z",
+		"2026-10-11T00:41:23.001Z",
+		"2026-10-11T06:11:23.603458191+05:30",
+		"2026-10-11T00:41:23Z",
+		"2026-10-11T06:11:23+05:30",
+		"5m",
+	} {
+		t.Run(str, func(t *testing.T) {
+			parsed, err := ParseTime(now, &str)
+			assert.NoError(t, err)
+			input := sample{Text: []string{"original"}, StartTime: parsed, EndTime: parsed}
+
+			t.Run("unchanged apply", func(t *testing.T) {
+				var out sample
+				assert.NoError(t, StructFromFormValues(FormValuesFromStruct(&input), &out))
+				assert.Equal(t, str, out.StartTime.String())
+				assert.Equal(t, str, out.EndTime.String())
+				if parsed.Relative == nil {
+					assert.True(t, parsed.T.Equal(*out.StartTime.T))
+					assert.True(t, parsed.T.Equal(*out.EndTime.T))
+				}
+			})
+
+			t.Run("unrelated text edit", func(t *testing.T) {
+				values := FormValuesFromStruct(&input)
+				values["text"] = NewStringSliceFormValue("updated")
+				var out sample
+				assert.NoError(t, StructFromFormValues(values, &out))
+				assert.Equal(t, []string{"updated"}, out.Text)
+				assert.Equal(t, str, out.StartTime.String())
+				assert.Equal(t, str, out.EndTime.String())
+			})
+		})
+	}
+
+	t.Run("unset times stay unset", func(t *testing.T) {
+		var out sample
+		assert.NoError(t, StructFromFormValues(FormValuesFromStruct(&sample{}), &out))
+		assert.Nil(t, out.StartTime)
+		assert.Nil(t, out.EndTime)
 	})
 }
