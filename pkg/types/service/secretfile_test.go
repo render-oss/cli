@@ -33,11 +33,17 @@ func TestParseSecretFileRef(t *testing.T) {
 		require.Contains(t, err.Error(), "expected NAME:LOCAL_PATH")
 	})
 
-	t.Run("trims whitespace from name and path", func(t *testing.T) {
-		parsed, err := servicetypes.ParseSecretFileRef("  my-secret  :  /tmp/secret.txt  ")
+	t.Run("trims whitespace from the name but keeps the path exact", func(t *testing.T) {
+		parsed, err := servicetypes.ParseSecretFileRef("  my-secret  :/tmp/secret.txt \t\n")
 		require.NoError(t, err)
 		require.Equal(t, "my-secret", parsed.Name)
-		require.Equal(t, "/tmp/secret.txt", parsed.Path)
+		require.Equal(t, "/tmp/secret.txt \t\n", parsed.Path)
+	})
+
+	t.Run("rejects a whitespace-only path", func(t *testing.T) {
+		_, err := servicetypes.ParseSecretFileRef("name: \t")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "expected NAME:LOCAL_PATH")
 	})
 
 	t.Run("handles multiple colons by using first as delimiter", func(t *testing.T) {
