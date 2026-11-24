@@ -21,6 +21,7 @@ func TestBuildUpdateRequest(t *testing.T) {
 	nativeBackgroundWorker := serviceBefore(t, client.BackgroundWorker, &nativeRuntime)
 	nativeCronJob := serviceBefore(t, client.CronJob, &nativeRuntime)
 	dockerCronJob := serviceBefore(t, client.CronJob, &dockerRuntime)
+	imageCronJob := serviceBefore(t, client.CronJob, &imageRuntime)
 	staticSite := serviceBefore(t, client.StaticSite, nil)
 
 	t.Run("maps top-level fields", func(t *testing.T) {
@@ -224,6 +225,24 @@ func TestBuildUpdateRequest(t *testing.T) {
 				expectedErr: "--build-command is only supported for native runtimes",
 			},
 			{
+				name:   "build command for image cron jobs",
+				before: imageCronJob,
+				input: servicetypes.ServiceUpdateInput{
+					BuildCommand: pointers.From("npm ci"),
+					CronCommand:  pointers.From("echo nightly"),
+				},
+				expectedErr: "--build-command is only supported for native runtimes",
+			},
+			{
+				name:   "registry credential for image cron jobs",
+				before: imageCronJob,
+				input: servicetypes.ServiceUpdateInput{
+					CronCommand:        pointers.From("echo nightly"),
+					RegistryCredential: pointers.From("rc-789"),
+				},
+				expectedErr: registryCredentialUpdateIncompatibleRuntimeError,
+			},
+			{
 				name:   "native commands for image runtime services",
 				before: imageWebService,
 				input: servicetypes.ServiceUpdateInput{
@@ -312,6 +331,37 @@ func TestBuildUpdateRequest(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, pointers.From("bundle exec rake nightly"), envDetails.DockerCommand)
 		assert.Equal(t, pointers.From("rc-789"), envDetails.RegistryCredentialId)
+	})
+
+	t.Run("maps image cron job command to docker command", func(t *testing.T) {
+		for _, command := range []string{"echo nightly; exit 0", ""} {
+			body, err := BuildUpdateRequest(imageCronJob, servicetypes.ServiceUpdateInput{
+				CronCommand: pointers.From(command),
+			})
+			require.NoError(t, err)
+			require.NotNil(t, body.ServiceDetails)
+
+			details, err := body.ServiceDetails.AsCronJobDetailsPATCH()
+			require.NoError(t, err)
+			require.NotNil(t, details.EnvSpecificDetails)
+			envDetails, err := details.EnvSpecificDetails.AsDockerDetailsPATCH()
+			require.NoError(t, err)
+			assert.Equal(t, pointers.From(command), envDetails.DockerCommand)
+			assert.Nil(t, envDetails.RegistryCredentialId)
+		}
+	})
+
+	t.Run("omits image cron job command when unset", func(t *testing.T) {
+		body, err := BuildUpdateRequest(imageCronJob, servicetypes.ServiceUpdateInput{
+			CronSchedule: pointers.From("0 12 * * *"),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, body.ServiceDetails)
+
+		details, err := body.ServiceDetails.AsCronJobDetailsPATCH()
+		require.NoError(t, err)
+		assert.Nil(t, details.EnvSpecificDetails)
+		assert.Equal(t, pointers.From("0 12 * * *"), details.Schedule)
 	})
 
 	t.Run("maps static site details", func(t *testing.T) {
