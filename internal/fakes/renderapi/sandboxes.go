@@ -166,6 +166,28 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 		writeJSON(w, http.StatusOK, sb)
 	})
 
+	// Suspend mirrors the API's idempotency: a running sandbox moves to
+	// suspended at once (the fake has no capture to wait on), one that is
+	// already suspending or suspended is accepted unchanged, and anything else
+	// is a conflict.
+	mux.HandleFunc("POST /sandboxes/{sandboxId}/suspend", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		sb, found := s.sandboxByID(r.PathValue("sandboxId"))
+		if !found {
+			writeAPIError(w, http.StatusNotFound, "sandbox not found", "")
+			return
+		}
+		switch sb.Status {
+		case sandboxesclient.SandboxStatusRunning:
+			sb.Status = sandboxesclient.SandboxStatusSuspended
+		case sandboxesclient.SandboxStatusSuspending, sandboxesclient.SandboxStatusSuspended:
+		default:
+			writeAPIError(w, http.StatusConflict, "sandbox is not running", "")
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+	})
+
 	// Connect token routes for exec (runs) and file transfer (files). Only the
 	// mint is faked; the returned uri points nowhere.
 	connectToken := func(w http.ResponseWriter, r *http.Request) {

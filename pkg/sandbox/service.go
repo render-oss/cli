@@ -174,6 +174,12 @@ func (s *Service) ExecStream(ctx context.Context, id string, command string, onO
 	return s.repo.ExecSandboxStream(ctx, id, command, onOutput)
 }
 
+// Suspend starts suspending a running sandbox. It succeeds if the sandbox is
+// already suspending or suspended. The next connection resumes it.
+func (s *Service) Suspend(ctx context.Context, id string) error {
+	return s.repo.SuspendSandbox(ctx, id)
+}
+
 // Terminate terminates a running sandbox.
 func (s *Service) Terminate(ctx context.Context, id string) error {
 	return s.repo.TerminateSandbox(ctx, id)

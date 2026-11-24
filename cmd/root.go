@@ -200,7 +200,7 @@ func setupKVCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
 
 func setupSandboxCommands(parent *cobra.Command, deps *dependencies.Dependencies) {
 	snapshots := newSandboxSnapshotsCmd(newSandboxSnapshotsCreateCmd(deps), newSandboxSnapshotsGetCmd(deps), newSandboxSnapshotsListCmd(deps), newSandboxSnapshotsDeleteCmd(deps))
-	parent.AddCommand(newSandboxCmd(newSandboxCreateCmd(deps), newSandboxCopyCmd(deps), newSandboxExecCmd(deps), newSandboxListCmd(deps), snapshots, newSandboxStopCmd(deps)))
+	parent.AddCommand(newSandboxCmd(newSandboxCreateCmd(deps), newSandboxCopyCmd(deps), newSandboxExecCmd(deps), newSandboxListCmd(deps), snapshots, newSandboxStopCmd(deps), newSandboxSuspendCmd(deps)))
 }
 
 func setupSandboxGroupsCommands(parent *cobra.Command, deps *dependencies.Dependencies) {

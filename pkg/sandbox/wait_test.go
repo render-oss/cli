@@ -143,3 +143,53 @@ func TestWaitUntilRunning(t *testing.T) {
 		})
 	})
 }
+
+func TestWaitUntilSuspended(t *testing.T) {
+	t.Setenv("RENDER_WORKSPACE", "tea-123")
+
+	const (
+		suspending = sandboxclient.SandboxStatusSuspending
+		suspended  = sandboxclient.SandboxStatusSuspended
+		running    = sandboxclient.SandboxStatusRunning
+		errored    = sandboxclient.SandboxStatusErrored
+	)
+
+	tests := []struct {
+		name      string
+		statuses  []sandboxclient.SandboxStatus
+		wantErr   string
+		wantCalls int
+	}{
+		{name: "already suspended", statuses: []sandboxclient.SandboxStatus{suspended}, wantCalls: 1},
+		{name: "suspending then suspended", statuses: []sandboxclient.SandboxStatus{suspending, suspending, suspended}, wantCalls: 3},
+		{name: "still running", statuses: []sandboxclient.SandboxStatus{running}, wantErr: "sandbox sbx-1 is running, not suspended", wantCalls: 1},
+		{name: "errored while suspending", statuses: []sandboxclient.SandboxStatus{suspending, errored}, wantErr: "sandbox sbx-1 is errored, not suspended", wantCalls: 2},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				svc, doer := newStatusDoerService(t, tc.statuses...)
+
+				sb, err := svc.WaitUntilSuspended(t.Context(), "sbx-1", nil)
+
+				if tc.wantErr != "" {
+					require.EqualError(t, err, tc.wantErr)
+				} else {
+					require.NoError(t, err)
+				}
+				require.NotNil(t, sb)
+				assert.Equal(t, tc.statuses[tc.wantCalls-1], sb.Status)
+				assert.Equal(t, tc.wantCalls, doer.calls)
+			})
+		})
+	}
+
+	t.Run("times out after WaitTimeout", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			svc, _ := newStatusDoerService(t, suspending)
+
+			_, err := svc.WaitUntilSuspended(t.Context(), "sbx-1", nil)
+			require.EqualError(t, err, "sandbox sbx-1 did not suspend within 60s (last status: suspending)")
+		})
+	})
+}

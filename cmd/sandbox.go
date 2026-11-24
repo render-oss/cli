@@ -32,6 +32,7 @@ Examples:
   render sandboxes exec sbx-abc123 -- echo hello
   render sandboxes snapshots create sbx-abc123
   render sandboxes snapshots list --group sbg-abc123
+  render sandboxes suspend sbx-abc123
   render sandboxes stop sbx-abc123 --confirm
 `,
 	}

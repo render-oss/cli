@@ -452,6 +452,20 @@ func errFromStreamResponse(resp *http.Response) error {
 	return fmt.Errorf("received response code %d", resp.StatusCode)
 }
 
+func (r *Repo) SuspendSandbox(ctx context.Context, id string) error {
+	workspace, err := config.WorkspaceID()
+	if err != nil {
+		return err
+	}
+
+	resp, err := r.client.SuspendSandboxWithResponse(ctx, id, &client.SuspendSandboxParams{OwnerId: &workspace})
+	if err != nil {
+		return err
+	}
+
+	return client.ErrorFromResponse(resp)
+}
+
 func (r *Repo) TerminateSandbox(ctx context.Context, id string) error {
 	workspace, err := config.WorkspaceID()
 	if err != nil {
