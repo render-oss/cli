@@ -49,6 +49,19 @@ func allowedDestinations(policy sandboxclient.SandboxNetworkPolicy) string {
 	return fmt.Sprintf("%d domains", len(rules))
 }
 
+func SandboxPortTable(ports []sandboxclient.SandboxExposedPort) string {
+	t := newTable()
+	t.AppendHeader(table.Row{"Port", "URL"})
+	for _, p := range ports {
+		t.AppendRow(table.Row{p.Port, p.Url})
+	}
+	return FormatString(t.Render())
+}
+
+func SandboxPortDetail(p *sandboxclient.SandboxExposedPort) string {
+	return FormatStringF("Port: %d\nURL:  %s", p.Port, p.Url)
+}
+
 func SandboxDetail(sandbox *sandboxclient.Sandbox) string {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("ID:      %s", sandbox.Id))

@@ -1122,6 +1122,7 @@ func NewServer(t *testing.T) *Server {
 	registerSandboxGroupRoutes(mux, s, record)
 	registerEnvironmentResourceRoutes(mux, s, record)
 	registerSandboxRoutes(mux, s, record)
+	registerSandboxPortRoutes(mux, s, record)
 	registerSandboxSnapshotRoutes(mux, s, record)
 	registerSandboxCredentialRoutes(mux, s, record)
 	registerSandboxBuildRoutes(mux, s, record)

@@ -23,6 +23,7 @@ type SandboxResource struct {
 	Resource[*sandboxesclient.Sandbox]
 	getErrorQueue     []int
 	connectErrorQueue []int
+	ports             map[string]sandboxesclient.SandboxExposedPorts
 }
 
 // RespondToGetWith queues an HTTP error status for the next

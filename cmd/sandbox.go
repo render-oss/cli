@@ -30,6 +30,7 @@ Examples:
   render sandboxes create --snapshot-id snp-abc123
   render sandboxes copy ./main.py sbx-abc123:/app/main.py
   render sandboxes exec sbx-abc123 -- echo hello
+  render sandboxes ports expose sbx-abc123 8080
   render sandboxes snapshots create sbx-abc123
   render sandboxes snapshots list --group sbg-abc123
   render sandboxes suspend sbx-abc123
