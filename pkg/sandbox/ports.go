@@ -9,6 +9,12 @@ import (
 	"github.com/render-oss/cli/pkg/config"
 )
 
+// Created is a new sandbox and the public URLs of the ports it exposes.
+type Created struct {
+	*sandboxclient.Sandbox
+	ExposedPorts sandboxclient.SandboxExposedPorts `json:"exposed_ports,omitempty"`
+}
+
 // HiddenPort is a port that is no longer exposed.
 type HiddenPort struct {
 	SandboxID string `json:"sandboxId"`

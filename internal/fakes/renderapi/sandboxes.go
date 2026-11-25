@@ -328,6 +328,16 @@ func registerSandboxRoutes(mux *http.ServeMux, s *Server, record func(*http.Requ
 		if body.IdleTimeoutSeconds != nil {
 			created.IdleTimeoutSeconds = *body.IdleTimeoutSeconds
 		}
-		writeJSON(w, http.StatusCreated, s.Sandboxes.Add(created))
+		s.Sandboxes.Add(created)
+
+		if body.ExposedPorts != nil {
+			for _, p := range *body.ExposedPorts {
+				s.Sandboxes.ExposePorts(created.Id, p.Port)
+			}
+		}
+		writeJSON(w, http.StatusCreated, sandboxDetail{
+			Sandbox:      created,
+			ExposedPorts: s.Sandboxes.Ports(created.Id),
+		})
 	})
 }

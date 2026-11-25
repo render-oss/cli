@@ -31,6 +31,7 @@ type SandboxCreateInput struct {
 	SnapshotID       string   `cli:"snapshot-id"`
 	From             string   `cli:"from"`
 	Image            string   `cli:"image"`
+	ExposePorts      []int    `cli:"expose-ports"`
 	Wait             bool     `cli:"wait"`
 }
 
@@ -179,6 +180,7 @@ Examples:
   render sandboxes create --image python
   render sandboxes create --image sbb-cph1rs3idesc73a2b2mg
   render sandboxes create --from gold --wait
+  render sandboxes create --expose-ports 8080,6080
 `,
 	}
 
@@ -209,6 +211,8 @@ Examples:
 	setFlagAlias(cmd.Flags(), "build", "image")
 	cmd.MarkFlagsMutuallyExclusive("image", "from")
 	cmd.MarkFlagsMutuallyExclusive("image", "snapshot-id")
+	cmd.Flags().IntSlice("expose-ports", nil, "Expose these ports at public URLs when the sandbox starts, e.g. 8080,6080. Up to 10 ports. Change them later with \"render sandboxes ports\"")
+	setFlagPlaceholder(cmd.Flags(), "expose-ports", "PORTS")
 	cmd.Flags().Bool("wait", false, fmt.Sprintf("Wait until the sandbox is running, up to %d seconds, instead of returning while it's still creating", int(sandbox.WaitTimeout.Seconds())))
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -258,7 +262,7 @@ Examples:
 
 		// A failed wait still prints the sandbox, so callers get its ID.
 		var waitErr error
-		_, err = command.NonInteractive(cmd, func() (*sandboxclient.Sandbox, error) {
+		_, err = command.NonInteractive(cmd, func() (*sandbox.Created, error) {
 			sb, err := deps.SandboxService().Create(cmd.Context(), sandbox.CreateInput{
 				Name:           name,
 				SandboxGroupID: input.SandboxGroupID,
@@ -273,6 +277,7 @@ Examples:
 				SnapshotName:   snapshotName,
 				ImageID:        imageID,
 				ImageName:      imageName,
+				ExposePorts:    input.ExposePorts,
 			}, onEvent)
 			if err != nil || !input.Wait {
 				return sb, err
@@ -282,10 +287,12 @@ Examples:
 			var waited *sandboxclient.Sandbox
 			waited, waitErr = deps.SandboxService().WaitUntilRunning(ctx, sb.Id, onEvent)
 			if waited != nil {
-				sb = waited
+				sb.Sandbox = waited
 			}
 			return sb, nil
-		}, text.SandboxDetail)
+		}, func(sb *sandbox.Created) string {
+			return text.SandboxDetailWithPorts(sb.Sandbox, sb.ExposedPorts)
+		})
 		if err != nil {
 			return err
 		}

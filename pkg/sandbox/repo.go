@@ -89,7 +89,7 @@ func (r *Repo) CreateSandbox(
 	ctx context.Context,
 	body client.CreateSandboxJSONRequestBody,
 	onEvent func(*sandboxclient.Sandbox),
-) (*sandboxclient.Sandbox, error) {
+) (*Created, error) {
 	resp, err := r.client.CreateSandboxWithResponse(ctx, body)
 	if err != nil {
 		return nil, err
@@ -108,7 +108,11 @@ func (r *Repo) CreateSandbox(
 		onEvent(sb)
 	}
 
-	return sb, nil
+	created := &Created{Sandbox: sb}
+	if resp.JSON201.ExposedPorts != nil {
+		created.ExposedPorts = *resp.JSON201.ExposedPorts
+	}
+	return created, nil
 }
 
 func (r *Repo) GetSandbox(ctx context.Context, id string) (*sandboxclient.Sandbox, error) {

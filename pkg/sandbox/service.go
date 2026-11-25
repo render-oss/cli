@@ -39,8 +39,9 @@ type CreateInput struct {
 	SnapshotName *string
 	// ImageID or ImageName starts the sandbox from an imported image. The API
 	// calls images builds.
-	ImageID   string
-	ImageName *string
+	ImageID     string
+	ImageName   *string
+	ExposePorts []int
 }
 
 // allSandboxStatuses is every sandbox status. --all sends the full set so the
@@ -116,7 +117,7 @@ func listParams(input ListInput) *client.ListSandboxesParams {
 // Create resolves the active workspace, builds the request body from input, and
 // creates a sandbox. onEvent, when non-nil, is invoked for each streamed status
 // update during creation.
-func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*sandboxclient.Sandbox)) (*sandboxclient.Sandbox, error) {
+func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*sandboxclient.Sandbox)) (*Created, error) {
 	workspace, err := config.WorkspaceID()
 	if err != nil {
 		return nil, err
@@ -158,6 +159,13 @@ func (s *Service) Create(ctx context.Context, input CreateInput, onEvent func(*s
 	}
 	if input.ImageName != nil {
 		body.BuildName = input.ImageName
+	}
+	if len(input.ExposePorts) > 0 {
+		ports := make(sandboxclient.SandboxPorts, len(input.ExposePorts))
+		for i, port := range input.ExposePorts {
+			ports[i] = sandboxclient.SandboxPort{Protocol: sandboxclient.Tcp, Port: port}
+		}
+		body.ExposedPorts = &ports
 	}
 
 	return s.repo.CreateSandbox(ctx, body, onEvent)

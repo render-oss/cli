@@ -14,7 +14,8 @@ func newSandboxPortsCmd(children ...*cobra.Command) *cobra.Command {
 		Long: `Manage the ports a sandbox exposes at public URLs.
 
 An exposed port is reachable over HTTP and WebSockets at its own URL. A
-sandbox can expose up to 10 ports.`,
+sandbox can expose up to 10 ports. Expose ports when the sandbox starts with
+"render sandboxes create --expose-ports".`,
 		Example: `  # Expose port 8080
   render sandboxes ports expose sbx-abc123 8080
 

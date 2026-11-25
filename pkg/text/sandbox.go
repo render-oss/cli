@@ -62,6 +62,19 @@ func SandboxPortDetail(p *sandboxclient.SandboxExposedPort) string {
 	return FormatStringF("Port: %d\nURL:  %s", p.Port, p.Url)
 }
 
+// SandboxDetailWithPorts adds each exposed port and its URL to SandboxDetail.
+func SandboxDetailWithPorts(sandbox *sandboxclient.Sandbox, ports []sandboxclient.SandboxExposedPort) string {
+	out := SandboxDetail(sandbox)
+	for i, p := range ports {
+		label := "Ports:  "
+		if i > 0 {
+			label = "        "
+		}
+		out += FormatStringF("%s %d %s", label, p.Port, p.Url)
+	}
+	return out
+}
+
 func SandboxDetail(sandbox *sandboxclient.Sandbox) string {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("ID:      %s", sandbox.Id))

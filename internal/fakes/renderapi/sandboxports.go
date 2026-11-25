@@ -14,6 +14,11 @@ const (
 	SandboxPortLimit           = 10
 )
 
+type sandboxDetail struct {
+	*sandboxesclient.Sandbox
+	ExposedPorts sandboxesclient.SandboxExposedPorts `json:"exposed_ports,omitempty"`
+}
+
 func exposedPort(sandboxID string, port int) sandboxesclient.SandboxExposedPort {
 	return sandboxesclient.SandboxExposedPort{
 		Protocol: sandboxesclient.Tcp,

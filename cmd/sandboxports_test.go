@@ -159,10 +159,88 @@ func TestSandboxPortsList_EmptyJSON(t *testing.T) {
 	assert.JSONEq(t, `[]`, result.Stdout)
 }
 
+func TestSandboxCreate_ExposePorts(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{name: "without wait"},
+		{name: "with wait", args: []string{"--wait"}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			server := newSandboxCreateServer(t)
+			args := append(
+				[]string{"sandboxes", "create", "--expose-ports", "8080,6080", "--output", "json"},
+				tc.args...,
+			)
+
+			result, err := executeSandboxCommand(t, server, args...)
+			require.NoError(t, err)
+
+			req, ok := server.LastRequest("POST", "/sandboxes")
+			require.True(t, ok)
+			var body struct {
+				ExposedPorts []map[string]any `json:"exposed_ports"`
+			}
+			require.NoError(t, json.Unmarshal(req.Body, &body))
+			assert.Equal(t, []map[string]any{
+				{"protocol": "tcp", "port": float64(8080)},
+				{"protocol": "tcp", "port": float64(6080)},
+			}, body.ExposedPorts)
+
+			var got struct {
+				Id           string                         `json:"id"`
+				Status       sandboxes.SandboxStatus        `json:"status"`
+				ExposedPorts []sandboxes.SandboxExposedPort `json:"exposed_ports"`
+			}
+			require.NoError(t, json.Unmarshal([]byte(result.Stdout), &got), result.Stdout)
+			assert.NotEmpty(t, got.Id)
+			assert.Equal(t, []string{
+				"https://" + got.Id + "--8080.onrender.run",
+				"https://" + got.Id + "--6080.onrender.run",
+			}, portURLs(got.ExposedPorts))
+		})
+	}
+}
+
+func TestSandboxCreate_ExposePortsText(t *testing.T) {
+	server := newSandboxCreateServer(t)
+
+	args := []string{"sandboxes", "create", "--expose-ports", "8080", "--output", "text"}
+	result, err := executeSandboxCommand(t, server, args...)
+	require.NoError(t, err)
+
+	created := server.Sandboxes.Only(t)
+	assert.Contains(t, result.Stdout, "Ports:   8080 https://"+created.Id+"--8080.onrender.run")
+}
+
+func TestSandboxCreate_WithoutExposePortsOmitsField(t *testing.T) {
+	server := newSandboxCreateServer(t)
+
+	result, err := executeSandboxCommand(t, server, "sandboxes", "create", "--output", "json")
+	require.NoError(t, err)
+
+	req, ok := server.LastRequest("POST", "/sandboxes")
+	require.True(t, ok)
+	assert.NotContains(t, string(req.Body), "exposed_ports")
+	assert.NotContains(t, result.Stdout, "exposed_ports")
+	assert.NotContains(t, result.Stdout, "Ports:")
+}
+
 func portNumbers(ports []sandboxes.SandboxExposedPort) []int {
 	out := make([]int, len(ports))
 	for i, p := range ports {
 		out[i] = p.Port
+	}
+	return out
+}
+
+func portURLs(ports []sandboxes.SandboxExposedPort) []string {
+	out := make([]string, len(ports))
+	for i, p := range ports {
+		out[i] = p.Url
 	}
 	return out
 }
